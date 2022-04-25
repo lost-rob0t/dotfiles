@@ -42,7 +42,7 @@
     thunderbird
     tor-browser-bundle-bin
     vim
-    virt-manager-qt
+    virt-manager
     element-desktop
     qbittorrent
 
