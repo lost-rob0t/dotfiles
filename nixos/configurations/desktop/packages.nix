@@ -65,7 +65,6 @@
     torsocks
     hashcat
     veracrypt
-
     ## Libs
     libtool
     libvterm
@@ -108,5 +107,8 @@
   programs.git = {
     package = pkgs.gitFull;
     enable = true;
-    };
+  };
+  programs.dconf = {
+    enable = true;
+  };
 }
