@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: dotdot-pwn
+# uuid: dotdot-pwn
+# key: trigger-key
+# condition: t
+# --
+
+** LFI test on host $1
+#+begin_src shell :async :results output replace
+dotdotpwn -m ${2:http-url} -o ${3:unix} -X -r scans/$1_MM-DD-YYY_HOUR-MIN.txt -h $1 -u $4 -d ${4:6} -f ${5:/etc/passwd} -k {6:"root:"}
+#+end_src

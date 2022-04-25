@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: nikto-scan
+# uuid: nikto-scan
+# key: trigger-key
+# condition: t
+# --
+
+** Nikto Webserver scan on $1
+#+begin_src shell :async :results output replace
+nikto -h $1 -o scans/$1-nikto-scan.txt  -a auto
+#+end_src

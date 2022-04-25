@@ -1,0 +1,127 @@
+#+TITLE: Doom Emacs configuration
+#+AUTHOR: nsaspy
+#+PROPERTY: header-args :emacs-lisp tangle: ./config.el :tangle yes :comments link
+#+STARTUP: org-startup-folded: showall
+#+DISABLE_SPELLCHECKER: t
+#+BEGIN_SRC emacs-lisp
+;; -*- lexical-binding: t -*-
+#+END_SRC
+
+
+* Emacs Theme and Style
+** Theme
+#+begin_src emacs-lisp
+(setq doom-theme 'doom-outrun-electric)
+#+end_src
+** Show Line numbers
+#+begin_src emacs-lisp
+(setq display-line-numbers-type t)
+#+end_src
+* KeyBinds
+** Magit
+By defualt doom does not alow you to push to a remote from within emacs
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "Push to Remote"
+      "g p p" #'magit-push-current-to-pushremote)
+#+end_src
+** Org Mode
+*** Org Agenda views
+I prefer being able to have difrent views within org agenda, so i can see whats comming up ahead of time.
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "Switch to week view"
+      "o a w" #'org-agenda-week-view)
+
+(map! :leader
+      :desc "switch to month view"
+      "o a m" #'org-agenda-month-view)
+
+(map! :leader
+      :desc "switch to month view"
+      "o a y" #'org-agenda-year-view)
+#+end_src
+*** Org Babel
+Tangle a file
+#+begin_src emacs-lisp
+(add-hook! 'org-mode
+  (lambda()
+    (map! :leader
+          :desc "Tangle a file"
+          "b t" #'org-babel-tangle)))
+(add-hook! 'org-mode
+  (lambda()
+    (map! :leader
+          :desc "Tangle a file"
+          "b t" #'org-babel-tangle)))
+
+(add-hook! 'org-mode
+  (lambda()
+    (map! :leader
+          :desc "Babel execute selected source block"
+          "c b" #'org-babel-execute-src-block)))
+(add-hook! 'org-mode
+  (lambda()
+    (map! :leader
+          :desc "Babel execute buffer"
+          "c B" #'org-babel-execute-buffer)))
+#+end_src
+** Yasnippet
+Add a new template
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "Add a neew template to yasnippet"
+      "a y s" #'+snippets/new)
+#+end_src
+
+Edit a template
+#+RESULTS:
+#+begin_src emacs-lisp
+(map! :leader
+      :desc "Edit template"
+      "a y e" #'+snippets/find)
+#+end_src
+
+* Packages
+** Org
+Setting org dir
+#+begin_src emacs-lisp
+(setq org-directory "~/Documents/Notes/org")
+#+end_src
+
+*** Org structured templates (org tempo)
+I tend to write in alot of languages and i find it handy to beable to protype from within emacs!
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  ;; This is needed as of Org 9.2
+  (require 'org-tempo)
+  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
+  (add-to-list 'org-structure-template-alist '("ni" . "src nim"))
+  (add-to-list 'org-structure-template-alist '("erl" . "src erlang"))
+  (add-to-list 'org-structure-template-alist '("ss" . "src scheme"))
+  (add-to-list 'org-structure-template-alist '("cl" . "src common-lisp")))
+#+end_src
+
+** Deft
+Deft is used for notes. here im setting the default directory
+#+begin_src emacs-lisp
+(setq deft-extenstions '("txt", "org", "md"))
+(setq deft-directory "~/Documents/Notes")
+#+end_src
+
+Deft is not recursive by defualt (it will not go into sub directories)
+#+begin_src emacs-lisp
+(setq deft-recursive t)
+#+end_src
+Tell deft to use the filename as the Tittle of the note
+#+begin_src emacs-lisp
+(setq deft-use-filename-as-title t)
+#+end_src
+
+** Pcap mode
+I work with 802.11 Frames and having a way to view pcap files is handy
+#+begin_src emacs-lisp
+(require 'pcap-mode)
+#+end_src

@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: package-github
+# uuid: package-github
+# key: SPC-P
+# condition: t
+# --
+(package! "${1:name-of-package}" :recipe (:type ${2:git} :host github :repo "${3:user/repo}"))

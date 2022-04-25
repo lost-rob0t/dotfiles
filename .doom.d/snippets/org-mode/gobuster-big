@@ -1,0 +1,14 @@
+# -*- mode: snippet -*-
+# name: gobuster-big
+# uuid:
+# key: trigger-key
+# condition: t
+# --
+
+** GoBuster on host $1
+#+begin_src shell :async :results output replace
+gobuster ${2:dir} -w  ~/wordlists/Discovery/Web-Content/big.txt --url http://${3:$1}
+#+end_src
+
+*** Results
+#+RESULTS:
