@@ -36,6 +36,7 @@
     zsh
     p7zip
     coreutils
+
     ## User Programs
     ungoogled-chromium
     brave
@@ -58,7 +59,7 @@
     python310
     nim nimlsp
     podman-compose
-
+    rnix-lsp
     ## Security
     keepassxc
     tor

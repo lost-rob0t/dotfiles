@@ -346,10 +346,23 @@ Fix lsp not being found on nixos
 ;; Set Flake8 Ignore Codes
 #+end_src
 
+
 ** Direnv
 Make life easy!
 #+begin_src emacs-lisp
 (require 'direnv)
+#+end_src
+
+** Nix
+Nix is a language that allows for repoducible declarative systems/packages.
+
+*** Nix lsp
+#+begin_src emacs-lisp
+(add-to-list 'lsp-language-id-configuration '(nix-mode . "nix"))
+(lsp-register-client
+ (make-lsp-client :new-connection (lsp-stdio-connection '("rnix-lsp"))
+                  :major-modes '(nix-mode)
+                  :server-id 'nix))
 #+end_src
 * Misc
 ** Performance
