@@ -75,6 +75,7 @@
       epkgs.ac-ispell
       epkgs.direnv
       epkgs.lsp-pyright
+      epkgs.pylint
     ]))
 
     # Rice

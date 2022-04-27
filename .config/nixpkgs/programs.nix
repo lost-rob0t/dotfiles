@@ -6,5 +6,6 @@
     pkgs.obs-studio
     pkgs.libreoffice
     pkgs.lutris
+    pkgs.filezilla
   ];
 }

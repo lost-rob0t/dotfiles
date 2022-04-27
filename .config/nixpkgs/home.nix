@@ -5,7 +5,7 @@ let
   
 in
 {
-  imports = [ ./sxhkd.nix  ./programs.nix ];
+  imports = [ ./programs.nix ];
   home.username = "nsaspy";
   home.homeDirectory = "/home/nsaspy";
 
