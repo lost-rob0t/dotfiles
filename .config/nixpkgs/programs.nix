@@ -10,5 +10,7 @@
     pkgs.nerdfonts
     pkgs.discord
     pkgs.cool-retro-term
+    pkgs.obs-studio
+    pkgs.obsidian
   ];
 }
