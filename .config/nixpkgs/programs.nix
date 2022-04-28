@@ -9,5 +9,6 @@
     pkgs.filezilla
     pkgs.nerdfonts
     pkgs.discord
+    pkgs.cool-retro-term
   ];
 }
