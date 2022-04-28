@@ -187,6 +187,16 @@
 (setq python-ident-offset 4)
 ;; Python:1 ends here
 
+;; [[file:config.org::*Python][Python:2]]
+(after! lsp-python-ms
+  (setq lsp-python-ms-executable (executable-find "python-language-server"))
+  (set-lsp-priority! 'mspyls 1))
+;; Python:2 ends here
+
+;; [[file:config.org::*Direnv][Direnv:1]]
+(envrc-global-mode)
+;; Direnv:1 ends here
+
 ;; [[file:config.org::*Performance][Performance:1]]
 (explain-pause-mode nil)
 ;; Performance:1 ends here

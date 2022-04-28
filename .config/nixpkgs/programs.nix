@@ -8,5 +8,6 @@
     pkgs.lutris
     pkgs.filezilla
     pkgs.nerdfonts
+    pkgs.discord
   ];
 }

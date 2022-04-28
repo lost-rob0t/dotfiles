@@ -79,7 +79,7 @@
 (package! podman.el :recipe (:type git :host github :repo "akirak/podman.el"))
 (package! org-wiki.el :recipe (:type git :host github :repo "caiorss/org-wiki"))
 (package! pcap-mode.el :recipe (:type git :host github :repo "orgcandman/pcap-mode"))
-(package! direnv :recipe (:type git :host github :repo "wbolster/emacs-direnv"))
+(package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 
 ;; I have issues with nim path becuase i use choosenim
 (package! exec-path-from-shell  :recipe (:type git :host github :repo "purcell/exec-path-from-shell"))
