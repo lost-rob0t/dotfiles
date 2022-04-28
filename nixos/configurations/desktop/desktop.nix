@@ -11,6 +11,7 @@
       experimental-features = nix-command flakes
     '';
    };
+  nixpkgs.config.allowUnfree = true;
 
 
   imports =
@@ -19,6 +20,7 @@
       ./services.nix
       ./packages.nix
       ./networking.nix
+      ../../containers/container.nix
     ];
 
   # Boot config
@@ -44,6 +46,8 @@
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.unseen = {
     isNormalUser = true;
+    subUidRanges = [{ startUid = 100000; count = 65536; }];
+    subGidRanges = [{ startGid = 100000; count = 65536; }];
     extraGroups = [ "wheel" "libvirt" ]; # Enable ‘sudo’ for the user.
   };
     # This value determines the NixOS release from which the default

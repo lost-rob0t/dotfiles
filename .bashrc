@@ -59,6 +59,14 @@ nixos-rebuild "$@"
 fi
 echo done
 }
+
+function make_password () {
+echo "enter password: "
+read password
+pass=$(mkpasswd -m sha-512 $password)
+echo "$pass"
+}
+
 # Custome aliases for commands
 alias install-doom="install_doom_emacs"
 alias docker-compose="podman-compose"
@@ -67,3 +75,4 @@ alias wttr="curl wttr.in/CMH"
 export PATH=/home/nsaspy/.nimble/bin:$PATH
 #export LD_LIBRARY_PATH=/usr/local/lib
 eval "$(direnv hook bash)"
+eval "$(starship init bash)"

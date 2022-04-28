@@ -7,5 +7,6 @@
     pkgs.libreoffice
     pkgs.lutris
     pkgs.filezilla
+    pkgs.nerdfonts
   ];
 }
