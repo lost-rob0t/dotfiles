@@ -1,0 +1,38 @@
+# -*- mode: snippet -*-
+# name: booker make_doc
+# uuid: booker_make_doc
+# key: make_doc
+# condition: t
+# --
+def make_doc(self, use_json=False):
+    metadata = {
+        "${1:field_name}": $1,
+        $0
+    }
+    if self.is_public:
+        doc = {
+            "operation_id": self.operation_id,
+            "type": "${2:doc_type}",
+            "dataset": self.dataset,
+            "source_dataset": self.source_dataset,
+            "metadata": metadata,
+            "owner_id": self.owner_id
+        }
+    else:
+        doc = {
+            "operation_id": self.operation_id,
+            "type": "$2",
+            "dataset": self.dataset,
+            "source_dataset": self.source_dataset,
+            "private_metadata": metadata,
+            "owner_id": self.owner_id
+        }
+    if self._id:
+        doc["_id"] = self._id
+    if self._rev:
+        doc["_rev"] = self._rev
+
+    if use_json:
+        return json.dumps(doc)
+    else:
+        return doc

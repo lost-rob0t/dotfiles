@@ -1,0 +1,20 @@
+# -*- mode: snippet -*-
+# name: booker_metadata
+# uuid:
+# key: def load
+# condition: t
+# --
+def load(self, doc):
+    meta = get_meta(doc)
+    self._id = doc.get("_id")
+    self._rev = doc.get("_rev")
+    self.date_added = doc.get("date_added")
+    self.date_updated = doc.get("date_updated")
+    self.source_dataset = doc.get("source_dataset")
+    self.dataset = doc.get("dataset")
+    self.owner_id = doc.get("owner_id")
+
+    try:
+        self.${1:field_name}
+    except KeyError:
+        raise ${2:exceptions.ParseDocumentError}
