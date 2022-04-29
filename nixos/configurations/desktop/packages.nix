@@ -60,6 +60,7 @@
     nim nimlsp
     podman-compose
     rnix-lsp
+    sqlite
     ## Security
     keepassxc
     tor
@@ -87,7 +88,6 @@
     dunst
     libvirt
     dmenu
-
     ## Nixos
     nixos-generators
   ];
