@@ -80,7 +80,7 @@
 (package! org-wiki.el :recipe (:type git :host github :repo "caiorss/org-wiki"))
 (package! pcap-mode.el :recipe (:type git :host github :repo "orgcandman/pcap-mode"))
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
-
+(package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 ;; I have issues with nim path becuase i use choosenim
 (package! exec-path-from-shell  :recipe (:type git :host github :repo "purcell/exec-path-from-shell"))
 
@@ -95,3 +95,40 @@
   :ensure t
   :hook
   (nim-mode . lsp))
+(use-package shrface
+  :defer t
+  :config
+  (shrface-basic)
+  (shrface-trial)
+  (shrface-default-keybindings) ; setup default keybindings
+  (setq shrface-href-versatile t))
+
+(use-package eww
+  :defer t
+  :init
+  (add-hook 'eww-after-render-hook #'shrface-mode)
+  :config
+  (require 'shrface))
+
+(use-package nov
+  :defer t
+  :init
+  (add-hook 'nov-mode-hook #'shrface-mode)
+  :config
+  (require 'shrface)
+  (setq nov-shr-rendering-functions '((img . nov-render-img) (title . nov-render-title)))
+  (setq nov-shr-rendering-functions (append nov-shr-rendering-functions shr-external-rendering-functions)))
+
+(use-package anki
+  :defer t
+  :load-path "~/.emacs.d/lisp/anki/"
+  :init
+  (add-hook 'anki-mode-hook #'shrface-mode)
+  (autoload 'anki "anki")
+  (autoload 'anki-browser "anki")
+  (autoload 'anki-list-decks "anki")
+  :config
+  (require 'shrface)
+  (setq anki-shr-rendering-functions (append anki-shr-rendering-functions shr-external-rendering-functions))
+  (setq sql-sqlite-program "/usr/bin/sqlite3")
+  (setq anki-collection-dir "/Users/chandamon/Library/Application Support/Anki2/User 1"))

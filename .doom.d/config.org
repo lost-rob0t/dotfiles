@@ -238,7 +238,22 @@ You can view a pcap file with tshark
 (require 'pcap-mode)
 #+end_src
 
+** inherit org
+inherit-org: Inherit org faces to non-org buffers.
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  (require 'inherit-org)
 
+  (with-eval-after-load 'info
+    (add-hook 'Info-mode-hook 'inherit-org-mode))
+
+  (with-eval-after-load 'helpful
+    (add-hook 'helpful-mode-hook 'inherit-org-mode))
+
+  (with-eval-after-load 'w3m
+    (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
+    (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
+#+end_src
 * Programming
 
 This section would not fit well, therefor it is in its own.

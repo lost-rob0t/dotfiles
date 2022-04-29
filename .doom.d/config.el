@@ -81,39 +81,23 @@
   (add-to-list 'org-structure-template-alist '("cl" . "src common-lisp")))
 ;; Org Tempo templates:1 ends here
 
-;; [[file:config.org::*Org Wiki][Org Wiki:2]]
-(setq org-wiki-location-list
-      '("~/Documents/Notes/org/org-wiki/" "~/Documents/Notes/org/hacker-wiki/"))
-(setq org-wiki-location (car org-wiki-location-list))
-;; Org Wiki:2 ends here
+;; [[file:config.org::*Org Roam][Org Roam:1]]
+(setq org-roam-directory "~/Documents/Notes/org/roam")
+;; Org Roam:1 ends here
 
-;; [[file:config.org::*Org Wiki][Org Wiki:3]]
-(setq org-wiki-backup-location "~/.backups/")
-;; Org Wiki:3 ends here
-
-;; [[file:config.org::*Org Wiki][Org Wiki:4]]
-(setq org-wiki-close-root-switch t)
-;; Org Wiki:4 ends here
-
-;; [[file:config.org::*Org Wiki][Org Wiki:5]]
-(map! :leader
-      (:prefix-map ("n" . "notes")
-       (:prefix ("w" . "wiki")
-        :desc "New Wiki Page" "n"  #'org-wiki-new
-        :desc "Switch Wiki root" "S" #'org-wiki-switch-root
-        :desc "Back up wiki" "B" #'org-wiki-backup-make
-        :desc "open Wiki root in dired" "o" #'org-wiki-dired
-        :desc "open Wiki root  with the system file editor" "O" #'org-wiki-open
-        :desc "open wiki panel" "p" #'org-wiki-panel)))
-;; Org Wiki:5 ends here
-
-;; [[file:config.org::*Org Wiki][Org Wiki:6]]
-;;(map!
-;; :after org
-;; :map org-mode-map
-;; :localleader
-;; :nv "w n" #'org-wki-insert-new)
-;; Org Wiki:6 ends here
+;; [[file:config.org::*Org Roam][Org Roam:2]]
+(setq  org-roam-capture-templates '(
+        ("d" "default" entry (function org-roam--capture-get-point)
+          "* %<%I:%M %p>: %?"
+           :file-name "%<%Y-%m-%d-%H%M%S>-${slug}"
+           :head "#+TITLE: ${title} "
+           :unnarrowed t)
+        ("u" "url" entry (function org-roam--capture-get-point)
+          "* %?\n- Comment: "
+          :file-name "references/%<%Y-%m-%d-%H%M%S>-${slug}"
+          :head "#+TITLE: ${title}"
+          :unnarrowed t)))
+;; Org Roam:2 ends here
 
 ;; [[file:config.org::*Yasnippet][Yasnippet:1]]
 (map! :leader
@@ -182,6 +166,21 @@
 ;; [[file:config.org::*Pcap mode][Pcap mode:1]]
 (require 'pcap-mode)
 ;; Pcap mode:1 ends here
+
+;; [[file:config.org::*inherit org][inherit org:1]]
+(with-eval-after-load 'org
+  (require 'inherit-org)
+
+  (with-eval-after-load 'info
+    (add-hook 'Info-mode-hook 'inherit-org-mode))
+
+  (with-eval-after-load 'helpful
+    (add-hook 'helpful-mode-hook 'inherit-org-mode))
+
+  (with-eval-after-load 'w3m
+    (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
+    (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
+;; inherit org:1 ends here
 
 ;; [[file:config.org::*Python][Python:1]]
 (setq python-ident-offset 4)
