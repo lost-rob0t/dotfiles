@@ -142,6 +142,17 @@ Set a daily capture format
           :unnarrowed t)))
 #+end_src
 
+url2org function fro importing info from the web
+
+#+begin_src emacs-lisp
+(defun url2org (begin end)
+  "Download a webpage from selected url and convert to org."
+  (interactive "r")
+  (shell-command-on-region begin end
+    (concat "pandoc --from=html --to=org " (buffer-substring begin end))
+   nil t))
+#+end_src
+
 
 
 
@@ -253,6 +264,32 @@ inherit-org: Inherit org faces to non-org buffers.
   (with-eval-after-load 'w3m
     (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
     (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
+#+end_src
+
+** W3M
+
+set w3m as my browser in emacs
+#+begin_src emacs-lisp
+ (setq browse-url-browser-function  'w3m-goto-url-new-session)
+#+end_src
+
+fix textarea
+#+begin_src emacs-lisp
+ (eval-after-load "w3m-form"
+  '(progn
+     (define-minor-mode dme:w3m-textarea-mode
+       "Minor mode used when editing w3m textareas."
+       nil " dme:w3m-textarea" w3m-form-input-textarea-keymap)
+     (defun dme:w3m-textarea-hook ()
+       ; protect the form local variables from being killed by `text-mode'
+       (mapcar (lambda (v)
+		 (if (string-match "^w3m-form-input-textarea.*"
+				   (symbol-name (car v)))
+		     (put (car v) 'permanent-local t)))
+	       (buffer-local-variables))
+       (text-mode)
+       (dme:w3m-textarea-mode))
+     (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
 #+end_src
 * Programming
 

@@ -36,7 +36,7 @@
     zsh
     p7zip
     coreutils
-
+    pandoc #emacs
     ## User Programs
     ungoogled-chromium
     brave
@@ -78,6 +78,7 @@
       epkgs.lsp-pyright
       epkgs.pylint
       epkgs.w3m
+      epkgs.pandoc
     ]))
 
     # Rice
