@@ -116,64 +116,6 @@ I expirment with difrent languages, org babel makes things easy.
   (add-to-list 'org-structure-template-alist '("cl" . "src common-lisp")))
 #+end_src
 
-
-
-*** Org Wiki
-#+begin_src emacs-lisp :tangle no
-(require 'org-wiki)
-#+end_src
-
-#+RESULTS:
-: org-wiki
-
-
-
-Setting the defualt wiki loaction
-#+begin_src emacs-lisp
-(setq org-wiki-location-list
-      '("~/Documents/Notes/org/org-wiki/" "~/Documents/Notes/org/hacker-wiki/"))
-(setq org-wiki-location (car org-wiki-location-list))
-#+end_src
-
-
-
-Setting a backup location so i dont lose my wiki and hard work.
-#+begin_src emacs-lisp
-(setq org-wiki-backup-location "~/.backups/")
-#+end_src
-
-
-Close all wiki pages when swtiching root
-#+begin_src emacs-lisp
-(setq org-wiki-close-root-switch t)
-#+end_src
-
-Here im creating a new prefix for org-wiki.
-#+begin_src emacs-lisp
-(map! :leader
-      (:prefix-map ("n" . "notes")
-       (:prefix ("w" . "wiki")
-        :desc "New Wiki Page" "n"  #'org-wiki-new
-        :desc "Switch Wiki root" "S" #'org-wiki-switch-root
-        :desc "Back up wiki" "B" #'org-wiki-backup-make
-        :desc "open Wiki root in dired" "o" #'org-wiki-dired
-        :desc "open Wiki root  with the system file editor" "O" #'org-wiki-open
-        :desc "open wiki panel" "p" #'org-wiki-panel)))
-#+end_src
-
-
-
-My atempt at creating a wiki link that failed
-#+begin_src emacs-lisp
-;;(map!
-;; :after org
-;; :map org-mode-map
-;; :localleader
-;; :nv "w n" #'org-wki-insert-new)
-#+end_src
-
-#+RESULTS:
-
 *** TODO Org Mode config
 Create a function to tangle and sync doom at the same time
 
@@ -200,9 +142,6 @@ Set a daily capture format
           :unnarrowed t)))
 #+end_src
 
-#+RESULTS:
-| d | default | plain | #'org-roam--capture-get-point | %?   | :file-name | %<%Y-%m-%d-%H%M%S>-${slug} | :head | #+TITLE: ${title} | :unnarrowed | t |
-| u | url     | plain | #'org-roam--capture-get-point | * %? |            |                            |       |                   |             |   |
 
 
 
