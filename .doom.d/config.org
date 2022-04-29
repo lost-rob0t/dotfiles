@@ -177,6 +177,13 @@ My atempt at creating a wiki link that failed
 *** TODO Org Mode config
 Create a function to tangle and sync doom at the same time
 
+*** Org Roam
+Personal wiki
+#+begin_src emacs-lisp
+(setq org-roam-directory "~/Documents/Notes/org/roam")
+#+end_src
+
+
 ** Yasnippet
 Add a new template
 #+begin_src emacs-lisp
