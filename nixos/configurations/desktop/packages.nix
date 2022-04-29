@@ -77,6 +77,7 @@
       epkgs.direnv
       epkgs.lsp-pyright
       epkgs.pylint
+      epkgs.w3m
     ]))
 
     # Rice
