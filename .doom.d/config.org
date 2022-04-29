@@ -177,11 +177,39 @@ My atempt at creating a wiki link that failed
 *** TODO Org Mode config
 Create a function to tangle and sync doom at the same time
 
-*** Org Roam
-Personal wiki
+** Org Roam
+A Personal wiki
+
+Set roam directory
 #+begin_src emacs-lisp
 (setq org-roam-directory "~/Documents/Notes/org/roam")
 #+end_src
+
+Set a daily capture format
+#+begin_src emacs-lisp
+(setq  org-roam-capture-templates '(
+        ("d" "default" entry (function org-roam--capture-get-point)
+          "* %<%I:%M %p>: %?"
+           :file-name "%<%Y-%m-%d-%H%M%S>-${slug}"
+           :head "#+TITLE: ${title} "
+           :unnarrowed t)
+        ("u" "url" entry (function org-roam--capture-get-point)
+          "* %?\n- Comment: "
+          :file-name "references/%<%Y-%m-%d-%H%M%S>-${slug}"
+          :head "#+TITLE: ${title}"
+          :unnarrowed t)))
+#+end_src
+
+#+RESULTS:
+| d | default | plain | #'org-roam--capture-get-point | %?   | :file-name | %<%Y-%m-%d-%H%M%S>-${slug} | :head | #+TITLE: ${title} | :unnarrowed | t |
+| u | url     | plain | #'org-roam--capture-get-point | * %? |            |                            |       |                   |             |   |
+
+
+
+
+
+
+
 
 
 ** Yasnippet
