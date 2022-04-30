@@ -129,15 +129,15 @@ This extension facilitates moving images from point A to point B.
 (add-hook 'dired-mode-hook 'org-download-enable)
 #+end_src
 
-Configure keybinds. this will be under `SPC m a i`
+
+Configure keybinds. this will be under `SPC m a `
 #+begin_src emacs-lisp
-(eval-after-load `org-mode
-  `((map! :leader
-      (:prefix-map ("m" . "<localleader>")
-       (:prefix ("a" . "attachments")
-        (:prefix ("i" , "images"))
+(map! :localleader
+      :after org
+      :map org-mode-map
+       :prefix ("a" . "attachments")
         :desc "paste image" "p" #'org-download-clipboard
-        :desc "insert image from url" "i" #'org-download-yank)))))
+        :desc "insert image from url" "i" #'org-download-yank)
 #+end_src
 
 
