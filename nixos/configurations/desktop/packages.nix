@@ -71,7 +71,7 @@
     libtool
     libvterm
     jdk11
-    ((emacsPackagesNgGen emacs).emacsWithPackages (epkgs: [
+    ((emacsPackagesNgGen emacsNativeComp).emacsWithPackages (epkgs: [
       epkgs.vterm
       epkgs.ac-ispell
       epkgs.direnv
