@@ -71,6 +71,8 @@ echo "$pass"
 alias install-doom="install_doom_emacs"
 alias docker-compose="podman-compose"
 alias wttr="curl wttr.in/CMH"
+alias debug-emacs="emacs --debug-init"
+
 # Setup nim path
 export PATH=/home/nsaspy/.nimble/bin:$PATH
 #export LD_LIBRARY_PATH=/usr/local/lib

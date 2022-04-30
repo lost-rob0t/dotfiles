@@ -83,6 +83,7 @@
 (package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 ;; I have issues with nim path becuase i use choosenim
 (package! exec-path-from-shell  :recipe (:type git :host github :repo "purcell/exec-path-from-shell"))
+(package! org-download :recipe (:type git :host github :repo "abo-abo/org-download"))
 
 (use-package alert
   :config (setq alert-default-style
