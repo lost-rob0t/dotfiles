@@ -37,6 +37,8 @@
     p7zip
     coreutils
     pandoc #emacs
+    hunspellDicts.en_US
+
     ## User Programs
     ungoogled-chromium
     brave
