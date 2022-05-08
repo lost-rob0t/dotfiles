@@ -20,7 +20,6 @@
       ./services.nix
       ./packages.nix
       ./networking.nix
-      ../../containers/container.nix
     ];
 
   # Boot config
@@ -50,6 +49,9 @@
     subGidRanges = [{ startGid = 100000; count = 65536; }];
     extraGroups = [ "wheel" "libvirt" ]; # Enable ‘sudo’ for the user.
   };
+  environment.pathsToLink = [ "/share/hunspell" "/share/myspell" "/share/hyphen" ];
+
+  environment.variables.DICPATH = "/run/current-system/sw/share/hunspell:/run/current-system/sw/share/hyphen";
     # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave
