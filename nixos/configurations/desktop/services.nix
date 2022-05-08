@@ -35,9 +35,9 @@
   services.jellyfin = {
     enable = true;
   };
-  services.i2p = {
-    enable = true;
-  };
+  #services.i2p = {
+  #  enable = true;
+  #};
   services.emacs = {
     enable = true;
     defaultEditor = true;

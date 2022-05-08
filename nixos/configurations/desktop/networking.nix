@@ -15,6 +15,8 @@
   networking.useDHCP = false;
   networking.interfaces.enp7s0.useDHCP = true;
   networking.hostName = "flake"; # Define your hostname.
-
+  networking.networkmanager = {
+    enable = true;
+    };
 
 }
