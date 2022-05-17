@@ -368,3 +368,18 @@ I use i2p and having elfeed use a proxy would be nice
      ("http" . "*.i2p:4444")))
 
 #+end_src
+
+** Puff Count
+#+begin_src emacs-lisp
+(defun puff-add ()
+  "Add a puff"
+  (interactive)
+  (shell-command "/run/current-system/sw/bin/puffer -a"))
+(map!
+ :leader
+ :desc "add a puff"
+ "]" #'puff-add)
+#+end_src
+
+#+RESULTS:
+: puff-add

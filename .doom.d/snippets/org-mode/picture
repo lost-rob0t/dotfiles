@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: picture
+# uuid: org-picture
+# key: pic
+# condition: t
+# --
+
+#+CAPTION: ${1:caption}
+#+LABEL: fig:${2:label}
+[[${3:link}]]
