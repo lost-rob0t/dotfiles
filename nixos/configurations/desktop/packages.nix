@@ -1,7 +1,10 @@
 { config, lib, pkgs, ... }:
 
 ## Packages and programs go here
+let
+  mypkgs = import <personal> {};
 
+in
 {
    nixpkgs.config.allowUnfree = true;
    nixpkgs.overlays = [
@@ -15,7 +18,6 @@
       inherit pkgs;
     };
   };
-  services.emacs.package = pkgs.emacsUnstable;
   environment.systemPackages = with pkgs; [
     # Utils
     wget
@@ -51,7 +53,7 @@
 
     lbry ## You should use lbry and other yotube alternatives
     yt-dlp
-
+    mypkgs.puffer
     ## Games
     steam-run-native
 
@@ -73,7 +75,7 @@
     libtool
     libvterm
     jdk11
-    ((emacsPackagesNgGen emacsNativeComp).emacsWithPackages (epkgs: [
+    ((emacsPackagesFor emacsNativeComp).emacsWithPackages (epkgs: [
       epkgs.vterm
       epkgs.ac-ispell
       epkgs.direnv
