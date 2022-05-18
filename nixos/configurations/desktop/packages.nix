@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, nimPackages, ... }:
 
 ## Packages and programs go here
 let
@@ -53,7 +53,7 @@ in
 
     lbry ## You should use lbry and other yotube alternatives
     yt-dlp
-    mypkgs.puffer
+    mypkgs.nimPackages.puffer
     ## Games
     steam-run-native
 
@@ -83,6 +83,8 @@ in
       epkgs.pylint
       epkgs.w3m
       epkgs.pandoc
+      mypkgs.nimPackages.puffer
+      mypkgs.nimPackages.nimsuggest
     ]))
 
     # Rice
