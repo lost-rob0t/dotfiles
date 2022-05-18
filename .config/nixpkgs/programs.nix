@@ -13,5 +13,6 @@
     pkgs.obs-studio
     pkgs.obsidian
     pkgs.w3m
+    pkgs.cht-sh
   ];
 }

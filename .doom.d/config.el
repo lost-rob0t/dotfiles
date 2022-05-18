@@ -22,6 +22,10 @@
       "g p p" #'magit-pull-from-pushremote)
 ;; Magit:2 ends here
 
+;; [[file:config.org::*Magit Todos][Magit Todos:1]]
+(require 'magit-todos)
+;; Magit Todos:1 ends here
+
 ;; [[file:config.org::*Projectile][Projectile:1]]
 (setq projectile-project-search-path
       '(("~/Documents/Projects" . 1)))
@@ -78,8 +82,25 @@
   (add-to-list 'org-structure-template-alist '("nim" . "src nim"))
   (add-to-list 'org-structure-template-alist '("erl" . "src erlang"))
   (add-to-list 'org-structure-template-alist '("ss" . "src scheme"))
-  (add-to-list 'org-structure-template-alist '("cl" . "src common-lisp")))
+  (add-to-list 'org-structure-template-alist '("cl" . "src common-lisp"))
+  (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
 ;; Org Tempo templates:1 ends here
+
+;; [[file:config.org::*org-download][org-download:1]]
+(require 'org-download)
+
+;; Drag-and-drop to `dired`
+(add-hook 'dired-mode-hook 'org-download-enable)
+;; org-download:1 ends here
+
+;; [[file:config.org::*org-download][org-download:2]]
+(map! :localleader
+      :after org
+      :map org-mode-map
+       :prefix ("a" . "attachments")
+        :desc "paste image" "p" #'org-download-clipboard
+        :desc "insert image from url" "i" #'org-download-yank)
+;; org-download:2 ends here
 
 ;; [[file:config.org::*Org Roam][Org Roam:1]]
 (setq org-roam-directory "~/Documents/Notes/org/roam")
@@ -87,7 +108,7 @@
 
 ;; [[file:config.org::*Org Roam][Org Roam:2]]
 (setq  org-roam-capture-templates '(
-        ("d" "default" entry (function org-roam--capture-get-point)
+        ("D" "daily entry" entry (function org-roam--capture-get-point)
           "* %<%I:%M %p>: %?"
            :file-name "%<%Y-%m-%d-%H%M%S>-${slug}"
            :head "#+TITLE: ${title} "
@@ -98,6 +119,15 @@
           :head "#+TITLE: ${title}"
           :unnarrowed t)))
 ;; Org Roam:2 ends here
+
+;; [[file:config.org::*Org Roam][Org Roam:3]]
+(defun url2org (begin end)
+  "Download a webpage from selected url and convert to org."
+  (interactive "r")
+  (shell-command-on-region begin end
+    (concat "pandoc --from=html --to=org " (buffer-substring begin end))
+   nil t))
+;; Org Roam:3 ends here
 
 ;; [[file:config.org::*Yasnippet][Yasnippet:1]]
 (map! :leader
@@ -182,6 +212,24 @@
     (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
 ;; inherit org:1 ends here
 
+;; [[file:config.org::*W3M][W3M:1]]
+ (eval-after-load "w3m-form"
+  '(progn
+     (define-minor-mode dme:w3m-textarea-mode
+       "Minor mode used when editing w3m textareas."
+       nil " dme:w3m-textarea" w3m-form-input-textarea-keymap)
+     (defun dme:w3m-textarea-hook ()
+       ; protect the form local variables from being killed by `text-mode'
+       (mapcar (lambda (v)
+		 (if (string-match "^w3m-form-input-textarea.*"
+				   (symbol-name (car v)))
+		     (put (car v) 'permanent-local t)))
+	       (buffer-local-variables))
+       (text-mode)
+       (dme:w3m-textarea-mode))
+     (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
+;; W3M:1 ends here
+
 ;; [[file:config.org::*Python][Python:1]]
 (setq python-ident-offset 4)
 ;; Python:1 ends here
@@ -195,6 +243,25 @@
 ;; [[file:config.org::*Direnv][Direnv:1]]
 (envrc-global-mode)
 ;; Direnv:1 ends here
+
+;; [[file:config.org::*Nix][Nix:1]]
+ (map! :leader
+      :after nix
+      :map nix-mode-map
+       :prefix ("s" . "search")
+        :desc "search option" "o" #'helm-nixos-options)
+;; Nix:1 ends here
+
+;; [[file:config.org::*Nix][Nix:2]]
+(setq flycheck-command-wrapper-function
+        (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
+      flycheck-executable-find
+        (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
+;; Nix:2 ends here
+
+;; [[file:config.org::*Nim][Nim:1]]
+(require 'flycheck-nim)
+;; Nim:1 ends here
 
 ;; [[file:config.org::*Performance][Performance:1]]
 (explain-pause-mode nil)
@@ -210,3 +277,14 @@
    '(("no_proxy" . "^\\(localhost\\|10\\..*\\|192\\.168\\..*\\)")
      ("http" . "*.i2p:4444")))
 ;; Url proxy:1 ends here
+
+;; [[file:config.org::*Puff Count][Puff Count:1]]
+(defun puff-add ()
+  "Add a puff"
+  (interactive)
+  (shell-command "/run/current-system/sw/bin/puffer -a"))
+(map!
+ :leader
+ :desc "add a puff"
+ "]" #'puff-add)
+;; Puff Count:1 ends here

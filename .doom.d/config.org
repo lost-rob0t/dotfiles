@@ -43,6 +43,11 @@ Same as above but for pulling from remote
       :desc "Pull current branch from remote"
       "g p p" #'magit-pull-from-pushremote)
 #+end_src
+*** Magit Todos
+Show todos!
+#+begin_src emacs-lisp
+(require 'magit-todos)
+#+end_src
 ** Projectile
 Setting the path to find projects
 I store my stuff in ~/Documents/Projects
@@ -339,8 +344,27 @@ Make life easy!
 ** Nix
 Nix is a language that allows for repoducible declarative systems/packages.
 
+Search nixos options so i dont have to go the website
+#+begin_src emacs-lisp
+ (map! :leader
+      :after nix
+      :map nix-mode-map
+       :prefix ("s" . "search")
+        :desc "search option" "o" #'helm-nixos-options)
+#+end_src
 
+#+begin_src emacs-lisp
+(setq flycheck-command-wrapper-function
+        (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
+      flycheck-executable-find
+        (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
+#+end_src
 
+** Nim
+Flycheck
+#+begin_src emacs-lisp
+(require 'flycheck-nim)
+#+end_src
 * Misc
 ** Performance
 Enable explain Pause mode
