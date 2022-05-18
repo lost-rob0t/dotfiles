@@ -85,6 +85,8 @@
 (package! exec-path-from-shell  :recipe (:type git :host github :repo "purcell/exec-path-from-shell"))
 (package! org-download :recipe (:type git :host github :repo "abo-abo/org-download"))
 (package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
+(package! cheat-sh :recipe (:type git :host github :repo "chubin/cheat.sh"))
+
 (use-package alert
   :config (setq alert-default-style
             (if ns/enable-windows-p

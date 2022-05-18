@@ -407,3 +407,16 @@ I use i2p and having elfeed use a proxy would be nice
 
 #+RESULTS:
 : puff-add
+** Cheat-sh
+#+begin_src emacs-lisp
+
+(defun cht-sh ()
+  "look up a cheat"
+  (interactive)
+  (async-shell-command (format "cht.sh %s" (read-string "Enter search: "))))
+ (map! :leader
+       :prefix ("s" . "search")
+        :desc "cheat sheat" "c" #'cht-sh)
+
+#+end_src
+*** TODO make it look nice

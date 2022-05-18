@@ -288,3 +288,13 @@
  :desc "add a puff"
  "]" #'puff-add)
 ;; Puff Count:1 ends here
+
+;; [[file:config.org::*Cheat-sh][Cheat-sh:1]]
+(defun cht-sh ()
+  "look up a cheat"
+  (interactive)
+  (async-shell-command (format "cht.sh %s" (read-string "Enter search: "))))
+ (map! :leader
+       :prefix ("s" . "search")
+        :desc "cheat sheat" "c" #'cht-sh)
+;; Cheat-sh:1 ends here
