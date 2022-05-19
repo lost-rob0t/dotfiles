@@ -107,11 +107,17 @@ I prefer being able to have difrent views within org agenda, so i can see whats 
 #+begin_src emacs-lisp
 (setq org-super-agenda-groups
       '(
-        (:and (:todo "IDEA" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
+        (:and (:todo "IDEA" :name "Starintel Idea" :tag ("starintel" "sit")))
         (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
         (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash")))
         (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")))))
 #+end_src
+
+#+RESULTS:
+| :and | (:todo IDEA :name Starintel Idea :tag (starintel sit))     |
+| :and | (:todo TODO :name Starintel Bugs :tag (starintel-bug sib)) |
+| :and | (:todo TODO :name Personal :tag (mow trash))               |
+| :and | (:todo TODO :name Read inbox :tag (book artical books))    |
 
 
 
@@ -192,6 +198,30 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 #+end_src
 
 
+**** LSP with org-babel
+[[https://github.com/emacs-lsp/lsp-mode/issues/2842#issuecomment-870807018][Source]]
+***** Python
+#+begin_src emacs-lisp
+(defun org-babel-edit-prep:python (babel-info)
+  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
+  (lsp))
+#+end_src
+
+***** Nim
+#+begin_src emacs-lisp
+(defun org-babel-edit-prep:nim (babel-info)
+  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
+  (lsp))
+#+end_src
+
+***** Bash
+#+begin_src emacs-lisp
+(defun org-babel-edit-prep:sh (babel-info)
+  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
+  (lsp))
+#+end_src
+
+: org-babel-edit-prep:sh
 
 *** Org Tempo templates
 I expirment with difrent languages, org babel makes things easy.
@@ -536,4 +566,8 @@ I use i2p and having elfeed use a proxy would be nice
 ** Bookmarks
 #+begin_src emacs-lisp
 (setq bookmark-file "~/Documents/Emacs/bookmarks")
+#+end_src
+** Activity Watch
+#+begin_src emacs-lisp
+(global-activity-watch-mode)
 #+end_src
