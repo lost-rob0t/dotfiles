@@ -1,4 +1,4 @@
-;; [[file:config.org::+BEGIN_SRC emacs-lisp][No heading:1]]
+;; [[file:config.org::+begin_src emacs-lisp][No heading:1]]
 ;; -*- lexical-binding: t -*-
 ;; No heading:1 ends here
 
@@ -35,26 +35,22 @@
 (setq org-directory "~/Documents/Notes/org")
 ;; Org Mode:1 ends here
 
+;; [[file:config.org::*Org Mode][Org Mode:2]]
+(add-hook 'before-save-hook 'time-stamp)
+;; Org Mode:2 ends here
+
 ;; [[file:config.org::*Org Agenda][Org Agenda:1]]
-  (defun as/org-roam-today-mk-agenda-link ()
-    (interactive)
-    (let* ((marker (or (org-get-at-bol 'org-marker)
-                       (org-agenda-error)))
-           (buffer (marker-buffer marker))
-           (pos (marker-position marker)))
-      (with-current-buffer buffer
-        (save-excursion
-          (goto-char pos)
-          (let ((link (org-store-link nil)))
-            (when (stringp link)
-              (remove-text-properties 0 (length link)
-                                      '(read-only t) link))
-            (setq as/agenda-captured-link link))
-          (org-roam-dailies-capture-today)))))
+(setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$"))
 ;; Org Agenda:1 ends here
 
 ;; [[file:config.org::*Org Agenda][Org Agenda:2]]
-(setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$"))
+(defun org-agenda-update-files ()
+  "Update the org-agenda-files"
+  (interactive)
+  (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$")))
+(map! :leader
+      :desc "update agenda"
+      "o a u" #'org-agenda-update-files)
 ;; Org Agenda:2 ends here
 
 ;; [[file:config.org::*Org Agenda][Org Agenda:3]]
@@ -71,55 +67,19 @@
       "o a y" #'org-agenda-year-view)
 ;; Org Agenda:3 ends here
 
-;; [[file:config.org::*Org super agenda][Org super agenda:1]]
-(let ((org-super-agenda-groups
-       '(;; Each group has an implicit boolean OR operator between its selectors.
-         (:name "Today"  ; Optionally specify section name
-                :time-grid t  ; Items that appear on the time grid
-                :todo "TODAY")  ; Items that have this TODO keyword
-         (:name "Important"
-                ;; Single arguments given alone
-                :tag "bills"
-                :priority "A")
-         ;; Set order of multiple groups at once
-         (:order-multi (2 (:name "Shopping in town"
-                                 ;; Boolean AND group matches items that match all subgroups
-                                 :and (:tag "shopping" :tag "@town"))
-                          (:name "Food-related"
-                                 ;; Multiple args given in list with implicit OR
-                                 :tag ("food" "dinner"))
-                          (:name "Personal"
-                                 :habit t
-                                 :tag "personal")
-                          (:name "Space-related (non-moon-or-planet-related)"
-                                 ;; Regexps match case-insensitively on the entire entry
-                                 :and (:regexp ("space" "NASA")
-                                               ;; Boolean NOT also has implicit OR between selectors
-                                               :not (:regexp "moon" :tag "planet")))))
-         ;; Groups supply their own section names when none are given
-         (:todo "WAITING" :order 8)  ; Set order of this section
-         (:todo ("SOMEDAY" "TO-READ" "CHECK" "TO-WATCH" "WATCHING")
-                ;; Show this group at the end of the agenda (since it has the
-                ;; highest number). If you specified this group last, items
-                ;; with these todo keywords that e.g. have priority A would be
-                ;; displayed in that group instead, because items are grouped
-                ;; out in the order the groups are listed.
-                :order 9)
-         (:priority<= "B"
-                      ;; Show this section after "Today" and "Important", because
-                      ;; their order is unspecified, defaulting to 0. Sections
-                      ;; are displayed lowest-number-first.
-                      :order 1)
-         ;; After the last group, the agenda will display items that didn't
-         ;; match any of these groups, with the default order position of 99
-         )))
-  (org-agenda nil "a"))
-;; Org super agenda:1 ends here
+;; [[file:config.org::*adapt this][adapt this:1]]
+(setq org-super-agenda-groups
+      '(
+        (:and (:todo "IDEA" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
+        (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
+        (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash")))
+        (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")))))
+;; adapt this:1 ends here
 
 ;; [[file:config.org::*Babel][Babel:1]]
 (map! :leader
-          :desc "Tangle a file"
-          "b t" #'org-babel-tangle)
+      :desc "Tangle a file"
+      "b t" #'org-babel-tangle)
 ;; Babel:1 ends here
 
 ;; [[file:config.org::*Babel][Babel:2]]
@@ -136,9 +96,51 @@
 
 ;; [[file:config.org::*Babel][Babel:4]]
 (org-babel-do-load-languages
-  'org-babel-load-languages
-  '((emacs-lisp . t) (org . t) (nim . t) (python . t) (erlang . t) (ein . t)))
+ 'org-babel-load-languages
+ '((emacs-lisp . t) (org . t) (nim . t) (python . t) (erlang . t) (ein . t)))
 ;; Babel:4 ends here
+
+;; [[file:config.org::*Better Formating in org-babel][Better Formating in org-babel:1]]
+(defun edit-src-block (src fn language)
+  "Replace SRC org-element's value property with the result of FN.
+FN is a function that operates on org-element's value and returns a string.
+LANGUAGE is a string referring to one of orb-babel's supported languages.
+(https://orgmode.org/manual/Languages.html#Languages)"
+  (let ((src-language (org-element-property :language src))
+        (value (org-element-property :value src)))
+    (when (string= src-language language)
+      (let ((copy (org-element-copy src)))
+        (org-element-put-property copy :value
+                                  (funcall fn value))
+        (org-element-set-element src copy)))))
+
+(defun format-elisp-string (string)
+  "Indents elisp buffer string and reformats dangling parens."
+  (with-temp-buffer
+    (let ((inhibit-message t))
+      (emacs-lisp-mode)
+      (insert
+       (replace-regexp-in-string "[[:space:]]*
+[[:space:]]*)" ")" string))
+      (indent-region (point-min) (point-max))
+      (buffer-substring (point-min) (point-max)))))
+
+(defun format-elisp-src-blocks ()
+  "Format Elisp src blocks in the current org buffer"
+  (interactive)
+  (save-mark-and-excursion
+    (let ((AST (org-element-parse-buffer)))
+      (org-element-map AST 'src-block
+        (lambda (element)
+          (edit-src-block element #'format-elisp-string "emacs-lisp")))
+      (delete-region (point-min) (point-max))
+      (insert (org-element-interpret-data AST)))))
+
+(map! :leader
+      :after org
+      :prefix ("b" . "org-babel-fomats")
+      :desc "format src" "f" #'format-elisp-src-blocks)
+;; Better Formating in org-babel:1 ends here
 
 ;; [[file:config.org::*Org Tempo templates][Org Tempo templates:1]]
 (with-eval-after-load 'org
@@ -164,9 +166,9 @@
 (map! :localleader
       :after org
       :map org-mode-map
-       :prefix ("a" . "attachments")
-        :desc "paste image" "p" #'org-download-clipboard
-        :desc "insert image from url" "i" #'org-download-yank)
+      :prefix ("a" . "attachments")
+      :desc "paste image" "p" #'org-download-clipboard
+      :desc "insert image from url" "i" #'org-download-yank)
 ;; org-download:2 ends here
 
 ;; [[file:config.org::*Org Roam][Org Roam:1]]
@@ -175,25 +177,24 @@
 
 ;; [[file:config.org::*Org Roam][Org Roam:2]]
 (setq  org-roam-capture-templates '(
-        ("D" "daily entry" entry (function org-roam--capture-get-point)
-          "* %<%I:%M %p>: %?"
-           :file-name "%<%Y-%m-%d-%H%M%S>-${slug}"
-           :head "#+TITLE: ${title} "
-           :unnarrowed t)
-        ("u" "url" entry (function org-roam--capture-get-point)
-          "* %?\n- Comment: "
-          :file-name "references/%<%Y-%m-%d-%H%M%S>-${slug}"
-          :head "#+TITLE: ${title}"
-          :unnarrowed t)
-       
-       ("t" "do today" item
-           #'org-roam-capture--get-point
-           "[ ] %(princ as/agenda-captured-link)"
-           :file-name "daily/%<%Y-%m-%d>"
-           :head "#+title: %<%Y-%m-%d (%A)>\n* [/] Do Today\n* [/] Maybe Do Today\n* Journal\n"
-           :olp ("Do Today")
-           :immediate-finish t))
-       )
+                                    ("D" "daily entry" entry (function org-roam--capture-get-point)
+                                     "* %<%I:%M %p>: %?"
+                                     :file-name "%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :head "#+TITLE: ${title} "
+                                     :unnarrowed t)
+                                    ("u" "url" entry (function org-roam--capture-get-point)
+                                     "* %?\n- Comment: "
+                                     :file-name "references/%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :head "#+TITLE: ${title}"
+                                     :unnarrowed t)
+
+                                    ("t" "do today" item
+                                     #'org-roam-capture--get-point
+                                     "[ ] %(princ as/agenda-captured-link)"
+                                     :file-name "daily/%<%Y-%m-%d>"
+                                     :head "#+title: %<%Y-%m-%d (%A)>\n* [/] Do Today\n* [/] Maybe Do Today\n* Journal\n"
+                                     :olp ("Do Today")
+                                     :immediate-finish t)))
 ;; Org Roam:2 ends here
 
 ;; [[file:config.org::*Org Roam][Org Roam:3]]
@@ -201,8 +202,8 @@
   "Download a webpage from selected url and convert to org."
   (interactive "r")
   (shell-command-on-region begin end
-    (concat "pandoc --from=html --to=org " (buffer-substring begin end))
-   nil t))
+                           (concat "pandoc --from=html --to=org " (buffer-substring begin end))
+                           nil t))
 ;; Org Roam:3 ends here
 
 ;; [[file:config.org::*Org File Encryption][Org File Encryption:1]]
@@ -217,7 +218,7 @@
 ;; [[file:config.org::*Yasnippet][Yasnippet:1]]
 (map! :leader
       :desc "Add a neew template to yasnippet"
-      "a y s" #'+snippets/new)
+      "a y s"                   #'+snippets/new)
 ;; Yasnippet:1 ends here
 
 ;; [[file:config.org::*Yasnippet][Yasnippet:2]]
@@ -298,13 +299,13 @@
 ;; inherit org:1 ends here
 
 ;; [[file:config.org::*W3M][W3M:1]]
- (eval-after-load "w3m-form"
+(eval-after-load "w3m-form"
   '(progn
      (define-minor-mode dme:w3m-textarea-mode
        "Minor mode used when editing w3m textareas."
        nil " dme:w3m-textarea" w3m-form-input-textarea-keymap)
      (defun dme:w3m-textarea-hook ()
-       ; protect the form local variables from being killed by `text-mode'
+                                        ; protect the form local variables from being killed by `text-mode'
        (mapcar (lambda (v)
 		 (if (string-match "^w3m-form-input-textarea.*"
 				   (symbol-name (car v)))
@@ -330,19 +331,27 @@
 ;; Direnv:1 ends here
 
 ;; [[file:config.org::*Nix][Nix:1]]
- (map! :leader
+(map! :leader
       :after nix
       :map nix-mode-map
-       :prefix ("s" . "search")
-        :desc "search option" "o" #'helm-nixos-options)
+      :prefix ("s" . "search")
+      :desc "search option" "o" #'helm-nixos-options)
 ;; Nix:1 ends here
 
 ;; [[file:config.org::*Nix][Nix:2]]
 (setq flycheck-command-wrapper-function
-        (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
+      (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
       flycheck-executable-find
-        (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
+      (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
 ;; Nix:2 ends here
+
+;; [[file:config.org::*Nix][Nix:3]]
+(add-to-list 'lsp-language-id-configuration '(nix-mode . "nix"))
+(lsp-register-client
+ (make-lsp-client :new-connection (lsp-stdio-connection '("rnix-lsp"))
+                  :major-modes '(nix-mode)
+                  :server-id 'nix))
+;; Nix:3 ends here
 
 ;; [[file:config.org::*Nim][Nim:1]]
 (require 'flycheck-nim)
@@ -359,8 +368,8 @@
 
 ;; [[file:config.org::*Url proxy][Url proxy:1]]
 (setq url-proxy-services
-   '(("no_proxy" . "^\\(localhost\\|10\\..*\\|192\\.168\\..*\\)")
-     ("http" . "*.i2p:4444")))
+      '(("no_proxy" . "^\\(localhost\\|10\\..*\\|192\\.168\\..*\\)")
+        ("http" . "*.i2p:4444")))
 ;; Url proxy:1 ends here
 
 ;; [[file:config.org::*Puff Count][Puff Count:1]]
@@ -379,9 +388,9 @@
   "look up a cheat"
   (interactive)
   (async-shell-command (format "cht.sh %s" (read-string "Enter search: "))))
- (map! :leader
-       :prefix ("s" . "search")
-        :desc "cheat sheat" "c" #'cht-sh)
+(map! :leader
+      :prefix ("s" . "search")
+      :desc "cheat sheat" "c" #'cht-sh)
 ;; Cheat-sh:1 ends here
 
 ;; [[file:config.org::*Bookmarks][Bookmarks:1]]

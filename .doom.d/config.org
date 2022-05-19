@@ -1,18 +1,17 @@
-#+TITLE: Doom Emacs configuration
-#+AUTHOR: nsaspy
-#+PROPERTY: header-args :emacs-lisp tangle: ./config.el :tangle yes :comments link
-#+STARTUP: org-startup-folded: showall
-#+DISABLE_SPELLCHECKER: t
-#+BEGIN_SRC emacs-lisp
+#+title: Doom Emacs configuration
+#+author: nsaspy
+#+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :comments link :results none
+#+startup: org-startup-folded: showall
+#+disable_spellchecker: t
+#+begin_src emacs-lisp
 ;; -*- lexical-binding: t -*-
-#+END_SRC
-
 #+end_src
-* TODO update config [1/4]
+
+* TODO update config [2/4]
 - [X] add pcap-mode
 - [ ] add desktop notifcations
 - [ ] Add theme toggle
-- [ ] Replace org-agenda views with org super agenda
+- [X] Replace org-agenda views with org super agenda
 
 
 * Styling
@@ -21,6 +20,8 @@ I like doom's outrun eletric theme
 #+begin_src emacs-lisp
 (setq doom-theme 'doom-outrun-electric)
 #+end_src
+
+
 ** Line numbers
 #+begin_src emacs-lisp
 (setq display-line-numbers-type t)
@@ -82,8 +83,6 @@ Find all TODOS recursively [[https://stackoverflow.com/a/41969519][source]].
 (map! :leader
       :desc "update agenda"
       "o a u" #'org-agenda-update-files)
-
-
 #+end_src
 
 
@@ -106,49 +105,14 @@ I prefer being able to have difrent views within org agenda, so i can see whats 
 **** Org super agenda
 ***** TODO adapt this
 #+begin_src emacs-lisp
-(let ((org-super-agenda-groups
-       '(;; Each group has an implicit boolean OR operator between its selectors.
-         (:name "Today"  ; Optionally specify section name
-                :time-grid t  ; Items that appear on the time grid
-                :todo "TODAY")  ; Items that have this TODO keyword
-         (:name "Important"
-                ;; Single arguments given alone
-                :tag "bills"
-                :priority "A")
-         ;; Set order of multiple groups at once
-         (:order-multi (2 (:name "Shopping in town"
-                                 ;; Boolean AND group matches items that match all subgroups
-                                 :and (:tag "shopping" :tag "@town"))
-                          (:name "Food-related"
-                                 ;; Multiple args given in list with implicit OR
-                                 :tag ("food" "dinner"))
-                          (:name "Personal"
-                                 :habit t
-                                 :tag "personal")
-                          (:name "Space-related (non-moon-or-planet-related)"
-                                 ;; Regexps match case-insensitively on the entire entry
-                                 :and (:regexp ("space" "NASA")
-                                               ;; Boolean NOT also has implicit OR between selectors
-                                               :not (:regexp "moon" :tag "planet")))))
-         ;; Groups supply their own section names when none are given
-         (:todo "WAITING" :order 8)  ; Set order of this section
-         (:todo ("SOMEDAY" "TO-READ" "CHECK" "TO-WATCH" "WATCHING")
-                ;; Show this group at the end of the agenda (since it has the
-                ;; highest number). If you specified this group last, items
-                ;; with these todo keywords that e.g. have priority A would be
-                ;; displayed in that group instead, because items are grouped
-                ;; out in the order the groups are listed.
-                :order 9)
-         (:priority<= "B"
-                      ;; Show this section after "Today" and "Important", because
-                      ;; their order is unspecified, defaulting to 0. Sections
-                      ;; are displayed lowest-number-first.
-                      :order 1)
-         ;; After the last group, the agenda will display items that didn't
-         ;; match any of these groups, with the default order position of 99
-         )))
-  (org-agenda nil "a"))
+(setq org-super-agenda-groups
+      '(
+        (:and (:todo "IDEA" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
+        (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
+        (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash")))
+        (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")))))
 #+end_src
+
 
 
 
@@ -157,8 +121,8 @@ I prefer being able to have difrent views within org agenda, so i can see whats 
 Tangle a file
 #+begin_src emacs-lisp
 (map! :leader
-          :desc "Tangle a file"
-          "b t" #'org-babel-tangle)
+      :desc "Tangle a file"
+      "b t" #'org-babel-tangle)
 #+end_src
 
 Execute the selected source block (used for literate programming)
@@ -166,7 +130,6 @@ Execute the selected source block (used for literate programming)
 (map! :leader
       :desc "Babel execute selected source block"
       "c b" #'org-babel-execute-src-block)
-
 #+end_src
 
 Execute all src blocks in buffer
@@ -180,9 +143,56 @@ Add languages to org babel
 
 #+begin_src emacs-lisp
 (org-babel-do-load-languages
-  'org-babel-load-languages
-  '((emacs-lisp . t) (org . t) (nim . t) (python . t) (erlang . t) (ein . t)))
+ 'org-babel-load-languages
+ '((emacs-lisp . t) (org . t) (nim . t) (python . t) (erlang . t) (ein . t)))
 #+end_src
+
+**** Better Formating in org-babel
+Adapted from [[https://www.reddit.com/r/emacs/comments/9tp79o/comment/e90g7km/?utm_source=share&utm_medium=web2x&context=3][here]].
+#+begin_src emacs-lisp
+(defun edit-src-block (src fn language)
+  "Replace SRC org-element's value property with the result of FN.
+FN is a function that operates on org-element's value and returns a string.
+LANGUAGE is a string referring to one of orb-babel's supported languages.
+(https://orgmode.org/manual/Languages.html#Languages)"
+  (let ((src-language (org-element-property :language src))
+        (value (org-element-property :value src)))
+    (when (string= src-language language)
+      (let ((copy (org-element-copy src)))
+        (org-element-put-property copy :value
+                                  (funcall fn value))
+        (org-element-set-element src copy)))))
+
+(defun format-elisp-string (string)
+  "Indents elisp buffer string and reformats dangling parens."
+  (with-temp-buffer
+    (let ((inhibit-message t))
+      (emacs-lisp-mode)
+      (insert
+       (replace-regexp-in-string "[[:space:]]*
+[[:space:]]*)" ")" string))
+      (indent-region (point-min) (point-max))
+      (buffer-substring (point-min) (point-max)))))
+
+(defun format-elisp-src-blocks ()
+  "Format Elisp src blocks in the current org buffer"
+  (interactive)
+  (save-mark-and-excursion
+    (let ((AST (org-element-parse-buffer)))
+      (org-element-map AST 'src-block
+        (lambda (element)
+          (edit-src-block element #'format-elisp-string "emacs-lisp")))
+      (delete-region (point-min) (point-max))
+      (insert (org-element-interpret-data AST)))))
+
+(map! :leader
+      :after org
+      :prefix ("b" . "org-babel-fomats")
+      :desc "format src" "f" #'format-elisp-src-blocks)
+#+end_src
+
+
+
 *** Org Tempo templates
 I expirment with difrent languages, org babel makes things easy.
 #+begin_src emacs-lisp
@@ -217,9 +227,9 @@ Configure keybinds. this will be under `SPC m a `
 (map! :localleader
       :after org
       :map org-mode-map
-       :prefix ("a" . "attachments")
-        :desc "paste image" "p" #'org-download-clipboard
-        :desc "insert image from url" "i" #'org-download-yank)
+      :prefix ("a" . "attachments")
+      :desc "paste image" "p" #'org-download-clipboard
+      :desc "insert image from url" "i" #'org-download-yank)
 #+end_src
 
 
@@ -234,30 +244,26 @@ Set roam directory
 Set a daily capture format
 #+begin_src emacs-lisp
 (setq  org-roam-capture-templates '(
-        ("D" "daily entry" entry (function org-roam--capture-get-point)
-          "* %<%I:%M %p>: %?"
-           :file-name "%<%Y-%m-%d-%H%M%S>-${slug}"
-           :head "#+TITLE: ${title} "
-           :unnarrowed t)
-        ("u" "url" entry (function org-roam--capture-get-point)
-          "* %?\n- Comment: "
-          :file-name "references/%<%Y-%m-%d-%H%M%S>-${slug}"
-          :head "#+TITLE: ${title}"
-          :unnarrowed t)
-       
-       ("t" "do today" item
-           #'org-roam-capture--get-point
-           "[ ] %(princ as/agenda-captured-link)"
-           :file-name "daily/%<%Y-%m-%d>"
-           :head "#+title: %<%Y-%m-%d (%A)>\n* [/] Do Today\n* [/] Maybe Do Today\n* Journal\n"
-           :olp ("Do Today")
-           :immediate-finish t))
-       )
+                                    ("D" "daily entry" entry (function org-roam--capture-get-point)
+                                     "* %<%I:%M %p>: %?"
+                                     :file-name "%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :head "#+TITLE: ${title} "
+                                     :unnarrowed t)
+                                    ("u" "url" entry (function org-roam--capture-get-point)
+                                     "* %?\n- Comment: "
+                                     :file-name "references/%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :head "#+TITLE: ${title}"
+                                     :unnarrowed t)
+
+                                    ("t" "do today" item
+                                     #'org-roam-capture--get-point
+                                     "[ ] %(princ as/agenda-captured-link)"
+                                     :file-name "daily/%<%Y-%m-%d>"
+                                     :head "#+title: %<%Y-%m-%d (%A)>\n* [/] Do Today\n* [/] Maybe Do Today\n* Journal\n"
+                                     :olp ("Do Today")
+                                     :immediate-finish t)))
 #+end_src
 
-#+RESULTS:
-| D | daily entry | entry | #'org-roam--capture-get-point | * %<%I:%M %p>: %? | :file-name | %<%Y-%m-%d-%H%M%S>-${slug} | :head | #+TITLE: ${title} | :unnarrowed | t |
-| u | url         | entry | #'org-roam--capture-get-point | * %?              |            |                            |       |                   |             |   |
 
 
 url2org function fro importing info from the web
@@ -267,8 +273,8 @@ url2org function fro importing info from the web
   "Download a webpage from selected url and convert to org."
   (interactive "r")
   (shell-command-on-region begin end
-    (concat "pandoc --from=html --to=org " (buffer-substring begin end))
-   nil t))
+                           (concat "pandoc --from=html --to=org " (buffer-substring begin end))
+                           nil t))
 #+end_src
 
 
@@ -296,7 +302,7 @@ Add a new template
 #+begin_src emacs-lisp
 (map! :leader
       :desc "Add a neew template to yasnippet"
-      "a y s" #'+snippets/new)
+      "a y s"                   #'+snippets/new)
 #+end_src
 
 Edit a template
@@ -371,7 +377,7 @@ Setting Keybinds
         :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
 #+end_src
 
-**  Pcap mode
+** Pcap mode
 You can view a pcap file with tshark
 
 #+begin_src emacs-lisp
@@ -400,13 +406,13 @@ inherit-org: Inherit org faces to non-org buffers.
 
 fix textarea
 #+begin_src emacs-lisp
- (eval-after-load "w3m-form"
+(eval-after-load "w3m-form"
   '(progn
      (define-minor-mode dme:w3m-textarea-mode
        "Minor mode used when editing w3m textareas."
        nil " dme:w3m-textarea" w3m-form-input-textarea-keymap)
      (defun dme:w3m-textarea-hook ()
-       ; protect the form local variables from being killed by `text-mode'
+                                        ; protect the form local variables from being killed by `text-mode'
        (mapcar (lambda (v)
 		 (if (string-match "^w3m-form-input-textarea.*"
 				   (symbol-name (car v)))
@@ -447,18 +453,26 @@ Nix is a language that allows for repoducible declarative systems/packages.
 
 Search nixos options so i dont have to go the website
 #+begin_src emacs-lisp
- (map! :leader
+(map! :leader
       :after nix
       :map nix-mode-map
-       :prefix ("s" . "search")
-        :desc "search option" "o" #'helm-nixos-options)
+      :prefix ("s" . "search")
+      :desc "search option" "o" #'helm-nixos-options)
 #+end_src
 
 #+begin_src emacs-lisp
 (setq flycheck-command-wrapper-function
-        (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
+      (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
       flycheck-executable-find
-        (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
+      (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
+#+end_src
+
+#+begin_src emacs-lisp
+(add-to-list 'lsp-language-id-configuration '(nix-mode . "nix"))
+(lsp-register-client
+ (make-lsp-client :new-connection (lsp-stdio-connection '("rnix-lsp"))
+                  :major-modes '(nix-mode)
+                  :server-id 'nix))
 #+end_src
 
 ** Nim
@@ -489,9 +503,8 @@ Sets PATH
 I use i2p and having elfeed use a proxy would be nice
 #+begin_src emacs-lisp
 (setq url-proxy-services
-   '(("no_proxy" . "^\\(localhost\\|10\\..*\\|192\\.168\\..*\\)")
-     ("http" . "*.i2p:4444")))
-
+      '(("no_proxy" . "^\\(localhost\\|10\\..*\\|192\\.168\\..*\\)")
+        ("http" . "*.i2p:4444")))
 #+end_src
 
 ** Puff Count
@@ -506,8 +519,6 @@ I use i2p and having elfeed use a proxy would be nice
  "]" #'puff-add)
 #+end_src
 
-#+RESULTS:
-: puff-add
 ** Cheat-sh
 #+begin_src emacs-lisp
 
@@ -515,10 +526,9 @@ I use i2p and having elfeed use a proxy would be nice
   "look up a cheat"
   (interactive)
   (async-shell-command (format "cht.sh %s" (read-string "Enter search: "))))
- (map! :leader
-       :prefix ("s" . "search")
-        :desc "cheat sheat" "c" #'cht-sh)
-
+(map! :leader
+      :prefix ("s" . "search")
+      :desc "cheat sheat" "c" #'cht-sh)
 #+end_src
 *** TODO make it look nice
 

@@ -15,5 +15,6 @@
     pkgs.w3m
     pkgs.cht-sh
     pkgs.kleopatra
+    pkgs.gimp
   ];
 }
