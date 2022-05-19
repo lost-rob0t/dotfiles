@@ -35,7 +35,29 @@
 (setq org-directory "~/Documents/Notes/org")
 ;; Org Mode:1 ends here
 
-;; [[file:config.org::*Org Agenda views][Org Agenda views:1]]
+;; [[file:config.org::*Org Agenda][Org Agenda:1]]
+  (defun as/org-roam-today-mk-agenda-link ()
+    (interactive)
+    (let* ((marker (or (org-get-at-bol 'org-marker)
+                       (org-agenda-error)))
+           (buffer (marker-buffer marker))
+           (pos (marker-position marker)))
+      (with-current-buffer buffer
+        (save-excursion
+          (goto-char pos)
+          (let ((link (org-store-link nil)))
+            (when (stringp link)
+              (remove-text-properties 0 (length link)
+                                      '(read-only t) link))
+            (setq as/agenda-captured-link link))
+          (org-roam-dailies-capture-today)))))
+;; Org Agenda:1 ends here
+
+;; [[file:config.org::*Org Agenda][Org Agenda:2]]
+(setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$"))
+;; Org Agenda:2 ends here
+
+;; [[file:config.org::*Org Agenda][Org Agenda:3]]
 (map! :leader
       :desc "Switch to week view"
       "o a w" #'org-agenda-week-view)
@@ -47,7 +69,52 @@
 (map! :leader
       :desc "switch to month view"
       "o a y" #'org-agenda-year-view)
-;; Org Agenda views:1 ends here
+;; Org Agenda:3 ends here
+
+;; [[file:config.org::*Org super agenda][Org super agenda:1]]
+(let ((org-super-agenda-groups
+       '(;; Each group has an implicit boolean OR operator between its selectors.
+         (:name "Today"  ; Optionally specify section name
+                :time-grid t  ; Items that appear on the time grid
+                :todo "TODAY")  ; Items that have this TODO keyword
+         (:name "Important"
+                ;; Single arguments given alone
+                :tag "bills"
+                :priority "A")
+         ;; Set order of multiple groups at once
+         (:order-multi (2 (:name "Shopping in town"
+                                 ;; Boolean AND group matches items that match all subgroups
+                                 :and (:tag "shopping" :tag "@town"))
+                          (:name "Food-related"
+                                 ;; Multiple args given in list with implicit OR
+                                 :tag ("food" "dinner"))
+                          (:name "Personal"
+                                 :habit t
+                                 :tag "personal")
+                          (:name "Space-related (non-moon-or-planet-related)"
+                                 ;; Regexps match case-insensitively on the entire entry
+                                 :and (:regexp ("space" "NASA")
+                                               ;; Boolean NOT also has implicit OR between selectors
+                                               :not (:regexp "moon" :tag "planet")))))
+         ;; Groups supply their own section names when none are given
+         (:todo "WAITING" :order 8)  ; Set order of this section
+         (:todo ("SOMEDAY" "TO-READ" "CHECK" "TO-WATCH" "WATCHING")
+                ;; Show this group at the end of the agenda (since it has the
+                ;; highest number). If you specified this group last, items
+                ;; with these todo keywords that e.g. have priority A would be
+                ;; displayed in that group instead, because items are grouped
+                ;; out in the order the groups are listed.
+                :order 9)
+         (:priority<= "B"
+                      ;; Show this section after "Today" and "Important", because
+                      ;; their order is unspecified, defaulting to 0. Sections
+                      ;; are displayed lowest-number-first.
+                      :order 1)
+         ;; After the last group, the agenda will display items that didn't
+         ;; match any of these groups, with the default order position of 99
+         )))
+  (org-agenda nil "a"))
+;; Org super agenda:1 ends here
 
 ;; [[file:config.org::*Babel][Babel:1]]
 (map! :leader
@@ -117,7 +184,16 @@
           "* %?\n- Comment: "
           :file-name "references/%<%Y-%m-%d-%H%M%S>-${slug}"
           :head "#+TITLE: ${title}"
-          :unnarrowed t)))
+          :unnarrowed t)
+       
+       ("t" "do today" item
+           #'org-roam-capture--get-point
+           "[ ] %(princ as/agenda-captured-link)"
+           :file-name "daily/%<%Y-%m-%d>"
+           :head "#+title: %<%Y-%m-%d (%A)>\n* [/] Do Today\n* [/] Maybe Do Today\n* Journal\n"
+           :olp ("Do Today")
+           :immediate-finish t))
+       )
 ;; Org Roam:2 ends here
 
 ;; [[file:config.org::*Org Roam][Org Roam:3]]
@@ -128,6 +204,15 @@
     (concat "pandoc --from=html --to=org " (buffer-substring begin end))
    nil t))
 ;; Org Roam:3 ends here
+
+;; [[file:config.org::*Org File Encryption][Org File Encryption:1]]
+(require 'epa-file)
+(epa-file-enable)
+;; Org File Encryption:1 ends here
+
+;; [[file:config.org::*Org File Encryption][Org File Encryption:2]]
+(setq epa-file-select-keys "235327FBDEFB3719")
+;; Org File Encryption:2 ends here
 
 ;; [[file:config.org::*Yasnippet][Yasnippet:1]]
 (map! :leader
@@ -298,3 +383,7 @@
        :prefix ("s" . "search")
         :desc "cheat sheat" "c" #'cht-sh)
 ;; Cheat-sh:1 ends here
+
+;; [[file:config.org::*Bookmarks][Bookmarks:1]]
+(setq bookmark-file "~/Documents/Emacs/bookmarks")
+;; Bookmarks:1 ends here

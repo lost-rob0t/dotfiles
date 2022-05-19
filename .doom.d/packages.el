@@ -86,7 +86,8 @@
 (package! org-download :recipe (:type git :host github :repo "abo-abo/org-download"))
 (package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
 (package! cheat-sh :recipe (:type git :host github :repo "chubin/cheat.sh"))
-
+(package! vulpea :recipe (:type git :host github :repo "d12frosted/vulpea"))
+(package! activity-watch-mode :recipe (:type git :host github :repo "pauldub/activity-watch-mode"))
 (use-package alert
   :config (setq alert-default-style
             (if ns/enable-windows-p

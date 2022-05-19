@@ -12,7 +12,7 @@
 - [X] add pcap-mode
 - [ ] add desktop notifcations
 - [ ] Add theme toggle
-- [ ] Replace org-adgenda views with org super agenda
+- [ ] Replace org-agenda views with org super agenda
 
 
 * Styling
@@ -61,7 +61,33 @@ Setting org dir
 #+begin_src emacs-lisp
 (setq org-directory "~/Documents/Notes/org")
 #+end_src
-*** Org Agenda views
+
+#+begin_src emacs-lisp
+(add-hook 'before-save-hook 'time-stamp)
+#+end_src
+
+
+*** Org Agenda
+
+Find all TODOS recursively [[https://stackoverflow.com/a/41969519][source]].
+#+begin_src emacs-lisp
+(setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$"))
+#+end_src
+
+#+begin_src emacs-lisp
+(defun org-agenda-update-files ()
+  "Update the org-agenda-files"
+  (interactive)
+  (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$")))
+(map! :leader
+      :desc "update agenda"
+      "o a u" #'org-agenda-update-files)
+
+
+#+end_src
+
+
+
 I prefer being able to have difrent views within org agenda, so i can see whats comming up ahead of time.
 #+begin_src emacs-lisp
 (map! :leader
@@ -76,6 +102,57 @@ I prefer being able to have difrent views within org agenda, so i can see whats 
       :desc "switch to month view"
       "o a y" #'org-agenda-year-view)
 #+end_src
+
+**** Org super agenda
+***** TODO adapt this
+#+begin_src emacs-lisp
+(let ((org-super-agenda-groups
+       '(;; Each group has an implicit boolean OR operator between its selectors.
+         (:name "Today"  ; Optionally specify section name
+                :time-grid t  ; Items that appear on the time grid
+                :todo "TODAY")  ; Items that have this TODO keyword
+         (:name "Important"
+                ;; Single arguments given alone
+                :tag "bills"
+                :priority "A")
+         ;; Set order of multiple groups at once
+         (:order-multi (2 (:name "Shopping in town"
+                                 ;; Boolean AND group matches items that match all subgroups
+                                 :and (:tag "shopping" :tag "@town"))
+                          (:name "Food-related"
+                                 ;; Multiple args given in list with implicit OR
+                                 :tag ("food" "dinner"))
+                          (:name "Personal"
+                                 :habit t
+                                 :tag "personal")
+                          (:name "Space-related (non-moon-or-planet-related)"
+                                 ;; Regexps match case-insensitively on the entire entry
+                                 :and (:regexp ("space" "NASA")
+                                               ;; Boolean NOT also has implicit OR between selectors
+                                               :not (:regexp "moon" :tag "planet")))))
+         ;; Groups supply their own section names when none are given
+         (:todo "WAITING" :order 8)  ; Set order of this section
+         (:todo ("SOMEDAY" "TO-READ" "CHECK" "TO-WATCH" "WATCHING")
+                ;; Show this group at the end of the agenda (since it has the
+                ;; highest number). If you specified this group last, items
+                ;; with these todo keywords that e.g. have priority A would be
+                ;; displayed in that group instead, because items are grouped
+                ;; out in the order the groups are listed.
+                :order 9)
+         (:priority<= "B"
+                      ;; Show this section after "Today" and "Important", because
+                      ;; their order is unspecified, defaulting to 0. Sections
+                      ;; are displayed lowest-number-first.
+                      :order 1)
+         ;; After the last group, the agenda will display items that didn't
+         ;; match any of these groups, with the default order position of 99
+         )))
+  (org-agenda nil "a"))
+#+end_src
+
+
+
+
 *** Babel
 Tangle a file
 #+begin_src emacs-lisp
@@ -146,7 +223,7 @@ Configure keybinds. this will be under `SPC m a `
 #+end_src
 
 
-** Org Roam
+*** Org Roam
 A Personal wiki
 
 Set roam directory
@@ -166,8 +243,21 @@ Set a daily capture format
           "* %?\n- Comment: "
           :file-name "references/%<%Y-%m-%d-%H%M%S>-${slug}"
           :head "#+TITLE: ${title}"
-          :unnarrowed t)))
+          :unnarrowed t)
+       
+       ("t" "do today" item
+           #'org-roam-capture--get-point
+           "[ ] %(princ as/agenda-captured-link)"
+           :file-name "daily/%<%Y-%m-%d>"
+           :head "#+title: %<%Y-%m-%d (%A)>\n* [/] Do Today\n* [/] Maybe Do Today\n* Journal\n"
+           :olp ("Do Today")
+           :immediate-finish t))
+       )
 #+end_src
+
+#+RESULTS:
+| D | daily entry | entry | #'org-roam--capture-get-point | * %<%I:%M %p>: %? | :file-name | %<%Y-%m-%d-%H%M%S>-${slug} | :head | #+TITLE: ${title} | :unnarrowed | t |
+| u | url         | entry | #'org-roam--capture-get-point | * %?              |            |                            |       |                   |             |   |
 
 
 url2org function fro importing info from the web
@@ -184,7 +274,18 @@ url2org function fro importing info from the web
 
 
 
+*** Org File Encryption
 
+Eyes off my doccuments
+#+begin_src emacs-lisp
+(require 'epa-file)
+(epa-file-enable)
+#+end_src
+
+
+#+begin_src emacs-lisp
+(setq epa-file-select-keys "235327FBDEFB3719")
+#+end_src
 
 
 
@@ -420,3 +521,9 @@ I use i2p and having elfeed use a proxy would be nice
 
 #+end_src
 *** TODO make it look nice
+
+
+** Bookmarks
+#+begin_src emacs-lisp
+(setq bookmark-file "~/Documents/Emacs/bookmarks")
+#+end_src
