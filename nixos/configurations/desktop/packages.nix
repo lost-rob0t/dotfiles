@@ -85,6 +85,7 @@ in
       epkgs.pandoc
       mypkgs.nimPackages.puffer
       mypkgs.nimPackages.nimsuggest
+      mypkgs.nodePackages.bash-language-server
     ]))
 
     # Rice

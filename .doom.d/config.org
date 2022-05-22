@@ -318,6 +318,9 @@ Eyes off my doccuments
 (epa-file-enable)
 #+end_src
 
+#+begin_src emacs-lisp
+(setq epa-file-encrypt-to '("nsaspy@airmail.cc"))
+#+end_src
 
 #+begin_src emacs-lisp
 (setq epa-file-select-keys "235327FBDEFB3719")
