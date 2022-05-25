@@ -16,6 +16,6 @@
     pkgs.cht-sh
     pkgs.kleopatra
     pkgs.gimp
-    pkgs.nix-search
+    pkgs.feh
   ];
 }
