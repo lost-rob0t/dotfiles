@@ -8,10 +8,8 @@
 #+end_src
 
 * TODO update config [2/4]
-- [X] add pcap-mode
 - [ ] add desktop notifcations
 - [ ] Add theme toggle
-- [X] Replace org-agenda views with org super agenda
 
 
 * Styling
@@ -455,6 +453,18 @@ fix textarea
        (dme:w3m-textarea-mode))
      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
 #+end_src
+
+** Vterm
+its a good term
+
+set the window title
+#+begin_src emacs-lisp
+(defun vterm--rename-buffer-as-title (title)
+  (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
+    (cd-absolute dir)
+  (rename-buffer (format "term %s" title))))
+(add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+#+end_src
 * Programming
 
 This section would not fit well, therefor it is in its own.
@@ -498,6 +508,12 @@ Search nixos options so i dont have to go the website
 Flycheck
 #+begin_src emacs-lisp
 (require 'flycheck-nim)
+#+end_src
+
+
+** Forth
+#+begin_src emacs-lisp
+(add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 #+end_src
 * Misc
 ** Performance
