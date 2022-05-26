@@ -490,23 +490,9 @@ Search nixos options so i dont have to go the website
       :after nix
       :map nix-mode-map
       :prefix ("s" . "search")
-      :desc "search option" "o" #'helm-nixos-options)
+      :desc "search option" "n" #'helm-nixos-options)
 #+end_src
 
-#+begin_src emacs-lisp
-(setq flycheck-command-wrapper-function
-      (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
-      flycheck-executable-find
-      (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
-#+end_src
-
-#+begin_src emacs-lisp
-(add-to-list 'lsp-language-id-configuration '(nix-mode . "nix"))
-(lsp-register-client
- (make-lsp-client :new-connection (lsp-stdio-connection '("rnix-lsp"))
-                  :major-modes '(nix-mode)
-                  :server-id 'nix))
-#+end_src
 
 ** Nim
 Flycheck
