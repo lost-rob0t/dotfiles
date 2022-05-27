@@ -65,6 +65,7 @@ in
     podman-compose
     rnix-lsp
     sqlite
+    gforth
     ## Security
     keepassxc
     tor

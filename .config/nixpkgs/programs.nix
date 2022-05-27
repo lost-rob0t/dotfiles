@@ -17,5 +17,6 @@
     pkgs.kleopatra
     pkgs.gimp
     pkgs.feh
+    pkgs.mindustry
   ];
 }
