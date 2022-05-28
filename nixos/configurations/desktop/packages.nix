@@ -45,7 +45,7 @@ in
     ungoogled-chromium
     brave
     thunderbird
-    tor-browser-bundle-bin
+    mypkgs.tor-browser-bundle-bin
     vim
     virt-manager
     element-desktop
@@ -66,6 +66,7 @@ in
     rnix-lsp
     sqlite
     gforth
+    racket
     ## Security
     keepassxc
     tor
