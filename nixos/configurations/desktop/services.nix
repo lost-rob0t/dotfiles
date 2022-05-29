@@ -4,19 +4,43 @@
 
 
 {
+  services = {
   ## Xserver config
-  services.xserver = {
+  xserver = {
     enable = true;
     displayManager = {
       sddm.enable = true;
       defaultSession = "lxqt";
       };
-    desktopManager.lxqt.enable = true;
+    desktopManager = {
+      lxqt.enable = true;
+      mate.enable = true;
+    };
     windowManager.qtile.enable = true;
     videoDrivers = [ "amdgpu" ];
     layout = "us";
   };
-  virtualisation = {
+
+  # Enable the OpenSSH daemon.
+  openssh = {
+    enable = true;
+    startWhenNeeded = true;
+
+  };
+  tor = {
+    enable = true;
+  };
+  printing = {
+    enable = false;};
+  #services.i2p = {
+  #  enable = true;
+  #};
+  emacs = {
+    enable = true;
+    defaultEditor = true;
+  };
+};
+virtualisation = {
     podman = {
       enable = true;
       # Create a `docker` alias for podman, to use it as a drop-in replacement
@@ -25,21 +49,6 @@
     libvirtd = {
       enable = true;
       onBoot = "start";
-    };};
-
-  # Enable the OpenSSH daemon.
-  services.openssh.enable = true;
-  services.tor.enable = true;
-  services.printing.enable = false;
-
-  services.jellyfin = {
-    enable = true;
-  };
-  #services.i2p = {
-  #  enable = true;
-  #};
-  services.emacs = {
-    enable = true;
-    defaultEditor = true;
-  };
+    };
+};
 }

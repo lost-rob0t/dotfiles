@@ -1,0 +1,3 @@
+* Inbox
+** TODO Add nicy prompt
+Nicy is a prompt written in nim

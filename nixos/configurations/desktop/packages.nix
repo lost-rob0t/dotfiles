@@ -2,11 +2,10 @@
 
 ## Packages and programs go here
 let
-  mypkgs = import <personal> {};
+  mypkgs = import <personal> { config.allowUnfree = true; };
 
 in
 {
-   nixpkgs.config.allowUnfree = true;
    nixpkgs.overlays = [
     (import (builtins.fetchTarball {
       url = https://github.com/nix-community/emacs-overlay/archive/master.tar.gz;
@@ -67,6 +66,7 @@ in
     sqlite
     gforth
     racket
+    mypkgs.wolfram-engine
     ## Security
     keepassxc
     tor
@@ -95,10 +95,12 @@ in
     starship
     variety
     sxhkd
+
     ## Services
     dunst
     libvirt
     dmenu
+    blueman
     ## Nixos
     nixos-generators
   ];

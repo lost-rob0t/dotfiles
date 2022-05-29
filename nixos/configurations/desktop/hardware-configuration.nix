@@ -27,5 +27,12 @@
     [ { device = "/dev/disk/by-uuid/a13703b7-ce75-453f-8d67-474523e051f8"; }
     ];
 
-  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  hardware = {
+    bluetooth = {
+      enable = true;
+    };
+    cpu.amd = {
+      updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+    };
+  };
 }
