@@ -88,6 +88,7 @@
 (package! cheat-sh :recipe (:type git :host github :repo "chubin/cheat.sh"))
 (package! vulpea :recipe (:type git :host github :repo "d12frosted/vulpea"))
 (package! activity-watch-mode :recipe (:type git :host github :repo "pauldub/activity-watch-mode"))
+(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
 (use-package alert
   :config (setq alert-default-style
             (if ns/enable-windows-p
