@@ -228,6 +228,7 @@ I expirment with difrent languages, org babel makes things easy.
   ;; This is needed as of Org 9.2
   (require 'org-tempo)
   (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
   (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
   (add-to-list 'org-structure-template-alist '("nim" . "src nim"))
   (add-to-list 'org-structure-template-alist '("erl" . "src erlang"))
