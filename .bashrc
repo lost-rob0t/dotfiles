@@ -1,6 +1,6 @@
 # .bashrc
 
-NIX_CONFIG="desktop/desktop.nix"
+NIX_CONFIG="neptune/neptune.nix"
 
 # Source global definitions
 if [ -f /etc/bashrc ]; then
