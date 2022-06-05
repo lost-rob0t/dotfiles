@@ -39,6 +39,18 @@
     enable = true;
     defaultEditor = true;
   };
+  blueman = {
+    enable = true;
+  };
+  ## Power managment buggy gpu :(
+  tlp = {
+  enable = true;
+  };
+  ## Open snitch
+  opensnitch = {
+    enable = true;
+  };
+
 };
 virtualisation = {
     podman = {
