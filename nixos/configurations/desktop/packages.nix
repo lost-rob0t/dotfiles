@@ -73,6 +73,7 @@ in
     torsocks
     hashcat
     veracrypt
+    opensnitch-ui
     ## Libs
     libtool
     libvterm
