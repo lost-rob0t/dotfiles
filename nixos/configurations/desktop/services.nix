@@ -50,8 +50,8 @@
   opensnitch = {
     enable = true;
   };
-
 };
+
 virtualisation = {
     podman = {
       enable = true;
