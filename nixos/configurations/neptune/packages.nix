@@ -10,7 +10,6 @@ in
     (import (builtins.fetchTarball {
       url = https://github.com/nix-community/emacs-overlay/archive/master.tar.gz;
     }))
-    (import "/etc/nixos/nixos-overlay/overlay.nix")
     ];
   nixpkgs.config.packageOverrides = pkgs: {
     nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
@@ -62,12 +61,11 @@ in
     sqlite
     gforth
     racket
-    mypkgs.wolfram-engine
+    ##mypkgs.wolfram-engine
     ## Security
     keepassxc
     tor
     torsocks
-    hashcat
     veracrypt
     ## Libs
     libtool

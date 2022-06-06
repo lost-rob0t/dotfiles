@@ -22,16 +22,15 @@
       ./networking.nix
     ];
 
-  # Boot config
-  boot.initrd.luks.devices = {
-  crypted = {
-    device = "/dev/disk/by-partuuid/e530f416-662e-4e97-a698-63096214c5f9";
-    allowDiscards = true; # Used if primary device is a SSD
-    preLVM = true;
-    bypassWorkqueues = true;
-  };
- };
   boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.efi.efiSysMountPoint = "/boot/efi";
+
+  # Setup keyfile
+  boot.initrd.secrets = {
+    "/crypto_keyfile.bin" = null;
+  };
+
  # Set your time zone.
   time.timeZone = "America/New_York";
 

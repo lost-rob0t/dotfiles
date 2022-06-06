@@ -4,20 +4,30 @@
 
 
 {
+
+  systemd.services."getty@tty1".enable = false;
+  systemd.services."autovt@tty1".enable = false;
   services = {
   ## Xserver config
+
   xserver = {
+    libinput.enable = true;
+
     enable = true;
     displayManager = {
-      sddm.enable = true;
-      defaultSession = "lxqt";
+      autoLogin = {
+        user = "unseen";
+        enable = true;
+      };
+      gdm.enable = true;
+      defaultSession = "gnome";
       };
     desktopManager = {
       lxqt.enable = true;
-      mate.enable = true;
+      gnome.enable = true;
+
     };
     windowManager.qtile.enable = true;
-    videoDrivers = [ "amdgpu" ];
     layout = "us";
   };
 
@@ -25,7 +35,6 @@
   openssh = {
     enable = true;
     startWhenNeeded = true;
-
   };
   tor = {
     enable = true;
@@ -42,6 +51,10 @@
   blueman = {
     enable = true;
   };
+
+ touchegg = {
+ enable = true;
+};
 };
 virtualisation = {
     podman = {
