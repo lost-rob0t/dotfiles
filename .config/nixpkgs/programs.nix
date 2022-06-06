@@ -5,7 +5,6 @@
     pkgs.vlc
     pkgs.obs-studio
     pkgs.libreoffice
-    pkgs.lutris
     pkgs.filezilla
     pkgs.nerdfonts
     pkgs.discord
@@ -18,5 +17,6 @@
     pkgs.gimp
     pkgs.feh
     pkgs.mindustry
+    pkgs.bookworm
   ];
 }
