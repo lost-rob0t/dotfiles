@@ -25,6 +25,7 @@ I like doom's outrun eletric theme
 (setq display-line-numbers-type t)
 #+end_src
 
+* TODO Merge Packages.el with org config
 * Packages
 ** Magit
 Set keybind for pushing to remote
@@ -60,6 +61,8 @@ Setting org dir
 #+begin_src emacs-lisp
 (setq org-directory "~/Documents/Notes/org")
 #+end_src
+
+I forgot where i grabbed this from sorry.
 
 #+begin_src emacs-lisp
 (add-hook 'before-save-hook 'time-stamp)
@@ -101,7 +104,6 @@ I prefer being able to have difrent views within org agenda, so i can see whats 
 #+end_src
 
 **** Org super agenda
-***** TODO adapt this
 #+begin_src emacs-lisp
 (setq org-super-agenda-groups
       '(
@@ -110,16 +112,6 @@ I prefer being able to have difrent views within org agenda, so i can see whats 
         (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash")))
         (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")))))
 #+end_src
-
-#+RESULTS:
-| :and | (:todo IDEA :name Starintel Idea :tag (starintel sit))     |
-| :and | (:todo TODO :name Starintel Bugs :tag (starintel-bug sib)) |
-| :and | (:todo TODO :name Personal :tag (mow trash))               |
-| :and | (:todo TODO :name Read inbox :tag (book artical books))    |
-
-
-
-
 
 *** Babel
 Tangle a file
@@ -219,7 +211,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (lsp))
 #+end_src
 
-: org-babel-edit-prep:sh
 
 *** Org Tempo templates
 I expirment with difrent languages, org babel makes things easy.
@@ -325,10 +316,14 @@ Eyes off my doccuments
 (setq epa-file-select-keys "235327FBDEFB3719")
 #+end_src
 
-
-
-
-
+*** Org Pomodoro
+#+begin_src emacs-lisp
+(map! :localleader
+      :after org
+      :map org-mode-map
+      :prefix ("c" . "clock")
+      :desc "Start Pomodoro" "T" #'org-pomodoro)
+#+end_src
 ** Yasnippet
 Add a new template
 #+begin_src emacs-lisp
@@ -361,6 +356,7 @@ Tell deft to use the filename as the Title of the note
 #+end_src
 
 ** Notifications
+*** TODO expand this into something more
 #+begin_src emacs-lisp
 (require 'notifications)
 #+end_src
@@ -372,6 +368,7 @@ Hook elfeed-org to elfeed
 #+begin_src emacs-lisp
 (elfeed-org)
 #+end_src
+
 Tell elfeed where to look for org mode files
 
 #+begin_src emacs-lisp
@@ -397,8 +394,6 @@ Provider priority
                                    "0x0.st" "bpa.st"
                                    "paste.rs"))
 #+end_src
-
-
 
 Setting Keybinds
 #+begin_src emacs-lisp
@@ -435,7 +430,6 @@ inherit-org: Inherit org faces to non-org buffers.
 
 ** W3M
 
-
 fix textarea
 #+begin_src emacs-lisp
 (eval-after-load "w3m-form"
@@ -463,9 +457,10 @@ set the window title
 (defun vterm--rename-buffer-as-title (title)
   (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
     (cd-absolute dir)
-  (rename-buffer (format "term %s" title))))
+    (rename-buffer (format "term %s" title))))
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
 #+end_src
+
 * Programming
 
 This section would not fit well, therefor it is in its own.
@@ -506,16 +501,19 @@ Search nixos options so i dont have to go the website
 
 
 ** Nim
-Flycheck
+Flycheck nim
+Does this even do anything?
 #+begin_src emacs-lisp
 (require 'flycheck-nim)
 #+end_src
 
 
 ** Forth
+Load forth mode
 #+begin_src emacs-lisp
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 #+end_src
+
 * Misc
 ** Performance
 Enable explain Pause mode
@@ -527,8 +525,6 @@ disabled becuae I swear it causes me problems
 #+end_src
 
 ** Enviroment
-
-
 
 Sets PATH
 #+begin_src emacs-lisp
@@ -557,7 +553,6 @@ I use i2p and having elfeed use a proxy would be nice
 
 ** Cheat-sh
 #+begin_src emacs-lisp
-
 (defun cht-sh ()
   "look up a cheat"
   (interactive)
@@ -573,6 +568,7 @@ I use i2p and having elfeed use a proxy would be nice
 #+begin_src emacs-lisp
 (setq bookmark-file "~/Documents/Emacs/bookmarks")
 #+end_src
+
 ** Activity Watch
 #+begin_src emacs-lisp
 (global-activity-watch-mode)
