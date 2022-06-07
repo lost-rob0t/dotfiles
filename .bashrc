@@ -60,6 +60,25 @@ fi
 echo done
 }
 
+function evolve-home () {
+read -p "Do you want to rebuild your home config? (yes/no) " yn
+
+case $yn in
+    yes ) echo ok, we will proceed;;
+    no ) echo exiting...;
+         exit;;
+    * ) echo invalid response;
+        exit 1;;
+esac
+sudo sed  -i "s|<config>|$1/$1.nix|" /etc/nixos/configuration.nix
+if [ "$2" = "" ];then
+    sudo nixos-rebuild switch
+else
+nixos-rebuild "$@"
+fi
+echo done
+}
+
 function make_password () {
 echo "enter password: "
 read password

@@ -67,6 +67,7 @@ in
     gforth
     racket
     sbcl
+    roswell
     ## Security
     keepassxc
     tor
@@ -78,6 +79,7 @@ in
     libtool
     libvterm
     jdk11
+
     ((emacsPackagesFor emacsNativeComp).emacsWithPackages (epkgs: [
       epkgs.vterm
       epkgs.ac-ispell
@@ -89,6 +91,7 @@ in
       mypkgs.nimPackages.puffer
       mypkgs.nimPackages.nimsuggest
       mypkgs.nodePackages.bash-language-server
+      mypkgs.roswell
     ]))
 
     # Rice

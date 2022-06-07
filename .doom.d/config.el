@@ -36,7 +36,7 @@
 ;; Org Mode:1 ends here
 
 ;; [[file:config.org::*Org Mode][Org Mode:2]]
-(add-hook 'before-save-hook 'time-stamp)
+;;(add-hook 'before-save-hook 'time-stamp)
 ;; Org Mode:2 ends here
 
 ;; [[file:config.org::*Org Agenda][Org Agenda:1]]
@@ -67,14 +67,14 @@
       "o a y" #'org-agenda-year-view)
 ;; Org Agenda:3 ends here
 
-;; [[file:config.org::*adapt this][adapt this:1]]
+;; [[file:config.org::*Org super agenda][Org super agenda:1]]
 (setq org-super-agenda-groups
       '(
         (:and (:todo "IDEA" :name "Starintel Idea" :tag ("starintel" "sit")))
         (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
         (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash")))
         (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")))))
-;; adapt this:1 ends here
+;; Org super agenda:1 ends here
 
 ;; [[file:config.org::*Babel][Babel:1]]
 (map! :leader
@@ -97,7 +97,7 @@
 ;; [[file:config.org::*Babel][Babel:4]]
 (org-babel-do-load-languages
  'org-babel-load-languages
- '((emacs-lisp . t) (org . t) (nim . t) (python . t) (erlang . t) (ein . t)))
+ '((emacs-lisp . t) (org . t) (nim . t) (python . t) (erlang . t) (ein . t) (lisp . t)))
 ;; Babel:4 ends here
 
 ;; [[file:config.org::*Better Formating in org-babel][Better Formating in org-babel:1]]
@@ -165,6 +165,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   ;; This is needed as of Org 9.2
   (require 'org-tempo)
   (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
   (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
   (add-to-list 'org-structure-template-alist '("nim" . "src nim"))
   (add-to-list 'org-structure-template-alist '("erl" . "src erlang"))
@@ -202,7 +203,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                                      :unnarrowed t)
                                     ("u" "url" entry (function org-roam--capture-get-point)
                                      "* %?\n- Comment: "
-                                     :file-name "references/%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :file-name "urls/%<%Y-%m-%d-%H%M%S>-${slug}"
                                      :head "#+TITLE: ${title}"
                                      :unnarrowed t)
 
@@ -224,6 +225,10 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                            nil t))
 ;; Org Roam:3 ends here
 
+;; [[file:config.org::*Org Roam][Org Roam:4]]
+(setq org-roam-db-update-on-save t)
+;; Org Roam:4 ends here
+
 ;; [[file:config.org::*Org File Encryption][Org File Encryption:1]]
 (require 'epa-file)
 (epa-file-enable)
@@ -236,6 +241,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;; [[file:config.org::*Org File Encryption][Org File Encryption:3]]
 (setq epa-file-select-keys "235327FBDEFB3719")
 ;; Org File Encryption:3 ends here
+
+;; [[file:config.org::*Org Pomodoro][Org Pomodoro:1]]
+(map! :localleader
+      :after org
+      :map org-mode-map
+      :prefix ("c" . "clock")
+      :desc "Start Pomodoro" "T" #'org-pomodoro)
+;; Org Pomodoro:1 ends here
 
 ;; [[file:config.org::*Yasnippet][Yasnippet:1]]
 (map! :leader
@@ -262,9 +275,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (setq deft-use-filename-as-title t)
 ;; Deft:3 ends here
 
-;; [[file:config.org::*Notifications][Notifications:1]]
+;; [[file:config.org::*expand this into something more][expand this into something more:1]]
 (require 'notifications)
-;; Notifications:1 ends here
+;; expand this into something more:1 ends here
 
 ;; [[file:config.org::*RSS (Elfeed)][RSS (Elfeed):1]]
 (require 'elfeed-org)
@@ -342,7 +355,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (defun vterm--rename-buffer-as-title (title)
   (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
     (cd-absolute dir)
-  (rename-buffer (format "term %s" title))))
+    (rename-buffer (format "term %s" title))))
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
 ;; Vterm:1 ends here
 
@@ -373,7 +386,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;; Nim:1 ends here
 
 ;; [[file:config.org::*Forth][Forth:1]]
-(add-to-list 'auto-mode-alist '("\\.fs$" . 'forth-mode))
+(add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 ;; Forth:1 ends here
 
 ;; [[file:config.org::*Performance][Performance:1]]

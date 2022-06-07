@@ -65,7 +65,7 @@ Setting org dir
 I forgot where i grabbed this from sorry.
 
 #+begin_src emacs-lisp
-(add-hook 'before-save-hook 'time-stamp)
+;;(add-hook 'before-save-hook 'time-stamp)
 #+end_src
 
 
@@ -271,7 +271,7 @@ Set a daily capture format
                                      :unnarrowed t)
                                     ("u" "url" entry (function org-roam--capture-get-point)
                                      "* %?\n- Comment: "
-                                     :file-name "references/%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :file-name "urls/%<%Y-%m-%d-%H%M%S>-${slug}"
                                      :head "#+TITLE: ${title}"
                                      :unnarrowed t)
 
@@ -298,7 +298,11 @@ url2org function fro importing info from the web
 #+end_src
 
 
-
+For some reason caching on write isnt working.
+If my notes get slow i will disable it.
+#+begin_src emacs-lisp
+(setq org-roam-db-update-on-save t)
+#+end_src
 
 *** Org File Encryption
 
