@@ -66,7 +66,7 @@ in
     sqlite
     gforth
     racket
-    mypkgs.wolfram-engine
+    sbcl
     ## Security
     keepassxc
     tor

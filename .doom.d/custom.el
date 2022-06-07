@@ -3,11 +3,12 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(auth-source-save-behavior nil)
- '(org-agenda-files
-   '("~/Documents/Notes/programing/starintel/parse-postal.org" "/home/nsaspy/Documents/Notes/org/ideas.org" "/home/nsaspy/Documents/Notes/org/notes.org" "/home/nsaspy/Documents/Notes/org/projects.org" "/home/nsaspy/Documents/Notes/org/rss.org" "/home/nsaspy/Documents/Notes/org/web.org"))
- '(package-selected-packages
-   '(shrface ein ob-ipython ssh-tunnels elcouch alert webpaste lsp-ui ednc web-mode-edit-element use-package-el-get rtm quelpa-use-package plain-org-wiki org-wiki org-notifications forge el-get burly pipenv)))
+ '(custom-safe-themes
+   '("da53441eb1a2a6c50217ee685a850c259e9974a8fa60e899d393040b4b8cc922" "c5ded9320a346146bbc2ead692f0c63be512747963257f18cc8518c5254b7bf5" "1704976a1797342a1b4ea7a75bdbb3be1569f4619134341bd5a4c1cfb16abad4" default))
+ '(package-selected-packages '(org-pomodoro vterm quelpa-use-package))
+ '(warning-suppress-types
+   '((tabulated-list-revert-hook)
+     (tabulated-list-revert-hook))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

@@ -70,7 +70,7 @@
 ;; [[file:config.org::*adapt this][adapt this:1]]
 (setq org-super-agenda-groups
       '(
-        (:and (:todo "IDEA" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
+        (:and (:todo "IDEA" :name "Starintel Idea" :tag ("starintel" "sit")))
         (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
         (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash")))
         (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")))))
@@ -142,6 +142,24 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :desc "format src" "f" #'format-elisp-src-blocks)
 ;; Better Formating in org-babel:1 ends here
 
+;; [[file:config.org::*Python][Python:1]]
+(defun org-babel-edit-prep:python (babel-info)
+  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
+  (lsp))
+;; Python:1 ends here
+
+;; [[file:config.org::*Nim][Nim:1]]
+(defun org-babel-edit-prep:nim (babel-info)
+  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
+  (lsp))
+;; Nim:1 ends here
+
+;; [[file:config.org::*Bash][Bash:1]]
+(defun org-babel-edit-prep:sh (babel-info)
+  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
+  (lsp))
+;; Bash:1 ends here
+
 ;; [[file:config.org::*Org Tempo templates][Org Tempo templates:1]]
 (with-eval-after-load 'org
   ;; This is needed as of Org 9.2
@@ -212,8 +230,12 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;; Org File Encryption:1 ends here
 
 ;; [[file:config.org::*Org File Encryption][Org File Encryption:2]]
-(setq epa-file-select-keys "235327FBDEFB3719")
+(setq epa-file-encrypt-to '("nsaspy@airmail.cc"))
 ;; Org File Encryption:2 ends here
+
+;; [[file:config.org::*Org File Encryption][Org File Encryption:3]]
+(setq epa-file-select-keys "235327FBDEFB3719")
+;; Org File Encryption:3 ends here
 
 ;; [[file:config.org::*Yasnippet][Yasnippet:1]]
 (map! :leader
@@ -316,6 +338,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
 ;; W3M:1 ends here
 
+;; [[file:config.org::*Vterm][Vterm:1]]
+(defun vterm--rename-buffer-as-title (title)
+  (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
+    (cd-absolute dir)
+  (rename-buffer (format "term %s" title))))
+(add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+;; Vterm:1 ends here
+
 ;; [[file:config.org::*Python][Python:1]]
 (setq python-ident-offset 4)
 ;; Python:1 ends here
@@ -335,27 +365,16 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :after nix
       :map nix-mode-map
       :prefix ("s" . "search")
-      :desc "search option" "o" #'helm-nixos-options)
+      :desc "search option" "n" #'helm-nixos-options)
 ;; Nix:1 ends here
-
-;; [[file:config.org::*Nix][Nix:2]]
-(setq flycheck-command-wrapper-function
-      (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
-      flycheck-executable-find
-      (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
-;; Nix:2 ends here
-
-;; [[file:config.org::*Nix][Nix:3]]
-(add-to-list 'lsp-language-id-configuration '(nix-mode . "nix"))
-(lsp-register-client
- (make-lsp-client :new-connection (lsp-stdio-connection '("rnix-lsp"))
-                  :major-modes '(nix-mode)
-                  :server-id 'nix))
-;; Nix:3 ends here
 
 ;; [[file:config.org::*Nim][Nim:1]]
 (require 'flycheck-nim)
 ;; Nim:1 ends here
+
+;; [[file:config.org::*Forth][Forth:1]]
+(add-to-list 'auto-mode-alist '("\\.fs$" . 'forth-mode))
+;; Forth:1 ends here
 
 ;; [[file:config.org::*Performance][Performance:1]]
 (explain-pause-mode nil)
@@ -396,3 +415,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;; [[file:config.org::*Bookmarks][Bookmarks:1]]
 (setq bookmark-file "~/Documents/Emacs/bookmarks")
 ;; Bookmarks:1 ends here
+
+;; [[file:config.org::*Activity Watch][Activity Watch:1]]
+(global-activity-watch-mode)
+;; Activity Watch:1 ends here

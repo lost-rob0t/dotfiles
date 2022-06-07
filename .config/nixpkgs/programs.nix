@@ -1,5 +1,12 @@
 { config, lib, pkgs, ... }:
-
+let
+  nyxt = pkgs.nyxt.overrideAttrs (oldAttrs: {
+    postFixup = ''
+      wrapProgram $out/bin/nyxt \
+        --set-default WEBKIT_FORCE_SANDBOX 0
+    '';
+  });
+in
 {
   home.packages = [
     pkgs.vlc
@@ -17,6 +24,12 @@
     pkgs.gimp
     pkgs.feh
     pkgs.mindustry
+<<<<<<< Updated upstream
     pkgs.bookworm
+=======
+    pkgs.tlp
+    nyxt
+    pkgs.webkitgtk
+>>>>>>> Stashed changes
   ];
 }
