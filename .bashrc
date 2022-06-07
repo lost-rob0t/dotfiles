@@ -51,8 +51,8 @@ case $yn in
         exit 1;;
 esac
 sudo cp -rv $HOME/nixos/* /etc/nixos/
-sudo sed  -i "s|<config>|$NIX_CONFIG |" /etc/nixos/configuration.nix
-if [ "$1" = "" ];then
+sudo sed  -i "s|<config>|$1/$1.nix|" /etc/nixos/configuration.nix
+if [ "$2" = "" ];then
     sudo nixos-rebuild switch
 else
 nixos-rebuild "$@"
