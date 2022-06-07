@@ -61,6 +61,7 @@ in
     sqlite
     gforth
     racket
+    sbcl
     ##mypkgs.wolfram-engine
     ## Security
     keepassxc
