@@ -2,10 +2,12 @@
 let
   name = "N545PY";
   email = "nsaspy@airmail.cc";
+  
 in
 {
-  home.username = "unseen";
-  home.homeDirectory = "/home/unseen";
+  imports = [ ./programs.nix ./services.nix ];
+  home.username = "nsaspy";
+  home.homeDirectory = "/home/nsaspy";
 
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage

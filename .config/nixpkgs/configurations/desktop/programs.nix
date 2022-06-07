@@ -24,12 +24,9 @@ in
     pkgs.gimp
     pkgs.feh
     pkgs.mindustry
-<<<<<<< Updated upstream
     pkgs.bookworm
-=======
     pkgs.tlp
     nyxt
     pkgs.webkitgtk
->>>>>>> Stashed changes
   ];
 }
