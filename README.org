@@ -9,12 +9,9 @@ in .bashrc edit the $NIX_CONFIG to the path of the nixos config you wish to use
 
 for example to use the desktop config
 
-set NIX_CONFIG to
 #+begin_src shell
-NIX_CONFIG="desktop/desktop.nix"
+evolve desktop
 #+end_src
-
-By defualt its set to the desktop config.
 
 ** Evolve
 `evolve` is a bash function to wrap the nixos rebuild switch so you config can stay in the ~/.dotfiles/ folder.
