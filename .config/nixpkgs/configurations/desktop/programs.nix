@@ -28,5 +28,7 @@ in
     pkgs.tlp
     nyxt
     pkgs.webkitgtk
+    pkgs.remmina
+    pkgs.freerdp
   ];
 }
