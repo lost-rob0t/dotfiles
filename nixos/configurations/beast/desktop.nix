@@ -20,8 +20,18 @@
       ./services.nix
       ./packages.nix
       ./networking.nix
+      ./security.nix
     ];
 
+  # Boot config
+  boot.initrd.luks.devices = {
+  crypted = {
+    device = "/dev/disk/by-partuuid/e530f416-662e-4e97-a698-63096214c5f9";
+    allowDiscards = true; # Used if primary device is a SSD
+    preLVM = true;
+    bypassWorkqueues = true;
+  };
+ };
   boot.loader.systemd-boot.enable = true;
  # Set your time zone.
   time.timeZone = "America/New_York";
@@ -40,10 +50,6 @@
     subGidRanges = [{ startGid = 100000; count = 65536; }];
     extraGroups = [ "wheel" "libvirt" ]; # Enable ‘sudo’ for the user.
   };
-  users.users.lost = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "libvirt" ]; # Enable ‘sudo’ for the user.
-  };
   environment.pathsToLink = [ "/share/hunspell" "/share/myspell" "/share/hyphen" ];
 
   environment.variables.DICPATH = "/run/current-system/sw/share/hunspell:/run/current-system/sw/share/hyphen";
@@ -54,4 +60,6 @@
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "21.11"; # Did you read the comment?
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+
 }

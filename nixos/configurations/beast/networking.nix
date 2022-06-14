@@ -3,8 +3,14 @@
 # Networking goes into here
 
 {
-  networking.firewall.allowedTCPPorts = [ 22 5984 ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
+  networking.firewall.allowedTCPPorts = [ 22 #ssh
+                                          5984 #couchdb
+                                          8384 #syncthing
+                                          22000 # syncthing
+                                          ];
+  networking.firewall.allowedUDPPorts = [ 22000 #syncthing
+                                          21027 #syncthing
+                                          ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
   ####HOSTS#####
@@ -14,7 +20,7 @@
   '';
   networking.useDHCP = false;
   networking.interfaces.eno1.useDHCP = true;
-  networking.hostName = "beast"; # Define your hostname.
+  networking.hostName = "flake"; # Define your hostname.
   networking.networkmanager = {
     enable = true;
     };

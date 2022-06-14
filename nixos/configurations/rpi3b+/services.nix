@@ -17,7 +17,6 @@
       mate.enable = true;
     };
     windowManager.qtile.enable = true;
-    videoDrivers = [ "amdgpu" ];
     layout = "us";
   };
 
@@ -25,7 +24,7 @@
   openssh = {
     enable = true;
     startWhenNeeded = true;
-
+    permitRootLogin = "yes";
   };
   tor = {
     enable = true;
@@ -42,31 +41,5 @@
   blueman = {
     enable = true;
   };
-  ## Power managment buggy gpu :(
-  tlp = {
-  enable = true;
-  };
-  ## Open snitch
-  opensnitch = {
-    enable = true;
-  };
-  syncthing = {
-    enable = true;
-    user = "unseen";
-    dataDir = "/home/unseen/Documents";    # Default folder for new synced folders
-    configDir = "/home/unseen/Documents/.config/syncthing";   # Folder for Syncthing's settings and keys
-    };
-};
-
-virtualisation = {
-    podman = {
-      enable = true;
-      # Create a `docker` alias for podman, to use it as a drop-in replacement
-      dockerCompat = true;
-    };
-    libvirtd = {
-      enable = true;
-      onBoot = "start";
-    };
 };
 }

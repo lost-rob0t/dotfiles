@@ -55,6 +55,9 @@ in
     mypkgs.nimPackages.puffer
     ## Games
     steam-run-native
+    wineWowPackages.staging
+    winetricks
+    ##(winetricks.override { wine = wineWowPackages.staging; })
 
     ## Programming
     pipenv
@@ -75,6 +78,7 @@ in
     hashcat
     veracrypt
     opensnitch-ui
+    mypkgs.maltego
     ## Libs
     libtool
     libvterm
@@ -111,7 +115,7 @@ in
  hardware.opengl.extraPackages = with pkgs; [
    rocm-opencl-icd
    rocm-opencl-runtime
-   amdvlk
+   ##amdvlk
 ];
   ## Some programs need SUID wrappers, can be configured further or are
   ## started in user sessions.

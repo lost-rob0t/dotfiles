@@ -8,22 +8,31 @@
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "sd_mod" ];
-  boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-amd" "dm-raid" "amdgpu" ];
+  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "uas" "sd_mod" ];
+  boot.initrd.kernelModules = [ "dm-snapshot" "dm-raid" ];
+  boot.kernelModules = [ "kvm-amd" "amdgpu" "dm-raid" ];
   boot.extraModulePackages = [ ];
 
   fileSystems."/" =
-    { device = "/dev/disk/by-uuid/b0e1b07e-c69b-45bc-9d4b-5d8c3e545148";
+    { device = "/dev/disk/by-uuid/dfced3b1-91f1-445a-ab83-2345f4a45440";
       fsType = "ext4";
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/969D-B29E";
+    { device = "/dev/disk/by-partuuid/e3b65262-076c-40e5-9686-7c3717a9fc0a";
       fsType = "vfat";
     };
 
-  swapDevices = [ ];
+  swapDevices =
+    [ { device = "/dev/disk/by-uuid/a13703b7-ce75-453f-8d67-474523e051f8"; }
+    ];
 
-  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  hardware = {
+    bluetooth = {
+      enable = true;
+    };
+    cpu.amd = {
+      updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+    };
+  };
 }
