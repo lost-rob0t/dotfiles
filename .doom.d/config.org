@@ -7,9 +7,6 @@
 ;; -*- lexical-binding: t -*-
 #+end_src
 
-* TODO update config [2/4]
-- [ ] add desktop notifcations
-- [ ] Add theme toggle
 
 
 * Styling
@@ -523,7 +520,7 @@ Load forth mode
 Enable explain Pause mode
 
 Alerts you when somthing takes some time (40ms)
-disabled becuae I swear it causes me problems
+disabled because I swear it causes me problems
 #+begin_src emacs-lisp
 (explain-pause-mode nil)
 #+end_src
@@ -541,18 +538,6 @@ I use i2p and having elfeed use a proxy would be nice
 (setq url-proxy-services
       '(("no_proxy" . "^\\(localhost\\|10\\..*\\|192\\.168\\..*\\)")
         ("http" . "*.i2p:4444")))
-#+end_src
-
-** Puff Count
-#+begin_src emacs-lisp
-(defun puff-add ()
-  "Add a puff"
-  (interactive)
-  (shell-command "/run/current-system/sw/bin/puffer -a"))
-(map!
- :leader
- :desc "add a puff"
- "]" #'puff-add)
 #+end_src
 
 ** Cheat-sh
