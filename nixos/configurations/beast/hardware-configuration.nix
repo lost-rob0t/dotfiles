@@ -12,6 +12,7 @@
   boot.initrd.kernelModules = [ "dm-snapshot" "dm-raid" ];
   boot.kernelModules = [ "kvm-amd" "amdgpu" "dm-raid" ];
   boot.extraModulePackages = [ ];
+  boot.extraModprobeConfig = "options kvm_intel nested=1";
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/dfced3b1-91f1-445a-ab83-2345f4a45440";
