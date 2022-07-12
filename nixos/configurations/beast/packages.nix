@@ -31,7 +31,6 @@ in
     htop
     atop
     clinfo
-    ispell
     unzip
     bash
     zsh
@@ -54,7 +53,7 @@ in
     yt-dlp
     mypkgs.nimPackages.puffer
     ## Games
-    steam-run-native
+    #steam-run-native
     wineWowPackages.staging
     winetricks
     ##(winetricks.override { wine = wineWowPackages.staging; })
