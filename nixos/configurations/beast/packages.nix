@@ -124,6 +124,7 @@ in
    enable = true;
    enableSSHSupport = true;
   };
+  programs.adb.enable = true;
   programs.nm-applet.enable = true;
 
 
