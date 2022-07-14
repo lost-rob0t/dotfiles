@@ -39,6 +39,8 @@ in
     pandoc #emacs
     hunspellDicts.en_US
 
+    ## Android
+    android-tools
     ## User Programs
     ungoogled-chromium
     brave
