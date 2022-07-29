@@ -45,7 +45,7 @@ in
     ungoogled-chromium
     brave
     thunderbird
-    mypkgs.tor-browser-bundle-bin
+    tor-browser-bundle-bin
     vim
     virt-manager
     element-desktop
@@ -55,7 +55,8 @@ in
     yt-dlp
     mypkgs.nimPackages.puffer
     ## Games
-    #steam-run-native
+    lutris
+    steam-run-native
     wineWowPackages.staging
     winetricks
     ##(winetricks.override { wine = wineWowPackages.staging; })
@@ -136,5 +137,10 @@ in
   };
   programs.dconf = {
     enable = true;
+  };
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
+    dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
   };
 }
