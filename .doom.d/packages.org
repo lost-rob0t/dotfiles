@@ -1,0 +1,204 @@
+#+title: Doom Packages
+#+author: nsaspy
+#+property: header-args :emacs-lisp tangle: ./packages.el :tangle yes :comments link :results none
+#+startup: org-startup-folded: showall
+#+disable_spellchecker: t
+#+begin_src emacs-lisp
+;; -*- lexical-binding: t -*-
+#+end_src
+
+
+* About
+This org document contains all the packages that i install into emacs. I thought about merging it into config.org but thats just going to make a big mess. I will split it into sections and catogries of packages.
+
+
+
+* Org mode
+** org-ql
+This package provides a query language for Org files. It offers two syntax styles: Lisp-like sexps and search engine-like keywords.
+#+begin_src emacs-lisp
+(package! org-ql :recipe (:type git :host github :repo "alphapapa/org-ql"))
+#+end_src
+
+
+** org-timed-alerts
+Receive warnings and alerts via alert.el for upcoming events in your day.
+#+begin_src emacs-lisp
+(package! org-timed-alerts :recipe (:type git :host github :repo "legalnonsense/org-timed-alerts"))
+#+end_src
+
+** org-download
+This extension facilitates moving images from point A to point B.
+
+#+begin_src emacs-lisp
+(package! org-download :recipe (:type git :host github :repo "abo-abo/org-download"))
+#+end_src
+
+** vulpea
+A collection of functions for note taking based on org and org-roam. This repository primary goal is to be a tested library for other applications and utilities around note taking.
+
+#+begin_src emacs-lisp
+(package! vulpea :recipe (:type git :host github :repo "d12frosted/vulpea"))
+#+end_src
+
+** org-wiki
+Build and publish your own wiki based on org mode
+#+begin_src emacs-lisp
+(package! org-wiki :recipe (:type git :host github :repo "caiorss/org-wiki"))
+#+end_src
+** ox-hugo
+export to hugo markdown
+#+begin_src emacs-lisp
+(package! ox-hugo)
+#+end_src
+
+* Development
+** envrc
+A GNU Emacs library which uses direnv to set environment variables on a per-buffer basis. This means that when you work across multiple projects which have .envrc files, all processes launched from the buffers "in" those projects will be executed with the environment variables specified in those files. This allows different versions of linters and other tools to be used in each project if desired.
+
+#+begin_src emacs-lisp
+(package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
+#+end_src
+** Nim lang
+*** nim-mode
+#+begin_src emacs-lisp
+(use-package nim-mode
+  :ensure t
+  :hook
+  (nim-mode . lsp))
+#+end_src
+*** flycheck-nim
+
+Flycheck-nim is a syntax checker definition for flycheck which supports the Nim programming language using the nim compiler as the backend.
+#+begin_src emacs-lisp
+(package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
+#+end_src
+
+** gForth
+major mode for gforth
+#+begin_src emacs-lisp
+(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
+#+end_src
+* Utils
+** webpaste.el
+paste your buffer to a pastebin like service.
+#+begin_src emacs-lisp
+(package! webpaste :recipe (:type git :host github :repo "etu/webpaste.el"))
+#+end_src
+** Burly
+This package provides tools to save and restore frame and window configurations in Emacs, including buffers that may not be live anymore. In this way, it’s like a lightweight “workspace” manager, allowing you to easily restore one or more frames, including their windows, the windows’ layout, and their buffers.
+
+#+begin_src emacs-lisp
+(package! burly :recipe (:type git :host github :repo "alphapapa/burly.el"))
+#+end_src
+** podman.el
+Manage podman containers
+#+begin_src emacs-lisp
+(package! podman.el :recipe (:type git :host github :repo "akirak/podman.el"))
+#+end_src
+
+** pcap-mode.el
+A major mode for view pcap capture files
+#+begin_src emacs-lisp
+(package! pcap-mode.el :recipe (:type git :host github :repo "orgcandman/pcap-mode"))
+#+end_src
+** exec-path-from-shell
+A GNU Emacs library to ensure environment variables inside Emacs look the same as in the user's shell.
+#+begin_src emacs-lisp
+(package! exec-path-from-shell  :recipe (:type git :host github :repo "purcell/exec-path-from-shell"))
+#+end_src
+
+** cheat-sh
+get cheatsheets
+#+begin_src emacs-lisp
+(package! cheat-sh :recipe (:type git :host github :repo "davep/cheat-sh.el"))
+#+end_src
+
+** activity watch
+keep track of time.
+#+begin_src emacs-lisp
+(package! activity-watch-mode :recipe (:type git :host github :repo "pauldub/activity-watch-mode"))
+#+end_src
+* Lib packages
+** plz
+plz is an HTTP library for Emacs. It uses curl as a backend, which avoids some of the issues with using Emacs’s built-in url library.
+#+begin_src emacs-lisp
+(package! plz :recipe (:type git :host github :repo "alphapapa/plz.el"))
+#+end_src
+** ts
+ts is a date and time library for Emacs. It aims to be more convenient than patterns like (string-to-number (format-time-string "%Y")) by providing easy accessors, like (ts-year (ts-now)).
+
+#+begin_src emacs-lisp
+(package! ts :recipe (:type git :host github :repo "alphapapa/ts.el"))
+#+end_src
+** dash
+A modern list API for Emacs. No 'cl required.
+#+begin_src emacs-lisp
+(package! dash :recipe (:type git :host github :repo "magnars/dash.el"))
+#+end_src
+
+* Messaging
+** ement
+a matrix client for emacs
+#+begin_src emacs-lisp
+(package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
+#+end_src
+
+* rice
+** inherit-org
+Add org faces to non org buffers.
+#+begin_src emacs-lisp
+(package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
+#+end_src
+
+** alert
+get desktop alerts
+#+begin_src emacs-lisp
+(use-package alert
+  :config (setq alert-default-style
+            (if ns/enable-windows-p
+              'toaster
+              'libnotify)))
+
+#+end_src
+* misc
+#+begin_src emacs-lisp
+(use-package shrface
+  :defer t
+  :config
+  (shrface-basic)
+  (shrface-trial)
+  (shrface-default-keybindings) ; setup default keybindings
+  (setq shrface-href-versatile t))
+
+(use-package eww
+  :defer t
+  :init
+  (add-hook 'eww-after-render-hook #'shrface-mode)
+  :config
+  (require 'shrface))
+
+(use-package nov
+  :defer t
+  :init
+  (add-hook 'nov-mode-hook #'shrface-mode)
+  :config
+  (require 'shrface)
+  (setq nov-shr-rendering-functions '((img . nov-render-img) (title . nov-render-title)))
+  (setq nov-shr-rendering-functions (append nov-shr-rendering-functions shr-external-rendering-functions)))
+
+(use-package anki
+  :defer t
+  :load-path "~/.emacs.d/lisp/anki/"
+  :init
+  (add-hook 'anki-mode-hook #'shrface-mode)
+  (autoload 'anki "anki")
+  (autoload 'anki-browser "anki")
+  (autoload 'anki-list-decks "anki")
+  :config
+  (require 'shrface)
+  (setq anki-shr-rendering-functions (append anki-shr-rendering-functions shr-external-rendering-functions))
+  (setq sql-sqlite-program "/usr/bin/sqlite3")
+  (setq anki-collection-dir "/Users/chandamon/Library/Application Support/Anki2/User 1"))
+
+#+end_src

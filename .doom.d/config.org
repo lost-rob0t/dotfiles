@@ -7,7 +7,9 @@
 ;; -*- lexical-binding: t -*-
 #+end_src
 
-
+* About
+This is my personal doom emacs config, you can find package related stuff in packages.org
+yasnippets are in snippets
 
 * Styling
 ** Theme
@@ -22,7 +24,6 @@ I like doom's outrun eletric theme
 (setq display-line-numbers-type t)
 #+end_src
 
-* TODO Merge Packages.el with org config
 * Packages
 ** Magit
 Set keybind for pushing to remote
@@ -300,7 +301,12 @@ If my notes get slow i will disable it.
 #+begin_src emacs-lisp
 (setq org-roam-db-update-on-save t)
 #+end_src
-
+**** Vulpea
+Build apon org and org-roam
+#+begin_src emacs-lisp
+(use-package! vulpea
+  :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable)))
+#+end_src
 *** Org File Encryption
 
 Eyes off my doccuments

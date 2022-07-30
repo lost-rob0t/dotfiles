@@ -24,7 +24,7 @@
   # Enable the OpenSSH daemon.
   openssh = {
     enable = true;
-    startWhenNeeded = true;
+    #startWhenNeeded = true;
 
   };
   tor = {
