@@ -34,12 +34,6 @@ This extension facilitates moving images from point A to point B.
 (package! org-download :recipe (:type git :host github :repo "abo-abo/org-download"))
 #+end_src
 
-** vulpea
-A collection of functions for note taking based on org and org-roam. This repository primary goal is to be a tested library for other applications and utilities around note taking.
-
-#+begin_src emacs-lisp
-(package! vulpea :recipe (:type git :host github :repo "d12frosted/vulpea"))
-#+end_src
 
 ** org-wiki
 Build and publish your own wiki based on org mode

@@ -5,7 +5,7 @@
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
    '("da53441eb1a2a6c50217ee685a850c259e9974a8fa60e899d393040b4b8cc922" "c5ded9320a346146bbc2ead692f0c63be512747963257f18cc8518c5254b7bf5" "1704976a1797342a1b4ea7a75bdbb3be1569f4619134341bd5a4c1cfb16abad4" default))
- '(package-selected-packages '(org-pomodoro vterm quelpa-use-package))
+ '(package-selected-packages '(flycheck-nim org-pomodoro vterm quelpa-use-package))
  '(warning-suppress-types
    '((tabulated-list-revert-hook)
      (tabulated-list-revert-hook))))

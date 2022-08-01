@@ -229,6 +229,11 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (setq org-roam-db-update-on-save t)
 ;; Org Roam:4 ends here
 
+;; [[file:config.org::*Vulpea][Vulpea:1]]
+(use-package! vulpea
+  :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable)))
+;; Vulpea:1 ends here
+
 ;; [[file:config.org::*Org File Encryption][Org File Encryption:1]]
 (require 'epa-file)
 (epa-file-enable)
@@ -385,9 +390,25 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (require 'flycheck-nim)
 ;; Nim:1 ends here
 
+;; [[file:config.org::*Nim][Nim:2]]
+(require 'lsp-mode)
+(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
+(lsp-register-client
+ (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
+                  :major-modes '(nim-mode)
+                  :server-id 'nimlsp))
+(add-hook 'nim-mode-hook #'lsp)
+;; Nim:2 ends here
+
 ;; [[file:config.org::*Forth][Forth:1]]
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 ;; Forth:1 ends here
+
+;; [[file:config.org::*Flycheck][Flycheck:1]]
+(use-package! flycheck-package
+  :after flycheck
+  :config (flycheck-package-setup))
+;; Flycheck:1 ends here
 
 ;; [[file:config.org::*Performance][Performance:1]]
 (explain-pause-mode nil)
@@ -403,17 +424,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       '(("no_proxy" . "^\\(localhost\\|10\\..*\\|192\\.168\\..*\\)")
         ("http" . "*.i2p:4444")))
 ;; Url proxy:1 ends here
-
-;; [[file:config.org::*Puff Count][Puff Count:1]]
-(defun puff-add ()
-  "Add a puff"
-  (interactive)
-  (shell-command "/run/current-system/sw/bin/puffer -a"))
-(map!
- :leader
- :desc "add a puff"
- "]" #'puff-add)
-;; Puff Count:1 ends here
 
 ;; [[file:config.org::*Cheat-sh][Cheat-sh:1]]
 (defun cht-sh ()

@@ -14,10 +14,6 @@
 (package! org-download :recipe (:type git :host github :repo "abo-abo/org-download"))
 ;; org-download:1 ends here
 
-;; [[file:packages.org::*vulpea][vulpea:1]]
-(package! vulpea :recipe (:type git :host github :repo "d12frosted/vulpea"))
-;; vulpea:1 ends here
-
 ;; [[file:packages.org::*org-wiki][org-wiki:1]]
 (package! org-wiki :recipe (:type git :host github :repo "caiorss/org-wiki"))
 ;; org-wiki:1 ends here
