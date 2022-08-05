@@ -30,5 +30,8 @@ in
     pkgs.webkitgtk
     pkgs.remmina
     pkgs.freerdp
+    pkgs.sqlitebrowser
+    pkgs.tdesktop
+    pkgs.rpi-imager
   ];
 }
