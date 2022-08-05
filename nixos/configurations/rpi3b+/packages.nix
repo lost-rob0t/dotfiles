@@ -38,7 +38,6 @@ in
 
     ## User Programs
     firefox
-    #brave TODO Port it to mypkgs for arm
     thunderbird
     mypkgs.tor-browser-bundle-bin
     vim
