@@ -53,25 +53,38 @@ A GNU Emacs library which uses direnv to set environment variables on a per-buff
 #+begin_src emacs-lisp
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 #+end_src
-** Nim lang
-*** nim-mode
+** Langauges
+*** Nim lang
+**** nim-mode
 #+begin_src emacs-lisp
 (use-package nim-mode
   :ensure t
   :hook
   (nim-mode . lsp))
 #+end_src
-*** flycheck-nim
+**** flycheck-nim
 
 Flycheck-nim is a syntax checker definition for flycheck which supports the Nim programming language using the nim compiler as the backend.
 #+begin_src emacs-lisp
 (package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
 #+end_src
 
-** gForth
+*** gForth
 major mode for gforth
 #+begin_src emacs-lisp
 (package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
+#+end_src
+
+*** nix
+**** nix-update
+update rev/sha of a fetchgit
+#+begin_src emacs-lisp
+(package! fetch-git.el :recipe (:type git :host github :repo "wiegley/nix-update-el"))
+#+end_src
+**** nix-emacs
+set of usful emacs modes for nix
+#+begin_src emacs-lisp
+(package! nix-emacs :recipe (:type git :host github :repo "travisbhartwell/nix-emacs"))
 #+end_src
 * Utils
 ** webpaste.el

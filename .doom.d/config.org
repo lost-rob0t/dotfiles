@@ -503,7 +503,29 @@ Search nixos options so i dont have to go the website
       :desc "search option" "n" #'helm-nixos-options)
 #+end_src
 
+Update the rev and sha of a fetchgit package
 
+#+begin_src emacs-lisp
+(require 'nix-update)
+(map! :localleader
+      :after nix
+      :map nix-mode-map
+      :prefix ("u" . "update")
+      :desc "Update fetchgit" "g" #'nix-update-fetch)
+
+#+end_src
+add nix-options to company backends
+#+begin_src emacs-lisp
+(add-to-list 'company-backends 'company-nixos-options)
+
+#+end_src
+
+#+begin_src emacs-lisp
+(setq flycheck-command-wrapper-function
+        (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
+      flycheck-executable-find
+        (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
+#+end_src
 ** Nim
 Flycheck nim
 Does this even do anything?
