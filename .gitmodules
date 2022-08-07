@@ -1,3 +1,0 @@
-[submodule "nixos/nixos-overlays"]
-	path = nixos/nixos-overlays
-	url = git@github.com:lost-rob0t/nixos-overlays.git

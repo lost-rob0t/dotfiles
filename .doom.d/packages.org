@@ -58,7 +58,6 @@ A GNU Emacs library which uses direnv to set environment variables on a per-buff
 **** nim-mode
 #+begin_src emacs-lisp
 (use-package nim-mode
-  :ensure t
   :hook
   (nim-mode . lsp))
 #+end_src
@@ -167,6 +166,11 @@ get desktop alerts
               'toaster
               'libnotify)))
 
+#+end_src
+** dirvish
+a better dired
+#+begin_src emacs-lisp
+(package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
 #+end_src
 * misc
 #+begin_src emacs-lisp
