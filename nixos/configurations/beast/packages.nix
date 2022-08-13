@@ -38,7 +38,7 @@ in
     coreutils
     pandoc #emacs
     hunspellDicts.en_US
-
+    xclip
     ## Android
     android-tools
     ## User Programs
@@ -98,6 +98,7 @@ in
       mypkgs.nimPackages.nimsuggest
       mypkgs.nodePackages.bash-language-server
       mypkgs.roswell
+      epkgs.xclip
     ]))
 
     # Rice
@@ -113,6 +114,9 @@ in
     blueman
     ## Nixos
     nixos-generators
+
+    ## Needed for spice
+    spice-vdagent
   ];
  hardware.opengl.extraPackages = with pkgs; [
    rocm-opencl-icd

@@ -17,6 +17,7 @@
   networking.extraHosts =
   ''
     10.50.50.25 lost-git.local
+    107.160.74.131 files.catbox.moe # may shutdown soon rip
   '';
   networking.useDHCP = false;
   networking.interfaces.eno1.useDHCP = true;
