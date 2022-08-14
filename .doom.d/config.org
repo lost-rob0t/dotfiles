@@ -1,7 +1,6 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
-#+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :comments link
-:results none
+#+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :comments link :results none
 #+startup: org-startup-folded: showall
 #+disable_spellchecker: t
 #+begin_src emacs-lisp
@@ -67,6 +66,39 @@ I forgot where i grabbed this from sorry.
 
 #+begin_src emacs-lisp
 ;;(add-hook 'before-save-hook 'time-stamp)
+#+end_src
+*** org capture
+Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][source.]]
+#+begin_src emacs-lisp
+(defun org-ask-location ()
+  (let* ((org-refile-targets '((nil :maxlevel . 9)))
+         (hd (condition-case nil
+                 (car (org-refile-get-location nil nil t t))
+               (error (car org-refile-history)))))
+    (goto-char (point-min))
+    (outline-next-heading)
+    (if (re-search-forward
+         (format org-complex-heading-regexp-format (regexp-quote hd))
+         nil t)
+        (goto-char (point-at-bol))
+      (goto-char (point-max))
+      (or (bolp) (insert "\n"))
+      (insert "* " hd "\n")))
+    (end-of-line))
+#+end_src
+
+Org capture templates
+
+#+begin_src emacs-lisp
+;; (setq org-capture-templates
+;;   '(
+;;      ("n" "note"
+;;        entry (file+olp+datetree "/Users/me/org/logbook.org" "JOURNAL")
+;;        ...)
+;;      ("t" "tasks"
+;;        entry (file+olp+datetree "/Users/me/org/todo.org" "TASKS")
+;;        ...)))
+
 #+end_src
 
 
@@ -232,6 +264,10 @@ I expirment with difrent languages, org babel makes things easy.
 *** TODO Org Mode config
 Create a function to tangle and sync doom at the same time
 
+*** Org wiki
+#+begin_src emacs-lisp
+(require 'org-wiki)
+#+end_src
 *** org-download
 This extension facilitates moving images from point A to point B.
 
@@ -265,9 +301,29 @@ Set roam directory
 Set a daily capture format
 #+begin_src emacs-lisp
 (setq  org-roam-capture-templates '(
+                                    ("w" "wiki entry" entry (function org-roam--capture-get-point)
+                                     "+ [[file:../20220811005521-index.org]][Index]] \n   * %?\n"
+                                     :file-name "wiki/%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :head "#+TITLE: ${title}\n"
+                                     :unnarrowed t)
+                                    ("T" "tutorial entry for help" entry (function org-roam--capture-get-point)
+                                     "+ [[file:../20220811005521-index.org]][Index]]\n   * %?\n"
+                                     :file-name "wiki/%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :head "#+TITLE: ${title}\n"
+                                     :unnarrowed t)
+                                    ("H" "Hack the box" entry (function org-roam--capture-get-point)
+                                     "+ [[file:../20220811005521-index.org]][Index]]\n   * %?\n"
+                                     :file-name "writeups/%<%Y-%m-%d-%H%M%S>-hackthebox-${slug}"
+                                     :head "#+TITLE: ${title}\n"
+                                     :unnarrowed t)
+                                    ("S" "New Sunshine entry" entry (function org-roam--capture-get-point)
+                                     "* %?\n"
+                                     :file-name "sunshine/%<%Y-%m-%d-%H%M%S>-sunshine-${slug}"
+                                     :head "#+TITLE: ${title}\n"
+                                     :unnarrowed t)
                                     ("D" "daily entry" entry (function org-roam--capture-get-point)
                                      "* %<%I:%M %p>: %?"
-                                     :file-name "%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :file-name "daily/%<%Y-%m-%d-%H%M%S>-${slug}"
                                      :head "#+TITLE: ${title} "
                                      :unnarrowed t)
                                     ("u" "url" entry (function org-roam--capture-get-point)
@@ -275,7 +331,6 @@ Set a daily capture format
                                      :file-name "urls/%<%Y-%m-%d-%H%M%S>-${slug}"
                                      :head "#+TITLE: ${title}"
                                      :unnarrowed t)
-
                                     ("t" "do today" item
                                      #'org-roam-capture--get-point
                                      "[ ] %(princ as/agenda-captured-link)"
@@ -284,6 +339,7 @@ Set a daily capture format
                                      :olp ("Do Today")
                                      :immediate-finish t)))
 #+end_src
+
 
 
 
@@ -465,6 +521,12 @@ set the window title
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
 #+end_src
 
+** Dirvish
+a better dired
+#+begin_src emacs-lisp
+(require 'dirvish)
+(dirvish-override-dired-mode)
+#+end_src
 * Programming
 
 This section would not fit well, therefor it is in its own.
@@ -560,6 +622,16 @@ Check for errors!
   :after flycheck
   :config (flycheck-package-setup))
 #+end_src
+
+** Dumb Jump
+When/If i leave doom ill need to configure it.
+A Jump to definition package. [[https://github.com/jacktasia/dumb-jump][Github]].
+
+Enable the xref backend.
+#+begin_src emacs-lisp
+(add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
+#+end_src
+
 * Misc
 ** Performance
 Enable explain Pause mode
