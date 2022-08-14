@@ -341,10 +341,13 @@ Set a daily capture format
                                      :file-name "daily/%<%Y-%m-%d>"
                                      :head "#+title: %<%Y-%m-%d (%A)>\n* [/] Do Today\n* [/] Maybe Do Today\n* Journal\n"
                                      :olp ("Do Today")
-                                     :immediate-finish t)))
+                                     :immediate-finish t)
+                                    ("R" "reading notes" entry (function org-roam--capture-get-point)
+                                     "* %?\n"
+                                     :file-name "reading/%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :head "#+TITLE: ${title}\n"
+                                     :unnarrowed t)))
 #+end_src
-
-
 
 
 url2org function fro importing info from the web
