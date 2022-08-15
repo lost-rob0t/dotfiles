@@ -40,6 +40,21 @@ in
     pkgs.sqlitebrowser
     pkgs.brave
     pkgs.ripgrep
+    pkgs.thunderbird
+    pkgs.element-desktop
+    pkgs.curl
+    pkgs.git
+    pkgs.stow
+    pkgs.xclip
+    pkgs.yt-dlp
+    pkgs.tor
+    pkgs.torsocks
+    pkgs.veracrypt
+    pkgs.jdk11
+    pkgs.vim
+    pkgs.ungoogled-chrominium
+    pkgs.tor-browser-bundle-bin
+    pkgs.keepassxc
     ((pkgs.emacsPackagesFor doom-emacs).emacsWithPackages (epkgs: [
       epkgs.vterm
       epkgs.ac-ispell
