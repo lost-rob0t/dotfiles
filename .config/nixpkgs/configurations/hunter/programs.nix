@@ -8,12 +8,6 @@ let
   });
   name = "N545PY";
   email = "nsaspy@airmail.cc";
-  doom-emacs = pkgs.callPackage (builtins.fetchTarball {
-    url = https://github.com/vlaci/nix-doom-emacs/archive/master.tar.gz;
-  }) {
-      doomPrivateDir = ./doom.d;  # Directory containing your config.el init.el
-      # and packages.el files
-  };
 
 in
 {
@@ -52,10 +46,10 @@ in
     pkgs.veracrypt
     pkgs.jdk11
     pkgs.vim
-    pkgs.ungoogled-chrominium
+    pkgs.ungoogled-chromium
     pkgs.tor-browser-bundle-bin
     pkgs.keepassxc
-    ((pkgs.emacsPackagesFor doom-emacs).emacsWithPackages (epkgs: [
+    ((pkgs.emacsPackagesFor pkgs.emacsNativeComp).emacsWithPackages (epkgs: [
       epkgs.vterm
       epkgs.ac-ispell
       epkgs.direnv
@@ -76,10 +70,10 @@ in
         userName = "${name}";
         userEmail = "${email}";
       };
-  emacs = {
-    enable = true;
-    extraPackages = epkgs: [ epkgs.vterm ];
-};
+  #emacs = {
+  #  enable = true;
+  #  extraPackages = epkgs: [ epkgs.vterm ];
+#};
   };
 
 
