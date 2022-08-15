@@ -8,9 +8,18 @@ let
   });
   name = "N545PY";
   email = "nsaspy@airmail.cc";
+  doom-emacs = pkgs.callPackage (builtins.fetchTarball {
+    url = https://github.com/vlaci/nix-doom-emacs/archive/master.tar.gz;
+  }) {
+      doomPrivateDir = ./doom.d;  # Directory containing your config.el init.el
+      # and packages.el files
+  };
 
 in
 {
+  home.file.".emacs.d/init.el".text = ''
+      (load "default.el")
+      '';
   home.packages = [
     pkgs.vlc
     pkgs.obs-studio
@@ -30,6 +39,21 @@ in
     pkgs.freerdp
     pkgs.sqlitebrowser
     pkgs.brave
+    pkgs.ripgrep
+    ((pkgs.emacsPackagesFor doom-emacs).emacsWithPackages (epkgs: [
+      epkgs.vterm
+      epkgs.ac-ispell
+      epkgs.direnv
+      epkgs.lsp-pyright
+      epkgs.pylint
+      epkgs.w3m
+      epkgs.pandoc
+      epkgs.xclip
+      pkgs.ripgrep
+      pkgs.fd
+    ]))
+
+
   ];
   programs = {
       git = {
