@@ -93,6 +93,7 @@ alias wttr="curl wttr.in/CMH"
 alias debug-emacs="emacs --debug-init"
 ## For non nix systems
 alias nix="~/.nix-profile/etc/profile.d/nix.sh"
+export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}
 # Setup nim path
 export PATH=/home/nsaspy/.nimble/bin:$PATH
 #export LD_LIBRARY_PATH=/usr/local/lib
