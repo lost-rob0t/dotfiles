@@ -5,7 +5,7 @@ let
   
 in
 {
-  imports = [ ./programs.nix ./services.nix ];
+  imports = [ ./programs.nix ];
   home.username = "unseen";
   home.homeDirectory = "/home/unseen";
 
@@ -22,16 +22,5 @@ in
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  programs = {
-      git = {
-        enable = true;
-        userName = "${name}";
-        userEmail = "${email}";
-      };
-  emacs = {
-    enable = true;
-    extraPackages = epkgs: [ epkgs.vterm ];
-};
-  };
 
 }
