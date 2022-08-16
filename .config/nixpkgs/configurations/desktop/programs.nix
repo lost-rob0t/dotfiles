@@ -33,5 +33,6 @@ in
     pkgs.sqlitebrowser
     pkgs.tdesktop
     pkgs.rpi-imager
+    pkgs.pgp
   ];
 }
