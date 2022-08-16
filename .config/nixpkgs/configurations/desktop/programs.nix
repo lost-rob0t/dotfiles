@@ -33,6 +33,10 @@ in
     pkgs.sqlitebrowser
     pkgs.tdesktop
     pkgs.rpi-imager
-    pkgs.pgp
   ];
+  programs = {
+      gpg = {
+          enable = true;
+      };
+  };
 }

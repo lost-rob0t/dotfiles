@@ -6,8 +6,8 @@ let
 in
 {
   imports = [ ./programs.nix ];
-  home.username = "nsaspy";
-  home.homeDirectory = "/home/nsaspy";
+  home.username = "unseen";
+  home.homeDirectory = "/home/unseen";
 
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage
@@ -25,8 +25,8 @@ in
   programs = {
       git = {
         enable = true;
-        userName = "${name}";
-        userEmail = "${email}";
+        userName = "N545PY";
+        userEmail = "nsaspy@airmail.cc";
       };
   emacs = {
     enable = true;
