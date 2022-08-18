@@ -39,6 +39,35 @@
 ;;(add-hook 'before-save-hook 'time-stamp)
 ;; Org Mode:2 ends here
 
+;; [[file:config.org::*org capture][org capture:1]]
+(defun org-ask-location ()
+  (let* ((org-refile-targets '((nil :maxlevel . 9)))
+         (hd (condition-case nil
+                 (car (org-refile-get-location nil nil t t))
+               (error (car org-refile-history)))))
+    (goto-char (point-min))
+    (outline-next-heading)
+    (if (re-search-forward
+         (format org-complex-heading-regexp-format (regexp-quote hd))
+         nil t)
+        (goto-char (point-at-bol))
+      (goto-char (point-max))
+      (or (bolp) (insert "\n"))
+      (insert "* " hd "\n")))
+    (end-of-line))
+;; org capture:1 ends here
+
+;; [[file:config.org::*org capture][org capture:2]]
+;; (setq org-capture-templates
+;;   '(
+;;      ("n" "note"
+;;        entry (file+olp+datetree "/Users/me/org/logbook.org" "JOURNAL")
+;;        ...)
+;;      ("t" "tasks"
+;;        entry (file+olp+datetree "/Users/me/org/todo.org" "TASKS")
+;;        ...)))
+;; org capture:2 ends here
+
 ;; [[file:config.org::*Org Agenda][Org Agenda:1]]
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$"))
 ;; Org Agenda:1 ends here
@@ -166,6 +195,10 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (require 'org-tempo)
   (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
   (add-to-list 'org-structure-template-alist '("py" . "src python"))
+  (add-to-list 'org-structure-template-alist '("php" . "src php"))
+  (add-to-list 'org-structure-template-alist '("jn" . "src json"))
+  (add-to-list 'org-structure-template-alist '("xm" . "src xml"))
+  (add-to-list 'org-structure-template-alist '("js" . "src js"))
   (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
   (add-to-list 'org-structure-template-alist '("nim" . "src nim"))
   (add-to-list 'org-structure-template-alist '("erl" . "src erlang"))
@@ -173,6 +206,10 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (add-to-list 'org-structure-template-alist '("cl" . "src common-lisp"))
   (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
 ;; Org Tempo templates:1 ends here
+
+;; [[file:config.org::*Org wiki][Org wiki:1]]
+(require 'org-wiki)
+;; Org wiki:1 ends here
 
 ;; [[file:config.org::*org-download][org-download:1]]
 (require 'org-download)
@@ -196,9 +233,30 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 ;; [[file:config.org::*Org Roam][Org Roam:2]]
 (setq  org-roam-capture-templates '(
+                                    ("w" "wiki entry" entry (function org-roam--capture-get-point)
+                                     "+ [[file:../20220811005521-index.org]][Index]] \n   * %?\n"
+                                     :file-name "wiki/%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :head "#+TITLE: ${title}\n"
+                                     :unnarrowed t)
+
+                                    ("T" "tutorial entry for help" entry (function org-roam--capture-get-point)
+                                     "+ [[file:../20220811005521-index.org]][Index]]\n   * %?\n"
+                                     :file-name "wiki/%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :head "#+TITLE: ${title}\n"
+                                     :unnarrowed t)
+                                    ("H" "Hack the box" entry (function org-roam--capture-get-point)
+                                     "+ [[file:../20220811005521-index.org]][Index]]\n   * %?\n"
+                                     :file-name "writeups/%<%Y-%m-%d-%H%M%S>-hackthebox-${slug}"
+                                     :head "#+TITLE: ${title}\n"
+                                     :unnarrowed t)
+                                    ("S" "New Sunshine entry" entry (function org-roam--capture-get-point)
+                                     "* %?\n"
+                                     :file-name "sunshine/%<%Y-%m-%d-%H%M%S>-sunshine-${slug}"
+                                     :head "#+TITLE: ${title}\n"
+                                     :unnarrowed t)
                                     ("D" "daily entry" entry (function org-roam--capture-get-point)
                                      "* %<%I:%M %p>: %?"
-                                     :file-name "%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :file-name "daily/%<%Y-%m-%d-%H%M%S>-${slug}"
                                      :head "#+TITLE: ${title} "
                                      :unnarrowed t)
                                     ("u" "url" entry (function org-roam--capture-get-point)
@@ -206,14 +264,18 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                                      :file-name "urls/%<%Y-%m-%d-%H%M%S>-${slug}"
                                      :head "#+TITLE: ${title}"
                                      :unnarrowed t)
-
                                     ("t" "do today" item
                                      #'org-roam-capture--get-point
                                      "[ ] %(princ as/agenda-captured-link)"
                                      :file-name "daily/%<%Y-%m-%d>"
                                      :head "#+title: %<%Y-%m-%d (%A)>\n* [/] Do Today\n* [/] Maybe Do Today\n* Journal\n"
                                      :olp ("Do Today")
-                                     :immediate-finish t)))
+                                     :immediate-finish t)
+                                    ("R" "reading notes" entry (function org-roam--capture-get-point)
+                                     "* %?\n"
+                                     :file-name "reading/%<%Y-%m-%d-%H%M%S>-${slug}"
+                                     :head "#+TITLE: ${title}\n"
+                                     :unnarrowed t)))
 ;; Org Roam:2 ends here
 
 ;; [[file:config.org::*Org Roam][Org Roam:3]]
@@ -228,11 +290,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;; [[file:config.org::*Org Roam][Org Roam:4]]
 (setq org-roam-db-update-on-save t)
 ;; Org Roam:4 ends here
-
-;; [[file:config.org::*Vulpea][Vulpea:1]]
-(use-package! vulpea
-  :hook ((org-roam-db-autosync-mode . vulpea-db-autosync-enable)))
-;; Vulpea:1 ends here
 
 ;; [[file:config.org::*Org File Encryption][Org File Encryption:1]]
 (require 'epa-file)
@@ -364,6 +421,11 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
 ;; Vterm:1 ends here
 
+;; [[file:config.org::*Dirvish][Dirvish:1]]
+(require 'dirvish)
+(dirvish-override-dired-mode)
+;; Dirvish:1 ends here
+
 ;; [[file:config.org::*Python][Python:1]]
 (setq python-ident-offset 4)
 ;; Python:1 ends here
@@ -385,6 +447,26 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :prefix ("s" . "search")
       :desc "search option" "n" #'helm-nixos-options)
 ;; Nix:1 ends here
+
+;; [[file:config.org::*Nix][Nix:2]]
+(require 'nix-update)
+(map! :localleader
+      :after nix
+      :map nix-mode-map
+      :prefix ("u" . "update")
+      :desc "Update fetchgit" "g" #'nix-update-fetch)
+;; Nix:2 ends here
+
+;; [[file:config.org::*Nix][Nix:3]]
+(add-to-list 'company-backends 'company-nixos-options)
+;; Nix:3 ends here
+
+;; [[file:config.org::*Nix][Nix:4]]
+(setq flycheck-command-wrapper-function
+        (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
+      flycheck-executable-find
+        (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
+;; Nix:4 ends here
 
 ;; [[file:config.org::*Nim][Nim:1]]
 (require 'flycheck-nim)
@@ -409,6 +491,10 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   :after flycheck
   :config (flycheck-package-setup))
 ;; Flycheck:1 ends here
+
+;; [[file:config.org::*Dumb Jump][Dumb Jump:1]]
+(add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
+;; Dumb Jump:1 ends here
 
 ;; [[file:config.org::*Performance][Performance:1]]
 (explain-pause-mode nil)

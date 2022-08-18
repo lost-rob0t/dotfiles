@@ -28,7 +28,6 @@
 
 ;; [[file:packages.org::*nim-mode][nim-mode:1]]
 (use-package nim-mode
-  :ensure t
   :hook
   (nim-mode . lsp))
 ;; nim-mode:1 ends here
@@ -40,6 +39,14 @@
 ;; [[file:packages.org::*gForth][gForth:1]]
 (package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
 ;; gForth:1 ends here
+
+;; [[file:packages.org::*nix-update][nix-update:1]]
+(package! fetch-git.el :recipe (:type git :host github :repo "wiegley/nix-update-el"))
+;; nix-update:1 ends here
+
+;; [[file:packages.org::*nix-emacs][nix-emacs:1]]
+(package! nix-emacs :recipe (:type git :host github :repo "travisbhartwell/nix-emacs"))
+;; nix-emacs:1 ends here
 
 ;; [[file:packages.org::*webpaste.el][webpaste.el:1]]
 (package! webpaste :recipe (:type git :host github :repo "etu/webpaste.el"))
@@ -96,6 +103,10 @@
               'toaster
               'libnotify)))
 ;; alert:1 ends here
+
+;; [[file:packages.org::*dirvish][dirvish:1]]
+(package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
+;; dirvish:1 ends here
 
 ;; [[file:packages.org::*misc][misc:1]]
 (use-package shrface

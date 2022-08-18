@@ -6,9 +6,8 @@
 #+begin_src emacs-lisp
 ;; -*- lexical-binding: t -*-
 #+end_src
-* Things that need done [0/2]
-** TODO Proplery setup flycheck
-** TODO
+* Things that need done [0/1]
+** TODO Spell check
 * About
 This is my personal doom emacs config, you can find package related stuff in packages.org
 yasnippets are in snippets
@@ -310,6 +309,7 @@ Set a daily capture format
                                      :file-name "wiki/%<%Y-%m-%d-%H%M%S>-${slug}"
                                      :head "#+TITLE: ${title}\n"
                                      :unnarrowed t)
+
                                     ("T" "tutorial entry for help" entry (function org-roam--capture-get-point)
                                      "+ [[file:../20220811005521-index.org]][Index]]\n   * %?\n"
                                      :file-name "wiki/%<%Y-%m-%d-%H%M%S>-${slug}"
