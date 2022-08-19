@@ -53,7 +53,7 @@ in
 
     lbry ## You should use lbry and other yotube alternatives
     yt-dlp
-    mypkgs.nimPackages.puffer
+    #mypkgs.nimPackages.puffer
     ## Games
     lutris
     steam-run-native
@@ -80,7 +80,7 @@ in
     hashcat
     veracrypt
     opensnitch-ui
-    mypkgs.maltego
+    #mypkgs.maltego
     ## Libs
     libtool
     libvterm
@@ -94,10 +94,10 @@ in
       epkgs.pylint
       epkgs.w3m
       epkgs.pandoc
-      mypkgs.nimPackages.puffer
-      mypkgs.nimPackages.nimsuggest
-      mypkgs.nodePackages.bash-language-server
-      mypkgs.roswell
+      #mypkgs.nimPackages.puffer
+      #mypkgs.nimPackages.nimsuggest
+      #mypkgs.nodePackages.bash-language-server
+      #mypkgs.roswell
       epkgs.xclip
     ]))
 
@@ -146,5 +146,8 @@ in
     enable = true;
     remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
     dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
+  };
+  programs.kdeconnect = {
+   enable = true;
   };
 }

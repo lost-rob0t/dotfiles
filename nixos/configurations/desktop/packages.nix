@@ -17,6 +17,10 @@ in
       inherit pkgs;
     };
   };
+<<<<<<< Updated upstream
+=======
+  services.emacs.package = pkgs.emacsNativeComp;
+>>>>>>> Stashed changes
   environment.systemPackages = with pkgs; [
     # Utils
     wget
@@ -39,7 +43,7 @@ in
     coreutils
     pandoc #emacs
     hunspellDicts.en_US
-
+    lm_sensors
     ## User Programs
     ungoogled-chromium
     brave
@@ -52,7 +56,11 @@ in
 
     lbry ## You should use lbry and other yotube alternatives
     yt-dlp
+<<<<<<< Updated upstream
     mypkgs.nimPackages.puffer
+=======
+    nimPackages.puffer
+>>>>>>> Stashed changes
     ## Games
     steam-run-native
     wineWowPackages.staging
@@ -83,7 +91,10 @@ in
     libtool
     libvterm
     jdk11
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     ((emacsPackagesFor emacsNativeComp).emacsWithPackages (epkgs: [
       epkgs.vterm
       epkgs.ac-ispell
