@@ -10,11 +10,13 @@
     enable = true;
     displayManager = {
       sddm.enable = true;
-      defaultSession = "lxqt";
       };
     desktopManager = {
       lxqt.enable = true;
-      kde.enable = true;
+      plasma5 = {
+        enable = true;
+        mobile.enable = false; #maybe for Neptune touchscreen?
+      };
     };
     windowManager.qtile.enable = true;
     videoDrivers = [ "amdgpu" ];
