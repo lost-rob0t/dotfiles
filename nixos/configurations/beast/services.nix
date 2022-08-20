@@ -14,7 +14,7 @@
       };
     desktopManager = {
       lxqt.enable = true;
-      mate.enable = true;
+      kde.enable = true;
     };
     windowManager.qtile.enable = true;
     videoDrivers = [ "amdgpu" ];
