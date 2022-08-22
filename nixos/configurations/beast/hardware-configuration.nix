@@ -23,7 +23,10 @@
     { device = "/dev/disk/by-partuuid/e3b65262-076c-40e5-9686-7c3717a9fc0a";
       fsType = "vfat";
     };
-
+  fileSystems."/games" = {
+    device = "/dev/disk/by-uuid/50c6fc4b-c3ef-49ae-9779-d0b586849eb5";
+    fsType = "ext4";
+  };
   swapDevices =
     [ { device = "/dev/disk/by-uuid/a13703b7-ce75-453f-8d67-474523e051f8"; }
     ];

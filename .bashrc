@@ -91,6 +91,7 @@ alias install-doom="install_doom_emacs"
 alias docker-compose="podman-compose"
 alias wttr="curl wttr.in/CMH"
 alias debug-emacs="emacs --debug-init"
+alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
 ## For non nix systems
 alias nix="~/.nix-profile/etc/profile.d/nix.sh"
 export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}

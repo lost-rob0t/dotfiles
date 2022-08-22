@@ -33,6 +33,9 @@ in
     pkgs.sqlitebrowser
     pkgs.tdesktop
     pkgs.rpi-imager
+    pkgs.ark
+    pkgs.kdenlive
+    pkgs.virt-viewer
   ];
   programs = {
       gpg = {
