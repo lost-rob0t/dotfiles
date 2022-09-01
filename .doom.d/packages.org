@@ -11,6 +11,7 @@
 * About
 This org document contains all the packages that i install into emacs. I thought about merging it into config.org but thats just going to make a big mess. I will split it into sections and catogries of packages.
 
++ Config can be found [[./config.org]]
 
 
 * Org mode
@@ -75,11 +76,6 @@ major mode for gforth
 #+end_src
 
 *** nix
-**** nix-update
-update rev/sha of a fetchgit
-#+begin_src emacs-lisp
-(package! fetch-git.el :recipe (:type git :host github :repo "wiegley/nix-update-el"))
-#+end_src
 **** nix-emacs
 set of usful emacs modes for nix
 #+begin_src emacs-lisp
@@ -125,6 +121,8 @@ keep track of time.
 #+begin_src emacs-lisp
 (package! activity-watch-mode :recipe (:type git :host github :repo "pauldub/activity-watch-mode"))
 #+end_src
+
+** TODO Sqlite mode
 * Lib packages
 ** plz
 plz is an HTTP library for Emacs. It uses curl as a backend, which avoids some of the issues with using Emacs’s built-in url library.
@@ -157,17 +155,7 @@ Add org faces to non org buffers.
 (package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 #+end_src
 
-** alert
-get desktop alerts
-#+begin_src emacs-lisp
-(use-package alert
-  :config (setq alert-default-style
-            (if ns/enable-windows-p
-              'toaster
-              'libnotify)))
-
-#+end_src
-** dirvish
+* dirvish
 a better dired
 #+begin_src emacs-lisp
 (package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
@@ -212,4 +200,15 @@ a better dired
   (setq sql-sqlite-program "/usr/bin/sqlite3")
   (setq anki-collection-dir "/Users/chandamon/Library/Application Support/Anki2/User 1"))
 
+#+end_src
+
+
+** Games
+
+*** Kerbal Space Program
+
+KOs mode for writing scripts
+
+#+begin_src emacs-lisp
+(package! ks-mode :recipe (:type git :host github :repo "jarpy/ks-mode"))
 #+end_src

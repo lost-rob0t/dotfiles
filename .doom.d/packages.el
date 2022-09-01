@@ -40,10 +40,6 @@
 (package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
 ;; gForth:1 ends here
 
-;; [[file:packages.org::*nix-update][nix-update:1]]
-(package! fetch-git.el :recipe (:type git :host github :repo "wiegley/nix-update-el"))
-;; nix-update:1 ends here
-
 ;; [[file:packages.org::*nix-emacs][nix-emacs:1]]
 (package! nix-emacs :recipe (:type git :host github :repo "travisbhartwell/nix-emacs"))
 ;; nix-emacs:1 ends here
@@ -96,14 +92,6 @@
 (package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 ;; inherit-org:1 ends here
 
-;; [[file:packages.org::*alert][alert:1]]
-(use-package alert
-  :config (setq alert-default-style
-            (if ns/enable-windows-p
-              'toaster
-              'libnotify)))
-;; alert:1 ends here
-
 ;; [[file:packages.org::*dirvish][dirvish:1]]
 (package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
 ;; dirvish:1 ends here
@@ -147,3 +135,7 @@
   (setq sql-sqlite-program "/usr/bin/sqlite3")
   (setq anki-collection-dir "/Users/chandamon/Library/Application Support/Anki2/User 1"))
 ;; misc:1 ends here
+
+;; [[file:packages.org::*Kerbal Space Program][Kerbal Space Program:1]]
+(package! ks-mode :recipe (:type git :host github :repo "jarpy/ks-mode"))
+;; Kerbal Space Program:1 ends here

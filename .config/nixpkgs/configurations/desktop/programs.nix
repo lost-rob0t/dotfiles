@@ -36,6 +36,7 @@ in
     pkgs.ark
     pkgs.kdenlive
     pkgs.virt-viewer
+    pkgs.monero-gui
   ];
   programs = {
       gpg = {

@@ -501,8 +501,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;; Performance:1 ends here
 
 ;; [[file:config.org::*Enviroment][Enviroment:1]]
-(when (memq window-system '(mac ns x))
-  (exec-path-from-shell-initialize))
+;;(when (memq window-system '(mac ns x))
+;;  (exec-path-from-shell-initialize))
 ;; Enviroment:1 ends here
 
 ;; [[file:config.org::*Url proxy][Url proxy:1]]
@@ -528,3 +528,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;; [[file:config.org::*Activity Watch][Activity Watch:1]]
 (global-activity-watch-mode)
 ;; Activity Watch:1 ends here
+
+;; [[file:config.org::*Kerbal Space Program][Kerbal Space Program:1]]
+(require 'ks)
+;; Kerbal Space Program:1 ends here

@@ -80,6 +80,7 @@ echo done
 }
 
 function make_password () {
+## TODO dont echo password to terminal lol
 echo "enter password: "
 read password
 pass=$(mkpasswd -m sha-512 $password)

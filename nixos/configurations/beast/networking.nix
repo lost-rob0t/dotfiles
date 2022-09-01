@@ -7,6 +7,7 @@
                                           5984 #couchdb
                                           8384 #syncthing
                                           22000 # syncthing
+                                          5332 # caldev
                                           ];
   networking.firewall.allowedUDPPorts = [ 22000 #syncthing
                                           21027 #syncthing
