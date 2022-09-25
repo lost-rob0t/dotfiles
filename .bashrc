@@ -90,6 +90,7 @@ echo "$pass"
 # Custome aliases for commands
 alias install-doom="install_doom_emacs"
 alias docker-compose="podman-compose"
+alias wttr="curl wttr.in/DCA"
 alias debug-emacs="emacs --debug-init"
 alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
 ## For non nix systems
