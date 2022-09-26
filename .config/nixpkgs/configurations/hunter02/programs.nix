@@ -26,6 +26,7 @@ in
     pkgs.ark
     pkgs.direnv
     pkgs.starship
+    pkgs.rlwrap
   ];
   programs = {
       gpg = {
