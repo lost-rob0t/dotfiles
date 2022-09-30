@@ -95,7 +95,6 @@ alias debug-emacs="emacs --debug-init"
 alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
 ## For non nix systems
 #alias nix="~/.nix-profile/etc/profile.d/nix.sh"
-
 ### Shell init section
 source ~/.nix-profile/etc/profile.d/nix.sh
 export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}
