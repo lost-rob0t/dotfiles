@@ -27,6 +27,8 @@ in
     pkgs.direnv
     pkgs.starship
     pkgs.rlwrap
+    pkgs.tor-browser-bundle-bin
+    pkgs.brave
   ];
   programs = {
       gpg = {
