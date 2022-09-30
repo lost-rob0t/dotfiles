@@ -5,7 +5,7 @@ let
   
 in
 {
-  imports = [ ./programs.nix ];
+  imports = [ ./programs.nix ./services.nix ];
   home.username = "unseen";
   home.homeDirectory = "/home/unseen";
 

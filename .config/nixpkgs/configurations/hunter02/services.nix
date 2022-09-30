@@ -1,7 +1,12 @@
 { config, lib, pkgs, ... }:
 
 {
-  services.pantalaimon = {
-    enable = true;
-};
+  services = {
+    pantalaimon = {
+      enable = false;
+    };
+    emacs = {
+      enable = true;
+    };
+  };
 }
