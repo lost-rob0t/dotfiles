@@ -48,6 +48,7 @@ in
     tor-browser-bundle-bin
     vim
     virt-manager
+    virtiofsd
     element-desktop
     qbittorrent
 
@@ -59,6 +60,7 @@ in
     steam-run-native
     wineWowPackages.staging
     winetricks
+    faudio
     ##(winetricks.override { wine = wineWowPackages.staging; })
 
     ## Programming
