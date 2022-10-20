@@ -24,7 +24,6 @@ in
     pkgs.gimp
     pkgs.feh
     pkgs.mindustry
-    pkgs.bookworm
     pkgs.tlp
     nyxt
     pkgs.webkitgtk
@@ -37,6 +36,8 @@ in
     pkgs.kdenlive
     pkgs.virt-viewer
     pkgs.monero-gui
+    pkgs.gitRepo
+    pkgs.vscodium-fhs # FHS
   ];
   programs = {
       gpg = {
