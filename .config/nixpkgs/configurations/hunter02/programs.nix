@@ -11,7 +11,7 @@ in
   home.packages = [
     pkgs.vlc
     pkgs.filezilla
-    pkgs.nerdfonts
+    #pkgs.nerdfonts
     pkgs.w3m
     pkgs.cht-sh
     pkgs.kleopatra
