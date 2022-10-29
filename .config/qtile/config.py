@@ -34,6 +34,7 @@ from libqtile import layout, bar, widget, hook
 from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule
 from libqtile.command import lazy
 from libqtile.widget import Spacer
+import ip
 #import arcobattery
 
 #mod4 or mod = super key
@@ -41,7 +42,16 @@ mod = "mod4"
 mod1 = "alt"
 mod2 = "control"
 home = os.path.expanduser('~')
+myIp = ip.publicIp()
+class Commands:
+    ## Stole this idea from https://github.com/zordsdavini/qtile-config/blob/eacda219cebe357c46c3708f419f86bb585d4397/config.py
+    update = "terminator -e yay -Syu"
 
+commands = Commands()
+
+@lazy.function
+def getIpaddrs():
+    pass
 
 @lazy.function
 def window_to_prev_group(qtile):
@@ -181,21 +191,17 @@ keys.extend([
     Key([mod,"shift"], "Left", lazy.function(window_to_previous_screen, switch_screen=True)),
 ])
 
-groups = []
 
+groups = []
 # FOR QWERTY KEYBOARDS
 group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
-
 # FOR AZERTY KEYBOARDS
 #group_names = ["ampersand", "eacute", "quotedbl", "apostrophe", "parenleft", "section", "egrave", "exclam", "ccedilla", "agrave",]
-
 #group_labels = ["1 ", "2 ", "3 ", "4 ", "5 ", "6 ", "7 ", "8 ", "9 ", "0",]
-group_labels = ["", "", "", "", "", "", "", "", "", "",]
+group_labels = ["爵", "", "", "", "", "", "", "", "", "",]
 #group_labels = ["Web", "Edit/chat", "Image", "Gimp", "Meld", "Video", "Vb", "Files", "Mail", "Music",]
-
 group_layouts = ["monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
 #group_layouts = ["monadtall", "matrix", "monadtall", "bsp", "monadtall", "matrix", "monadtall", "bsp", "monadtall", "monadtall",]
-
 for i in range(len(group_names)):
     groups.append(
         Group(
@@ -206,31 +212,24 @@ for i in range(len(group_names)):
 
 for i in groups:
     keys.extend([
-
 #CHANGE WORKSPACES
         Key([mod], i.name, lazy.group[i.name].toscreen()),
         Key([mod], "Tab", lazy.screen.next_group()),
         Key([mod, "shift" ], "Tab", lazy.screen.prev_group()),
         Key(["mod1"], "Tab", lazy.screen.next_group()),
         Key(["mod1", "shift"], "Tab", lazy.screen.prev_group()),
-
 # MOVE WINDOW TO SELECTED WORKSPACE 1-10 AND STAY ON WORKSPACE
         #Key([mod, "shift"], i.name, lazy.window.togroup(i.name)),
 # MOVE WINDOW TO SELECTED WORKSPACE 1-10 AND FOLLOW MOVED WINDOW TO WORKSPACE
         Key([mod, "shift"], i.name, lazy.window.togroup(i.name) , lazy.group[i.name].toscreen()),
     ])
-
-
 def init_layout_theme():
     return {"margin":5,
             "border_width":2,
             "border_focus": "#5e81ac",
             "border_normal": "#4c566a"
             }
-
 layout_theme = init_layout_theme()
-
-
 layouts = [
     #layout.MonadTall(margin=8, border_width=2, border_focus="#5e81ac", border_normal="#4c566a"),
     layout.MonadTall(**layout_theme),
@@ -242,20 +241,19 @@ layouts = [
     layout.RatioTile(**layout_theme),
     layout.Max(**layout_theme)
 ]
-
 # COLORS FOR THE BAR
 #Theme name : ArcoLinux Default
 def init_colors():
-    return [["#2F343F", "#2F343F"], # color 0
-            ["#2F343F", "#2F343F"], # color 1
-            ["#c0c5ce", "#c0c5ce"], # color 2
+    return [["#170c32", "#170c32"], # color 0
+            ["#202146", "#202146"], # color 1
+            ["#92406e", "#92406e"], # color 2
             ["#fba922", "#fba922"], # color 3
-            ["#3384d0", "#3384d0"], # color 4
+            ["#2de2e6", "#2de2e6"], # color 4
             ["#f3f4f5", "#f3f4f5"], # color 5
-            ["#cd1f3f", "#cd1f3f"], # color 6
+            ["#f6019d", "#f6019d"], # color 6
             ["#62FF00", "#62FF00"], # color 7
-            ["#6790eb", "#6790eb"], # color 8
-            ["#a9a9a9", "#a9a9a9"]] # color 9
+            ["#dd546e", "#dd546e"], # color 8
+            ["#9700cc", "#9700cc"]] # color 9
 
 
 colors = init_colors()
@@ -326,26 +324,25 @@ def init_widgets_list():
                #          foreground = colors[2],
                #          background = colors[1]
                #          ),
-               # widget.NetGraph(
-               #          font="Noto Sans",
-               #          fontsize=12,
-               #          bandwidth="down",
-               #          interface="auto",
-               #          fill_color = colors[8],
-               #          foreground=colors[2],
-               #          background=colors[1],
-               #          graph_color = colors[8],
-               #          border_color = colors[2],
-               #          padding = 0,
-               #          border_width = 1,
-               #          line_width = 1,
-               #          ),
-               # widget.Sep(
-               #          linewidth = 1,
-               #          padding = 10,
-               #          foreground = colors[2],
-               #          background = colors[1]
-               #          ),
+               widget.CheckUpdates(
+                        distro='Arch_yay',
+                        display_format=' {updates}',
+                        colour_no_update="#39ff14",
+                        colour_have_updates="#ff0000",
+                        update_interval=1300,
+                        ),
+
+               widget.Wttr(
+               #    #fmt = "{%l: %c | %f}",
+                   location={f'@{myIp}': 'Home'},
+                   units = "u",
+                ),
+               widget.Sep(
+                         linewidth = 1,
+                         padding = 10,
+                         foreground = colors[2],
+                         background = colors[1]
+                         ),
                # # do not activate in Virtualbox - will break qtile
                # widget.ThermalSensor(
                #          foreground = colors[5],
@@ -384,30 +381,37 @@ def init_widgets_list():
                #          foreground = colors[5],
                #          background = colors[1],
 	           #          ),
-               # widget.TextBox(
-               #          font="FontAwesome",
-               #          text="  ",
-               #          foreground=colors[6],
-               #          background=colors[1],
-               #          padding = 0,
-               #          fontsize=16
-               #          ),
-               # widget.CPUGraph(
-               #          border_color = colors[2],
-               #          fill_color = colors[8],
-               #          graph_color = colors[8],
-               #          background=colors[1],
-               #          border_width = 1,
-               #          line_width = 1,
-               #          core = "all",
-               #          type = "box"
-               #          ),
-               # widget.Sep(
-               #          linewidth = 1,
-               #          padding = 10,
-               #          foreground = colors[2],
-               #          background = colors[1]
-               #          ),
+                ip.IpWidget(update_interval = 10,
+                           foreground=colors[6],
+                           background=colors[1],
+                           padding = 0,
+                           fontsize=16
+                           ),
+
+               widget.TextBox(
+                         font="FontAwesome",
+                         text="  ",
+                         foreground=colors[6],
+                         background=colors[1],
+                         padding = 0,
+                         fontsize=16
+                         ),
+                widget.CPUGraph(
+                         border_color = colors[2],
+                         fill_color = colors[4],
+                         graph_color = colors[4],
+                         background=colors[1],
+                         border_width = 1,
+                         line_width = 1,
+                         core = "all",
+                         type = "box"
+                         ),
+                widget.Sep(
+                         linewidth = 1,
+                         padding = 10,
+                         foreground = colors[2],
+                         background = colors[1]
+                         ),
                # widget.TextBox(
                #          font="FontAwesome",
                #          text="  ",
@@ -416,20 +420,21 @@ def init_widgets_list():
                #          padding = 0,
                #          fontsize=16
                #          ),
-               # widget.Memory(
-               #          font="Noto Sans",
-               #          format = '{MemUsed}M/{MemTotal}M',
-               #          update_interval = 1,
-               #          fontsize = 12,
-               #          foreground = colors[5],
-               #          background = colors[1],
-               #         ),
-               # widget.Sep(
-               #          linewidth = 1,
-               #          padding = 10,
-               #          foreground = colors[2],
-               #          background = colors[1]
-               #          ),
+                             widget.Memory(
+                         font="Noto Sans",
+                         format = 'Mem:{MemUsed: 0.2f}G/{MemTotal: 0.02f}G',
+                         update_interval = 1,
+                         fontsize = 12,
+                         foreground = colors[6],
+                         background = colors[1],
+                         measure_mem = "G",
+                        ),
+               widget.Sep(
+                         linewidth = 1,
+                         padding = 10,
+                         foreground = colors[2],
+                         background = colors[1]
+                         ),
                widget.TextBox(
                         font="FontAwesome",
                         text="  ",
@@ -450,12 +455,7 @@ def init_widgets_list():
                #          foreground = colors[2],
                #          background = colors[1]
                #          ),
-               widget.Systray(
-                        background=colors[1],
-                        icon_size=20,
-                        padding = 4
-                        ),
-              ]
+                             ]
     return widgets_list
 
 widgets_list = init_widgets_list()
@@ -467,6 +467,11 @@ def init_widgets_screen1():
 
 def init_widgets_screen2():
     widgets_screen2 = init_widgets_list()
+    widgets_screen2.append(widget.Systray(
+                        background=colors[1],
+                        icon_size=20,
+                        padding = 4
+                        ))
     return widgets_screen2
 
 widgets_screen1 = init_widgets_screen1()
