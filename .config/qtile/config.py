@@ -324,16 +324,8 @@ def init_widgets_list():
                #          foreground = colors[2],
                #          background = colors[1]
                #          ),
-               widget.CheckUpdates(
-                        distro='Arch_yay',
-                        display_format=' {updates}',
-                        colour_no_update="#39ff14",
-                        colour_have_updates="#ff0000",
-                        update_interval=1300,
-                        ),
-
                widget.Wttr(
-               #    #fmt = "{%l: %c | %f}",
+                   format =  '%t(%f) %c|wind: %w|Lunar: %m',
                    location={f'@{myIp}': 'Home'},
                    units = "u",
                 ),
@@ -381,13 +373,52 @@ def init_widgets_list():
                #          foreground = colors[5],
                #          background = colors[1],
 	           #          ),
-                ip.IpWidget(update_interval = 10,
+               ip.IpWidget(update_interval = 10,
                            foreground=colors[6],
                            background=colors[1],
                            padding = 0,
                            fontsize=16
                            ),
 
+
+               widget.TextBox(
+                         font="FontAwesome",
+                         text=" ",
+                         foreground=colors[4],
+                         background=colors[1],
+                         padding = 0,
+                         fontsize=16
+                         ),
+               widget.NetGraph(
+                         border_color = colors[2],
+                         fill_color = colors[4],
+                         graph_color = colors[4],
+                         background=colors[1],
+                         border_width = 1,
+                         line_width = 1,
+                         bandwidth_type = "down",
+                         interface = "auto",
+                         type = "box"
+                         ),
+               widget.TextBox(
+                         font="FontAwesome",
+                         text=" ",
+                         foreground=colors[4],
+                         background=colors[1],
+                         padding = 0,
+                         fontsize=16
+                         ),
+               widget.NetGraph(
+                         border_color = colors[2],
+                         fill_color = colors[4],
+                         graph_color = colors[4],
+                         background=colors[1],
+                         border_width = 1,
+                         line_width = 1,
+                         bandwidth_type = "up",
+                         interface = "auto",
+                         type = "box"
+                         ),
                widget.TextBox(
                          font="FontAwesome",
                          text="  ",
@@ -435,6 +466,14 @@ def init_widgets_list():
                          foreground = colors[2],
                          background = colors[1]
                          ),
+               #widget.CheckUpdates(
+               #         distro='Arch_yay',
+               #         display_format=' {updates}',
+               #         colour_no_update="#39ff14",
+               #         colour_have_updates="#ff0000",
+               #         update_interval=30,
+               #         ),
+
                widget.TextBox(
                         font="FontAwesome",
                         text="  ",
