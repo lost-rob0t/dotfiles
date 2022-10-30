@@ -14,7 +14,7 @@
     desktopManager = {
       lxqt.enable = true;
       plasma5 = {
-        enable = true;
+        enable = false;
         mobile.enable = false; #maybe for Neptune touchscreen?
       };
     };

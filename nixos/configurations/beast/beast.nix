@@ -17,8 +17,8 @@
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ./services.nix
       ./packages.nix
+      ./services.nix
       ./networking.nix
       ./security.nix
     ];

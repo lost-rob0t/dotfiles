@@ -11,7 +11,32 @@ in
       url = https://github.com/nix-community/emacs-overlay/archive/master.tar.gz;
     }))
     (import "/etc/nixos/nixos-overlay/overlay.nix")
-    ];
+    (self: super: {
+      python3Packages = super.python3Packages.override {
+        overrides = pfinal: pprev: {
+          dbus-next = pprev.dbus-next.overridePythonAttrs (old: {
+            #  temporary fix for https://github.com/NixOS/nixpkgs/issues/197408
+            checkPhase = builtins.replaceStrings ["not test_peer_interface"] ["not test_peer_interface and not test_tcp_connection_with_forwarding"] old.checkPhase;
+          });
+        };
+      };
+    })
+    (self: super: {
+      qtile = super.qtile.unwrapped.override (old: {
+        propagatedBuildInputs = (old.propagatedBuildInputs or []) ++ (with self.python3Packages; [
+          requests
+          pkgs.sxhkd
+          pkgs.j4-dmenu-desktop
+          pkgs.dmenu
+          pkgs.brave
+          pkgs.firefox
+          pkgs.emacs
+          pkgs.nerdfonts
+        ]);
+      });
+    })
+    
+   ];
   nixpkgs.config.packageOverrides = pkgs: {
     nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
       inherit pkgs;
@@ -82,6 +107,7 @@ in
     hashcat
     veracrypt
     opensnitch-ui
+    kwalletmanager
     #mypkgs.maltego
     ## Libs
     libtool
@@ -109,6 +135,10 @@ in
     variety
     sxhkd
 
+    ly #login manager
+    xorg.xinit
+    j4-dmenu-desktop
+    pkgs.dmenu
     ## Services
     dunst
     libvirt

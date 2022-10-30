@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function run {
   if ! pgrep -x $(basename $1 | head -c 15) 1>/dev/null;
