@@ -23,7 +23,11 @@ I like doom's outrun eletric theme
 #+begin_src emacs-lisp
 (setq display-line-numbers-type t)
 #+end_src
-
+** Frame resize
+This might help for wm like qtile
+#+begin_src emacs-lisp
+(setq frame-resize-pixelwise t)
+#+end_src
 * Packages
 ** Magit
 Set keybind for pushing to remote

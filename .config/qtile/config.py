@@ -14,7 +14,7 @@
 # furnished to do so, subject to the following conditions:
 #
 # The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
+# all copies or substgSANTIAL portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -32,9 +32,11 @@ import subprocess
 from typing import List  # noqa: F401
 from libqtile import layout, bar, widget, hook
 from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule
+from libqtile.config import ScratchPad, DropDown
 from libqtile.command import lazy
 from libqtile.widget import Spacer
 import ip
+from libqtile.log_utils import logger
 #import arcobattery
 
 #mod4 or mod = super key
@@ -43,6 +45,7 @@ mod1 = "alt"
 mod2 = "control"
 home = os.path.expanduser('~')
 myIp = ip.publicIp()
+myTerm = "terminator"
 class Commands:
     ## Stole this idea from https://github.com/zordsdavini/qtile-config/blob/eacda219cebe357c46c3708f419f86bb585d4397/config.py
     update = "terminator -e yay -Syu"
@@ -64,7 +67,6 @@ def window_to_next_group(qtile):
     if qtile.currentWindow is not None:
         i = qtile.groups.index(qtile.currentGroup)
         qtile.currentWindow.togroup(qtile.groups[i + 1].name)
-
 keys = [
 
 # Most of our keybindings are in sxhkd file - except these
@@ -167,6 +169,9 @@ keys = [
 # TOGGLE FLOATING LAYOUT
     Key([mod, "shift"], "space", lazy.window.toggle_floating()),
 
+    # Toggle term
+   # Key([mod], "comma",
+   #         lazy.group["SPD"].dropdown_toggle("term")),
     ]
 
 def window_to_previous_screen(qtile, switch_group=False, switch_screen=False):
@@ -202,6 +207,9 @@ group_labels = ["爵", "", "", "", "", "", "", "", "", "
 #group_labels = ["Web", "Edit/chat", "Image", "Gimp", "Meld", "Video", "Vb", "Files", "Mail", "Music",]
 group_layouts = ["monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
 #group_layouts = ["monadtall", "matrix", "monadtall", "bsp", "monadtall", "matrix", "monadtall", "bsp", "monadtall", "monadtall",]
+#
+
+
 for i in range(len(group_names)):
     groups.append(
         Group(
@@ -223,6 +231,8 @@ for i in groups:
 # MOVE WINDOW TO SELECTED WORKSPACE 1-10 AND FOLLOW MOVED WINDOW TO WORKSPACE
         Key([mod, "shift"], i.name, lazy.window.togroup(i.name) , lazy.group[i.name].toscreen()),
     ])
+
+
 def init_layout_theme():
     return {"margin":5,
             "border_width":2,
@@ -626,6 +636,7 @@ floating_layout = layout.Floating(float_rules=[
     Match(wm_class='Galculator'),
     Match(wm_class='archlinux-logout'),
     Match(wm_class='xfce4-terminal'),
+    Match(title='floating'),
 
 ],  fullscreen_border_width = 0, border_width = 0)
 auto_fullscreen = True
@@ -633,3 +644,30 @@ auto_fullscreen = True
 focus_on_window_activation = "focus" # or smart
 
 wmname = "LG3D"
+logger.warn(r"'(name . \"floating\"))")
+groups.extend([ScratchPad("termpad", [
+    DropDown("term",
+             myTerm)]),
+    ScratchPad("browserPad", [
+    DropDown("browser",
+             ["/usr/bin/firefox"],
+             height=0.8,
+             width = 0.8,
+             x = 0.1,
+             y = 0.1)]),
+
+    ScratchPad("editorPad", [
+    DropDown("emacs",
+             home + '/.config/qtile/scripts/eclient.sh',
+             match = Match(title='floating'),
+             height=0.8,
+             width = 0.8,
+             x = 0.1,
+             y = 0.1,
+             opacity = 0.95,
+             on_focus_lost_hide=False),
+    ])])
+
+keys.extend([Key([mod, "shift"], 'F1', lazy.group['browserPad'].dropdown_toggle('browser'))])
+keys.extend([Key([], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
+keys.extend([Key([], "F10", lazy.group['editorPad'].dropdown_toggle('emacs'))])
