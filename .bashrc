@@ -103,3 +103,4 @@ export PATH=/home/nsaspy/.nimble/bin:$PATH
 #export LD_LIBRARY_PATH=/usr/local/lib
 eval "$(direnv hook bash)"
 eval "$(starship init bash)"
+(cat ~/.cache/wal/sequences &)
