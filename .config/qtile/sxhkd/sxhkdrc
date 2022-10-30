@@ -124,7 +124,7 @@ super + shift + Return
 #	thunar
 
 #dmenu
-super + shift + d
+super + d
 	j4-dmenu-desktop
 #reload sxhkd:
 super + shift + s

@@ -55,6 +55,7 @@ picom --config $HOME/.config/qtile/scripts/picom.conf &
 spice-vdagent &
 #starting user applications at boot time
 run volumeicon &
+run /ome/unseen/.bin/graphics.sh &
 #run discord &
 #nitrogen --restore &
 #run caffeine -a &

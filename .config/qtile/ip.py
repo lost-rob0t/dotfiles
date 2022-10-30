@@ -40,7 +40,6 @@ def publicIp():
     except r.TimeoutError:
         return "Timeout getting IP"
 class IpWidget(base.ThreadPoolText):
-    logger.warning("NIGGER!")
     defaults = [
         ("update_interval", 10),
         ("font", "Noto Sans Bold"),
