@@ -32,6 +32,7 @@ in
           pkgs.firefox
           pkgs.emacs
           pkgs.nerdfonts
+          pkgs.conky
         ]);
       });
     })
@@ -139,6 +140,7 @@ in
     xorg.xinit
     j4-dmenu-desktop
     pkgs.dmenu
+    conky
     ## Services
     dunst
     libvirt
