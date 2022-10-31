@@ -10,6 +10,10 @@
 (setq display-line-numbers-type t)
 ;; Line numbers:1 ends here
 
+;; [[file:config.org::*Frame resize][Frame resize:1]]
+(setq frame-resize-pixelwise t)
+;; Frame resize:1 ends here
+
 ;; [[file:config.org::*Magit][Magit:1]]
 (map! :leader
       :desc "Push Current branch to remote branch"
@@ -208,14 +212,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;; Org Tempo templates:1 ends here
 
 ;; [[file:config.org::*Org wiki][Org wiki:1]]
-(require 'org-wiki)
+;;(require 'org-wiki)
 ;; Org wiki:1 ends here
 
 ;; [[file:config.org::*org-download][org-download:1]]
 (require 'org-download)
 
 ;; Drag-and-drop to `dired`
-(add-hook 'dired-mode-hook 'org-download-enable)
+;;(add-hook 'dired-mode-hook 'org-download-enable)
 ;; org-download:1 ends here
 
 ;; [[file:config.org::*org-download][org-download:2]]
@@ -288,7 +292,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;; Org Roam:3 ends here
 
 ;; [[file:config.org::*Org Roam][Org Roam:4]]
-(setq org-roam-db-update-on-save t)
+;;(setq org-roam-db-update-on-save t)
 ;; Org Roam:4 ends here
 
 ;; [[file:config.org::*Org File Encryption][Org File Encryption:1]]

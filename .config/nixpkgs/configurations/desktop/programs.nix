@@ -14,8 +14,8 @@ in
     pkgs.libreoffice
     pkgs.filezilla
     pkgs.nerdfonts
+    pkgs.terminator
     pkgs.discord
-    pkgs.cool-retro-term
     pkgs.obs-studio
     pkgs.obsidian
     pkgs.w3m

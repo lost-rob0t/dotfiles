@@ -108,7 +108,9 @@ in
     hashcat
     veracrypt
     opensnitch-ui
-    kwalletmanager
+#    kwalletmanager
+    gnome.gnome-keyring
+
     #mypkgs.maltego
     ## Libs
     libtool

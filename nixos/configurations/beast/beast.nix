@@ -21,6 +21,7 @@
       ./services.nix
       ./networking.nix
       ./security.nix
+      ./misc.nix
     ];
 
   # Boot config

@@ -205,7 +205,7 @@ group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
 #group_labels = ["1 ", "2 ", "3 ", "4 ", "5 ", "6 ", "7 ", "8 ", "9 ", "0",]
 group_labels = ["爵", "", "", "", "", "", "", "", "", "",]
 #group_labels = ["Web", "Edit/chat", "Image", "Gimp", "Meld", "Video", "Vb", "Files", "Mail", "Music",]
-group_layouts = ["monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
+group_layouts = ["max", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
 #group_layouts = ["monadtall", "matrix", "monadtall", "bsp", "monadtall", "matrix", "monadtall", "bsp", "monadtall", "monadtall",]
 #
 
@@ -272,7 +272,7 @@ colors = init_colors()
 # WIDGETS FOR THE BAR
 
 def init_widgets_defaults():
-    return dict(font="Noto Sans",
+    return dict(font="Hack Regular Nerd Font Complete",
                 fontsize = 12,
                 padding = 2,
                 background=colors[1])
@@ -282,8 +282,8 @@ widget_defaults = init_widgets_defaults()
 def init_widgets_list():
     prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
     widgets_list = [
-               widget.GroupBox(font="FontAwesome",
-                        fontsize = 16,
+               widget.GroupBox(font="Hack Regular Nerd Font Complete",
+                        fontsize = 25,
                         margin_y = -1,
                         margin_x = 0,
                         padding_y = 6,
@@ -650,7 +650,7 @@ groups.extend([ScratchPad("termpad", [
              myTerm)]),
     ScratchPad("browserPad", [
     DropDown("browser",
-             ["/usr/bin/firefox"],
+             ["firefox"],
              height=0.8,
              width = 0.8,
              x = 0.1,
