@@ -99,7 +99,7 @@ super + m
 
 #alacritty
 super + Return
-    alacritty
+    terminator
 
 #Xkill
 super + Escape
