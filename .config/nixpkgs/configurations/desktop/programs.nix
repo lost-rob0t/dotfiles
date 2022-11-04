@@ -38,6 +38,7 @@ in
     pkgs.monero-gui
     pkgs.gitRepo
     pkgs.vscodium-fhs # FHS
+    pkgs.librewolf
   ];
   programs = {
       gpg = {

@@ -77,7 +77,7 @@ in
     virtiofsd
     element-desktop
     qbittorrent
-
+    terminator
     lbry ## You should use lbry and other yotube alternatives
     yt-dlp
     #mypkgs.nimPackages.puffer

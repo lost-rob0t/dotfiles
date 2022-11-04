@@ -666,8 +666,21 @@ groups.extend([ScratchPad("termpad", [
              y = 0.1,
              opacity = 0.95,
              on_focus_lost_hide=False),
-    ])])
+    ]),
+    ScratchPad("passwords", [
+    DropDown("keepassxc",
+             "keepassxc",
+
+             height=0.8,
+             width = 0.8,
+             x = 0.1,
+             y = 0.1,
+             opacity = 0.95,
+             on_focus_lost_hide=True),
+    ])
+               ])
 
 keys.extend([Key([mod, "shift"], 'F1', lazy.group['browserPad'].dropdown_toggle('browser'))])
 keys.extend([Key([], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
 keys.extend([Key([], "F10", lazy.group['editorPad'].dropdown_toggle('emacs'))])
+keys.extend([Key([], "F3", lazy.group['passwords'].dropdown_toggle('keepassxc'))])
