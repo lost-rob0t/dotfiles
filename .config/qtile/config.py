@@ -335,7 +335,7 @@ def init_widgets_list():
                #          background = colors[1]
                #          ),
                widget.Wttr(
-                   format =  '%t(%f) %c|wind: %w|Lunar: %m',
+                   format =  '%t(%f) %c',
                    location={f'@{myIp}': 'Home'},
                    units = "u",
                 ),
@@ -383,13 +383,6 @@ def init_widgets_list():
                #          foreground = colors[5],
                #          background = colors[1],
 	           #          ),
-               ip.IpWidget(update_interval = 10,
-                           foreground=colors[6],
-                           background=colors[1],
-                           padding = 0,
-                           fontsize=16
-                           ),
-
 
                widget.TextBox(
                          font="FontAwesome",
@@ -516,6 +509,13 @@ def init_widgets_screen1():
 
 def init_widgets_screen2():
     widgets_screen2 = init_widgets_list()
+    widget_len = len(widgets_screen2) - 12
+    widgets_screen2.insert(widget_len, ip.IpWidget(update_interval = 10,
+                           foreground=colors[6],
+                           background=colors[1],
+                           padding = 0,
+                           fontsize=16
+                           ))
     widgets_screen2.append(widget.Systray(
                         background=colors[1],
                         icon_size=20,
@@ -550,29 +550,28 @@ dgroups_app_rules = []
 #########################################################
 ################ assgin apps to groups ##################
 #########################################################
-# @hook.subscribe.client_new
-# def assign_app_group(client):
-#     d = {}
-#     #####################################################################################
-#     ### Use xprop fo find  the value of WM_CLASS(STRING) -> First field is sufficient ###
-#     #####################################################################################
-#     d[group_names[0]] = ["Navigator", "Firefox", "Vivaldi-stable", "Vivaldi-snapshot", "Chromium", "Google-chrome", "Brave", "Brave-browser",
-#               "navigator", "firefox", "vivaldi-stable", "vivaldi-snapshot", "chromium", "google-chrome", "brave", "brave-browser", ]
-#     d[group_names[1]] = [ "Atom", "Subl", "Geany", "Brackets", "Code-oss", "Code", "TelegramDesktop", "Discord",
-#                "atom", "subl", "geany", "brackets", "code-oss", "code", "telegramDesktop", "discord", ]
-#     d[group_names[2]] = ["Inkscape", "Nomacs", "Ristretto", "Nitrogen", "Feh",
-#               "inkscape", "nomacs", "ristretto", "nitrogen", "feh", ]
-#     d[group_names[3]] = ["Gimp", "gimp" ]
-#     d[group_names[4]] = ["Meld", "meld", "org.gnome.meld" "org.gnome.Meld" ]
-#     d[group_names[5]] = ["Vlc","vlc", "Mpv", "mpv" ]
-#     d[group_names[6]] = ["VirtualBox Manager", "VirtualBox Machine", "Vmplayer",
-#               "virtualbox manager", "virtualbox machine", "vmplayer", ]
-#     d[group_names[7]] = ["Thunar", "Nemo", "Caja", "Nautilus", "org.gnome.Nautilus", "Pcmanfm", "Pcmanfm-qt",
-#               "thunar", "nemo", "caja", "nautilus", "org.gnome.nautilus", "pcmanfm", "pcmanfm-qt", ]
-#     d[group_names[8]] = ["Evolution", "Geary", "Mail", "Thunderbird",
-#               "evolution", "geary", "mail", "thunderbird" ]
-#     d[group_names[9]] = ["Spotify", "Pragha", "Clementine", "Deadbeef", "Audacious",
-#               "spotify", "pragha", "clementine", "deadbeef", "audacious" ]
+@hook.subscribe.client_new
+def assign_app_group(client):
+     d = {}
+     #####################################################################################
+     ### Use xprop fo find  the value of WM_CLASS(STRING) -> First field is sufficient ###
+     #####################################################################################
+     d[group_names[0]] = ["Navigator", "Firefox", "Vivaldi-stable", "Vivaldi-snapshot", "Chromium", "Google-chrome", "Brave", "Brave-browser",
+               "navigator", "firefox", "vivaldi-stable", "vivaldi-snapshot", "chromium", "google-chrome", "brave", "brave-browser", ]
+     d[group_names[1]] = [ "emacs", "codium" ]
+     d[group_names[2]] = ["Inkscape", "Nomacs", "Ristretto", "Nitrogen", "Feh",
+                          "inkscape", "nomacs", "ristretto", "nitrogen", "feh", "gimp", "krita" ]
+     d[group_names[3]] = ["virt-manager", "Virtual Machine Manager" ]
+     #d[group_names[4]] = ["Meld", "meld", "org.gnome.meld" "org.gnome.Meld" ]
+     d[group_names[5]] = ["Vlc","vlc", "Mpv", "mpv", "Minecraft", "War Thuder" ]
+     #d[group_names[6]] = ["VirtualBox Manager", "VirtualBox Machine", "Vmplayer",
+     #          "virtualbox manager", "virtualbox machine", "vmplayer", ]
+     d[group_names[7]] = ["Thunar", "Nemo", "Caja", "Nautilus", "org.gnome.Nautilus", "Pcmanfm", "Pcmanfm-qt",
+               "thunar", "nemo", "caja", "nautilus", "org.gnome.nautilus", "pcmanfm", "pcmanfm-qt", ]
+     d[group_names[8]] = ["Evolution", "Geary", "Mail", "Thunderbird",
+               "evolution", "geary", "mail", "thunderbird" ]
+     #d[group_names[9]] = ["Spotify", "Pragha", "Clementine", "Deadbeef", "Audacious",
+     #          "spotify", "pragha", "clementine", "deadbeef", "audacious" ]
 #     ######################################################################################
 #
 # wm_class = client.window.get_wm_class()[0]
@@ -637,6 +636,7 @@ floating_layout = layout.Floating(float_rules=[
     Match(wm_class='archlinux-logout'),
     Match(wm_class='xfce4-terminal'),
     Match(title='floating'),
+    Match(title='Minecraft')
 
 ],  fullscreen_border_width = 0, border_width = 0)
 auto_fullscreen = True

@@ -10,7 +10,7 @@ in
     (import (builtins.fetchTarball {
       url = https://github.com/nix-community/emacs-overlay/archive/master.tar.gz;
     }))
-    (import "/etc/nixos/nixos-overlay/overlay.nix")
+    #(import "/etc/nixos/nixos-overlay/overlay.nix")
     (self: super: {
       python3Packages = super.python3Packages.override {
         overrides = pfinal: pprev: {
@@ -65,8 +65,10 @@ in
     pandoc #emacs
     hunspellDicts.en_US
     xclip
+    ispell
     ## Android
     android-tools
+    android-studio
     ## User Programs
     ungoogled-chromium
     brave
@@ -87,6 +89,7 @@ in
     wineWowPackages.staging
     winetricks
     faudio
+    xboxdrv
     ##(winetricks.override { wine = wineWowPackages.staging; })
 
     ## Programming
@@ -130,6 +133,7 @@ in
       #mypkgs.nodePackages.bash-language-server
       #mypkgs.roswell
       epkgs.xclip
+      pkgs.ispell
     ]))
 
     # Rice
