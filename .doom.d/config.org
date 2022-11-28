@@ -3,11 +3,10 @@
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :comments link :results none
 #+startup: org-startup-folded: showall
 #+disable_spellchecker: t
-#+begin_src emacs-lisp
-;; -*- lexical-binding: t -*-
+#+begin_src emacs-lis;; -*- lexical-binding: t -*-
 #+end_src
-* Things that need done [0/1]
-** TODO Spell check
+* Things that need done [1/1]
+** DONE Spell check
 * About
 This is my personal doom emacs config, you can find package related stuff in packages.org
 yasnippets are in snippets
@@ -17,7 +16,6 @@ I like doom's outrun eletric theme
 #+begin_src emacs-lisp
 (setq doom-theme 'doom-outrun-electric)
 #+end_src
-
 
 ** Line numbers
 #+begin_src emacs-lisp
@@ -103,7 +101,6 @@ Org capture templates
 ;;        ...)))
 
 #+end_src
-
 
 *** Org Agenda
 
@@ -268,9 +265,30 @@ I expirment with difrent languages, org babel makes things easy.
   (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
 #+end_src
 
-*** TODO Org Mode config
+*** TODO Org config sync
 Create a function to tangle and sync doom at the same time
+#+begin_src emacs-lisp
+(defvar org-configs-list ()
+  "A List of org documents that holds your configuration. Will be used to tangle to elisp")
+(setq org-configs-list '("~/.doom.d/config.org" "~/.doom.d/packages.org"))
+(defun tangle-orgs (config-list)
+  "Tangle a list of org documents."
+  (mapcar 'org-babel-tangle-file config-list))
 
+(defun doom-config-sync ()
+  "Tangle your dotfiles and run doom sync"
+  (interactive)
+  (tangle-orgs org-configs-list)
+  (doom/reload))
+
+;(map! :leader
+;      :after help-mode
+;      :map help-mode-map
+;      :prefix ("r" . "+reload")
+;      :desc "Tangle Configs and reload" "s" #'doom-config-sync)
+
+
+#+end_src
 *** Org wiki
 #+begin_src emacs-lisp
 ;;(require 'org-wiki)
@@ -394,6 +412,25 @@ Eyes off my doccuments
       :map org-mode-map
       :prefix ("c" . "clock")
       :desc "Start Pomodoro" "T" #'org-pomodoro)
+#+end_src
+
+*** Org Present
+Create presentations with org mode
+#+begin_src emacs-lisp
+(eval-after-load 'org-present
+  '(progn
+     (add-hook 'org-present-mode-hook
+               (lambda ()
+                 (org-present-big)
+                 (org-display-inline-images)
+                 (org-present-hide-cursor)
+                 (org-present-read-only)))
+     (add-hook 'org-present-mode-quit-hook
+               (lambda ()
+                 (org-present-small)
+                 (org-remove-inline-images)
+                 (org-present-show-cursor)
+                 (org-present-read-write)))))
 #+end_src
 ** Yasnippet
 Add a new template
@@ -698,4 +735,11 @@ Stuff that i use for games are here.
 
 #+begin_src emacs-lisp
 (require 'ks)
+#+end_src
+** Social Media
+*** Mastodon.el
+#+begin_src emacs-lisp
+    (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
+          mastodon-active-user "nott")
+
 #+end_src
