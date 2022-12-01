@@ -27,12 +27,10 @@ if [ $keybLayout = "be" ]; then
   cp $HOME/.config/qtile/config-azerty.py $HOME/.config/qtile/config.py
 fi
 
-#autostart ArcoLinux Welcome App
-run dex $HOME/.config/autostart/arcolinux-welcome-app.desktop &
 
 #Some ways to set your wallpaper besides variety or nitrogen
-feh --bg-fill /usr/share/backgrounds/archlinux/arch-wallpaper.jpg &
-feh --bg-fill /usr/share/backgrounds/arcolinux/arco-wallpaper.jpg &
+#feh --bg-fill /usr/share/backgrounds/archlinux/arch-wallpaper.jpg &
+feh --bg-fill "/home/unseen/Pictures/wallpaper/10 - B6GTMQL.png" &
 #wallpaper for other Arch based systems
 #feh --bg-fill /usr/share/archlinux-tweak-tool/data/wallpaper/wallpaper.png &
 #start the conky to learn the shortcuts
@@ -41,26 +39,29 @@ feh --bg-fill /usr/share/backgrounds/arcolinux/arco-wallpaper.jpg &
 #start sxhkd to replace Qtile native key-bindings
 run sxhkd -c ~/.config/qtile/sxhkd/sxhkdrc &
 
+run /home/unseen/.screenlayout/screen.sh
 
 #starting utility applications at boot time
 run variety &
 run nm-applet &
-run pamac-tray &
+#run pamac-tray &
 run xfce4-power-manager &
 numlockx on &
-blueberry-tray &
+blueman-applet &
 picom --config $HOME/.config/qtile/scripts/picom.conf &
 /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
 /usr/lib/xfce4/notifyd/xfce4-notifyd &
 spice-vdagent &
 #starting user applications at boot time
 run volumeicon &
-run /ome/unseen/.bin/graphics.sh &
+run /home/unseen/.bin/graphics.sh &
+run
 #run discord &
 #nitrogen --restore &
 #run caffeine -a &
 #run vivaldi-stable &
-#run firefox &
+run firefox &
+run thunderbird &
 #run thunar &
 #run dropbox &
 #run insync start &
