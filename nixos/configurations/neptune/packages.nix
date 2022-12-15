@@ -1,10 +1,7 @@
 { config, lib, pkgs, nimPackages, ... }:
 
 ## Packages and programs go here
-let
-  mypkgs = import <personal> { config.allowUnfree = true; };
 
-in
 {
    nixpkgs.overlays = [
     (import (builtins.fetchTarball {
@@ -42,14 +39,13 @@ in
     ## User Programs
     brave
     thunderbird
-    mypkgs.tor-browser-bundle-bin
+    tor-browser-bundle-bin
     vim
     virt-manager
     qbittorrent
 
     lbry ## You should use lbry and other yotube alternatives
     yt-dlp
-    mypkgs.nimPackages.puffer
 
     ## Programming
     pipenv
@@ -59,10 +55,6 @@ in
     podman-compose
     rnix-lsp
     sqlite
-    gforth
-    racket
-    sbcl
-    ##mypkgs.wolfram-engine
     ## Security
     keepassxc
     tor
@@ -80,9 +72,6 @@ in
       epkgs.pylint
       epkgs.w3m
       epkgs.pandoc
-      mypkgs.nimPackages.puffer
-      mypkgs.nimPackages.nimsuggest
-      mypkgs.nodePackages.bash-language-server
     ]))
 
     # Rice
