@@ -93,6 +93,7 @@ alias docker-compose="podman-compose"
 alias wttr="curl wttr.in/DCA"
 alias debug-emacs="emacs --debug-init"
 alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
+alias nim-doc="nim doc --project --index:on --outdir=docs"
 ## For non nix systems
 #alias nix="~/.nix-profile/etc/profile.d/nix.sh"
 ### Shell init section
@@ -103,4 +104,4 @@ export PATH=/home/nsaspy/.nimble/bin:$PATH
 #export LD_LIBRARY_PATH=/usr/local/lib
 eval "$(direnv hook bash)"
 eval "$(starship init bash)"
-(cat ~/.cache/wal/sequences &)
+#(cat ~/.cache/wal/sequences &)

@@ -82,6 +82,7 @@ in
     terminator
     lbry ## You should use lbry and other yotube alternatives
     yt-dlp
+    libsForQt5.kdeconnect-kde
     #mypkgs.nimPackages.puffer
     ## Games
     lutris
@@ -90,6 +91,7 @@ in
     winetricks
     faudio
     xboxdrv
+    qjoypad
     ##(winetricks.override { wine = wineWowPackages.staging; })
 
     ## Programming
@@ -120,7 +122,7 @@ in
     libvterm
     jdk11
 
-    ((emacsPackagesFor emacsNativeComp).emacsWithPackages (epkgs: [
+    ((emacsPackagesFor emacsPgtk).emacsWithPackages (epkgs: [
       epkgs.vterm
       epkgs.ac-ispell
       epkgs.direnv
