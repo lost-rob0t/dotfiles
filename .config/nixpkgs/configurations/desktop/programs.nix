@@ -39,6 +39,7 @@ in
     pkgs.gitRepo
     pkgs.vscodium-fhs # FHS
     pkgs.librewolf
+    pkgs.bookworm
   ];
   programs = {
       gpg = {
