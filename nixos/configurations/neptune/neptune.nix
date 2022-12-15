@@ -49,6 +49,9 @@
     subGidRanges = [{ startGid = 100000; count = 65536; }];
     extraGroups = [ "wheel" "libvirt" ]; # Enable ‘sudo’ for the user.
   };
+  users.users.erica = {
+    isNormalUser = true;
+  };
   environment.pathsToLink = [ "/share/hunspell" "/share/myspell" "/share/hyphen" ];
 
   environment.variables.DICPATH = "/run/current-system/sw/share/hunspell:/run/current-system/sw/share/hyphen";
