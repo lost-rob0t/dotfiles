@@ -1,6 +1,6 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
-#+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :comments link :results none
+#+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: showall
 #+disable_spellchecker: t
 #+begin_src emacs-lis;; -*- lexical-binding: t -*-
@@ -325,54 +325,30 @@ Set roam directory
 
 Set a daily capture format
 #+begin_src emacs-lisp
-(setq  org-roam-capture-templates '(
-                                    ("w" "wiki entry" entry (function org-roam--capture-get-point)
-                                     "+ [[file:../20220811005521-index.org]][Index]] \n   * %?\n"
-                                     :file-name "wiki/%<%Y-%m-%d-%H%M%S>-${slug}"
-                                     :head "#+TITLE: ${title}\n"
-                                     :unnarrowed t)
+;;  Tahnk you, this comment fixed my old config!
+;;  https://www.reddit.com/r/DoomEmacs/comments/sk8558/comment/hxxp7l0/?utm_source=share&utm_medium=web2x&context=3
 
-                                    ("T" "tutorial entry for help" entry (function org-roam--capture-get-point)
-                                     "+ [[file:../20220811005521-index.org]][Index]]\n   * %?\n"
-                                     :file-name "wiki/%<%Y-%m-%d-%H%M%S>-${slug}"
-                                     :head "#+TITLE: ${title}\n"
-                                     :unnarrowed t)
-                                    ("H" "Hack the box" entry (function org-roam--capture-get-point)
-                                     "+ [[file:../20220811005521-index.org]][Index]]\n   * %?\n"
-                                     :file-name "writeups/%<%Y-%m-%d-%H%M%S>-hackthebox-${slug}"
-                                     :head "#+TITLE: ${title}\n"
-                                     :unnarrowed t)
-                                    ("S" "New Sunshine entry" entry (function org-roam--capture-get-point)
-                                     "* %?\n"
-                                     :file-name "sunshine/%<%Y-%m-%d-%H%M%S>-sunshine-${slug}"
-                                     :head "#+TITLE: ${title}\n"
-                                     :unnarrowed t)
-                                    ("D" "daily entry" entry (function org-roam--capture-get-point)
-                                     "* %<%I:%M %p>: %?"
-                                     :file-name "daily/%<%Y-%m-%d-%H%M%S>-${slug}"
-                                     :head "#+TITLE: ${title} "
-                                     :unnarrowed t)
-                                    ("u" "url" entry (function org-roam--capture-get-point)
-                                     "* %?\n- Comment: "
-                                     :file-name "urls/%<%Y-%m-%d-%H%M%S>-${slug}"
-                                     :head "#+TITLE: ${title}"
-                                     :unnarrowed t)
-                                    ("t" "do today" item
-                                     #'org-roam-capture--get-point
-                                     "[ ] %(princ as/agenda-captured-link)"
-                                     :file-name "daily/%<%Y-%m-%d>"
-                                     :head "#+title: %<%Y-%m-%d (%A)>\n* [/] Do Today\n* [/] Maybe Do Today\n* Journal\n"
-                                     :olp ("Do Today")
-                                     :immediate-finish t)
-                                    ("R" "reading notes" entry (function org-roam--capture-get-point)
-                                     "* %?\n"
-                                     :file-name "reading/%<%Y-%m-%d-%H%M%S>-${slug}"
-                                     :head "#+TITLE: ${title}\n"
-                                     :unnarrowed t)))
+(after! org-roam
+  :ensure t
+  :init
+  (setq org-roam-v2-ack t)
+  (setq org-roam-directory "~/Documents/Notes/org/roam")
+  (setq org-roam-complete-everywhere t)
+  (setq org-roam-capture-templates
+        '(
+          ("d" "default" plain "%?"
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n<t") :unnarrowed t)
+          ("w" "wiki" plain "*%? %^g"
+           :target (file+head "wiki/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n#+author: %n"))
+          ("h" "hackthebox" plain "%?"
+           :target (file+head "hackthebox/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n")))))
+
 #+end_src
 
-
-url2org function fro importing info from the web
+url2org function for importing info from the web
 
 #+begin_src emacs-lisp
 (defun url2org (begin end)

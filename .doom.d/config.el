@@ -1,49 +1,26 @@
-;; [[file:config.org::+begin_src emacs-lisp][No heading:1]]
-;; -*- lexical-binding: t -*-
-;; No heading:1 ends here
-
-;; [[file:config.org::*Theme][Theme:1]]
 (setq doom-theme 'doom-outrun-electric)
-;; Theme:1 ends here
 
-;; [[file:config.org::*Line numbers][Line numbers:1]]
 (setq display-line-numbers-type t)
-;; Line numbers:1 ends here
 
-;; [[file:config.org::*Frame resize][Frame resize:1]]
 (setq frame-resize-pixelwise t)
-;; Frame resize:1 ends here
 
-;; [[file:config.org::*Magit][Magit:1]]
 (map! :leader
       :desc "Push Current branch to remote branch"
       "g p P" #'magit-push-current-to-pushremote)
-;; Magit:1 ends here
 
-;; [[file:config.org::*Magit][Magit:2]]
 (map! :leader
       :desc "Pull current branch from remote"
       "g p p" #'magit-pull-from-pushremote)
-;; Magit:2 ends here
 
-;; [[file:config.org::*Magit Todos][Magit Todos:1]]
 (require 'magit-todos)
-;; Magit Todos:1 ends here
 
-;; [[file:config.org::*Projectile][Projectile:1]]
 (setq projectile-project-search-path
       '(("~/Documents/Projects" . 1)))
-;; Projectile:1 ends here
 
-;; [[file:config.org::*Org Mode][Org Mode:1]]
 (setq org-directory "~/Documents/Notes/org")
-;; Org Mode:1 ends here
 
-;; [[file:config.org::*Org Mode][Org Mode:2]]
 ;;(add-hook 'before-save-hook 'time-stamp)
-;; Org Mode:2 ends here
 
-;; [[file:config.org::*org capture][org capture:1]]
 (defun org-ask-location ()
   (let* ((org-refile-targets '((nil :maxlevel . 9)))
          (hd (condition-case nil
@@ -59,9 +36,7 @@
       (or (bolp) (insert "\n"))
       (insert "* " hd "\n")))
     (end-of-line))
-;; org capture:1 ends here
 
-;; [[file:config.org::*org capture][org capture:2]]
 ;; (setq org-capture-templates
 ;;   '(
 ;;      ("n" "note"
@@ -70,13 +45,9 @@
 ;;      ("t" "tasks"
 ;;        entry (file+olp+datetree "/Users/me/org/todo.org" "TASKS")
 ;;        ...)))
-;; org capture:2 ends here
 
-;; [[file:config.org::*Org Agenda][Org Agenda:1]]
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$"))
-;; Org Agenda:1 ends here
 
-;; [[file:config.org::*Org Agenda][Org Agenda:2]]
 (defun org-agenda-update-files ()
   "Update the org-agenda-files"
   (interactive)
@@ -84,9 +55,7 @@
 (map! :leader
       :desc "update agenda"
       "o a u" #'org-agenda-update-files)
-;; Org Agenda:2 ends here
 
-;; [[file:config.org::*Org Agenda][Org Agenda:3]]
 (map! :leader
       :desc "Switch to week view"
       "o a w" #'org-agenda-week-view)
@@ -98,42 +67,30 @@
 (map! :leader
       :desc "switch to month view"
       "o a y" #'org-agenda-year-view)
-;; Org Agenda:3 ends here
 
-;; [[file:config.org::*Org super agenda][Org super agenda:1]]
 (setq org-super-agenda-groups
       '(
         (:and (:todo "IDEA" :name "Starintel Idea" :tag ("starintel" "sit")))
         (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
         (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash")))
         (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")))))
-;; Org super agenda:1 ends here
 
-;; [[file:config.org::*Babel][Babel:1]]
 (map! :leader
       :desc "Tangle a file"
       "b t" #'org-babel-tangle)
-;; Babel:1 ends here
 
-;; [[file:config.org::*Babel][Babel:2]]
 (map! :leader
       :desc "Babel execute selected source block"
       "c b" #'org-babel-execute-src-block)
-;; Babel:2 ends here
 
-;; [[file:config.org::*Babel][Babel:3]]
 (map! :leader
       :desc "Babel execute buffer"
       "c B" #'org-babel-execute-buffer)
-;; Babel:3 ends here
 
-;; [[file:config.org::*Babel][Babel:4]]
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((emacs-lisp . t) (org . t) (nim . t) (python . t) (erlang . t) (ein . t) (lisp . t)))
-;; Babel:4 ends here
 
-;; [[file:config.org::*Better Formating in org-babel][Better Formating in org-babel:1]]
 (defun edit-src-block (src fn language)
   "Replace SRC org-element's value property with the result of FN.
 FN is a function that operates on org-element's value and returns a string.
@@ -173,27 +130,19 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :after org
       :prefix ("b" . "org-babel-fomats")
       :desc "format src" "f" #'format-elisp-src-blocks)
-;; Better Formating in org-babel:1 ends here
 
-;; [[file:config.org::*Python][Python:1]]
 (defun org-babel-edit-prep:python (babel-info)
   (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
   (lsp))
-;; Python:1 ends here
 
-;; [[file:config.org::*Nim][Nim:1]]
 (defun org-babel-edit-prep:nim (babel-info)
   (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
   (lsp))
-;; Nim:1 ends here
 
-;; [[file:config.org::*Bash][Bash:1]]
 (defun org-babel-edit-prep:sh (babel-info)
   (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
   (lsp))
-;; Bash:1 ends here
 
-;; [[file:config.org::*Org Tempo templates][Org Tempo templates:1]]
 (with-eval-after-load 'org
   ;; This is needed as of Org 9.2
   (require 'org-tempo)
@@ -209,182 +158,140 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (add-to-list 'org-structure-template-alist '("ss" . "src scheme"))
   (add-to-list 'org-structure-template-alist '("cl" . "src common-lisp"))
   (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
-;; Org Tempo templates:1 ends here
 
-;; [[file:config.org::*Org wiki][Org wiki:1]]
+(defvar org-configs-list ()
+  "A List of org documents that holds your configuration. Will be used to tangle to elisp")
+(setq org-configs-list '("~/.doom.d/config.org" "~/.doom.d/packages.org"))
+(defun tangle-orgs (config-list)
+  "Tangle a list of org documents."
+  (mapcar 'org-babel-tangle-file config-list))
+
+(defun doom-config-sync ()
+  "Tangle your dotfiles and run doom sync"
+  (interactive)
+  (tangle-orgs org-configs-list)
+  (doom/reload))
+
+;(map! :leader
+;      :after help-mode
+;      :map help-mode-map
+;      :prefix ("r" . "+reload")
+;      :desc "Tangle Configs and reload" "s" #'doom-config-sync)
+
 ;;(require 'org-wiki)
-;; Org wiki:1 ends here
 
-;; [[file:config.org::*org-download][org-download:1]]
 (require 'org-download)
 
 ;; Drag-and-drop to `dired`
 ;;(add-hook 'dired-mode-hook 'org-download-enable)
-;; org-download:1 ends here
 
-;; [[file:config.org::*org-download][org-download:2]]
 (map! :localleader
       :after org
       :map org-mode-map
       :prefix ("a" . "attachments")
       :desc "paste image" "p" #'org-download-clipboard
       :desc "insert image from url" "i" #'org-download-yank)
-;; org-download:2 ends here
 
-;; [[file:config.org::*Org Roam][Org Roam:1]]
 (setq org-roam-directory "~/Documents/Notes/org/roam")
-;; Org Roam:1 ends here
 
-;; [[file:config.org::*Org Roam][Org Roam:2]]
-(setq  org-roam-capture-templates '(
-                                    ("w" "wiki entry" entry (function org-roam--capture-get-point)
-                                     "+ [[file:../20220811005521-index.org]][Index]] \n   * %?\n"
-                                     :file-name "wiki/%<%Y-%m-%d-%H%M%S>-${slug}"
-                                     :head "#+TITLE: ${title}\n"
-                                     :unnarrowed t)
+;;  Tahnk you, this comment fixed my old config!
+;;  https://www.reddit.com/r/DoomEmacs/comments/sk8558/comment/hxxp7l0/?utm_source=share&utm_medium=web2x&context=3
 
-                                    ("T" "tutorial entry for help" entry (function org-roam--capture-get-point)
-                                     "+ [[file:../20220811005521-index.org]][Index]]\n   * %?\n"
-                                     :file-name "wiki/%<%Y-%m-%d-%H%M%S>-${slug}"
-                                     :head "#+TITLE: ${title}\n"
-                                     :unnarrowed t)
-                                    ("H" "Hack the box" entry (function org-roam--capture-get-point)
-                                     "+ [[file:../20220811005521-index.org]][Index]]\n   * %?\n"
-                                     :file-name "writeups/%<%Y-%m-%d-%H%M%S>-hackthebox-${slug}"
-                                     :head "#+TITLE: ${title}\n"
-                                     :unnarrowed t)
-                                    ("S" "New Sunshine entry" entry (function org-roam--capture-get-point)
-                                     "* %?\n"
-                                     :file-name "sunshine/%<%Y-%m-%d-%H%M%S>-sunshine-${slug}"
-                                     :head "#+TITLE: ${title}\n"
-                                     :unnarrowed t)
-                                    ("D" "daily entry" entry (function org-roam--capture-get-point)
-                                     "* %<%I:%M %p>: %?"
-                                     :file-name "daily/%<%Y-%m-%d-%H%M%S>-${slug}"
-                                     :head "#+TITLE: ${title} "
-                                     :unnarrowed t)
-                                    ("u" "url" entry (function org-roam--capture-get-point)
-                                     "* %?\n- Comment: "
-                                     :file-name "urls/%<%Y-%m-%d-%H%M%S>-${slug}"
-                                     :head "#+TITLE: ${title}"
-                                     :unnarrowed t)
-                                    ("t" "do today" item
-                                     #'org-roam-capture--get-point
-                                     "[ ] %(princ as/agenda-captured-link)"
-                                     :file-name "daily/%<%Y-%m-%d>"
-                                     :head "#+title: %<%Y-%m-%d (%A)>\n* [/] Do Today\n* [/] Maybe Do Today\n* Journal\n"
-                                     :olp ("Do Today")
-                                     :immediate-finish t)
-                                    ("R" "reading notes" entry (function org-roam--capture-get-point)
-                                     "* %?\n"
-                                     :file-name "reading/%<%Y-%m-%d-%H%M%S>-${slug}"
-                                     :head "#+TITLE: ${title}\n"
-                                     :unnarrowed t)))
-;; Org Roam:2 ends here
+(after! org-roam
+  :ensure t
+  :init
+  (setq org-roam-v2-ack t)
+  (setq org-roam-directory "~/Documents/Notes/org/roam")
+  (setq org-roam-complete-everywhere t)
+  (setq org-roam-capture-templates
+        '(
+          ("d" "default" plain "%?"
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n<t") :unnarrowed t)
+          ("w" "wiki" plain "*%? %^g"
+           :target (file+head "wiki/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n#+author: %n"))
+          ("h" "hackthebox" plain "%?"
+           :target (file+head "hackthebox/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+title: ${title}\n")))))
 
-;; [[file:config.org::*Org Roam][Org Roam:3]]
 (defun url2org (begin end)
   "Download a webpage from selected url and convert to org."
   (interactive "r")
   (shell-command-on-region begin end
                            (concat "pandoc --from=html --to=org " (buffer-substring begin end))
                            nil t))
-;; Org Roam:3 ends here
 
-;; [[file:config.org::*Org Roam][Org Roam:4]]
 ;;(setq org-roam-db-update-on-save t)
-;; Org Roam:4 ends here
 
-;; [[file:config.org::*Org File Encryption][Org File Encryption:1]]
 (require 'epa-file)
 (epa-file-enable)
-;; Org File Encryption:1 ends here
 
-;; [[file:config.org::*Org File Encryption][Org File Encryption:2]]
 (setq epa-file-encrypt-to '("nsaspy@airmail.cc"))
-;; Org File Encryption:2 ends here
 
-;; [[file:config.org::*Org File Encryption][Org File Encryption:3]]
 (setq epa-file-select-keys "235327FBDEFB3719")
-;; Org File Encryption:3 ends here
 
-;; [[file:config.org::*Org Pomodoro][Org Pomodoro:1]]
 (map! :localleader
       :after org
       :map org-mode-map
       :prefix ("c" . "clock")
       :desc "Start Pomodoro" "T" #'org-pomodoro)
-;; Org Pomodoro:1 ends here
 
-;; [[file:config.org::*Yasnippet][Yasnippet:1]]
+(eval-after-load 'org-present
+  '(progn
+     (add-hook 'org-present-mode-hook
+               (lambda ()
+                 (org-present-big)
+                 (org-display-inline-images)
+                 (org-present-hide-cursor)
+                 (org-present-read-only)))
+     (add-hook 'org-present-mode-quit-hook
+               (lambda ()
+                 (org-present-small)
+                 (org-remove-inline-images)
+                 (org-present-show-cursor)
+                 (org-present-read-write)))))
+
 (map! :leader
       :desc "Add a neew template to yasnippet"
       "a y s"                   #'+snippets/new)
-;; Yasnippet:1 ends here
 
-;; [[file:config.org::*Yasnippet][Yasnippet:2]]
 (map! :leader
       :desc "Edit template"
       "a y e" #'+snippets/find)
-;; Yasnippet:2 ends here
 
-;; [[file:config.org::*Deft][Deft:1]]
 (setq deft-extenstions '("txt", "org", "md"))
 (setq deft-directory "~/Documents/Notes")
-;; Deft:1 ends here
 
-;; [[file:config.org::*Deft][Deft:2]]
 (setq deft-recursive t)
-;; Deft:2 ends here
 
-;; [[file:config.org::*Deft][Deft:3]]
 (setq deft-use-filename-as-title t)
-;; Deft:3 ends here
 
-;; [[file:config.org::*expand this into something more][expand this into something more:1]]
 (require 'notifications)
-;; expand this into something more:1 ends here
 
-;; [[file:config.org::*RSS (Elfeed)][RSS (Elfeed):1]]
 (require 'elfeed-org)
-;; RSS (Elfeed):1 ends here
 
-;; [[file:config.org::*RSS (Elfeed)][RSS (Elfeed):2]]
 (elfeed-org)
-;; RSS (Elfeed):2 ends here
 
-;; [[file:config.org::*RSS (Elfeed)][RSS (Elfeed):3]]
 (setq rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org"))
-;; RSS (Elfeed):3 ends here
 
-;; [[file:config.org::*Webpaste][Webpaste:1]]
 (require 'webpaste)
-;; Webpaste:1 ends here
 
-;; [[file:config.org::*Webpaste][Webpaste:2]]
 (setq webpaste-paste-confirmation t)
-;; Webpaste:2 ends here
 
-;; [[file:config.org::*Webpaste][Webpaste:3]]
 (setq webpaste-provider-priority '("ix.io" "dpaste.org"
                                    "dpaste.com" "clbin.com"
                                    "0x0.st" "bpa.st"
                                    "paste.rs"))
-;; Webpaste:3 ends here
 
-;; [[file:config.org::*Webpaste][Webpaste:4]]
 (map! :leader
       (:prefix-map ("n" . "notes")
        (:prefix ("p" . "webpaste")
         :desc "paste region to a paste service" "r" #'webpaste-paste-region
         :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
-;; Webpaste:4 ends here
 
-;; [[file:config.org::*Pcap mode][Pcap mode:1]]
 (require 'pcap-mode)
-;; Pcap mode:1 ends here
 
-;; [[file:config.org::*inherit org][inherit org:1]]
 (with-eval-after-load 'org
   (require 'inherit-org)
 
@@ -397,9 +304,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (with-eval-after-load 'w3m
     (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
     (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
-;; inherit org:1 ends here
 
-;; [[file:config.org::*W3M][W3M:1]]
 (eval-after-load "w3m-form"
   '(progn
      (define-minor-mode dme:w3m-textarea-mode
@@ -415,68 +320,46 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
        (text-mode)
        (dme:w3m-textarea-mode))
      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
-;; W3M:1 ends here
 
-;; [[file:config.org::*Vterm][Vterm:1]]
 (defun vterm--rename-buffer-as-title (title)
   (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
     (cd-absolute dir)
     (rename-buffer (format "term %s" title))))
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
-;; Vterm:1 ends here
 
-;; [[file:config.org::*Dirvish][Dirvish:1]]
 (require 'dirvish)
 (dirvish-override-dired-mode)
-;; Dirvish:1 ends here
 
-;; [[file:config.org::*Python][Python:1]]
 (setq python-ident-offset 4)
-;; Python:1 ends here
 
-;; [[file:config.org::*Python][Python:2]]
 (after! lsp-python-ms
   (setq lsp-python-ms-executable (executable-find "python-language-server"))
   (set-lsp-priority! 'mspyls 1))
-;; Python:2 ends here
 
-;; [[file:config.org::*Direnv][Direnv:1]]
 (envrc-global-mode)
-;; Direnv:1 ends here
 
-;; [[file:config.org::*Nix][Nix:1]]
 (map! :leader
       :after nix
       :map nix-mode-map
       :prefix ("s" . "search")
       :desc "search option" "n" #'helm-nixos-options)
-;; Nix:1 ends here
 
-;; [[file:config.org::*Nix][Nix:2]]
 (require 'nix-update)
 (map! :localleader
       :after nix
       :map nix-mode-map
       :prefix ("u" . "update")
       :desc "Update fetchgit" "g" #'nix-update-fetch)
-;; Nix:2 ends here
 
-;; [[file:config.org::*Nix][Nix:3]]
 (add-to-list 'company-backends 'company-nixos-options)
-;; Nix:3 ends here
 
-;; [[file:config.org::*Nix][Nix:4]]
 (setq flycheck-command-wrapper-function
         (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
       flycheck-executable-find
         (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
-;; Nix:4 ends here
 
-;; [[file:config.org::*Nim][Nim:1]]
 (require 'flycheck-nim)
-;; Nim:1 ends here
 
-;; [[file:config.org::*Nim][Nim:2]]
 (require 'lsp-mode)
 (add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
 (lsp-register-client
@@ -484,38 +367,24 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                   :major-modes '(nim-mode)
                   :server-id 'nimlsp))
 (add-hook 'nim-mode-hook #'lsp)
-;; Nim:2 ends here
 
-;; [[file:config.org::*Forth][Forth:1]]
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
-;; Forth:1 ends here
 
-;; [[file:config.org::*Flycheck][Flycheck:1]]
 (use-package! flycheck-package
   :after flycheck
   :config (flycheck-package-setup))
-;; Flycheck:1 ends here
 
-;; [[file:config.org::*Dumb Jump][Dumb Jump:1]]
 (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
-;; Dumb Jump:1 ends here
 
-;; [[file:config.org::*Performance][Performance:1]]
 (explain-pause-mode nil)
-;; Performance:1 ends here
 
-;; [[file:config.org::*Enviroment][Enviroment:1]]
 ;;(when (memq window-system '(mac ns x))
 ;;  (exec-path-from-shell-initialize))
-;; Enviroment:1 ends here
 
-;; [[file:config.org::*Url proxy][Url proxy:1]]
 (setq url-proxy-services
       '(("no_proxy" . "^\\(localhost\\|10\\..*\\|192\\.168\\..*\\)")
         ("http" . "*.i2p:4444")))
-;; Url proxy:1 ends here
 
-;; [[file:config.org::*Cheat-sh][Cheat-sh:1]]
 (defun cht-sh ()
   "look up a cheat"
   (interactive)
@@ -523,16 +392,50 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (map! :leader
       :prefix ("s" . "search")
       :desc "cheat sheat" "c" #'cht-sh)
-;; Cheat-sh:1 ends here
 
-;; [[file:config.org::*Bookmarks][Bookmarks:1]]
 (setq bookmark-file "~/Documents/Emacs/bookmarks")
-;; Bookmarks:1 ends here
 
-;; [[file:config.org::*Activity Watch][Activity Watch:1]]
 (global-activity-watch-mode)
-;; Activity Watch:1 ends here
 
-;; [[file:config.org::*Kerbal Space Program][Kerbal Space Program:1]]
 (require 'ks)
-;; Kerbal Space Program:1 ends here
+
+    (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
+          mastodon-active-user "nott")
+
+(use-package! shrface
+  :defer t
+  :config
+  (shrface-basic)
+  (shrface-trial)
+  (shrface-default-keybindings) ; setup default keybindings
+  (setq shrface-href-versatile t))
+
+(use-package! eww
+  :defer t
+  :init
+  (add-hook 'eww-after-render-hook #'shrface-mode)
+  :config
+ (require 'shrface))
+
+(use-package! nov
+  :defer t
+  :init
+  (add-hook 'nov-mode-hook #'shrface-mode)
+  :config
+  (require 'shrface)
+  (setq nov-shr-rendering-functions '((img . nov-render-img) (title . nov-render-title)))
+  (setq nov-shr-rendering-functions (append nov-shr-rendering-functions shr-external-rendering-functions)))
+
+(use-package! anki
+  :defer t
+  :load-path "~/.emacs.d/lisp/anki/"
+  :init
+  (add-hook 'anki-mode-hook #'shrface-mode)
+  (autoload 'anki "anki")
+  (autoload 'anki-browser "anki")
+  (autoload 'anki-list-decks "anki")
+  :config
+  (require 'shrface)
+  (setq anki-shr-rendering-functions (append anki-shr-rendering-functions shr-external-rendering-functions))
+ (setq sql-sqlite-program "/usr/bin/sqlite3")
+ (setq anki-collection-dir "/Users/chandamon/Library/Application Support/Anki2/User 1"))
