@@ -10,9 +10,9 @@
 
   boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "uas" "sd_mod" ];
   boot.initrd.kernelModules = [ "dm-snapshot" "dm-raid" ];
-  boot.kernelModules = [ "kvm-amd" "amdgpu" "dm-raid" ];
+  boot.kernelModules = [ "kvm-amd" "amdgpu" "dm-raid" "xpadneo"];
   boot.extraModulePackages = [ ];
-  boot.extraModprobeConfig = "options kvm_intel nested=1";
+  boot.extraModprobeConfig = "options kvm_intel nested=1 bluetooth disable_ertm=1";
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/dfced3b1-91f1-445a-ab83-2345f4a45440";
@@ -29,10 +29,21 @@
 
   hardware = {
     bluetooth = {
+      package = pkgs.bluezFull;
       enable = true;
+      settings = {
+        LE = {
+          MinConnectionInterval=7;
+          MaxConnectionInterval=9;
+          ConnectionLatency=0;
+        };
+      };
     };
     cpu.amd = {
       updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+    };
+    xpadneo = {
+      enable = true;
     };
   };
 }

@@ -335,13 +335,13 @@ def init_widgets_list():
                #          background = colors[1]
                #          ),
                widget.Wttr(
-                   format =  '%t(%f) %c',
+                   format =  '%t(%f)',
                    location={f'@{myIp}': 'Home'},
                    units = "u",
                 ),
                widget.Sep(
                          linewidth = 1,
-                         padding = 10,
+                         padding = 5,
                          foreground = colors[2],
                          background = colors[1]
                          ),
@@ -384,44 +384,11 @@ def init_widgets_list():
                #          background = colors[1],
 	           #          ),
 
-               widget.TextBox(
-                         font="FontAwesome",
-                         text=" ",
-                         foreground=colors[4],
-                         background=colors[1],
-                         padding = 0,
-                         fontsize=16
-                         ),
-               widget.NetGraph(
-                         border_color = colors[2],
-                         fill_color = colors[4],
-                         graph_color = colors[4],
-                         background=colors[1],
-                         border_width = 1,
-                         line_width = 1,
-                         bandwidth_type = "down",
-                         interface = "auto",
-                         type = "box"
-                         ),
-               widget.TextBox(
-                         font="FontAwesome",
-                         text=" ",
-                         foreground=colors[4],
-                         background=colors[1],
-                         padding = 0,
-                         fontsize=16
-                         ),
-               widget.NetGraph(
-                         border_color = colors[2],
-                         fill_color = colors[4],
-                         graph_color = colors[4],
-                         background=colors[1],
-                         border_width = 1,
-                         line_width = 1,
-                         bandwidth_type = "up",
-                         interface = "auto",
-                         type = "box"
-                         ),
+
+               widget.Net(
+                   forground = colors[6],
+                   background=colors[1]
+               ),
                widget.TextBox(
                          font="FontAwesome",
                          text="  ",
@@ -456,7 +423,7 @@ def init_widgets_list():
                #          ),
                              widget.Memory(
                          font="Noto Sans",
-                         format = 'Mem:{MemUsed: 0.2f}G/{MemTotal: 0.02f}G',
+                         format = 'Mem:{MemUsed: 0.2f}G',
                          update_interval = 1,
                          fontsize = 12,
                          foreground = colors[6],
@@ -509,7 +476,7 @@ def init_widgets_screen1():
 
 def init_widgets_screen2():
     widgets_screen2 = init_widgets_list()
-    widget_len = len(widgets_screen2) - 12
+    widget_len = len(widgets_screen2) - 10
     widgets_screen2.insert(widget_len, ip.IpWidget(update_interval = 10,
                            foreground=colors[6],
                            background=colors[1],
@@ -572,15 +539,14 @@ def assign_app_group(client):
                "evolution", "geary", "mail", "thunderbird" ]
      #d[group_names[9]] = ["Spotify", "Pragha", "Clementine", "Deadbeef", "Audacious",
      #          "spotify", "pragha", "clementine", "deadbeef", "audacious" ]
-#     ######################################################################################
-#
-# wm_class = client.window.get_wm_class()[0]
-#
-#     for i in range(len(d)):
-#         if wm_class in list(d.values())[i]:
-#             group = list(d.keys())[i]
-#             client.togroup(group)
-#             client.group.cmd_toscreen(toggle=False)
+     #     ######################################################################################
+     m_class = client.window.get_wm_class()[0]
+
+     for i in range(len(d)):
+         if wm_class in list(d.values())[i]:
+             group = list(d.keys())[i]
+             client.togroup(group)
+             client.group.cmd_toscreen(toggle=False)
 
 # END
 # ASSIGN APPLICATIONS TO A SPECIFIC GROUPNAME
@@ -643,7 +609,7 @@ auto_fullscreen = True
 
 focus_on_window_activation = "focus" # or smart
 
-wmname = "LG3D"
+wmname = "qtile"
 logger.warn(r"'(name . \"floating\"))")
 groups.extend([ScratchPad("termpad", [
     DropDown("term",
@@ -677,7 +643,7 @@ groups.extend([ScratchPad("termpad", [
              y = 0.1,
              opacity = 0.95,
              on_focus_lost_hide=True),
-    ])
+    ]),
                ])
 
 keys.extend([Key([mod, "shift"], 'F1', lazy.group['browserPad'].dropdown_toggle('browser'))])

@@ -19,7 +19,21 @@
 
 (setq org-directory "~/Documents/Notes/org")
 
-;;(add-hook 'before-save-hook 'time-stamp)
+;(add-hook 'org-mode-hook
+;          (lambda () (add-hook 'before-save-hook 'time-stamp nil 'local)))
+
+;(add-hook 'org-mode-hook
+;          (lambda ()
+;            (set (make-local-variable 'time-stamp-pattern)
+;                 "8/^#\\+date: %%$")))
+
+;(add-hook 'before-save-hook 'time-stamp)
+
+(setq time-stamp-active t
+      time-stamp-start "#\\+LAST_MODIFIED:[ \t]*"
+      time-stamp-end "$"
+      time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
+(add-hook 'before-save-hook 'time-stamp nil)
 
 (defun org-ask-location ()
   (let* ((org-refile-targets '((nil :maxlevel . 9)))
@@ -207,13 +221,13 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
         '(
           ("d" "default" plain "%?"
            :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+title: ${title}\n<t") :unnarrowed t)
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
           ("w" "wiki" plain "*%? %^g"
            :target (file+head "wiki/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+title: ${title}\n#+author: %n"))
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("h" "hackthebox" plain "%?"
            :target (file+head "hackthebox/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+title: ${title}\n")))))
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
 
 (defun url2org (begin end)
   "Download a webpage from selected url and convert to org."
@@ -251,6 +265,25 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                  (org-remove-inline-images)
                  (org-present-show-cursor)
                  (org-present-read-write)))))
+
+(defun update-timestamps (directory)
+  "Update timestamps in all org files in DIRECTORY."
+  (interactive "DDirectory: ")
+  (let ((files (directory-files-recursively directory "\\.org$")))
+    (dolist (file files)
+      (with-current-buffer (find-file-noselect file)
+        (save-excursion
+          (goto-char (point-min))
+          (time-stamp))))))
+
+(defun update-timestamps-in-directory (directory)
+  "Update timestamps in all org files in DIRECTORY."
+  (let ((files (directory-files-recursively directory "\\.org$")))
+    (dolist (file files)
+      (with-current-buffer (find-file-noselect file)
+        (save-excursion
+          (goto-char (point-min))
+          (time-stamp))))))
 
 (map! :leader
       :desc "Add a neew template to yasnippet"
@@ -401,41 +434,3 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
     (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
           mastodon-active-user "nott")
-
-(use-package! shrface
-  :defer t
-  :config
-  (shrface-basic)
-  (shrface-trial)
-  (shrface-default-keybindings) ; setup default keybindings
-  (setq shrface-href-versatile t))
-
-(use-package! eww
-  :defer t
-  :init
-  (add-hook 'eww-after-render-hook #'shrface-mode)
-  :config
- (require 'shrface))
-
-(use-package! nov
-  :defer t
-  :init
-  (add-hook 'nov-mode-hook #'shrface-mode)
-  :config
-  (require 'shrface)
-  (setq nov-shr-rendering-functions '((img . nov-render-img) (title . nov-render-title)))
-  (setq nov-shr-rendering-functions (append nov-shr-rendering-functions shr-external-rendering-functions)))
-
-(use-package! anki
-  :defer t
-  :load-path "~/.emacs.d/lisp/anki/"
-  :init
-  (add-hook 'anki-mode-hook #'shrface-mode)
-  (autoload 'anki "anki")
-  (autoload 'anki-browser "anki")
-  (autoload 'anki-list-decks "anki")
-  :config
-  (require 'shrface)
-  (setq anki-shr-rendering-functions (append anki-shr-rendering-functions shr-external-rendering-functions))
- (setq sql-sqlite-program "/usr/bin/sqlite3")
- (setq anki-collection-dir "/Users/chandamon/Library/Application Support/Anki2/User 1"))

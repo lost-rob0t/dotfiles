@@ -34,12 +34,13 @@
   };
   printing = {
     enable = false;};
-  #services.i2p = {
-  #  enable = true;
-  #};
+  i2p = {
+    enable = true;
+  };
   emacs = {
     enable = true;
     defaultEditor = true;
+    package = pkgs.emacsPgtk;
   };
   blueman = {
     enable = true;
@@ -49,9 +50,9 @@
   enable = false;
   };
   ## Open snitch
-  opensnitch = {
-    enable = true;
-  };
+  #opensnitch = {
+  #  enable = true;
+  #};
   syncthing = {
     enable = true;
     user = "unseen";
@@ -73,6 +74,14 @@
     };
   };
 };
+  fstrim = {
+    enable = true;
+  };
+
+  mastodon = {
+    enable = false;
+    webPort = "8090";
+  };
   };
 virtualisation = {
     podman = {
@@ -85,4 +94,5 @@ virtualisation = {
       onBoot = "start";
     };
 };
+
 }
