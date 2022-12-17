@@ -1,9 +1,10 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
+
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: showall
 #+disable_spellchecker: t
-#+begin_src emacs-lis;; -*- lexical-binding: t -*-
+#+begin_src emacs-lisp;; -*- lexical-binding: t -*-
 #+end_src
 * Things that need done [1/1]
 ** DONE Spell check
@@ -63,10 +64,15 @@ Setting org dir
 (setq org-directory "~/Documents/Notes/org")
 #+end_src
 
-I forgot where i grabbed this from sorry.
+Source: https://org-roam.discourse.group/t/update-a-field-last-modified-at-save/321
+i needed this to keep track of when i modify an org roam file so when i export it the times are correct.
 
 #+begin_src emacs-lisp
-;;(add-hook 'before-save-hook 'time-stamp)
+(setq time-stamp-active t
+      time-stamp-start "#\\+LAST_MODIFIED:[ \t]*"
+      time-stamp-end "$"
+      time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
+(add-hook 'before-save-hook 'time-stamp nil)
 #+end_src
 *** org capture
 Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][source.]]
@@ -338,13 +344,13 @@ Set a daily capture format
         '(
           ("d" "default" plain "%?"
            :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+title: ${title}\n<t") :unnarrowed t)
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
           ("w" "wiki" plain "*%? %^g"
            :target (file+head "wiki/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+title: ${title}\n#+author: %n"))
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("h" "hackthebox" plain "%?"
            :target (file+head "hackthebox/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+title: ${title}\n")))))
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
 
 #+end_src
 
@@ -407,6 +413,31 @@ Create presentations with org mode
                  (org-remove-inline-images)
                  (org-present-show-cursor)
                  (org-present-read-write)))))
+#+end_src
+
+
+*** Misc related functions for org mode
+****  Time Stamp updater
+#+begin_src emacs-lisp
+(defun update-timestamps (directory)
+  "Update timestamps in all org files in DIRECTORY."
+  (interactive "DDirectory: ")
+  (let ((files (directory-files-recursively directory "\\.org$")))
+    (dolist (file files)
+      (with-current-buffer (find-file-noselect file)
+        (save-excursion
+          (goto-char (point-min))
+          (time-stamp))))))
+
+(defun update-timestamps-in-directory (directory)
+  "Update timestamps in all org files in DIRECTORY."
+  (let ((files (directory-files-recursively directory "\\.org$")))
+    (dolist (file files)
+      (with-current-buffer (find-file-noselect file)
+        (save-excursion
+          (goto-char (point-min))
+          (time-stamp))))))
+
 #+end_src
 ** Yasnippet
 Add a new template
@@ -716,46 +747,5 @@ Stuff that i use for games are here.
 #+begin_src emacs-lisp
     (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
           mastodon-active-user "nott")
-
-#+end_src
-** Rice
-#+begin_src emacs-lisp
-(use-package! shrface
-  :defer t
-  :config
-  (shrface-basic)
-  (shrface-trial)
-  (shrface-default-keybindings) ; setup default keybindings
-  (setq shrface-href-versatile t))
-
-(use-package! eww
-  :defer t
-  :init
-  (add-hook 'eww-after-render-hook #'shrface-mode)
-  :config
- (require 'shrface))
-
-(use-package! nov
-  :defer t
-  :init
-  (add-hook 'nov-mode-hook #'shrface-mode)
-  :config
-  (require 'shrface)
-  (setq nov-shr-rendering-functions '((img . nov-render-img) (title . nov-render-title)))
-  (setq nov-shr-rendering-functions (append nov-shr-rendering-functions shr-external-rendering-functions)))
-
-(use-package! anki
-  :defer t
-  :load-path "~/.emacs.d/lisp/anki/"
-  :init
-  (add-hook 'anki-mode-hook #'shrface-mode)
-  (autoload 'anki "anki")
-  (autoload 'anki-browser "anki")
-  (autoload 'anki-list-decks "anki")
-  :config
-  (require 'shrface)
-  (setq anki-shr-rendering-functions (append anki-shr-rendering-functions shr-external-rendering-functions))
- (setq sql-sqlite-program "/usr/bin/sqlite3")
- (setq anki-collection-dir "/Users/chandamon/Library/Application Support/Anki2/User 1"))
 
 #+end_src
