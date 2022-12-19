@@ -7,7 +7,6 @@
 #+begin_src emacs-lisp;; -*- lexical-binding: t -*-
 #+end_src
 * Things that need done [1/1]
-** DONE Spell check
 * About
 This is my personal doom emacs config, you can find package related stuff in packages.org
 yasnippets are in snippets
@@ -109,23 +108,38 @@ Org capture templates
 #+end_src
 
 *** Org Agenda
-
 Find all TODOS recursively [[https://stackoverflow.com/a/41969519][source]].
 #+begin_src emacs-lisp
-(setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$"))
+(setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
+;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
+;  (add-to-list org-agenda-files file))
 #+end_src
 
 #+begin_src emacs-lisp
 (defun org-agenda-update-files ()
   "Update the org-agenda-files"
   (interactive)
-  (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$")))
+  (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda" "\\.org$")))
 (map! :leader
       :desc "update agenda"
       "o a u" #'org-agenda-update-files)
 #+end_src
 
+Track a org file by adding it to the agenda folder
+#+begin_src emacs-lisp
+(defun track-org-file ()
+  "Create a symbolic link to the current file in the 'agenda' directory."
+  (interactive)
+  (let ((current-file (buffer-file-name)))
+    (when current-file
+      (make-symbolic-link current-file "~/Documents/Notes/org/agenda/")
+      (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$")))))
 
+(map! :after org
+      :localleader
+      :map org-mode-map
+      :desc "Add file to Org agenda" "w" #'track-org-file)
+#+end_src
 
 I prefer being able to have difrent views within org agenda, so i can see whats comming up ahead of time.
 #+begin_src emacs-lisp
@@ -140,6 +154,32 @@ I prefer being able to have difrent views within org agenda, so i can see whats 
 (map! :leader
       :desc "switch to month view"
       "o a y" #'org-agenda-year-view)
+#+end_src
+
+
+**** Export my todo items
+#+begin_src emacs-lisp
+(defun unseen/export-todos ()
+  "Create an Org file with TODO entries due or scheduled for today.
+The file will be saved in the current directory as 'todos.org'."
+  (let ((todos '()))
+    (dolist (file org-agenda-files)
+      (setq todos (append todos (org-map-entries
+                                 (lambda ()
+                                   (org-get-todo-state))
+                                 "+TODO=\"TODO\"+SCHEDULED<\"<today>\"|+TODO=\"TODO\"+DEADLINE<\"<today>\""
+                                 (list file)))))
+    (when todos
+      (with-temp-buffer
+        (insert "* Due Today\n")
+        (dolist (todo todos)
+          (insert (concat "+ " todo "\n")))
+        (insert "\n* TODOs\n")
+        (write-file "todos.org")))))
+
+
+(unseen/export-todos)
+;(run-at-time 0 300 'unseen/export-todo-list)
 #+end_src
 
 **** Org super agenda
@@ -329,7 +369,6 @@ Set roam directory
 (setq org-roam-directory "~/Documents/Notes/org/roam")
 #+end_src
 
-Set a daily capture format
 #+begin_src emacs-lisp
 ;;  Tahnk you, this comment fixed my old config!
 ;;  https://www.reddit.com/r/DoomEmacs/comments/sk8558/comment/hxxp7l0/?utm_source=share&utm_medium=web2x&context=3
@@ -437,6 +476,31 @@ Create presentations with org mode
         (save-excursion
           (goto-char (point-min))
           (time-stamp))))))
+
+#+end_src
+**** Get Tags from headlines :ai:
+#+begin_src emacs-lisp
+(defun get-org-tags ()
+  "Get all tags from org headlines in the current buffer and append them to the top of the file under the #+filetags: line."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (let ((tags '()))
+      (while (re-search-forward "^*+ .+?\\(:[[:alnum:]_@:]+:\\)" nil t)
+        (let ((tag-string (match-string 1)))
+          (setq tags (append (split-string (substring tag-string 1 -1) ":" t) tags))))
+      (setq tags (delete-dups tags))
+      (setq tags (mapcar 'downcase tags))  ; convert tags to lowercase
+      (setq tags (delete-dups tags))  ; remove duplicates
+      (goto-char (point-min))
+      (if (re-search-forward "^#\\+filetags:" nil t)
+          (progn
+            (beginning-of-line)
+            (kill-line)
+            (insert "#+filetags: " (mapconcat 'identity tags " ")))
+        (progn
+          (goto-char (point-min))
+          (insert "#+filetags: " (mapconcat 'identity tags " ")))))))
 
 #+end_src
 ** Yasnippet
@@ -748,4 +812,12 @@ Stuff that i use for games are here.
     (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
           mastodon-active-user "nott")
 
+#+end_src
+
+
+** Other
+#+begin_src emacs-lisp
+(use-package! org-pomodoro
+  :init
+  (setq org-pomodoro-audio-player "/usr/bin/mpv"))
 #+end_src
