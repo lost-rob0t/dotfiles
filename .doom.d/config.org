@@ -158,7 +158,7 @@ I prefer being able to have difrent views within org agenda, so i can see whats 
 
 
 **** Export my todo items
-#+begin_src emacs-lisp
++begin_src emacs-lisp
 (defun unseen/export-todos ()
   "Create an Org file with TODO entries due or scheduled for today.
 The file will be saved in the current directory as 'todos.org'."
@@ -389,7 +389,10 @@ Set roam directory
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("h" "hackthebox" plain "%?"
            :target (file+head "hackthebox/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("s" "star intel" plain "*%? %^g"
+           :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))))
 
 #+end_src
 
@@ -480,27 +483,6 @@ Create presentations with org mode
 #+end_src
 **** Get Tags from headlines :ai:
 #+begin_src emacs-lisp
-(defun get-org-tags ()
-  "Get all tags from org headlines in the current buffer and append them to the top of the file under the #+filetags: line."
-  (interactive)
-  (save-excursion
-    (goto-char (point-min))
-    (let ((tags '()))
-      (while (re-search-forward "^*+ .+?\\(:[[:alnum:]_@:]+:\\)" nil t)
-        (let ((tag-string (match-string 1)))
-          (setq tags (append (split-string (substring tag-string 1 -1) ":" t) tags))))
-      (setq tags (delete-dups tags))
-      (setq tags (mapcar 'downcase tags))  ; convert tags to lowercase
-      (setq tags (delete-dups tags))  ; remove duplicates
-      (goto-char (point-min))
-      (if (re-search-forward "^#\\+filetags:" nil t)
-          (progn
-            (beginning-of-line)
-            (kill-line)
-            (insert "#+filetags: " (mapconcat 'identity tags " ")))
-        (progn
-          (goto-char (point-min))
-          (insert "#+filetags: " (mapconcat 'identity tags " ")))))))
 
 #+end_src
 ** Yasnippet
