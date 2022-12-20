@@ -2,7 +2,7 @@
 
 ## Packages and programs go here
 let
-  mypkgs = import <personal> { config.allowUnfree = true; };
+  unseen = import <unseen> { config.allowUnfree = true; };
 
 in
 {
@@ -108,8 +108,9 @@ in
     roswell
     ## Security
     keepassxc
-    tor
-    torsocks
+    unseen.tor
+    unseen.torsocks
+    unseen.i2p
     hashcat
     veracrypt
     opensnitch-ui

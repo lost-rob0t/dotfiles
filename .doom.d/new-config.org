@@ -14,6 +14,12 @@
 
 This is my personal configuration for doom emacs. You can find information on packages in packages.org and yasnippets in snippets.
 
+*** AI assited config
+Any code that is tagged with "ai" was made with the use of chat.gpt
+
+
+
+
 ** Styling
 
 *** Theme
@@ -482,7 +488,7 @@ Create presentations with org mode
 
 
 **** Misc related functions for org mode
-*****  Time Stamp updater
+*****  Time Stamp updater :ai:
 #+begin_src emacs-lisp
 (defun update-timestamps (directory)
   "Update timestamps in all org files in DIRECTORY."
@@ -511,7 +517,7 @@ This file was based on my old config, seeing the advent of ai and my poor elisp 
 
 
 *** Org Related
-**** Question And Awnsers
+**** Question And Awnsers :ai:
 Q: Can you make a emacs capute template to capture yor responses to a file?
 AI:
 #+begin_src emacs-lisp
@@ -527,9 +533,9 @@ AI:
 
 #+end_src
 
-**** Save Org headlines tags to the #+filetags
+**** Save Org headlines tags to the #+filetags :ai:
 #+begin_src emacs-lisp
-(defun get-org-tags ()
+(defun set-org-tags ()
   "Get all tags from org headlines in the current buffer and append them to the top of the file under the #+filetags: line."
   (interactive)
   (save-excursion
@@ -551,8 +557,12 @@ AI:
           (goto-char (point-min))
           (insert "#+filetags: " (mapconcat 'identity tags " ")))))))
 
+
+
+
 #+end_src
-*** Ahdhd lol
+
+*** Ahdhd lol :ai:
 #+begin_src emacs-lisp
 (defvar org-pomodoro-active nil
   "Whether a pomodoro timer is currently active.")
@@ -580,4 +590,3 @@ Emacs is not the active window."
 (add-hook 'focus-out-hook #'org-pomodoro-alert)
 #+end_src
 
-***

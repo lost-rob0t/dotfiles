@@ -19,16 +19,6 @@
 
 (setq org-directory "~/Documents/Notes/org")
 
-;(add-hook 'org-mode-hook
-;          (lambda () (add-hook 'before-save-hook 'time-stamp nil 'local)))
-
-;(add-hook 'org-mode-hook
-;          (lambda ()
-;            (set (make-local-variable 'time-stamp-pattern)
-;                 "8/^#\\+date: %%$")))
-
-;(add-hook 'before-save-hook 'time-stamp)
-
 (setq time-stamp-active t
       time-stamp-start "#\\+LAST_MODIFIED:[ \t]*"
       time-stamp-end "$"
@@ -60,15 +50,30 @@
 ;;        entry (file+olp+datetree "/Users/me/org/todo.org" "TASKS")
 ;;        ...)))
 
-(setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$"))
+(setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
+;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
+;  (add-to-list org-agenda-files file))
 
 (defun org-agenda-update-files ()
   "Update the org-agenda-files"
   (interactive)
-  (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/" "\\.org$")))
+  (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda" "\\.org$")))
 (map! :leader
       :desc "update agenda"
       "o a u" #'org-agenda-update-files)
+
+(defun track-org-file ()
+  "Create a symbolic link to the current file in the 'agenda' directory."
+  (interactive)
+  (let ((current-file (buffer-file-name)))
+    (when current-file
+      (make-symbolic-link current-file "~/Documents/Notes/org/agenda/")
+      (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$")))))
+
+(map! :after org
+      :localleader
+      :map org-mode-map
+      :desc "Add file to Org agenda" "w" #'track-org-file)
 
 (map! :leader
       :desc "Switch to week view"
@@ -227,6 +232,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("h" "hackthebox" plain "%?"
            :target (file+head "hackthebox/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("s" "star intel" plain "*%? %^g"
+           :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
 
 (defun url2org (begin end)
@@ -284,6 +292,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
         (save-excursion
           (goto-char (point-min))
           (time-stamp))))))
+
+
 
 (map! :leader
       :desc "Add a neew template to yasnippet"
@@ -434,3 +444,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
     (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
           mastodon-active-user "nott")
+
+(use-package! org-pomodoro
+  :init
+  (setq org-pomodoro-audio-player "/usr/bin/mpv"))

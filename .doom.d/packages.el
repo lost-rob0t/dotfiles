@@ -30,6 +30,8 @@
 
 (package! org-present :recipe (:type git :host github :repo "rlister/org-present"))
 
+(package! org-pomodoro)
+
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 
 (package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
