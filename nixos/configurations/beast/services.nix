@@ -1,9 +1,13 @@
 { config, lib, pkgs, ... }:
 
 ## Services go into here
+let
+  unseen = import <unseen> { config.allowUnfree = true; };
 
-
+in
 {
+  # Heres how you run a difrent service
+  disabledModules = [ "services/networking/i2p.nix" "services/networking/tor.nix" ];
   services = {
   ## Xserver config
   xserver = {

@@ -311,7 +311,7 @@ I expirment with difrent languages, org babel makes things easy.
   (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
 #+end_src
 
-*** TODO Org config sync
+*** Org config sync
 Create a function to tangle and sync doom at the same time
 #+begin_src emacs-lisp
 (defvar org-configs-list ()
@@ -392,8 +392,10 @@ Set roam directory
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("d" "sunshine wiki dox" plain "* {slug}\n%?"
+           :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
-
 #+end_src
 
 url2org function for importing info from the web
@@ -796,6 +798,13 @@ Stuff that i use for games are here.
 
 #+end_src
 
+Add a hook to turn off evil mode for that buffer
+
+#+begin_src emacs-lisp
+(add-hook! `mastodon-mode
+  (lambda! ()
+    (turn-off-evil-mode)))
+#+end_src
 
 ** Other
 #+begin_src emacs-lisp
