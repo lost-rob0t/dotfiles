@@ -32,21 +32,21 @@ This org document contains all the packages that i install into emacs. I thought
 + Config can be found [[./config.org]]
 
 
-* Org mode
-** org-ql
+** Org mode
+*** org-ql
 This package provides a query language for Org files. It offers two syntax styles: Lisp-like sexps and search engine-like keywords.
 #+begin_src emacs-lisp
 (package! org-ql :recipe (:type git :host github :repo "alphapapa/org-ql"))
 #+end_src
 
 
-** org-timed-alerts
+*** org-timed-alerts
 Receive warnings and alerts via alert.el for upcoming events in your day.
 #+begin_src emacs-lisp
 (package! org-timed-alerts :recipe (:type git :host github :repo "legalnonsense/org-timed-alerts"))
 #+end_src
 
-** org-download
+*** org-download
 This extension facilitates moving images from point A to point B.
 
 #+begin_src emacs-lisp
@@ -54,138 +54,138 @@ This extension facilitates moving images from point A to point B.
 #+end_src
 
 
-** org-wiki
+*** org-wiki
 Build and publish your own wiki based on org mode
 #+begin_src emacs-lisp
 (package! org-wiki :recipe (:type git :host github :repo "caiorss/org-wiki"))
 #+end_src
-** ox-hugo
+*** ox-hugo
 export to hugo markdown
 #+begin_src emacs-lisp
 (package! ox-hugo)
 #+end_src
-** org-present-mode
+*** org-present-mode
 Make presentations
 #+begin_src emacs-lisp
 (package! org-present :recipe (:type git :host github :repo "rlister/org-present"))
 #+end_src
 
-** org-pomodoro
+*** org-pomodoro
 #+begin_src emacs-lisp
 (package! org-pomodoro)
 #+end_src
-* Development
-** envrc
+** Development
+*** envrc
 A GNU Emacs library which uses direnv to set environment variables on a per-buffer basis. This means that when you work across multiple projects which have .envrc files, all processes launched from the buffers "in" those projects will be executed with the environment variables specified in those files. This allows different versions of linters and other tools to be used in each project if desired.
 
 #+begin_src emacs-lisp
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 #+end_src
-** Langauges
-*** Nim lang
-**** flycheck-nim
+*** Langauges
+**** Nim lang
+***** flycheck-nim
 Flycheck-nim is a syntax checker definition for flycheck which supports the Nim programming language using the nim compiler as the backend.
 #+begin_src emacs-lisp
 (package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
 #+end_src
 
-*** gForth
+**** gForth
 major mode for gforth
 #+begin_src emacs-lisp
 (package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
 #+end_src
 
-*** nix
-**** nix-emacs
+**** nix
+***** nix-emacs
 set of usful emacs modes for nix
 #+begin_src emacs-lisp
 (package! nix-emacs :recipe (:type git :host github :repo "travisbhartwell/nix-emacs"))
 #+end_src
-* Utils
-** webpaste.el
+** Utils
+*** webpaste.el
 paste your buffer to a pastebin like service.
 #+begin_src emacs-lisp
 (package! webpaste :recipe (:type git :host github :repo "etu/webpaste.el"))
 #+end_src
-** Burly
+*** Burly
 This package provides tools to save and restore frame and window configurations in Emacs, including buffers that may not be live anymore. In this way, it’s like a lightweight “workspace” manager, allowing you to easily restore one or more frames, including their windows, the windows’ layout, and their buffers.
 
 #+begin_src emacs-lisp
 (package! burly :recipe (:type git :host github :repo "alphapapa/burly.el"))
 #+end_src
-** podman.el
+*** podman.el
 Manage podman containers
 #+begin_src emacs-lisp
 (package! podman.el :recipe (:type git :host github :repo "akirak/podman.el"))
 #+end_src
 
-** pcap-mode.el
+*** pcap-mode.el
 A major mode for view pcap capture files
 #+begin_src emacs-lisp
 (package! pcap-mode.el :recipe (:type git :host github :repo "orgcandman/pcap-mode"))
 #+end_src
-** exec-path-from-shell
+*** exec-path-from-shell
 A GNU Emacs library to ensure environment variables inside Emacs look the same as in the user's shell.
 #+begin_src emacs-lisp
 (package! exec-path-from-shell  :recipe (:type git :host github :repo "purcell/exec-path-from-shell"))
 #+end_src
 
-** cheat-sh
+*** cheat-sh
 get cheatsheets
 #+begin_src emacs-lisp
 (package! cheat-sh :recipe (:type git :host github :repo "davep/cheat-sh.el"))
 #+end_src
 
-** activity watch
+*** activity watch
 keep track of time.
 #+begin_src emacs-lisp
 (package! activity-watch-mode :recipe (:type git :host github :repo "pauldub/activity-watch-mode"))
 #+end_src
 
-** TODO Sqlite mode
-** Discover
+*** TODO Sqlite mode
+*** Discover
 Find more of emacs using context menus
 #+begin_src emacs-lisp
 (package! discover :recipe (:type git :host github :repo "mickeynp/discover.el"))
 #+end_src
 
-* Lib packages
-** plz
+** Lib packages
+*** plz
 plz is an HTTP library for Emacs. It uses curl as a backend, which avoids some of the issues with using Emacs’s built-in url library.
 #+begin_src emacs-lisp
 (package! plz :recipe (:type git :host github :repo "alphapapa/plz.el"))
 #+end_src
-** ts
+*** ts
 ts is a date and time library for Emacs. It aims to be more convenient than patterns like (string-to-number (format-time-string "%Y")) by providing easy accessors, like (ts-year (ts-now)).
 
 #+begin_src emacs-lisp
 (package! ts :recipe (:type git :host github :repo "alphapapa/ts.el"))
 #+end_src
-** dash
+*** dash
 A modern list API for Emacs. No 'cl required.
 #+begin_src emacs-lisp
 (package! dash :recipe (:type git :host github :repo "magnars/dash.el"))
 #+end_src
 
-* Messaging
-** ement
+** Messaging
+*** ement
 a matrix client for emacs
 #+begin_src emacs-lisp
 (package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
 #+end_src
-** mastodon
+*** mastodon
 Emacs client for mastodon/pleroma
 #+begin_src emacs-lisp
 (package! mastodon :recipe (:type git :host codeberg :repo "martianh/mastodon.el"))
 #+end_src
-* rice
-** inherit-org
+** rice
+*** inherit-org
 Add org faces to non org buffers.
 #+begin_src emacs-lisp
 (package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 #+end_src
 
-* dirvish
+** dirvish
 a better dired
 #+begin_src emacs-lisp
 (package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
