@@ -650,3 +650,18 @@ keys.extend([Key([mod, "shift"], 'F1', lazy.group['browserPad'].dropdown_toggle(
 keys.extend([Key([], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
 keys.extend([Key([], "F10", lazy.group['editorPad'].dropdown_toggle('emacs'))])
 keys.extend([Key([], "F3", lazy.group['passwords'].dropdown_toggle('keepassxc'))])
+
+# Fix full screen games
+
+auto_fullscreen = False # I dont want it "full screen"
+focus_on_window_activation = "smart"
+reconfigure_screens = True
+
+# If things like steam games want to auto-minimize themselves when losing
+# focus, should we respect this or not?
+# My awnser:
+# Yes for some reason in qtile this is require for games like war thunder to even launch
+auto_minimize = False
+follow_mouse_focus = False
+bring_front_click = False
+cursor_warp = True # Keep mouse inside game window!
