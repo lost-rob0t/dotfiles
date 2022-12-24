@@ -519,9 +519,14 @@ Tell deft to use the filename as the Title of the note
 #+end_src
 
 ** Notifications
-*** TODO expand this into something more
+*** Emacs built in notifcations
 #+begin_src emacs-lisp
 (require 'notifications)
+#+end_src
+
+Enable notifcations
+#+begin_src emacs-lisp
+
 #+end_src
 ** RSS (Elfeed)
 #+begin_src emacs-lisp
@@ -770,7 +775,7 @@ I use i2p and having elfeed use a proxy would be nice
       :prefix ("s" . "search")
       :desc "cheat sheat" "c" #'cht-sh)
 #+end_src
-*** TODO make it look nice
+*** IDEA make it look nice
 
 
 ** Bookmarks
@@ -798,13 +803,7 @@ Stuff that i use for games are here.
 
 #+end_src
 
-Add a hook to turn off evil mode for that buffer
 
-#+begin_src emacs-lisp
-(add-hook! `mastodon-mode
-  (lambda! ()
-    (turn-off-evil-mode)))
-#+end_src
 
 ** Other
 #+begin_src emacs-lisp
