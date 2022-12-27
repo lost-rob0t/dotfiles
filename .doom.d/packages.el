@@ -62,6 +62,8 @@
 
 (package! dash :recipe (:type git :host github :repo "magnars/dash.el"))
 
+(package! alert :recipe (:type git :host github :repo "jwiegley/alert"))
+
 (package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
 
 (package! mastodon :recipe (:type git :host codeberg :repo "martianh/mastodon.el"))

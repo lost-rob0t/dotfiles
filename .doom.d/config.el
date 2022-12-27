@@ -235,6 +235,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("d" "sunshine wiki dox" plain "* {slug}\n%?"
+           :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
 
 (defun url2org (begin end)
@@ -310,7 +313,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (setq deft-use-filename-as-title t)
 
-(require 'notifications)
+;(require 'notifications)
 
 (require 'elfeed-org)
 
@@ -444,6 +447,10 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
     (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
           mastodon-active-user "nott")
+
+(add-hook! `mastodon-mode
+  (lambda! ()
+    (turn-off-evil-mode)))
 
 (use-package! org-pomodoro
   :init
