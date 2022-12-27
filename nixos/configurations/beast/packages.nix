@@ -21,7 +21,17 @@ in
         };
       };
     })
-    (self: super: {
+    #(self: super: {
+    #  i2p = super.i2p.overrideDerivation (old: rec {
+    #    version = "2.0.0";
+    #    src = fetchurl {
+    #      url = "https://files.i2p-projekt.de/${version}/i2psource_${version}.tar.bz2";
+    #      sha256 = "16chvycw4i7nkdl3fj49y5r0sn28r8clqn6m8g63kwd8f8g86l0x";
+    #    };
+    #  });
+    #})
+
+    (self: super:  {
       qtile = super.qtile.unwrapped.override (old: {
         propagatedBuildInputs = (old.propagatedBuildInputs or []) ++ (with self.python3Packages; [
           requests
@@ -83,6 +93,7 @@ in
     lbry ## You should use lbry and other yotube alternatives
     yt-dlp
     libsForQt5.kdeconnect-kde
+    ntfy # send notifications
     #mypkgs.nimPackages.puffer
     ## Games
     lutris
@@ -131,12 +142,13 @@ in
       epkgs.pylint
       epkgs.w3m
       epkgs.pandoc
-      #mypkgs.nimPackages.puffer
-      #mypkgs.nimPackages.nimsuggest
-      #mypkgs.nodePackages.bash-language-server
-      #mypkgs.roswell
+      unseen.nimPackages.nimsuggest
+      unseen.nodePackages.bash-language-server
+      unseen.roswell
       epkgs.xclip
-      pkgs.ispell
+      unseen.ispell
+      unseen.libnotify # for alert.el
+      unseen.xdotool # for emacs everywhere
     ]))
 
     # Rice
