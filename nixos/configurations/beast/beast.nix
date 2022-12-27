@@ -51,10 +51,20 @@
     subGidRanges = [{ startGid = 100000; count = 65536; }];
     extraGroups = [ "wheel" "libvirtd" "adbusers" ]; # Enable ‘sudo’ for the user.
   };
+
+
+
   environment.pathsToLink = [ "/share/hunspell" "/share/myspell" "/share/hyphen" ];
 
   environment.variables.DICPATH = "/run/current-system/sw/share/hunspell:/run/current-system/sw/share/hyphen";
-    # This value determines the NixOS release from which the default
+
+  system.autoUpgrade = {
+    # Enable automake updates
+    enabled = true;
+
+  };
+
+  # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave
   # this value at the release version of the first install of this system.
@@ -63,4 +73,5 @@
   system.stateVersion = "21.11"; # Did you read the comment?
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
   #systemd.extraConfig = "DefaultLimitNOFILE=8096:524288";
+  #
 }
