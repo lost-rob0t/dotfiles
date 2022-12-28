@@ -26,6 +26,16 @@ This might help for wm like qtile
 #+begin_src emacs-lisp
 (setq frame-resize-pixelwise t)
 #+end_src
+
+** Fonts
+Setting nerdfonts
+#+begin_src emacs-lisp
+(setq
+ doom-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
+ doom-big-font (font-spec :family "JetBrainsMono Nerd Font" :size 18)
+ doom-variable-pitch-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
+ doom-serif-font (font-spec :family "JetBrainsMono Nerd Font" :size 12))
+#+end_src
 * Packages
 ** Magit
 Set keybind for pushing to remote
@@ -395,6 +405,9 @@ Set roam directory
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("d" "sunshine wiki dox" plain "* {slug}\n%?"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("r" "Reading notes" plain "%?"
+           :target (file+head "notes/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
 #+end_src
 
@@ -442,24 +455,80 @@ Eyes off my doccuments
 
 *** Org Present
 Create presentations with org mode
+
+
+Thanks to systems crafters for the prebaked config!
+https://www.youtube.com/watch?v=SCPoF1PTZpI
+Go sub to him if you havent hes worth your time.
 #+begin_src emacs-lisp
-(eval-after-load 'org-present
-  '(progn
-     (add-hook 'org-present-mode-hook
-               (lambda ()
-                 (org-present-big)
-                 (org-display-inline-images)
-                 (org-present-hide-cursor)
-                 (org-present-read-only)))
-     (add-hook 'org-present-mode-quit-hook
-               (lambda ()
-                 (org-present-small)
-                 (org-remove-inline-images)
-                 (org-present-show-cursor)
-                 (org-present-read-write)))))
+;; Hide emphasis markers on formatted text
+(setq org-hide-emphasis-markers t)
+
+;; Resize Org headings
+;(dolist (face '((org-level-1 . 1.2)
+;                (org-level-2 . 1.1)
+;                (org-level-3 . 1.05)
+;                (org-level-4 . 1.0)
+;                (org-level-5 . 1.1)
+;                (org-level-6 . 1.1)
+;                (org-level-7 . 1.1)
+;                (org-level-8 . 1.1)))
+; (set-face-attribute (car face) nil :font my/variable-width-font :weight 'medium :height (cdr face)))
+
+;;; Centering Org Documents --------------------------------
+;; Configure fill width
+(setq visual-fill-column-width 110
+      visual-fill-column-center-text t)
+
+;;; Org Present --------------------------------------------
+
+;; Install org-present if needed
+
+(defun my/org-present-prepare-slide (buffer-name heading)
+  ;; Show only top-level headlines
+  (org-overview)
+
+  ;; Unfold the current entry
+  (org-show-entry)
+
+  ;; Show only direct subheadings of the slide but don't expand them
+  (org-show-children))
+
+(defun my/org-present-start ()
+  ;; Tweak font sizes
+  (doom-big-font-mode)
+  (org-present-read-only)
+  (org-present-hide-cursor)
+  ;; Set a blank header line string to create blank space at the top
+  (setq header-line-format " ")
+
+  ;; Display inline images automatically
+  (org-display-inline-images)
+
+  ;; Center the presentation and wrap lines
+  (visual-fill-column-mode 1)
+  (visual-line-mode 1))
+
+(defun my/org-present-end ()
+  ;; Reset font customizations
+  (doom-big-font-mode)
+  ;; Clear the header line string so that it isn't displayed
+  (setq header-line-format nil)
+
+  ;; Stop displaying inline images
+  (org-remove-inline-images)
+  (org-present-read-write)
+  ;; Stop centering the document
+  )
+
+;; Turn on variable pitch fonts in Org Mode buffers
+;(add-hook! 'org-mode variable-pitch-mode)
+
+;; Register hooks with org-present
+(add-hook 'org-present-mode-hook 'my/org-present-start)
+(add-hook 'org-present-mode-quit-hook 'my/org-present-end)
+(add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
 #+end_src
-
-
 *** Misc related functions for org mode
 ****  Time Stamp updater
 #+begin_src emacs-lisp
@@ -487,6 +556,8 @@ Create presentations with org mode
 #+begin_src emacs-lisp
 
 #+end_src
+
+
 ** Yasnippet
 Add a new template
 #+begin_src emacs-lisp
