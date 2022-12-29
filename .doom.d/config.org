@@ -103,20 +103,6 @@ Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][sourc
     (end-of-line))
 #+end_src
 
-Org capture templates
-
-#+begin_src emacs-lisp
-;; (setq org-capture-templates
-;;   '(
-;;      ("n" "note"
-;;        entry (file+olp+datetree "/Users/me/org/logbook.org" "JOURNAL")
-;;        ...)
-;;      ("t" "tasks"
-;;        entry (file+olp+datetree "/Users/me/org/todo.org" "TASKS")
-;;        ...)))
-
-#+end_src
-
 *** Org Agenda
 Find all TODOS recursively [[https://stackoverflow.com/a/41969519][source]].
 #+begin_src emacs-lisp
@@ -167,30 +153,6 @@ I prefer being able to have difrent views within org agenda, so i can see whats 
 #+end_src
 
 
-**** Export my todo items
-+begin_src emacs-lisp
-(defun unseen/export-todos ()
-  "Create an Org file with TODO entries due or scheduled for today.
-The file will be saved in the current directory as 'todos.org'."
-  (let ((todos '()))
-    (dolist (file org-agenda-files)
-      (setq todos (append todos (org-map-entries
-                                 (lambda ()
-                                   (org-get-todo-state))
-                                 "+TODO=\"TODO\"+SCHEDULED<\"<today>\"|+TODO=\"TODO\"+DEADLINE<\"<today>\""
-                                 (list file)))))
-    (when todos
-      (with-temp-buffer
-        (insert "* Due Today\n")
-        (dolist (todo todos)
-          (insert (concat "+ " todo "\n")))
-        (insert "\n* TODOs\n")
-        (write-file "todos.org")))))
-
-
-(unseen/export-todos)
-;(run-at-time 0 300 'unseen/export-todo-list)
-#+end_src
 
 **** Org super agenda
 #+begin_src emacs-lisp
@@ -337,17 +299,6 @@ Create a function to tangle and sync doom at the same time
   (tangle-orgs org-configs-list)
   (doom/reload))
 
-;(map! :leader
-;      :after help-mode
-;      :map help-mode-map
-;      :prefix ("r" . "+reload")
-;      :desc "Tangle Configs and reload" "s" #'doom-config-sync)
-
-
-#+end_src
-*** Org wiki
-#+begin_src emacs-lisp
-;;(require 'org-wiki)
 #+end_src
 *** org-download
 This extension facilitates moving images from point A to point B.
@@ -425,9 +376,6 @@ url2org function for importing info from the web
 
 For some reason caching on write isnt working.
 If my notes get slow i will disable it.
-#+begin_src emacs-lisp
-;;(setq org-roam-db-update-on-save t)
-#+end_src
 *** Org File Encryption
 
 Eyes off my doccuments
@@ -463,18 +411,6 @@ Go sub to him if you havent hes worth your time.
 #+begin_src emacs-lisp
 ;; Hide emphasis markers on formatted text
 (setq org-hide-emphasis-markers t)
-
-;; Resize Org headings
-;(dolist (face '((org-level-1 . 1.2)
-;                (org-level-2 . 1.1)
-;                (org-level-3 . 1.05)
-;                (org-level-4 . 1.0)
-;                (org-level-5 . 1.1)
-;                (org-level-6 . 1.1)
-;                (org-level-7 . 1.1)
-;                (org-level-8 . 1.1)))
-; (set-face-attribute (car face) nil :font my/variable-width-font :weight 'medium :height (cdr face)))
-
 ;;; Centering Org Documents --------------------------------
 ;; Configure fill width
 (setq visual-fill-column-width 180
@@ -852,7 +788,6 @@ I use i2p and having elfeed use a proxy would be nice
       :prefix ("s" . "search")
       :desc "cheat sheat" "c" #'cht-sh)
 #+end_src
-*** IDEA make it look nice
 
 
 ** Bookmarks
@@ -880,9 +815,6 @@ Stuff that i use for games are here.
 
 #+end_src
 
-*** IRC
-#+begin_src emacs-lisp
-+end_src
 ** Other
 #+begin_src emacs-lisp
 (use-package! org-pomodoro
@@ -890,3 +822,7 @@ Stuff that i use for games are here.
   (setq org-pomodoro-audio-player "/usr/bin/mpv"))
 #+end_src
 
+** Spell check
+#+begin_src emacs-lisp
+(setq ispell-dictionary "en")
+#+end_src

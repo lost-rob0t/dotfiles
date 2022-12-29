@@ -47,15 +47,6 @@
       (insert "* " hd "\n")))
     (end-of-line))
 
-;; (setq org-capture-templates
-;;   '(
-;;      ("n" "note"
-;;        entry (file+olp+datetree "/Users/me/org/logbook.org" "JOURNAL")
-;;        ...)
-;;      ("t" "tasks"
-;;        entry (file+olp+datetree "/Users/me/org/todo.org" "TASKS")
-;;        ...)))
-
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
 ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
 ;  (add-to-list org-agenda-files file))
@@ -197,14 +188,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (tangle-orgs org-configs-list)
   (doom/reload))
 
-;(map! :leader
-;      :after help-mode
-;      :map help-mode-map
-;      :prefix ("r" . "+reload")
-;      :desc "Tangle Configs and reload" "s" #'doom-config-sync)
-
-;;(require 'org-wiki)
-
 (require 'org-download)
 
 ;; Drag-and-drop to `dired`
@@ -256,8 +239,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                            (concat "pandoc --from=html --to=org " (buffer-substring begin end))
                            nil t))
 
-;;(setq org-roam-db-update-on-save t)
-
 (require 'epa-file)
 (epa-file-enable)
 
@@ -273,18 +254,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 ;; Hide emphasis markers on formatted text
 (setq org-hide-emphasis-markers t)
-
-;; Resize Org headings
-;(dolist (face '((org-level-1 . 1.2)
-;                (org-level-2 . 1.1)
-;                (org-level-3 . 1.05)
-;                (org-level-4 . 1.0)
-;                (org-level-5 . 1.1)
-;                (org-level-6 . 1.1)
-;                (org-level-7 . 1.1)
-;                (org-level-8 . 1.1)))
-; (set-face-attribute (car face) nil :font my/variable-width-font :weight 'medium :height (cdr face)))
-
 ;;; Centering Org Documents --------------------------------
 ;; Configure fill width
 (setq visual-fill-column-width 180
@@ -495,8 +464,11 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;  (exec-path-from-shell-initialize))
 
 (setq url-proxy-services
-      '(("no_proxy" . "^\\(localhost\\|10\\..*\\|192\\.168\\..*\\)")
-        ("http" . "*.i2p:4444")))
+   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
+     ("http" . "127.0.0.1:4444")
+     ("https" . "127.0.0.1:4444")
+))
+(setq elfeed-use-curl nil)
 
 (defun cht-sh ()
   "look up a cheat"
@@ -518,3 +490,5 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (use-package! org-pomodoro
   :init
   (setq org-pomodoro-audio-player "/usr/bin/mpv"))
+
+(setq ispell-dictionary "en")
