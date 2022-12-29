@@ -119,9 +119,9 @@ in
     roswell
     ## Security
     keepassxc
-    unseen.tor
-    unseen.torsocks
-    unseen.i2p
+    tor
+    torsocks
+    i2p
     hashcat
     veracrypt
     opensnitch-ui
@@ -146,9 +146,10 @@ in
       unseen.nodePackages.bash-language-server
       unseen.roswell
       epkgs.xclip
-      unseen.ispell
-      unseen.libnotify # for alert.el
-      unseen.xdotool # for emacs everywhere
+      pkgs.aspell
+      pkgs.aspellDicts.en
+      pkgs.libnotify # for alert.el
+      pkgs.xdotool # for emacs everywhere
     ]))
 
     # Rice
