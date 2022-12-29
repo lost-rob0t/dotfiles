@@ -6,13 +6,12 @@
 #+disable_spellchecker: t
 #+begin_src emacs-lisp;; -*- lexical-binding: t -*-
 #+end_src
-* Things that need done [1/1]
 * About
 This is my personal doom emacs config, you can find package related stuff in packages.org
 yasnippets are in snippets
 * Styling
 ** Theme
-I like doom's outrun eletric theme
+I like doom's outrun electric theme
 #+begin_src emacs-lisp
 (setq doom-theme 'doom-outrun-electric)
 #+end_src
@@ -673,9 +672,9 @@ Make life easy!
 #+end_src
 
 ** Nix
-Nix is a language that allows for repoducible declarative systems/packages.
+Nix is a language that allows for reproducible declarative systems/packages.
 
-Search nixos options so i dont have to go the website
+Search nixos options so i don't have to go the website
 #+begin_src emacs-lisp
 (map! :leader
       :after nix
@@ -708,13 +707,13 @@ add nix-options to company backends
         (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
 #+end_src
 ** Nim
-Flycheck nim
+FlyCheck nim
 Does this even do anything?
 #+begin_src emacs-lisp
 (require 'flycheck-nim)
 #+end_src
 
-hook lsp to nimlsp
+hook lsp to nim lsp
 [[https://gist.github.com/cyraxjoe/9001fcc5d2de0669d7e0d27f7a49ee90][source]], [[https://www.reddit.com/r/nim/comments/dr0ph0/setting_up_nimlsp_in_emacs/][reddit comment]].
 #+begin_src emacs-lisp
 (require 'lsp-mode)
@@ -746,7 +745,7 @@ Check for errors!
 When/If i leave doom ill need to configure it.
 A Jump to definition package. [[https://github.com/jacktasia/dumb-jump][Github]].
 
-Enable the xref backend.
+Enable the xref back-end.
 #+begin_src emacs-lisp
 (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
 #+end_src
@@ -755,13 +754,13 @@ Enable the xref backend.
 ** Performance
 Enable explain Pause mode
 
-Alerts you when somthing takes some time (40ms)
+Alerts you when something takes some time (40ms)
 disabled because I swear it causes me problems
 #+begin_src emacs-lisp
 (explain-pause-mode nil)
 #+end_src
 
-** Enviroment
+** Environment
 
 Sets PATH
 #+begin_src emacs-lisp
