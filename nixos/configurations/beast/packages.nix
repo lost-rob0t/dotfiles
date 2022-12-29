@@ -142,9 +142,9 @@ in
       epkgs.pylint
       epkgs.w3m
       epkgs.pandoc
-      unseen.nimPackages.nimsuggest
-      unseen.nodePackages.bash-language-server
-      unseen.roswell
+      pkgs.nimPackages.nimsuggest
+      pkgs.nodePackages.bash-language-server
+      pkgs.roswell
       epkgs.xclip
       pkgs.aspell
       pkgs.aspellDicts.en
