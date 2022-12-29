@@ -75,7 +75,8 @@ in
     pandoc #emacs
     hunspellDicts.en_US
     xclip
-    ispell
+    aspell
+    aspellDicts.en
     ## Android
     android-tools
     android-studio
@@ -136,7 +137,6 @@ in
 
     ((emacsPackagesFor emacsPgtk).emacsWithPackages (epkgs: [
       epkgs.vterm
-      epkgs.ac-ispell
       epkgs.direnv
       epkgs.lsp-pyright
       epkgs.pylint
