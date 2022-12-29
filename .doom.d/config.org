@@ -608,7 +608,7 @@ inherit-org: Inherit org faces to non-org buffers.
 
 ** W3M
 
-fix textarea
+fix text area
 #+begin_src emacs-lisp
 (eval-after-load "w3m-form"
   '(progn
@@ -828,10 +828,20 @@ Make sure its using aspell
 #+end_src
 Set dictionary
 #+begin_src emacs-lisp
-(setq ispell-dictionary "en_US")
+(setq ispell-dictionary "en")
 #+end_src
 
 Set personal dictionary
 #+begin_src emacs-lisp
  (setq ispell-personal-dictionary "~/.aspell.en_us.pws")
+#+end_src
+
+Spell fu setup
+
+#+begin_src emacs-lisp
+(add-hook 'spell-fu-mode-hook
+  (lambda ()
+    (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en_US"))
+    (spell-fu-dictionary-add
+      (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
 #+end_src
