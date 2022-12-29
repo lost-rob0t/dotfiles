@@ -305,7 +305,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 I expirment with difrent languages, org babel makes things easy.
 #+begin_src emacs-lisp
 (with-eval-after-load 'org
-  ;; This is needed as of Org 9.2
+  ;; is needed as of Org 9.2
   (require 'org-tempo)
   (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
   (add-to-list 'org-structure-template-alist '("py" . "src python"))
@@ -477,7 +477,7 @@ Go sub to him if you havent hes worth your time.
 
 ;;; Centering Org Documents --------------------------------
 ;; Configure fill width
-(setq visual-fill-column-width 110
+(setq visual-fill-column-width 180
       visual-fill-column-center-text t)
 
 ;;; Org Present --------------------------------------------
@@ -501,7 +501,8 @@ Go sub to him if you havent hes worth your time.
   (org-present-hide-cursor)
   ;; Set a blank header line string to create blank space at the top
   (setq header-line-format " ")
-
+  ;; Hide line numbers
+  (setq-local display-line-numbers nil)
   ;; Display inline images automatically
   (org-display-inline-images)
 
@@ -514,12 +515,14 @@ Go sub to him if you havent hes worth your time.
   (doom-big-font-mode)
   ;; Clear the header line string so that it isn't displayed
   (setq header-line-format nil)
-
+  ;; Shone line numbers
+  (setq-local display-line-numbers t)
   ;; Stop displaying inline images
   (org-remove-inline-images)
   (org-present-read-write)
+  (org-present-show-cursor))
   ;; Stop centering the document
-  )
+
 
 ;; Turn on variable pitch fonts in Org Mode buffers
 ;(add-hook! 'org-mode variable-pitch-mode)
@@ -529,6 +532,7 @@ Go sub to him if you havent hes worth your time.
 (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
 (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
 #+end_src
+
 *** Misc related functions for org mode
 ****  Time Stamp updater
 #+begin_src emacs-lisp
@@ -832,10 +836,12 @@ Sets PATH
 I use i2p and having elfeed use a proxy would be nice
 #+begin_src emacs-lisp
 (setq url-proxy-services
-      '(("no_proxy" . "^\\(localhost\\|10\\..*\\|192\\.168\\..*\\)")
-        ("http" . "*.i2p:4444")))
+   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
+     ("http" . "127.0.0.1:4444")
+     ("https" . "127.0.0.1:4444")
+))
+(setq elfeed-use-curl nil)
 #+end_src
-
 ** Cheat-sh
 #+begin_src emacs-lisp
 (defun cht-sh ()
@@ -874,11 +880,13 @@ Stuff that i use for games are here.
 
 #+end_src
 
-
-
+*** IRC
+#+begin_src emacs-lisp
++end_src
 ** Other
 #+begin_src emacs-lisp
 (use-package! org-pomodoro
   :init
   (setq org-pomodoro-audio-player "/usr/bin/mpv"))
 #+end_src
+

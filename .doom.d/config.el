@@ -4,6 +4,12 @@
 
 (setq frame-resize-pixelwise t)
 
+(setq
+ doom-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
+ doom-big-font (font-spec :family "JetBrainsMono Nerd Font" :size 18)
+ doom-variable-pitch-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
+ doom-serif-font (font-spec :family "JetBrainsMono Nerd Font" :size 12))
+
 (map! :leader
       :desc "Push Current branch to remote branch"
       "g p P" #'magit-push-current-to-pushremote)
@@ -163,7 +169,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (lsp))
 
 (with-eval-after-load 'org
-  ;; This is needed as of Org 9.2
+  ;; is needed as of Org 9.2
   (require 'org-tempo)
   (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
   (add-to-list 'org-structure-template-alist '("py" . "src python"))
@@ -238,6 +244,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("d" "sunshine wiki dox" plain "* {slug}\n%?"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("r" "Reading notes" plain "%?"
+           :target (file+head "notes/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
 
 (defun url2org (begin end)
@@ -262,20 +271,76 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :prefix ("c" . "clock")
       :desc "Start Pomodoro" "T" #'org-pomodoro)
 
-(eval-after-load 'org-present
-  '(progn
-     (add-hook 'org-present-mode-hook
-               (lambda ()
-                 (org-present-big)
-                 (org-display-inline-images)
-                 (org-present-hide-cursor)
-                 (org-present-read-only)))
-     (add-hook 'org-present-mode-quit-hook
-               (lambda ()
-                 (org-present-small)
-                 (org-remove-inline-images)
-                 (org-present-show-cursor)
-                 (org-present-read-write)))))
+;; Hide emphasis markers on formatted text
+(setq org-hide-emphasis-markers t)
+
+;; Resize Org headings
+;(dolist (face '((org-level-1 . 1.2)
+;                (org-level-2 . 1.1)
+;                (org-level-3 . 1.05)
+;                (org-level-4 . 1.0)
+;                (org-level-5 . 1.1)
+;                (org-level-6 . 1.1)
+;                (org-level-7 . 1.1)
+;                (org-level-8 . 1.1)))
+; (set-face-attribute (car face) nil :font my/variable-width-font :weight 'medium :height (cdr face)))
+
+;;; Centering Org Documents --------------------------------
+;; Configure fill width
+(setq visual-fill-column-width 180
+      visual-fill-column-center-text t)
+
+;;; Org Present --------------------------------------------
+
+;; Install org-present if needed
+
+(defun my/org-present-prepare-slide (buffer-name heading)
+  ;; Show only top-level headlines
+  (org-overview)
+
+  ;; Unfold the current entry
+  (org-show-entry)
+
+  ;; Show only direct subheadings of the slide but don't expand them
+  (org-show-children))
+
+(defun my/org-present-start ()
+  ;; Tweak font sizes
+  (doom-big-font-mode)
+  (org-present-read-only)
+  (org-present-hide-cursor)
+  ;; Set a blank header line string to create blank space at the top
+  (setq header-line-format " ")
+  ;; Hide line numbers
+  (setq-local display-line-numbers nil)
+  ;; Display inline images automatically
+  (org-display-inline-images)
+
+  ;; Center the presentation and wrap lines
+  (visual-fill-column-mode 1)
+  (visual-line-mode 1))
+
+(defun my/org-present-end ()
+  ;; Reset font customizations
+  (doom-big-font-mode)
+  ;; Clear the header line string so that it isn't displayed
+  (setq header-line-format nil)
+  ;; Shone line numbers
+  (setq-local display-line-numbers t)
+  ;; Stop displaying inline images
+  (org-remove-inline-images)
+  (org-present-read-write)
+  (org-present-show-cursor))
+  ;; Stop centering the document
+
+
+;; Turn on variable pitch fonts in Org Mode buffers
+;(add-hook! 'org-mode variable-pitch-mode)
+
+;; Register hooks with org-present
+(add-hook 'org-present-mode-hook 'my/org-present-start)
+(add-hook 'org-present-mode-quit-hook 'my/org-present-end)
+(add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
 
 (defun update-timestamps (directory)
   "Update timestamps in all org files in DIRECTORY."
@@ -313,7 +378,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (setq deft-use-filename-as-title t)
 
-;(require 'notifications)
+(require 'notifications)
+
+
 
 (require 'elfeed-org)
 
@@ -447,10 +514,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
     (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
           mastodon-active-user "nott")
-
-(add-hook! `mastodon-mode
-  (lambda! ()
-    (turn-off-evil-mode)))
 
 (use-package! org-pomodoro
   :init

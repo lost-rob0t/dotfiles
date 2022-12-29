@@ -29,7 +29,7 @@
 * About
 This org document contains all the packages that i install into emacs. I thought about merging it into config.org but thats just going to make a big mess. I will split it into sections and catogries of packages.
 
-+ Config can be found [[./config.org]]
++ Config is here [[./config.org]]
 
 ** Org mode
 *** org-ql

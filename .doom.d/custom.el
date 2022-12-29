@@ -10,7 +10,7 @@
      (org-export-html-style-include-default)
      (org-export-html-postamble)))
  '(package-selected-packages
-   '(use-package org-roam htmlize mastodon org-present flycheck-nim org-pomodoro vterm quelpa-use-package))
+   '(visual-fill-column use-package org-roam htmlize mastodon org-present flycheck-nim org-pomodoro vterm quelpa-use-package))
  '(warning-suppress-types
    '((emacs)
      (tabulated-list-revert-hook)

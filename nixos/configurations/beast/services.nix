@@ -7,7 +7,8 @@ let
 in
 {
   # Heres how you run a difrent service
-  disabledModules = [ "services/networking/i2p.nix" "services/networking/tor.nix" ];
+  #imports = [ <unseen/nixos/modules/services/networking/i2p.nix> <unseen/nixos/modules/services/networking/tor.nix> ];
+  #disabledModules = [ "services/networking/i2p.nix" "services/networking/tor.nix" ];
   services = {
   ## Xserver config
   xserver = {
@@ -87,16 +88,29 @@ in
     webPort = "8090";
   };
   };
+  lighttpd = {
+    enable = true;
+    port = 1488;
+  };
 virtualisation = {
     podman = {
-      enable = true;
+      enable = false;
       # Create a `docker` alias for podman, to use it as a drop-in replacement
-      dockerCompat = true;
+      dockerCompat = false;
     };
+    docker = {
+      enable = true;
+      #autoPrune = {
+      #  enabled = true;
+      #  dates = "weekly";
+      #};
+
+    };
+
     libvirtd = {
       enable = true;
       onBoot = "start";
     };
 };
-
+virtualisation.docker.autoPrune.enable = true;
 }
