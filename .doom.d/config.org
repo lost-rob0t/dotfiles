@@ -823,6 +823,16 @@ Stuff that i use for games are here.
 #+end_src
 
 ** Spell check
+Make sure its using aspell
 #+begin_src emacs-lisp
-(setq ispell-dictionary "en")
+(setq ispell-program-name "aspell")
+#+end_src
+Set dictionary
+#+begin_src emacs-lisp
+(setq ispell-dictionary "en_US")
+#+end_src
+
+Set personal dictionary
+#+begin_src emacs-lisp
+ (setq ispell-personal-dictionary "~/.aspell.en_us.pws")
 #+end_src
