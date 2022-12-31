@@ -344,11 +344,11 @@ Set roam directory
           ("d" "default" plain "%?"
            :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
-          ("w" "wiki" plain "*%? %^g"
-           :target (file+head "wiki/%<%Y%m%d%H%M%S>-${slug}.org"
+          ("t" "tutorial" plain "*%?"
+           :target (file+head "Tutorial/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-          ("h" "hackthebox" plain "%?"
-           :target (file+head "hackthebox/%<%Y%m%d%H%M%S>-${slug}.org"
+          ("h" "hacking" plain "%?"
+           :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
@@ -357,7 +357,13 @@ Set roam directory
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("r" "Reading notes" plain "%?"
-           :target (file+head "notes/%<%Y%m%d%H%M%S>-${slug}.org"
+           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("v" "Video notes" plain "%?"
+           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("p" "Programming" plain "%?"
+           :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
 #+end_src
 
@@ -529,15 +535,11 @@ Tell deft to use the filename as the Title of the note
 #+end_src
 
 ** Notifications
-*** Emacs built in notifcations
+*** Emacs built in notifications
 #+begin_src emacs-lisp
 (require 'notifications)
 #+end_src
 
-Enable notifcations
-#+begin_src emacs-lisp
-
-#+end_src
 ** RSS (Elfeed)
 #+begin_src emacs-lisp
 (require 'elfeed-org)
@@ -554,13 +556,13 @@ Tell elfeed where to look for org mode files
 #+end_src
 
 
-** Webpaste
-Webpaste allows you to paste text to pastebin like web services
+** Web-paste
+Web-paste allows you to paste text to pastebin like web services
 #+begin_src emacs-lisp
 (require 'webpaste)
 #+end_src
 
-Tell Webpaste to confirm before upload
+Tell Web-paste to confirm before upload
 #+begin_src emacs-lisp
 (setq webpaste-paste-confirmation t)
 #+end_src
@@ -573,7 +575,7 @@ Provider priority
                                    "paste.rs"))
 #+end_src
 
-Setting Keybinds
+Setting Key binds
 #+begin_src emacs-lisp
 (map! :leader
       (:prefix-map ("n" . "notes")
@@ -841,7 +843,7 @@ Spell fu setup
 #+begin_src emacs-lisp
 (add-hook 'spell-fu-mode-hook
   (lambda ()
-    (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en_US"))
+    (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en"))
     (spell-fu-dictionary-add
       (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
 #+end_src
