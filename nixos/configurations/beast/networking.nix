@@ -9,7 +9,7 @@
                                           22000 # syncthing
                                           5332 # caldev
                                           8080 # testing
-                                          38689
+                                          15029
                                           ];
   networking.firewall.allowedUDPPorts = [ 22000 #syncthing
                                           21027 #syncthing
