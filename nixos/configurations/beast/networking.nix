@@ -13,8 +13,7 @@
                                           ];
   networking.firewall.allowedUDPPorts = [ 22000 #syncthing
                                           21027 #syncthing
-                                          38689
-
+                                          15029
                                           ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
