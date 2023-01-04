@@ -157,7 +157,7 @@ in
     starship
     variety
     sxhkd
-
+    lxqt.lxqt-qtplugin
     ly #login manager
     xorg.xinit
     j4-dmenu-desktop
