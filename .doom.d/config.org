@@ -52,6 +52,16 @@ Same as above but for pulling from remote
       :desc "Pull current branch from remote"
       "g p p" #'magit-pull-from-pushremote)
 #+end_src
+
+Create a new tag
+#+begin_src emacs-lisp
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+       (:prefix ("c" . "create")
+      :desc "Create new git tag" "t" #'magit-tag-create)))
+
+#+end_src
 *** Magit Todos
 
 Show todos!
