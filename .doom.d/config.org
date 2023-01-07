@@ -393,7 +393,14 @@ Set roam directory
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))))
+   (setq org-roam-dailies-capture-templates
+   '(("d" "default" entry "* %<%I:%M %p>: %?"
+      :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+     ("n" "news" entry "* %? :news:"
+         :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+     ("j" "journal" entry "* %<%I:%M %p>%? :personal:"
+        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n")))))
 #+end_src
 
 url2org function for importing info from the web
