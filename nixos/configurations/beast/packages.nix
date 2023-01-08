@@ -150,6 +150,11 @@ in
       pkgs.aspellDicts.en
       pkgs.libnotify # for alert.el
       pkgs.xdotool # for emacs everywhere
+      # Dirvish stuff
+      pkgs.ffmpegthumbnailer # Video thumbnails
+      pkgs.imagemagick #photo thumbnails
+      pkgs.mediainfo #audio previews
+
     ]))
 
     # Rice
@@ -163,6 +168,7 @@ in
     j4-dmenu-desktop
     pkgs.dmenu
     conky
+    picom
     ## Services
     dunst
     libvirt
