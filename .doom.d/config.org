@@ -9,6 +9,8 @@
 * About
 This is my personal doom emacs config, you can find package related stuff in packages.org
 yasnippets are in snippets
+
+
 * Styling
 ** Theme
 I like doom's outrun electric theme
@@ -37,7 +39,7 @@ Setting nerdfonts
 #+end_src
 * Packages
 ** Magit
-Set keybind for pushing to remote
+Set keybinds for pushing to remote
 Pushes the current branch to the remote
 (eg: local master > remote master)
 #+begin_src emacs-lisp
@@ -112,13 +114,16 @@ Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][sourc
     (end-of-line))
 #+end_src
 **** Org Capture Templates
+i just dont want private shit being in here...
+
+Here i override the capture templates, some intergrating into org roam
 #+begin_src emacs-lisp
 (setq  org-capture-templates (quote (("m" "Personal Meditations")
                                      ("mm" "Meditations Moon" entry
                                       (file+olp+datetree "~/Documents/Notes/org/moon.org")
-                                      "** Relections\n\n*** Did well\n\n*** Not done\n\n** Plans for next moon\n" :tree-type month)
+                                      "** Relections\n\n*** Acomplished\n\n*** Thoughts\n\n*** Happenings\n\n** Plans for next moon\n" :tree-type month)
                                      ("t" "Personal todo" entry
-                                    (file+headline +org-capture-todo-file "Inbox")
+                                      (file+headline +org-capture-todo-file "Inbox")
                                       "* [ ] %?\n%i\n%a" :prepend t)
                                      ("n" "Personal notes" entry
                                       (file+headline +org-capture-notes-file "Inbox")
@@ -139,8 +144,11 @@ Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][sourc
                                      ("o" "Centralized templates for projects")
                                      ("ot" "Project todo" entry #'+org-capture-central-project-todo-file "* TODO %?\n %i\n %a" :heading "Tasks" :prepend nil)
                                      ("on" "Project notes" entry #'+org-capture-central-project-notes-file "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
-                                     ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t))))
+                                     ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
+                                     ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
+                                      "* IDEA %? %^g"))))
 
+#+end_src
 *** Org Agenda
 Find all TODOS recursively [[https://stackoverflow.com/a/41969519][source]].
 #+begin_src emacs-lisp
@@ -175,7 +183,7 @@ Track a org file by adding it to the agenda folder
       :desc "Add file to Org agenda" "w" #'track-org-file)
 #+end_src
 
-I prefer being able to have difrent views within org agenda, so i can see whats comming up ahead of time.
+I prefer being able to have different views within org agenda, so i can see whats coming up ahead of time.
 #+begin_src emacs-lisp
 (map! :leader
       :desc "Switch to week view"
@@ -291,6 +299,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ***** Nim
 #+begin_src emacs-lisp
 (defun org-babel-edit-prep:nim (babel-info)
+  "Setup for lsp-mode in Org Src buffer using BABEL-INFO."
+  (setq-local default-directory (->> babel-info caddr (alist-get :dir)))
   (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
   (lsp))
 #+end_src
@@ -304,7 +314,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 
 *** Org Tempo templates
-I expirment with difrent languages, org babel makes things easy.
+I experiment with different languages, org babel makes things easy.
 #+begin_src emacs-lisp
 (with-eval-after-load 'org
   ;; is needed as of Org 9.2
@@ -415,6 +425,7 @@ Set roam directory
         :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n")))))
 #+end_src
 
+*** Misc org roam
 url2org function for importing info from the web
 
 #+begin_src emacs-lisp
@@ -521,6 +532,10 @@ Go sub to him if you havent hes worth your time.
 (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
 (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
 #+end_src
+
+
+*** Org Idea box
+Keep my ideas seperated from my todos and give me a random idea from the file
 
 *** Misc related functions for org mode
 ****  Time Stamp updater
