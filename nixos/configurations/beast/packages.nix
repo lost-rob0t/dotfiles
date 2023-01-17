@@ -1,10 +1,6 @@
 { config, lib, pkgs, nimPackages, ... }:
 
 ## Packages and programs go here
-let
-  unseen = import <unseen> { config.allowUnfree = true; };
-
-in
 {
    nixpkgs.overlays = [
     (import (builtins.fetchTarball {
@@ -21,16 +17,6 @@ in
         };
       };
     })
-    #(self: super: {
-    #  i2p = super.i2p.overrideDerivation (old: rec {
-    #    version = "2.0.0";
-    #    src = fetchurl {
-    #      url = "https://files.i2p-projekt.de/${version}/i2psource_${version}.tar.bz2";
-    #      sha256 = "16chvycw4i7nkdl3fj49y5r0sn28r8clqn6m8g63kwd8f8g86l0x";
-    #    };
-    #  });
-    #})
-
     (self: super:  {
       qtile = super.qtile.unwrapped.override (old: {
         propagatedBuildInputs = (old.propagatedBuildInputs or []) ++ (with self.python3Packages; [
@@ -46,7 +32,12 @@ in
         ]);
       });
     })
-    
+    (self: super: {
+      mpv = super.mpv.override {
+        scripts = [ self.mpvScripts.mpris ];
+      };
+    })
+
    ];
   nixpkgs.config.packageOverrides = pkgs: {
     nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
@@ -95,6 +86,7 @@ in
     yt-dlp
     libsForQt5.kdeconnect-kde
     ntfy # send notifications
+    mpv
     #mypkgs.nimPackages.puffer
     ## Games
     lutris
@@ -154,6 +146,7 @@ in
       pkgs.ffmpegthumbnailer # Video thumbnails
       pkgs.imagemagick #photo thumbnails
       pkgs.mediainfo #audio previews
+      pkgs.mpv # for bongo
 
     ]))
 
@@ -169,6 +162,7 @@ in
     pkgs.dmenu
     conky
     picom
+    mpvScripts.mpris
     ## Services
     dunst
     libvirt

@@ -953,3 +953,12 @@ Spell fu setup
     (spell-fu-dictionary-add
       (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
 #+end_src
+** Midnight mode
+require it
+#+begin_src emacs-lisp
+(require 'midnight)
+#+end_src
+Set the time to 7 am local
+#+begin_src emacs-lisp
+(midnight-delay-set 'midnight-delay "7:00am")
+#+end_src
