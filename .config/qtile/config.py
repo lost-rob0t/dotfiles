@@ -334,6 +334,8 @@ def init_widgets_list():
                #          foreground = colors[2],
                #          background = colors[1]
                #          ),
+               widget.Mpris2(background=colors[1],
+                                              foreground=colors[6]),
                widget.Wttr(
                    format =  '%t(%f)',
                    location={f'@{myIp}': 'Home'},
