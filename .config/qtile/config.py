@@ -35,9 +35,9 @@ from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule
 from libqtile.config import ScratchPad, DropDown
 from libqtile.command import lazy
 from libqtile.widget import Spacer
+#from qtile_widgets import ip
 import ip
 from libqtile.log_utils import logger
-#import arcobattery
 
 #mod4 or mod = super key
 mod = "mod4"
@@ -334,8 +334,6 @@ def init_widgets_list():
                #          foreground = colors[2],
                #          background = colors[1]
                #          ),
-               widget.Mpris2(background=colors[1],
-                                              foreground=colors[6]),
                widget.Wttr(
                    format =  '%t(%f)',
                    location={f'@{myIp}': 'Home'},
@@ -479,17 +477,13 @@ def init_widgets_screen1():
 def init_widgets_screen2():
     widgets_screen2 = init_widgets_list()
     widget_len = len(widgets_screen2) - 10
-    widgets_screen2.insert(widget_len, ip.IpWidget(update_interval = 10,
-                           foreground=colors[6],
-                           background=colors[1],
-                           padding = 0,
-                           fontsize=16
-                           ))
+
+    widgets_screen2.append(widget.Mpris2(background=colors[1],
+                                      foreground=colors[6]))
     widgets_screen2.append(widget.Systray(
                         background=colors[1],
                         icon_size=20,
-                        padding = 4
-                        ))
+                        padding = 4))
     return widgets_screen2
 
 widgets_screen1 = init_widgets_screen1()
@@ -576,9 +570,6 @@ def set_floating(window):
 floating_types = ["notification", "toolbar", "splash", "dialog"]
 
 
-follow_mouse_focus = True
-bring_front_click = False
-cursor_warp = False
 floating_layout = layout.Floating(float_rules=[
     # Run the utility of `xprop` to see the wm class and name of an X client.
     *layout.Floating.default_float_rules,
@@ -607,9 +598,7 @@ floating_layout = layout.Floating(float_rules=[
     Match(title='Minecraft')
 
 ],  fullscreen_border_width = 0, border_width = 0)
-auto_fullscreen = True
 
-focus_on_window_activation = "focus" # or smart
 
 wmname = "qtile"
 logger.warn(r"'(name . \"floating\"))")
