@@ -38,21 +38,7 @@ super + F7
 super + F8
     thunar
 
-#Evolution
-super + F9
-    evolution
 
-#Spotify
-super + F10
-    spotify
-
-#Rofi Fullscreen
-super + F11
-    rofi -theme-str 'window \{width: 100%;height: 100%;\}' -show drun
-
-#Rofi
-super + F12
-    rofi -show drun
 
 #################################################################
 # SUPER + ... KEYS
@@ -357,20 +343,20 @@ XF86AudioMute
 
 #PLAY
 XF86AudioPlay
-    playerctl play-pause
-
+    emacsclient --eval "(bongo-pause/resume)"
 #Next
 XF86AudioNext
-    playerctl next
+    emacsclient --eval "(bongo-next)"
 
 #previous
 XF86AudioPrev
-    playerctl previous
-
+    emacsclient --eval "(bongo-previous)"
 #Stop
 XF86AudioStop
-    playerctl stop
-
+    emacsclient --eval "(bongo-stop)"
+# Play random
+super + F9
+    emacsclient --eval "(bongo-play-random)"
 #Brightness up
 XF86MonBrightnessUp
     xbacklight -inc 10
@@ -449,8 +435,8 @@ ctrl + alt + o
 #    qtile-cmd -o window -f kill
 
 #Quit Qtile
-#super + shift + x
-#    qtile-cmd -o cmd -f shutdown
+super + shift + x
+    qtile-cmd -o cmd -f shutdown
 
 # FLIP LAYOUT FOR MONADTALL/MONADWIDE
 #super + shift + f
@@ -500,3 +486,7 @@ ctrl + alt + o
 #super + control + j
 #super + control + Down
 ##################################
+
+# My stuff
+insert
+    emacsclient --eval "(emacs-everywhere)"
