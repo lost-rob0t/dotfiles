@@ -18,6 +18,12 @@
       :desc "Pull current branch from remote"
       "g p p" #'magit-pull-from-pushremote)
 
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+       (:prefix ("c" . "create")
+      :desc "Create new git tag" "t" #'magit-tag-create)))
+
 (require 'magit-todos)
 
 (setq projectile-project-search-path
@@ -46,6 +52,36 @@
       (or (bolp) (insert "\n"))
       (insert "* " hd "\n")))
     (end-of-line))
+
+(setq  org-capture-templates (quote (("m" "Personal Meditations")
+                                     ("mm" "Meditations Moon" entry
+                                      (file+olp+datetree "~/Documents/Notes/org/moon.org")
+                                      "** Relections\n\n*** Acomplished\n\n*** Thoughts\n\n*** Happenings\n\n** Plans for next moon\n" :tree-type month)
+                                     ("t" "Personal todo" entry
+                                      (file+headline +org-capture-todo-file "Inbox")
+                                      "* [ ] %?\n%i\n%a" :prepend t)
+                                     ("n" "Personal notes" entry
+                                      (file+headline +org-capture-notes-file "Inbox")
+                                      "* %u %?\n%i\n%a" :prepend t)
+                                     ("j" "Journal" entry
+                                      (file+olp+datetree +org-capture-journal-file)
+                                      "* %U %?\n%i\n%a" :prepend t)
+                                     ("p" "Templates for projects")
+                                     ("pt" "Project-local todo" entry
+                                      (file+headline +org-capture-project-todo-file "Inbox")
+                                      "* TODO %?\n%i\n%a" :prepend t)
+                                     ("pn" "Project-local notes" entry
+                                      (file+headline +org-capture-project-notes-file "Inbox")
+                                      "* %U %?\n%i\n%a" :prepend t)
+                                     ("pc" "Project-local changelog" entry
+                                      (file+headline +org-capture-project-changelog-file "Changelog")
+                                      "* %U %?\n%i\n%a" :prepend t)
+                                     ("o" "Centralized templates for projects")
+                                     ("ot" "Project todo" entry #'+org-capture-central-project-todo-file "* TODO %?\n %i\n %a" :heading "Tasks" :prepend nil)
+                                     ("on" "Project notes" entry #'+org-capture-central-project-notes-file "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
+                                     ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
+                                     ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
+                                      "* IDEA %? %^g"))))
 
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
 ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
@@ -86,10 +122,12 @@
 
 (setq org-super-agenda-groups
       '(
-        (:and (:todo "IDEA" :name "Starintel Idea" :tag ("starintel" "sit")))
-        (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")))
-        (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash")))
-        (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")))))
+        (:and (:todo "IDEA" :name "Starintel Idea" :tag ("starintel" "sit")) :name "Starintel ideas")
+        (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")) :name "Star intel Bugs")
+        (:and (:todo "TODO" :name "Starintel" :tag ("starintel")) :name "Star Intel")
+        (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash" "personal")) :name "Personal")
+        (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
+        (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading")))
 
 (map! :leader
       :desc "Tangle a file"
@@ -152,6 +190,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (lsp))
 
 (defun org-babel-edit-prep:nim (babel-info)
+  "Setup for lsp-mode in Org Src buffer using BABEL-INFO."
+  (setq-local default-directory (->> babel-info caddr (alist-get :dir)))
   (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
   (lsp))
 
@@ -216,11 +256,11 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
           ("d" "default" plain "%?"
            :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
-          ("w" "wiki" plain "*%? %^g"
-           :target (file+head "wiki/%<%Y%m%d%H%M%S>-${slug}.org"
+          ("t" "tutorial" plain "*%?"
+           :target (file+head "Tutorial/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-          ("h" "hackthebox" plain "%?"
-           :target (file+head "hackthebox/%<%Y%m%d%H%M%S>-${slug}.org"
+          ("h" "hacking" plain "%?"
+           :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
@@ -229,8 +269,21 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("r" "Reading notes" plain "%?"
-           :target (file+head "notes/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
+           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("v" "Video notes" plain "%?"
+           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("p" "Programming" plain "%?"
+           :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))))
+   (setq org-roam-dailies-capture-templates
+   '(("d" "default" entry "* %<%I:%M %p>: %?"
+      :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+     ("n" "news" entry "* %? :news:"
+         :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+     ("j" "journal" entry "* %<%I:%M %p>%? :personal:"
+        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n")))))
 
 (defun url2org (begin end)
   "Download a webpage from selected url and convert to org."
@@ -349,8 +402,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (require 'notifications)
 
-
-
 (require 'elfeed-org)
 
 (elfeed-org)
@@ -411,6 +462,46 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (require 'dirvish)
 (dirvish-override-dired-mode)
+
+(use-package! dirvish
+  :init
+  (dirvish-override-dired-mode)
+  :custom
+  (dirvish-quick-access-entries ; It's a custom option, `setq' won't work
+   '(("h" "~/"                          "Home")
+     ("d" "~/Downloads/"                "Downloads")
+     ("m" "/mnt/"                       "Drives")
+     ("t" "~/.local/share/Trash/files/" "TrashCan")))
+  :config
+  ;; (dirvish-peek-mode) ; Preview files in minibuffer
+  ;; (dirvish-side-follow-mode) ; similar to `treemacs-follow-mode'
+  (setq dirvish-mode-line-format
+        '(:left (sort symlink) :right (omit yank index)))
+  (setq dirvish-attributes
+        '(all-the-icons file-time file-size collapse subtree-state vc-state git-msg))
+  (setq delete-by-moving-to-trash t)
+  (setq dired-listing-switches
+        "-l --almost-all --human-readable --group-directories-first --no-group")
+  :bind ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
+  (("C-c f" . dirvish-fd)
+   :map dirvish-mode-map ; Dirvish inherits `dired-mode-map'
+   ("a"   . dirvish-quick-access)
+   ("f"   . dirvish-file-info-menu)
+   ("y"   . dirvish-yank-menu)
+   ("N"   . dirvish-narrow)
+   ("^"   . dirvish-history-last)
+   ("h"   . dirvish-history-jump) ; remapped `describe-mode'
+   ("s"   . dirvish-quicksort)    ; remapped `dired-sort-toggle-or-edit'
+   ("v"   . dirvish-vc-menu)      ; remapped `dired-view-file'
+   ("TAB" . dirvish-subtree-toggle)
+   ("M-f" . dirvish-history-go-forward)
+   ("M-b" . dirvish-history-go-backward)
+   ("M-l" . dirvish-ls-switches-menu)
+   ("M-m" . dirvish-mark-menu)
+   ("M-t" . dirvish-layout-toggle)
+   ("M-s" . dirvish-setup-menu)
+   ("M-e" . dirvish-emerge-menu)
+   ("M-j" . dirvish-fd-jump)))
 
 (setq python-ident-offset 4)
 
@@ -491,4 +582,18 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   :init
   (setq org-pomodoro-audio-player "/usr/bin/mpv"))
 
+(setq ispell-program-name "aspell")
+
 (setq ispell-dictionary "en")
+
+ (setq ispell-personal-dictionary "~/.aspell.en_us.pws")
+
+(add-hook 'spell-fu-mode-hook
+  (lambda ()
+    (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en"))
+    (spell-fu-dictionary-add
+      (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
+
+(require 'midnight)
+
+(midnight-delay-set 'midnight-delay "7:00am")
