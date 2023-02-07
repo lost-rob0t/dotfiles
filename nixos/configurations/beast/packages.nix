@@ -75,7 +75,7 @@
     ungoogled-chromium
     brave
     thunderbird
-    tor-browser-bundle-bin
+    #tor-browser-bundle-bin BUG
     vim
     virt-manager
     virtiofsd
