@@ -758,20 +758,10 @@ This section would not fit well, therefor it is in its own.
 
 ** Python
 
-I Have problems with indent getting reset, i will explicitly set it.
+Set the exec path for pyright
 #+begin_src emacs-lisp
-(setq python-ident-offset 4)
+(setq lsp-package-path (executable-find "pyright"))
 #+end_src
-
-Fix lsp not being found on nixos
-#+begin_src emacs-lisp
-(after! lsp-python-ms
-  (setq lsp-python-ms-executable (executable-find "python-language-server"))
-  (set-lsp-priority! 'mspyls 1))
-#+end_src
-
-
-
 ** Direnv
 Make life easy!
 #+begin_src emacs-lisp

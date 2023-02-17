@@ -40,6 +40,8 @@
 
 (package! nix-emacs :recipe (:type git :host github :repo "travisbhartwell/nix-emacs"))
 
+(package! lsp-pyright :recipe (:type git :host github :repo "emacs-lsp/lsp-pyright"))
+
 (package! webpaste :recipe (:type git :host github :repo "etu/webpaste.el"))
 
 (package! burly :recipe (:type git :host github :repo "alphapapa/burly.el"))

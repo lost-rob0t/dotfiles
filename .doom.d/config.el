@@ -503,11 +503,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
    ("M-e" . dirvish-emerge-menu)
    ("M-j" . dirvish-fd-jump)))
 
-(setq python-ident-offset 4)
-
-(after! lsp-python-ms
-  (setq lsp-python-ms-executable (executable-find "python-language-server"))
-  (set-lsp-priority! 'mspyls 1))
+(setq lsp-package-path (executable-find "pyright"))
 
 (envrc-global-mode)
 

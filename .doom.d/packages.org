@@ -100,6 +100,10 @@ set of usful emacs modes for nix
 #+begin_src emacs-lisp
 (package! nix-emacs :recipe (:type git :host github :repo "travisbhartwell/nix-emacs"))
 #+end_src
+**** Python
+#+begin_src emacs-lisp
+(package! lsp-pyright :recipe (:type git :host github :repo "emacs-lsp/lsp-pyright"))
+#+end_src
 ** Utils
 *** webpaste.el
 paste your buffer to a pastebin like service.

@@ -102,6 +102,9 @@
     pipenv
     direnv
     python310
+    pyright
+    pylint
+    python310Packages.flake8
     nim nimlsp
     podman-compose
     rnix-lsp
@@ -120,7 +123,6 @@
     opensnitch-ui
 #    kwalletmanager
     gnome.gnome-keyring
-
     #mypkgs.maltego
     ## Libs
     libtool
@@ -147,7 +149,10 @@
       pkgs.imagemagick #photo thumbnails
       pkgs.mediainfo #audio previews
       pkgs.mpv # for bongo
-
+      pkgs.pyright
+      pkgs.python310
+      pkgs.pylint
+      pkgs.python310Packages.flake8
     ]))
 
     # Rice
