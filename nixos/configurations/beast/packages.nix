@@ -75,7 +75,6 @@
     ungoogled-chromium
     brave
     thunderbird
-    #tor-browser-bundle-bin BUG
     vim
     virt-manager
     virtiofsd
@@ -87,7 +86,7 @@
     libsForQt5.kdeconnect-kde
     ntfy # send notifications
     mpv
-    #mypkgs.nimPackages.puffer
+
     ## Games
     lutris
     steam-run-native
@@ -96,6 +95,7 @@
     faudio
     xboxdrv
     qjoypad
+    protontricks
     ##(winetricks.override { wine = wineWowPackages.staging; })
 
     ## Programming
@@ -113,7 +113,9 @@
     racket
     sbcl
     roswell
+
     ## Security
+    #tor-browser-bundle-bin
     keepassxc
     tor
     torsocks
@@ -121,8 +123,9 @@
     hashcat
     veracrypt
     opensnitch-ui
-#    kwalletmanager
+    calyx-vpn
     gnome.gnome-keyring
+
     #mypkgs.maltego
     ## Libs
     libtool
