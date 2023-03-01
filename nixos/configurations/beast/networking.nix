@@ -10,10 +10,16 @@
                                           5332 # caldev
                                           8080 # testing
                                           15029
+                                          47989 # moonlight
+                                          47984 # moonlight
                                           ];
   networking.firewall.allowedUDPPorts = [ 22000 #syncthing
                                           21027 #syncthing
                                           15029
+                                          48010 #moonlight
+                                          47998 # moonlight
+                                          47999 #moonlight
+                                          47800 #moonlight
                                           ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
