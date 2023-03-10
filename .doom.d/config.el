@@ -560,12 +560,12 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;(when (memq window-system '(mac ns x))
 ;;  (exec-path-from-shell-initialize))
 
-(setq url-proxy-services
-   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
-     ("http" . "127.0.0.1:4444")
-     ("https" . "127.0.0.1:4444")
-))
-(setq elfeed-use-curl nil)
+;(setq url-proxy-services
+;   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
+;     ("http" . "127.0.0.1:4444")
+;     ("https" . "127.0.0.1:4444")
+;))
+;(setq elfeed-use-curl nil)
 
 (defun cht-sh ()
   "look up a cheat"

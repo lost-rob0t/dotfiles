@@ -40,6 +40,7 @@ function install_doom_emacs () {
     done
  fi 
 }
+
 function evolve () {
 read -p "Do you want to rebuild the config? (yes/no) " yn
 
@@ -86,6 +87,7 @@ read password
 pass=$(mkpasswd -m sha-512 $password)
 echo "$pass"
 }
+<<<<<<< Updated upstream
 function init_platform () {
 # create the .platform file i use
 if [ ! -f "$HOME/.platform" ]; then
@@ -94,6 +96,13 @@ if [ ! -f "$HOME/.platform" ]; then
     read platform
     echo platform > $HOME/.platform
 fi
+=======
+function nim-init () {
+ # Init a nim project and start a git repo
+ nimble init $1
+ git init "$PWD/$1"
+
+>>>>>>> Stashed changes
 }
 # Custome aliases for commands
 alias install-doom="install_doom_emacs"

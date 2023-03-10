@@ -57,12 +57,7 @@
   environment.pathsToLink = [ "/share/hunspell" "/share/myspell" "/share/hyphen" ];
 
   environment.variables.DICPATH = "/run/current-system/sw/share/hunspell:/run/current-system/sw/share/hyphen";
-
-  system.autoUpgrade = {
-    # Enable automake updates
-    enabled = true;
-
-  };
+  system.autoUpgrade.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

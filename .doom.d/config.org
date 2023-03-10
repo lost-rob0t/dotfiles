@@ -882,12 +882,12 @@ Sets PATH
 ** Url proxy
 I use i2p and having elfeed use a proxy would be nice
 #+begin_src emacs-lisp
-(setq url-proxy-services
-   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
-     ("http" . "127.0.0.1:4444")
-     ("https" . "127.0.0.1:4444")
-))
-(setq elfeed-use-curl nil)
+;(setq url-proxy-services
+;   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
+;     ("http" . "127.0.0.1:4444")
+;     ("https" . "127.0.0.1:4444")
+;))
+;(setq elfeed-use-curl nil)
 #+end_src
 ** Cheat-sh
 #+begin_src emacs-lisp

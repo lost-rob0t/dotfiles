@@ -11,7 +11,7 @@ in
   home.packages = [
     pkgs.vlc
     pkgs.obs-studio
-    pkgs.libreoffice
+    #pkgs.libreoffice
     pkgs.filezilla
     pkgs.nerdfonts
     pkgs.terminator
@@ -40,6 +40,7 @@ in
     pkgs.vscodium-fhs # FHS
     pkgs.librewolf
     pkgs.bookworm
+    pkgs.zeal
   ];
   programs = {
       gpg = {

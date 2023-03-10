@@ -6,5 +6,5 @@ topics_file="$HOME/.config/ntfy.txt"
 while read -r topic; do
   # Run the command on the current topic
    "$topic"
-   ntfy sub mytopic 'dunstify "$t" "$m"' &
+   ntfy subscribe mytopic 'dunstify "$t" "$m"' &
 done < "$topics_file"

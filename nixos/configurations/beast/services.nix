@@ -87,11 +87,10 @@ in
     enable = false;
     webPort = "8090";
   };
-  };
   lighttpd = {
     enable = true;
     port = 1488;
-  };
+  };};
 virtualisation = {
     podman = {
       enable = false;

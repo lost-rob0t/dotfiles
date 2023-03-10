@@ -1,3 +1,4 @@
 * Inbox
+** TODO Add more unit tests for more doc types
 ** TODO Add nicy prompt
 Nicy is a prompt written in nim

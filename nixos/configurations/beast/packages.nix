@@ -185,7 +185,8 @@
  hardware.opengl.extraPackages = with pkgs; [
    rocm-opencl-icd
    rocm-opencl-runtime
-   ##amdvlk
+   amdvlk
+   mesa
 ];
   ## Some programs need SUID wrappers, can be configured further or are
   ## started in user sessions.
