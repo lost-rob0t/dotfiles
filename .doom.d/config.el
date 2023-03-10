@@ -1,3 +1,13 @@
+(defvar nsaspy/system "desktop"
+        "platform name to base config for.
+        it will load the name from ~/.platform")
+
+(defun nsaspy/load-platform (path)
+  "load the paatform name from file"
+  (with-temp-buffer
+    (insert-file-contents path)
+    (buffer-string)))
+
 (setq doom-theme 'doom-outrun-electric)
 
 (setq display-line-numbers-type t)

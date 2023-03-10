@@ -11,6 +11,21 @@ This is my personal doom emacs config, you can find package related stuff in pac
 yasnippets are in snippets
 
 
+* Multi Platform config
+Stuff to determin os and apply settings to fit that system
+
+
+#+begin_src emacs-lisp
+(defvar nsaspy/system "desktop"
+        "platform name to base config for.
+        it will load the name from ~/.platform")
+
+(defun nsaspy/load-platform (path)
+  "load the paatform name from file"
+  (with-temp-buffer
+    (insert-file-contents path)
+    (buffer-string)))
+#+end_src
 * Styling
 ** Theme
 I like doom's outrun electric theme

@@ -1,0 +1,12 @@
+#+title: Android config
+#+author: nsaspy
+
+#+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
+#+startup: org-startup-folded: showall
+#+disable_spellchecker: t
+#+begin_src emacs-lisp;; -*- lexical-binding: t -*-
+#+end_src
+* about
+this is the android specific config that will make andeoid on termux slightly better amd also not be a large config.
+** TODO
++ [ ] tangle init.el from this file

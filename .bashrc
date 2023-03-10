@@ -86,7 +86,15 @@ read password
 pass=$(mkpasswd -m sha-512 $password)
 echo "$pass"
 }
-
+function init_platform () {
+# create the .platform file i use
+if [ ! -f "$HOME/.platform" ]; then
+    echo "no .platform file please enter platform name"
+    echo ": "
+    read platform
+    echo platform > $HOME/.platform
+fi
+}
 # Custome aliases for commands
 alias install-doom="install_doom_emacs"
 alias docker-compose="podman-compose"
@@ -104,6 +112,8 @@ export PATH=$PATH:$HOME/.nimble/bin
 # rust path ewww
 export PATH=$PATH:$HOME/.cargo/bin
 #export LD_LIBRARY_PATH=/usr/local/lib
+init_platform
 eval "$(direnv hook bash)"
 eval "$(starship init bash)"
+
 #(cat ~/.cache/wal/sequences &)
