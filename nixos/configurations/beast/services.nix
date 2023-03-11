@@ -88,7 +88,7 @@ in
     webPort = "8090";
   };
   lighttpd = {
-    enable = true;
+    enable = false;
     port = 1488;
   };};
 virtualisation = {
