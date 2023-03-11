@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: fetch nimble
+# uuid: fetch-nimble
+# key: trigger-key
+# condition: t
+# --
+
+fetchNimble {
+  pname = $1;
+  version = $2;
+  hash = lib.fakeHash;
+}$0

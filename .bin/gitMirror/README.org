@@ -1,0 +1,4 @@
+#+title: Readme
+
+* GitMirror
+Set of scripts to mirror a fork to multiple endpoints

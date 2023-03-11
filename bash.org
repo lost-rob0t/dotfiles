@@ -61,6 +61,23 @@ function install_doom_emacs () {
 }
 #+end_src
 
+Only open new files in a new frame, otherwise open other frame.[fn:2]
+#+begin_src shell :tangle .bashrc
+function emacs-clean () {
+if [ $# -eq 0 ]; then
+    emacsclient -c -n
+    exit
+fi
+
+emacsclient -e "(frames-on-display-list \"$DISPLAY\")" &>/dev/null
+
+if [ $? -eq 0 ]; then
+    emacsclient -n "$*"
+else
+    emacsclient -c -n "$*"
+fi
+}
+#+end_src
 *** Nixos
 **** Update configuration
 This will copy the config, which sort of serves as a Backup I guess.
@@ -134,6 +151,10 @@ Run emacs in debug mode
 alias debug-emacs="emacs --debug-init"
 #+end_src
 
+Open emacs
+#+begin_src shell :tangle .bashrc
+alias emacs="emacs-clean"
+#+end_src
 *** Nix
 Link home-manager/nix-env to the xgd dirs, without it non nixos systems apps will not be in start bars
 #+begin_src shell :tangle .bashrc
@@ -162,4 +183,6 @@ eval "$(starship init bash)"
 #+end_src
 
 * Footnotes
+
+[fn:2] https://taingram.org/blog/emacs-client.html
 [fn:1] https://github.com/labbots/bash-oneliners#terminal

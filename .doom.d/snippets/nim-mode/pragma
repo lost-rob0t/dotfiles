@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: pragma
+# uuid: nim-pragma
+# key: {.}
+# condition: t
+# --
+{.$0.}

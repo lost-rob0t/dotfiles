@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: gitlab archive url
+# uuid: gitlab-archive-url
+# key: gitlab-archive-url
+# condition: t
+# --
+https://${gitlab.nobodyhasthe.biz:1}/${nsaspy:2}/jdump/-/archive/${master:3}/${package name:0}.zip

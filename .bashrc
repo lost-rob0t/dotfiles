@@ -37,6 +37,21 @@ function install_doom_emacs () {
  fi
 }
 
+function emacs-clean () {
+if [ $# -eq 0 ]; then
+    emacsclient -c -n
+    exit
+fi
+
+emacsclient -e "(frames-on-display-list \"$DISPLAY\")" &>/dev/null
+
+if [ $? -eq 0 ]; then
+    emacsclient -n "$*"
+else
+    emacsclient -c -n "$*"
+fi
+}
+
 function evolve () {
 read -p "Do you want to rebuild the config? (yes/no) " yn
 
@@ -68,11 +83,17 @@ function nim-init () {
  git init "$PWD/$1"
 }
 
+function cmdtop () {
+    history | awk '{CMD[$2]++;count++;}END { for (a in CMD)print CMD[a] " " CMD[a]/count*100 "% " a;}' | grep -v "./" | column -c3 -s " " -t | sort -nr | nl |  head -n10
+}
+
 export PATH=$PATH:$HOME/.nimble/bin
 
 export PATH=$PATH:$HOME/.cargo/bin
 
 alias debug-emacs="emacs --debug-init"
+
+alias emacs="emacs-clean"
 
 alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
 

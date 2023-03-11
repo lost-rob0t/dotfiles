@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: tdiv-class
+# uuid: tdiv-class
+# key: div
+# condition: t
+# --
+tdiv(class="$1"):
+  $0
