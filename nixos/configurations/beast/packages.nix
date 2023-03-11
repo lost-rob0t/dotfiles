@@ -95,7 +95,6 @@
     faudio
     xboxdrv
     qjoypad
-    protontricks
     ##(winetricks.override { wine = wineWowPackages.staging; })
 
     ## Programming
