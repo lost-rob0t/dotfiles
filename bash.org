@@ -106,7 +106,15 @@ function nim-init () {
  git init "$PWD/$1"
 }
 #+end_src
-
+*** Misc
+Misc related functions i found or made
+**** Get the top ten used commands [fn:1]
+So much cd and ls
+#+begin_src shell :tangle .bashrc
+function cmdtop () {
+    history | awk '{CMD[$2]++;count++;}END { for (a in CMD)print CMD[a] " " CMD[a]/count*100 "% " a;}' | grep -v "./" | column -c3 -s " " -t | sort -nr | nl |  head -n10
+}
+#+end_src
 ** Exports
 Export nimble path for nim.
 #+begin_src shell :tangle .bashrc
@@ -142,6 +150,7 @@ I use [[https://wttr.in]] for my weather
 #+begin_src shell :tangle .bashrc
 alias wttr="curl wttr.in"
 #+end_src
+
 ** Shell Hooks
 *** Direnv
 #+begin_src shell :tangle .bashrc
@@ -151,3 +160,6 @@ eval "$(direnv hook bash)"
 #+begin_src shell :tangle .bashrc
 eval "$(starship init bash)"
 #+end_src
+
+* Footnotes
+[fn:1] https://github.com/labbots/bash-oneliners#terminal
