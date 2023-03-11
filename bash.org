@@ -142,7 +142,7 @@ I use [[https://wttr.in]] for my weather
 #+begin_src shell :tangle .bashrc
 alias wttr="curl wttr.in"
 #+end_src
-** Shell :Tangle .Bashrc Hooks
+** Shell Hooks
 *** Direnv
 #+begin_src shell :tangle .bashrc
 eval "$(direnv hook bash)"
