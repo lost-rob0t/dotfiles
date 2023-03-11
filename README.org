@@ -1,6 +1,21 @@
 #+TITLE: Readme
 
-* Install dotfiles
+* Index
++ [[./bash.org][Bash]]
++ [[./.doom.d/config.org][Emacs config]]
+
+* Setup
+** Dependencies
+If you want everything to work out of the box, i highly recommend nixos.
+My shell is bash.
+Otherwise
++ nix
++ git
++ direnv
++ starship
++ curl
+
+** Install dotfiles
 clone repo  to ~/.dotfiles and run gnu stow .
 
 * nix

@@ -1,13 +1,27 @@
+#+title: Bash
+#+author: nsaspy
+* Bash Config
+This is a literate configuration of my .bashrc
+** Setup
+Source any global definitions
+#+begin_src shell :tangle .bashrc
 if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
+#+end_src
 
+Setup my path
+#+begin_src shell :tangle .bashrc
 if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]
 then
     PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 fi
 export PATH
 
+#+end_src
+
+Load any extra configuration.
+#+begin_src shell :tangle .bashrc
 if [ ! -d ~/.bashrc.d ]; then
 	for rc in ~/.bashrc.d/*; do
 		if [ -f "$rc" ]; then
@@ -16,6 +30,10 @@ if [ ! -d ~/.bashrc.d ]; then
 	done
 fi
 
+#+end_src
+
+To determin what system it is, i use a file this file holds a name which is used by emacs and other things to apply settings for it.
+#+begin_src shell :tangle .bashrc
 function init_platform () {
 # create the .platform file i use
 if [ ! -f "$HOME/.platform" ]; then
@@ -25,7 +43,12 @@ if [ ! -f "$HOME/.platform" ]; then
 fi
 }
 init_platform
-
+#+end_src
+** Bashrc
+*** Emacs
+Reinstall Doom emacs
+*warning this will remove your emacs install!
+#+begin_src shell :tangle .bashrc
 function install_doom_emacs () {
  if [ -d ~/.emacs.d ]; then
  	echo "Are you sure you want to delete ~/.emacs.d/ directory and install doom emacs? (y/n)"
@@ -36,7 +59,14 @@ function install_doom_emacs () {
     esac
  fi
 }
+#+end_src
 
+*** Nixos
+**** Update configuration
+This will copy the config, which sort of serves as a Backup I guess.
+It will rebuild your config
+
+#+begin_src shell :tangle .bashrc
 function evolve () {
 read -p "Do you want to rebuild the config? (yes/no) " yn
 
@@ -56,30 +86,68 @@ nixos-rebuild "$@"
 fi
 echo done
 }
+#+end_src
+**** Setup nix-env
+For some reason on non nixos system this is needed
 
+#+begin_src shell :tangle .bashrc
 if [ ! -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
     source ~/.nix-profile/etc/profile.d/nix.sh
     export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}
 fi
+#+end_src
 
+*** Nim
+init a nimble project then create a git repo and cd to it
+#+begin_src shell :tangle .bashrc
 function nim-init () {
  # Init a nim project and start a git repo
  nimble init $1
  git init "$PWD/$1"
 }
+#+end_src
 
+** Exports
+Export nimble path for nim.
+#+begin_src shell :tangle .bashrc
 export PATH=$PATH:$HOME/.nimble/bin
+#+end_src
 
+Export rust cargo path (nasty wax wound lol)
+#+begin_src shell :tangle .bashrc
 export PATH=$PATH:$HOME/.cargo/bin
+#+end_src
+** Aliases
+Bash aliases allow you to use a short "alias" for a long command
 
+*** Emacs
+Run emacs in debug mode
+#+begin_src shell :tangle .bashrc
 alias debug-emacs="emacs --debug-init"
+#+end_src
 
+*** Nix
+Link home-manager/nix-env to the xgd dirs, without it non nixos systems apps will not be in start bars
+#+begin_src shell :tangle .bashrc
 alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
-
+#+end_src
+*** Nim
+Generate documentation from the project root.
+#+begin_src shell :tangle .bashrc
 alias nim-doc="nim doc --project --index:on --outdir=docs"
-
+#+end_src
+*** Misc
+get the weather
+I use [[https://wttr.in]] for my weather
+#+begin_src shell :tangle .bashrc
 alias wttr="curl wttr.in"
-
+#+end_src
+** Shell :Tangle .Bashrc Hooks
+*** Direnv
+#+begin_src shell :tangle .bashrc
 eval "$(direnv hook bash)"
-
+#+end_src
+*** Starship
+#+begin_src shell :tangle .bashrc
 eval "$(starship init bash)"
+#+end_src
