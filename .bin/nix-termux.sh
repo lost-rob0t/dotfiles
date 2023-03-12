@@ -77,7 +77,7 @@ if [ ! -x "$DIVE_SCRIPT" ]; then
 
 	url="$BASE_URL/$NIX_VERSION-$system.tar.xz"
     hash=$($TERMUX_BIN/curl "$url.sha256" -s)
-    echo $URL
+    echo $url
 	tarball="$tmpDir/$(basename "$tmpDir/$NIX_VERSION-$system.tar.xz")"
 	#tarball="$HOME/nix-2.2.1-$system.tar.bz2"
 
