@@ -46,4 +46,7 @@
       enable = true;
     };
   };
+  # Needed for flakes
+  nixpkgs.hostPlatform = "x86_64-linux";
+
 }

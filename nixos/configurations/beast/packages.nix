@@ -3,9 +3,6 @@
 ## Packages and programs go here
 {
    nixpkgs.overlays = [
-    (import (builtins.fetchTarball {
-      url = https://github.com/nix-community/emacs-overlay/archive/master.tar.gz;
-    }))
     #(import "/etc/nixos/nixos-overlay/overlay.nix")
     (self: super: {
       python3Packages = super.python3Packages.override {
