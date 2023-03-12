@@ -97,7 +97,7 @@ if [ ! -x "$DIVE_SCRIPT" ]; then
 		rm -rf "$unpack"
 	}
 	trap cleanup EXIT INT QUIT TERM
-	< "$tarball" bzcat | $TERMUX_BIN/tar -xf - -C "$unpack" || oops "failed to unpack $tarball"
+	< "$tarball" bzcat | $TERMUX_BIN/tar -xJf - -C "$unpack" || oops "failed to unpack $tarball"
 
 	script=$(echo "$unpack"/*/install)
 
