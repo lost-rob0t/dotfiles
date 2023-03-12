@@ -72,6 +72,8 @@
 
 (package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 
+(package! golden-ratio.el :recipe (:host github :repo "roman/golden-ratio.el"))
+
 (package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
 
 (package! ks-mode :recipe (:type git :host github :repo "jarpy/ks-mode"))

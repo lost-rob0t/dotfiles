@@ -14,6 +14,9 @@
 
 (setq frame-resize-pixelwise t)
 
+;(require 'golden-ratio)
+;(golden-ratio-mode 1)
+
 (setq
  doom-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
  doom-big-font (font-spec :family "JetBrainsMono Nerd Font" :size 18)
@@ -603,3 +606,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (require 'midnight)
 
 (midnight-delay-set 'midnight-delay "7:00am")
+
+(setq auth-sources '("~/.authinfo.gpg")
+      auth-source-cache-expiry nil)

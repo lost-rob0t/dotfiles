@@ -18,10 +18,8 @@ Otherwise
 ** Install dotfiles
 clone repo  to ~/.dotfiles and run gnu stow .
 
-* nix
-** Setup nix
-in .bashrc edit the $NIX_CONFIG to the path of the nixos config you wish to use
-
+** nix
+*** Setup nix
 for example to use the desktop config
 
 #+begin_src shell

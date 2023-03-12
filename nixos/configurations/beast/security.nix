@@ -16,6 +16,7 @@
     };
   };
   security.pam.loginLimits = [{
+    # Do i still need this?
     domain = "*";
     type = "soft";
     item = "nofile";

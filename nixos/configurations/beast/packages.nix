@@ -114,7 +114,7 @@
     roswell
 
     ## Security
-    #tor-browser-bundle-bin
+    tor-browser-bundle-bin
     keepassxc
     tor
     torsocks
@@ -138,7 +138,7 @@
       epkgs.pylint
       epkgs.w3m
       epkgs.pandoc
-      pkgs.nimPackages.nimsuggest
+      #nimPackages.nimsuggest
       pkgs.nodePackages.bash-language-server
       pkgs.roswell
       epkgs.xclip

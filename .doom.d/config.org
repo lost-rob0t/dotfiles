@@ -43,6 +43,11 @@ This might help for wm like qtile
 (setq frame-resize-pixelwise t)
 #+end_src
 
+Resize frames along the golden ratio
+#+begin_src emacs-lisp
+;(require 'golden-ratio)
+;(golden-ratio-mode 1)
+#+end_src
 ** Fonts
 Setting nerdfonts
 #+begin_src emacs-lisp
@@ -132,6 +137,7 @@ i just dont want private shit being in here...
 
 Here i override the capture templates, some intergrating into org roam
 #+begin_src emacs-lisp
+
 (setq  org-capture-templates (quote (("m" "Personal Meditations")
                                      ("mm" "Meditations Moon" entry
                                       (file+olp+datetree "~/Documents/Notes/org/moon.org")
@@ -966,4 +972,13 @@ require it
 Set the time to 7 am local
 #+begin_src emacs-lisp
 (midnight-delay-set 'midnight-delay "7:00am")
+#+end_src
+
+
+* Security
+** Auth info source
+Tell auth info to put authsource in my dotfiles
+#+begin_src emacs-lisp
+(setq auth-sources '("~/.authinfo.gpg")
+      auth-source-cache-expiry nil)
 #+end_src
