@@ -1,0 +1,9 @@
+#+title: Readme
+
+* Nixos installer
+This is a modifed script that lets you install nix inside of termux, instead os some app with proot
+Goal is to support both chroot and proot
+Reason for chroot is also to use kali
+
+You can get the ogrinal script here
+https://github.com/t184256/nix-in-termux/tree/master
