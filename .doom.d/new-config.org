@@ -1,3 +1,4 @@
+#+filetags: ai
 #+title: Doom Emacs configuration
 #+author: nsaspy
 

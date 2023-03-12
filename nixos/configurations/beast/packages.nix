@@ -71,22 +71,6 @@
     ## Android
     android-tools
     android-studio
-    ## User Programs
-    ungoogled-chromium
-    brave
-    thunderbird
-    vim
-    virt-manager
-    virtiofsd
-    element-desktop
-    qbittorrent
-    terminator
-    lbry ## You should use lbry and other yotube alternatives
-    yt-dlp
-    libsForQt5.kdeconnect-kde
-    ntfy # send notifications
-    mpv
-
     ## Games
     lutris
     steam-run-native
@@ -115,12 +99,10 @@
 
     ## Security
     tor-browser-bundle-bin
-    keepassxc
     tor
     torsocks
     i2p
     hashcat
-    veracrypt
     opensnitch-ui
     calyx-vpn
     gnome.gnome-keyring
@@ -130,44 +112,11 @@
     libtool
     libvterm
     jdk11
-
-    ((emacsPackagesFor emacsPgtk).emacsWithPackages (epkgs: [
-      epkgs.vterm
-      epkgs.direnv
-      epkgs.lsp-pyright
-      epkgs.pylint
-      epkgs.w3m
-      epkgs.pandoc
-      #nimPackages.nimsuggest
-      pkgs.nodePackages.bash-language-server
-      pkgs.roswell
-      epkgs.xclip
-      pkgs.aspell
-      pkgs.aspellDicts.en
-      pkgs.libnotify # for alert.el
-      pkgs.xdotool # for emacs everywhere
-      # Dirvish stuff
-      pkgs.ffmpegthumbnailer # Video thumbnails
-      pkgs.imagemagick #photo thumbnails
-      pkgs.mediainfo #audio previews
-      pkgs.mpv # for bongo
-      pkgs.pyright
-      pkgs.python310
-      pkgs.pylint
-      pkgs.python310Packages.flake8
-    ]))
-
     # Rice
     breeze-icons
-    starship
-    variety
-    sxhkd
     lxqt.lxqt-qtplugin
     ly #login manager
     xorg.xinit
-    j4-dmenu-desktop
-    pkgs.dmenu
-    conky
     picom
     mpvScripts.mpris
     ## Services
