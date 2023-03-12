@@ -42,11 +42,7 @@ in
   i2p = {
     enable = true;
   };
-  emacs = {
-    enable = true;
-    defaultEditor = true;
-    package = pkgs.emacsPgtk;
-  };
+
   blueman = {
     enable = true;
   };
