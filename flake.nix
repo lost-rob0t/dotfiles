@@ -1,5 +1,5 @@
-{ config, lib, pkgs, ... }:
-
 {
-
+  inputs = {
+    home-manager.url = "github:nix-community/home-manager";
+  };
 }

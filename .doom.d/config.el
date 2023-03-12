@@ -398,14 +398,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 
 
-(map! :leader
-      :desc "Add a neew template to yasnippet"
-      "a y s"                   #'+snippets/new)
-
-(map! :leader
-      :desc "Edit template"
-      "a y e" #'+snippets/find)
-
 (setq deft-extenstions '("txt", "org", "md"))
 (setq deft-directory "~/Documents/Notes")
 

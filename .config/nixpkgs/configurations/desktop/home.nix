@@ -28,10 +28,10 @@ in
         userName = "N545PY";
         userEmail = "nsaspy@airmail.cc";
       };
-  emacs = {
-    enable = true;
-    extraPackages = epkgs: [ epkgs.vterm ];
-};
+#  emacs = {
+#    enable = true;
+#    extraPackages = epkgs: [ epkgs.vterm ];
+#};
   };
 
 }

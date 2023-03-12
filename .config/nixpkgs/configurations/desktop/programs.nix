@@ -8,43 +8,88 @@ let
   });
 in
 {
-  home.packages = [
-    pkgs.vlc
-    pkgs.obs-studio
-    #pkgs.libreoffice
-    pkgs.filezilla
-    pkgs.nerdfonts
-    pkgs.terminator
-    pkgs.discord
-    pkgs.obs-studio
-    pkgs.obsidian
-    pkgs.w3m
-    pkgs.cht-sh
-    pkgs.kleopatra
-    pkgs.gimp
-    pkgs.feh
-    pkgs.mindustry
-    pkgs.tlp
+  home.packages = with pkgs; [
+    # TODO sort into categories
+    vlc
+    obs-studio
+    #libreoffice
+    filezilla
+    nerdfonts
+    terminator
+    discord
+    obs-studio
+    obsidian
+    w3m
+    cht-sh
+    kleopatra
+    gimp
+    feh
+    mindustry
+    tlp
     nyxt
-    pkgs.webkitgtk
-    pkgs.remmina
-    pkgs.freerdp
-    pkgs.sqlitebrowser
-    pkgs.tdesktop
-    pkgs.rpi-imager
-    pkgs.ark
-    pkgs.kdenlive
-    pkgs.virt-viewer
-    pkgs.monero-gui
-    pkgs.gitRepo
-    pkgs.vscodium-fhs # FHS
-    pkgs.librewolf
-    pkgs.bookworm
-    pkgs.zeal
+    webkitgtk
+    remmina
+    freerdp
+    sqlitebrowser
+    tdesktop
+    rpi-imager
+    ark
+    kdenlive
+    virt-viewer
+    monero-gui
+    gitRepo
+    vscodium-fhs # FHS
+    librewolf
+    bookworm
+    zeal
+    brave
+    thunderbird
+    vim
+    virt-manager
+    virtiofsd
+    element-desktop
+    qbittorrent
+    terminator
+    lbry ## You should use lbry and other yotube alternatives
+    yt-dlp
+    libsForQt5.kdeconnect-kde
+    ntfy # send notifications
+    mpv
+    # Security
+    keepassxc
+    # rice
+    starship
   ];
   programs = {
       gpg = {
           enable = true;
       };
+ emacs = {
+  enable = true;
+  extraPackages = epkgs: [
+      epkgs.vterm
+      epkgs.direnv
+      epkgs.lsp-pyright
+      epkgs.pylint
+      epkgs.w3m
+      epkgs.pandoc
+      pkgs.nodePackages.bash-language-server
+      pkgs.roswell
+      epkgs.xclip
+      pkgs.aspell
+      pkgs.aspellDicts.en
+      pkgs.libnotify # for alert.el
+      pkgs.xdotool # for emacs everywhere
+      pkgs.ffmpegthumbnailer # Video thumbnails
+      pkgs.imagemagick #photo thumbnails
+      pkgs.mediainfo #audio previews
+      pkgs.mpv # for bongo
+      pkgs.pyright
+      pkgs.python310
+      pkgs.pylint
+      pkgs.python310Packages.flake8
+
+                         ];
+};
   };
 }

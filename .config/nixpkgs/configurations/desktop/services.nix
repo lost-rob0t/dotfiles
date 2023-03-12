@@ -2,6 +2,6 @@
 
 {
   services.pantalaimon = {
-    enable = true;
+    enable = false;
 };
 }

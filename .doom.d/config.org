@@ -662,9 +662,10 @@ You can view a pcap file with tshark
 ** inherit org
 inherit-org: Inherit org faces to non-org buffers.
 #+begin_src emacs-lisp
+
 (with-eval-after-load 'org
   (require 'inherit-org)
-
+; BUG something is wrong with spc h f on nixos, works on arch
   (with-eval-after-load 'info
     (add-hook 'Info-mode-hook 'inherit-org-mode))
 
