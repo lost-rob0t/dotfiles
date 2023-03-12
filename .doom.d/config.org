@@ -586,21 +586,6 @@ Keep my ideas seperated from my todos and give me a random idea from the file
 #+end_src
 
 
-** Yasnippet
-Add a new template
-#+begin_src emacs-lisp
-(map! :leader
-      :desc "Add a neew template to yasnippet"
-      "a y s"                   #'+snippets/new)
-#+end_src
-
-Edit a template
-#+begin_src emacs-lisp
-(map! :leader
-      :desc "Edit template"
-      "a y e" #'+snippets/find)
-#+end_src
-
 ** Deft
 Deft is used for notes. here im setting the default directory
 #+begin_src emacs-lisp
