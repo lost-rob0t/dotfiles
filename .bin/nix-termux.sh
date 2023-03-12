@@ -38,7 +38,7 @@ DIVE_SCRIPT="$PLAYGROUND/nix-powered"
 TERMUX_BIN="/data/data/com.termux/files/usr/bin"
 # update the version number
 NIX_VERSION="nix-2.9.2"
-BASE_URL="https://releases.nixos.org/nix/$NIX_VERSION/"
+BASE_URL="https://releases.nixos.org/nix/$NIX_VERSION"
 
 oops() {
     echo "$0:" "$@" >&2
