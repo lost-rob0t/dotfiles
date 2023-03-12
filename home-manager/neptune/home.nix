@@ -1,13 +1,16 @@
-{ config, lib, pkgs, ... }:
-let
-  name = "N545PY";
-  email = "nsaspy@airmail.cc";
-  
-in
+{ inputs, outputs, lib, config, pkgs, ... }:
 {
-  imports = [ ./programs.nix ./services.nix ];
-  home.username = "nsaspy";
-  home.homeDirectory = "/home/nsaspy";
+
+  imports = [
+    ../global/global.nix
+    ./programs.nix
+    ./services.nix
+  ];
+
+  nixpkgs = {
+    home = {
+  home.username = "N545PY";
+  home.homeDirectory = "/home/unseen";
 
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage
@@ -22,16 +25,6 @@ in
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  programs = {
-      git = {
-        enable = true;
-        userName = "${name}";
-        userEmail = "${email}";
-      };
-  emacs = {
-    enable = true;
-    extraPackages = epkgs: [ epkgs.vterm ];
-};
   };
-
+  };
 }
