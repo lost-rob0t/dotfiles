@@ -47,9 +47,6 @@ oops() {
 
 
 
-getHash() {
-
-}
 
 if [ ! -x "$DIVE_SCRIPT" ]; then
 	echo "removing the previous installation..."
