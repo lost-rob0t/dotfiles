@@ -8,10 +8,19 @@
   ];
 
   nixpkgs = {
-    home = {
-  home.username = "N545PY";
-  home.homeDirectory = "/home/unseen";
 
+    config = {
+      # Disable if you don't want unfree packages
+      allowUnfree = true;
+      # Workaround for https://github.com/nix-community/home-manager/issues/2942
+      allowUnfreePredicate = (_: true);
+    };
+  };
+  home = {
+  username = "N545PY";
+  homeDirectory = "/home/unseen";
+  stateVersion = "22.05";
+  };
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage
   # when a new Home Manager release introduces backwards
@@ -20,11 +29,8 @@
   # You can update Home Manager without changing this value. See
   # the Home Manager release notes for a list of state version
   # changes in each release.
-  home.stateVersion = "22.05";
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  };
-  };
 }
