@@ -181,6 +181,13 @@ Looks likes its already in doom emacs...
 #+begin_src emacs-lisp
 (package! emacs-async :recipe (:type git :host github :repo "jwiegley/emacs-async"))
 #+end_src
+
+*** db.el
+A simple key-val database
+I should make my own.
+#+begin_src emacs-lisp
+(package! emacs-db :recipe (:type git :host github :repo "nicferrier/emacs-db"))
+#+end_src
 ** Messaging
 *** ement
 a matrix client for emacs
