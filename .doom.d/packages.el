@@ -66,9 +66,19 @@
 
 (package! alert :recipe (:type git :host github :repo "jwiegley/alert"))
 
+(package! emacs-async :recipe (:type git :host github :repo "jwiegley/emacs-async"))
+
+(package! triples :recipe (:type git :host github :repo "ahyatt/triples"))
+
+(package! emacsql :recipe (:type git :host github :repo "magit/emacsql"))
+
+(package! msgpack.el :recipe (:type git :host github :repo "xuchunyang/msgpack.el"))
+
+(package! emacs-kv :recipe (:type git :host github :repo "nicferrier/emacs-kv"))
+
 (package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
 
-(package! mastodon :recipe (:type git :host codeberg :repo "martianh/mastodon.el"))
+;(package! mastodon :recipe (:type git :host codeberg :repo "martianh/mastodon.el"))
 
 (package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 

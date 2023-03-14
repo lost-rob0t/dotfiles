@@ -181,6 +181,25 @@ Looks likes its already in doom emacs...
 #+begin_src emacs-lisp
 (package! emacs-async :recipe (:type git :host github :repo "jwiegley/emacs-async"))
 #+end_src
+*** triples
+db module based on sqlite
+
+Testing it out for hackmode, might remove later
+#+begin_src emacs-lisp
+(package! triples :recipe (:type git :host github :repo "ahyatt/triples"))
+#+end_src
+
+*** emacsql
+A high-level Emacs Lisp RDBMS front-end
+#+begin_src emacs-lisp
+(package! emacsql :recipe (:type git :host github :repo "magit/emacsql"))
+#+end_src
+
+*** Message pack
+msgpack.el is an Emacs Lisp library for reading and writing MessagePack.
+#+begin_src emacs-lisp
+(package! msgpack.el :recipe (:type git :host github :repo "xuchunyang/msgpack.el"))
+#+end_src
 
 *** emacs-kv
 A collection of tools for dealing with key/value data structures such as plists, alists and hash-tables.

@@ -432,7 +432,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (with-eval-after-load 'org
   (require 'inherit-org)
-
+; BUG something is wrong with spc h f on nixos, works on arch
   (with-eval-after-load 'info
     (add-hook 'Info-mode-hook 'inherit-org-mode))
 
