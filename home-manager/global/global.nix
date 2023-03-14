@@ -5,6 +5,11 @@
     enable = true;
     userName = "N545PY";
     userEmail = "nsaspy@airmail.cc";
+    extraConfig = {
+      merge = {
+        conflictStyle = "diff3";
+      };
+    };
   };
   programs.emacs = {
     enable = true;
