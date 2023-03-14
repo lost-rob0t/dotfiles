@@ -259,8 +259,3 @@ Play music!
 (package! bongo)
 #+end_src
 ** Youtube
-*** ytsek
-ytel is an experimental YouTube "frontend" for Emacs. It's goal is to allow the user to collect the results of a YouTube search in an elfeed-like buffer and then manipulate them with Emacs Lisp.
-#+begin_src emacs-lisp
-(package! ytel :recipe (:type git :host github :repo "gRastello/ytel"))
-#+end_src

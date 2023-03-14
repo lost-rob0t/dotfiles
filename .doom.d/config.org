@@ -961,11 +961,6 @@ Set the time to 7 am local
 #+end_src
 
 ** Multi media
-*** Youtube
-**** ytel
-#+begin_src emacs-lisp
-(require 'ytel-mode)
-#+end_src
 * Security
 ** Auth info source
 Tell auth info to put authsource in my dotfiles
