@@ -17,10 +17,6 @@ in
       inherit pkgs;
     };
   };
-<<<<<<< Updated upstream
-=======
-  services.emacs.package = pkgs.emacsNativeComp;
->>>>>>> Stashed changes
   environment.systemPackages = with pkgs; [
     # Utils
     wget
@@ -56,11 +52,6 @@ in
 
     lbry ## You should use lbry and other yotube alternatives
     yt-dlp
-<<<<<<< Updated upstream
-    mypkgs.nimPackages.puffer
-=======
-    nimPackages.puffer
->>>>>>> Stashed changes
     ## Games
     steam-run-native
     wineWowPackages.staging
@@ -91,24 +82,6 @@ in
     libtool
     libvterm
     jdk11
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
-    ((emacsPackagesFor emacsNativeComp).emacsWithPackages (epkgs: [
-      epkgs.vterm
-      epkgs.ac-ispell
-      epkgs.direnv
-      epkgs.lsp-pyright
-      epkgs.pylint
-      epkgs.w3m
-      epkgs.pandoc
-      mypkgs.nimPackages.puffer
-      mypkgs.nimPackages.nimsuggest
-      mypkgs.nodePackages.bash-language-server
-      mypkgs.roswell
-    ]))
-
     # Rice
     breeze-icons
     starship

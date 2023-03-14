@@ -91,3 +91,5 @@
 (package! flyspell-lazy :disable t)
 
 (package! bongo)
+
+(package! ytel :recipe (:type git :host github :repo "gRastello/ytel"))

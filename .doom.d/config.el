@@ -599,5 +599,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (midnight-delay-set 'midnight-delay "7:00am")
 
+(require 'ytel-mode)
+
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry nil)
