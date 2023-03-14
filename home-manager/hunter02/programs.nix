@@ -29,6 +29,7 @@ in
     pkgs.rlwrap
     pkgs.tor-browser-bundle-bin
     pkgs.brave
+    pkgs.cloc
   ];
   programs = {
       gpg = {
