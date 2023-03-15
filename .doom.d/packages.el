@@ -64,7 +64,11 @@
 
 (package! dash :recipe (:type git :host github :repo "magnars/dash.el"))
 
+(package! s :recipe (:type git :host github :repo "magnars/s.el"))
+
 (package! alert :recipe (:type git :host github :repo "jwiegley/alert"))
+
+(package! f)
 
 (package! emacs-async :recipe (:type git :host github :repo "jwiegley/emacs-async"))
 
@@ -75,6 +79,8 @@
 (package! msgpack.el :recipe (:type git :host github :repo "xuchunyang/msgpack.el"))
 
 (package! emacs-kv :recipe (:type git :host github :repo "nicferrier/emacs-kv"))
+
+(package! jeison)
 
 (package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
 
@@ -91,5 +97,3 @@
 (package! flyspell-lazy :disable t)
 
 (package! bongo)
-
-(package! ytel :recipe (:type git :host github :repo "gRastello/ytel"))

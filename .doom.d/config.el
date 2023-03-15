@@ -396,8 +396,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
           (goto-char (point-min))
           (time-stamp))))))
 
-
-
 (setq deft-extenstions '("txt", "org", "md"))
 (setq deft-directory "~/Documents/Notes")
 
@@ -598,8 +596,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (require 'midnight)
 
 (midnight-delay-set 'midnight-delay "7:00am")
-
-(require 'ytel-mode)
 
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry nil)

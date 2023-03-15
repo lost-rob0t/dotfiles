@@ -43,7 +43,6 @@ This might help for wm like qtile
 (setq frame-resize-pixelwise t)
 #+end_src
 
-Resize frames along the golden ratio
 ** Fonts
 Setting nerdfonts
 #+begin_src emacs-lisp
@@ -576,12 +575,8 @@ Keep my ideas seperated from my todos and give me a random idea from the file
           (time-stamp))))))
 
 #+end_src
-**** Get Tags from headlines :ai:
-#+begin_src emacs-lisp
 
-#+end_src
 
-***
 ** Deft
 Deft is used for notes. here im setting the default directory
 #+begin_src emacs-lisp
@@ -754,23 +749,6 @@ a better dired
    ("M-e" . dirvish-emerge-menu)
    ("M-j" . dirvish-fd-jump)))
 #+end_src
-** Libraries :lib::programming::lisp:
-*** f.el :lisp:
-Much inspired by @magnarss excellent s.el and dash.el, f.el is a modern API for working with files and directories in Emacs.
-#+begin_src emacs-lisp
-(require 'f)
-#+end_src
-*** dash.el :lisp:
-A modern list API for Emacs. No 'cl required.
-
-#+begin_src emacs-lisp
-(require 'dash)
-#+end_src
-*** s.el :lisp:
-The long lost Emacs string manipulation library.
-#+begin_src emacs-lisp
-(require 's)
-#+end_src
 
 * Programming
 
@@ -865,13 +843,6 @@ A Jump to definition package. [[https://github.com/jacktasia/dumb-jump][Github]]
 Enable the xref back-end.
 #+begin_src emacs-lisp
 (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
-#+end_src
-** Emacs Lisp
-
-Add my own elisp dir to the load-path
-#+begin_src emacs-lisp
-(let ((default-directory (f-expand "~/.doom.d/lisp")))
-  (normal-top-level))
 #+end_src
 
 * Misc
@@ -980,6 +951,7 @@ Set the time to 7 am local
 (midnight-delay-set 'midnight-delay "7:00am")
 #+end_src
 
+** Multi media
 * Security
 ** Auth info source
 Tell auth info to put authsource in my dotfiles

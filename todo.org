@@ -1,4 +1,9 @@
 * Inbox
+** TODO Improments [0/3]
++ [ ] make urls open to brave
++ [ ] A way to synce contacts from my phone
++ [ ] Load my own elisp
+[[file:~/.dotfiles/.doom.d/config.org::*inherit org][inherit org]]
 ** TODO Add more unit tests for more doc types
 ** TODO Add nicy prompt
 Nicy is a prompt written in nim
