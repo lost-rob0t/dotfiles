@@ -216,6 +216,12 @@ Required by emacs-db
 #+begin_src emacs-lisp
 (package! emacs-kv :recipe (:type git :host github :repo "nicferrier/emacs-kv"))
 #+end_src
+*** jeison
+Pasring json in a declraritive manner
+Personnaly i find in other languages like nim creating a type then marshalling json into it is the best way to deal with json IMO
+#+begin_src emacs-lisp
+(package! jeison)
+#+end_src
 ** Messaging
 *** ement
 a matrix client for emacs
