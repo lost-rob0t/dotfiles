@@ -772,7 +772,6 @@ The long lost Emacs string manipulation library.
 (require 's)
 #+end_src
 
-
 * Programming
 
 This section would not fit well, therefor it is in its own.
