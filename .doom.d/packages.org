@@ -169,12 +169,21 @@ A modern list API for Emacs. No 'cl required.
 #+begin_src emacs-lisp
 (package! dash :recipe (:type git :host github :repo "magnars/dash.el"))
 #+end_src
+*** s.el
+Long lost string manipulation lib.
+#+begin_src emacs-lisp
+(package! s :recipe (:type git :host github :repo "magnars/s.el"))
+#+end_src
 *** alert
 Send alerts
 #+begin_src emacs-lisp
 (package! alert :recipe (:type git :host github :repo "jwiegley/alert"))
 #+end_src
-
+*** f.el
+Modern api for files
+#+begin_src emacs-lisp
+(package! f)
+#+end_src
 *** Async
 Async.el is for doing async processing in emacs. I use it for hack-mode.el
 Looks likes its already in doom emacs...
@@ -258,4 +267,3 @@ Play music!
 #+begin_src emacs-lisp
 (package! bongo)
 #+end_src
-** Youtube
