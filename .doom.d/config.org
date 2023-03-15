@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 
-#+property: header-args :emacs-lisp tangle: ./config.el :results none
+#+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: showall
 #+disable_spellchecker: t
 #+begin_src emacs-lisp;; -*- lexical-binding: t -*-
@@ -44,10 +44,6 @@ This might help for wm like qtile
 #+end_src
 
 Resize frames along the golden ratio
-#+begin_src emacs-lisp
-;(require 'golden-ratio)
-;(golden-ratio-mode 1)
-#+end_src
 ** Fonts
 Setting nerdfonts
 #+begin_src emacs-lisp
@@ -985,7 +981,6 @@ Set the time to 7 am local
 (midnight-delay-set 'midnight-delay "7:00am")
 #+end_src
 
-** Multi media
 * Security
 ** Auth info source
 Tell auth info to put authsource in my dotfiles
