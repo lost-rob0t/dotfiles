@@ -26,10 +26,11 @@
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
   ####HOSTS#####
+  #### TODO Create a "global" config for all configurations to import
   networking.extraHosts =
   ''
+    10.50.50.5 search.goyim.fre
     10.50.50.25 lost-git.local
-    10.50.50.238 gitea.goyim.frei
     107.160.74.131 files.catbox.moe # may shutdown soon rip
   '';
   networking.useDHCP = false;
