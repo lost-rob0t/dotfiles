@@ -55,16 +55,6 @@ spice-vdagent &
 #starting user applications at boot time
 run volumeicon &
 run /home/unseen/.bin/graphics.sh &
-run
-#run discord &
-#nitrogen --restore &
-#run caffeine -a &
-#run vivaldi-stable &
 run firefox &
 run thunderbird &
-#run thunar &
-#run dropbox &
-#run insync start &
-#run spotify &
-#run atom &
-#run telegram-desktop &
+run bash /home/unseen/.dotfiles/.config/qtile/scripts/pinger.sh
