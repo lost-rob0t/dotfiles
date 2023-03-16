@@ -14,9 +14,6 @@
 
 (setq frame-resize-pixelwise t)
 
-;(require 'golden-ratio)
-;(golden-ratio-mode 1)
-
 (setq
  doom-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
  doom-big-font (font-spec :family "JetBrainsMono Nerd Font" :size 18)
@@ -66,7 +63,7 @@
       (insert "* " hd "\n")))
     (end-of-line))
 
-(setq  org-capture-templates (quote (("m" "Personal Meditations")
+(setq  org-capture-templates '(("m" "Personal Meditations")
                                      ("mm" "Meditations Moon" entry
                                       (file+olp+datetree "~/Documents/Notes/org/moon.org")
                                       "** Relections\n\n*** Acomplished\n\n*** Thoughts\n\n*** Happenings\n\n** Plans for next moon\n" :tree-type month)
@@ -94,7 +91,7 @@
                                      ("on" "Project notes" entry #'+org-capture-central-project-notes-file "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
                                      ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
                                      ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
-                                      "* IDEA %? %^g"))))
+                                      "* IDEA %? %^g")))
 
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
 ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))

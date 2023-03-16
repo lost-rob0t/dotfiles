@@ -2,7 +2,8 @@
 
 ;;; Package management
 
-;; Please don't load outdated byte code (setq load-prefer-newer t)
+;; Please don't load outdated byte code
+(setq load-prefer-newer t)
 
 (require 'package)
 (setq package-enable-at-startup nil)
