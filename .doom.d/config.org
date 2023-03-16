@@ -133,7 +133,7 @@ i just dont want private shit being in here...
 Here i override the capture templates, some intergrating into org roam
 #+begin_src emacs-lisp
 
-(setq  org-capture-templates (quote (("m" "Personal Meditations")
+(setq  org-capture-templates '(("m" "Personal Meditations")
                                      ("mm" "Meditations Moon" entry
                                       (file+olp+datetree "~/Documents/Notes/org/moon.org")
                                       "** Relections\n\n*** Acomplished\n\n*** Thoughts\n\n*** Happenings\n\n** Plans for next moon\n" :tree-type month)
@@ -161,7 +161,7 @@ Here i override the capture templates, some intergrating into org roam
                                      ("on" "Project notes" entry #'+org-capture-central-project-notes-file "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
                                      ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
                                      ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
-                                      "* IDEA %? %^g"))))
+                                      "* IDEA %? %^g")))
 
 #+end_src
 *** Org Agenda
