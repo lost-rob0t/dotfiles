@@ -1,6 +1,9 @@
 { config, lib, pkgs, ... }:
 
 {
+  imports = [
+    ./services.nix
+  ];
   programs.git = {
     enable = true;
     userName = "N545PY";
