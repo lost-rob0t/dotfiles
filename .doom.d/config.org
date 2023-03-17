@@ -1050,6 +1050,13 @@ Enable the xref back-end.
 (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
 #+end_src
 
+** Emacs Lisp
+
+Add my own elisp dir to the load-path
+#+begin_src emacs-lisp
+(let ((default-directory (f-expand "~/.dotfiles/lisp")))
+  (normal-top-level))
+#+end_src
 * Misc
 ** Performance
 Enable explain Pause mode
