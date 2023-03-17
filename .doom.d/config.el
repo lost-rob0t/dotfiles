@@ -20,6 +20,9 @@
  doom-variable-pitch-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
  doom-serif-font (font-spec :family "JetBrainsMono Nerd Font" :size 12))
 
+(add-to-list 'display-buffer-alist
+  (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
+
 (map! :leader
       :desc "Push Current branch to remote branch"
       "g p P" #'magit-push-current-to-pushremote)
@@ -503,15 +506,17 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
    ("M-e" . dirvish-emerge-menu)
    ("M-j" . dirvish-fd-jump)))
 
+(require 'f)
+
+(require 'dash)
+
+(require 's)
+
 (setq lsp-package-path (executable-find "pyright"))
 
 (envrc-global-mode)
 
-(map! :leader
-      :after nix
-      :map nix-mode-map
-      :prefix ("s" . "search")
-      :desc "search option" "n" #'helm-nixos-options)
+(add-to-list 'company-backends 'company-nixos-options)
 
 (require 'nix-update)
 (map! :localleader
@@ -545,6 +550,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
 
+(let ((default-directory (f-expand "~/.dotfiles/lisp")))
+  (normal-top-level))
+
 (explain-pause-mode nil)
 
 ;;(when (memq window-system '(mac ns x))
@@ -557,13 +565,18 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;))
 ;(setq elfeed-use-curl nil)
 
-(defun cht-sh ()
-  "look up a cheat"
-  (interactive)
-  (async-shell-command (format "cht.sh %s" (read-string "Enter search: "))))
+(defun open-popup-on-side-or-below (buffer &optional alist)
+  (+popup-display-buffer-stacked-side-window-fn
+   buffer (append `((side . ,(if (one-window-p)
+                                 'right
+                               'bottom)))
+                  alist)))
+
+(add-to-list 'display-buffer-alist
+  (cons "*cheat*" (cons #'open-popup-on-side-or-below nil)))
 (map! :leader
       :prefix ("s" . "search")
-      :desc "cheat sheat" "c" #'cht-sh)
+      :desc "cheat sheat" "c" #'cheat-sh)
 
 (setq bookmark-file "~/Documents/Emacs/bookmarks")
 

@@ -75,6 +75,9 @@ in
     };
   };
 };
+  geoclue2 = {
+    enable = true;
+  };
   fstrim = {
     enable = true;
   };

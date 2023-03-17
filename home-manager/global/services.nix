@@ -3,7 +3,8 @@
 {
   services = {
     redshift = {
-      enabled = true;
+      enable = true;
+      provider = "geoclue2";
     };
   };
 }
