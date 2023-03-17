@@ -55,6 +55,12 @@ Setting nerdfonts
  doom-variable-pitch-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
  doom-serif-font (font-spec :family "JetBrainsMono Nerd Font" :size 12))
 #+end_src
+
+** Hide async shell commands
+#+begin_src emacs-lisp
+(add-to-list 'display-buffer-alist
+  (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
+#+end_src
 * Packages
 ** init.el
 This section tangles the init file
@@ -989,14 +995,9 @@ Make life easy!
 
 ** Nix
 Nix is a language that allows for reproducible declarative systems/packages.
-
-Search nixos options so i don't have to go the website
+Add nixos-options to company backend
 #+begin_src emacs-lisp
-(map! :leader
-      :after nix
-      :map nix-mode-map
-      :prefix ("s" . "search")
-      :desc "search option" "n" #'helm-nixos-options)
+(add-to-list 'company-backends 'company-nixos-options)
 #+end_src
 
 Update the rev and sha of a fetchgit package
@@ -1102,13 +1103,20 @@ I use i2p and having elfeed use a proxy would be nice
 #+end_src
 ** Cheat-sh
 #+begin_src emacs-lisp
-(defun cht-sh ()
-  "look up a cheat"
-  (interactive)
-  (async-shell-command (format "cht.sh %s" (read-string "Enter search: "))))
+(defun open-popup-on-side-or-below (buffer &optional alist)
+  (+popup-display-buffer-stacked-side-window-fn
+   buffer (append `((side . ,(if (one-window-p)
+                                 'right
+                               'bottom)))
+                  alist)))
+
+(add-hook! 'temp-buffer-window-setup-hook
+           'open-popup-on-side-or-below
+
+           )
 (map! :leader
       :prefix ("s" . "search")
-      :desc "cheat sheat" "c" #'cht-sh)
+      :desc "cheat sheat" "c" #'cheat-sh)
 #+end_src
 
 
@@ -1187,3 +1195,7 @@ Tell auth info to put authsource in my dotfiles
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry nil)
 #+end_src
+
+* Footnotes
+
+[fn:1] https://www.reddit.com/r/emacs/comments/e7h3qw/comment/fa0k4c5
