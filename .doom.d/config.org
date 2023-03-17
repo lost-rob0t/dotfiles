@@ -954,7 +954,23 @@ a better dired
    ("M-e" . dirvish-emerge-menu)
    ("M-j" . dirvish-fd-jump)))
 #+end_src
+** Libraries :lib::programming::lisp:
+*** f.el :lisp:
+Much inspired by @magnarss excellent s.el and dash.el, f.el is a modern API for working with files and directories in Emacs.
+#+begin_src emacs-lisp
+(require 'f)
+#+end_src
+*** dash.el :lisp:
+A modern list API for Emacs. No 'cl required.
 
+#+begin_src emacs-lisp
+(require 'dash)
+#+end_src
+*** s.el :lisp:
+The long lost Emacs string manipulation library.
+#+begin_src emacs-lisp
+(require 's)
+#+end_src
 * Programming
 
 This section would not fit well, therefor it is in its own.
