@@ -1110,10 +1110,8 @@ I use i2p and having elfeed use a proxy would be nice
                                'bottom)))
                   alist)))
 
-(add-hook! 'temp-buffer-window-setup-hook
-           'open-popup-on-side-or-below
-
-           )
+(add-to-list 'display-buffer-alist
+  (cons "*cheat.sh*" (cons #'open-popup-on-side-or-below nil)))
 (map! :leader
       :prefix ("s" . "search")
       :desc "cheat sheat" "c" #'cheat-sh)
