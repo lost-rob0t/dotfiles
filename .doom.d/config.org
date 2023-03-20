@@ -61,7 +61,51 @@ Setting nerdfonts
 (add-to-list 'display-buffer-alist
   (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
 #+end_src
-* Packages
+* System config
+Here you will find desktop/system settings
+** Brave Setup
+My default Browser is brave, for one reason the user info-less sync.
+Why the fuck do i need to enter my email?
+This wasn't needed but maybe i want chromium for some reason?
+#+begin_src emacs-lisp
+(defvar browse-url-brave-program "brave")
+(defvar browse-url-brave-arguments nil)
+
+(defun browse-url-brave (url &optional _new-window)
+  "Ask the Brave browser to load URL.
+Default to the URL around or before point.  The strings in
+variable `browse-url-brave-arguments' are also passed to
+Brave.
+The optional argument NEW-WINDOW is not used."
+  (interactive (browse-url-interactive-arg "URL: "))
+  (setq url (browse-url-encode-url url))
+  (let* ((process-environment (browse-url-process-environment)))
+    (apply #'start-process
+	   (concat "brave" url) nil
+	   browse-url-brave-program
+	   (append
+	    browse-url-brave-arguments
+	    (list url)))))
+
+#+end_src
+
+
+** Default Browser
+My default Browser is brave, for one reason the emailess sync
+If you want to bitch about it, consider some rope
+
+Define a open in brave function
+
+#+begin_src emacs-lisp
+(setq
+ browse-url-browser-function
+ '(
+  ("wikipedia\\.org" . eww-browse-url)
+  ("github" . browse-url-brave)
+  ("." . browse-url-brave)
+  ))
+#+end_src
+* Package Config
 ** init.el
 This section tangles the init file
 #+begin_src emacs-lisp :tangle ./init.el
