@@ -38,7 +38,7 @@
       pkgs.python310
       pkgs.pylint
       pkgs.python310Packages.flake8
-
+      pkgs.emacsPackages.vterm
                          ];
 };
 }

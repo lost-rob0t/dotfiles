@@ -11,6 +11,10 @@
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
+    # Emacs Overlay
+    emacs-overlay.url  = "github:nix-community/emacs-overlay";
+
+
     # TODO: Add any other flake you might need
     # hardware.url = "github:nixos/nixos-hardware";
 
