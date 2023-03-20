@@ -1226,7 +1226,7 @@ require it
 #+end_src
 Set the time to 7 am local
 #+begin_src emacs-lisp
-(midnight-delay-set 'midnight-delay "7:00am")
+(midnight-delay-set 'midnight-delay "12:00am")
 #+end_src
 
 ** Multi media
