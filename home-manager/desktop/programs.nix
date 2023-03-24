@@ -59,6 +59,7 @@ in
     keepassxc
     # rice
     starship
+    emojione
   ];
   programs = {
       gpg = {
