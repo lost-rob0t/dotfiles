@@ -61,6 +61,7 @@ in
     starship
     emojione # wttr widget emojis
     noto-fonts-emoji
+    grc # colourize output
   ];
   programs = {
       gpg = {

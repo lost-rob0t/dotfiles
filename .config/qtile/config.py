@@ -349,7 +349,7 @@ def init_widgets_list():
             format =  '%t(%f) %c',
             location={f'@{myIp}': 'Home'},
             units = "u",
-            font = "Emoji One"
+            font = "all-the-icons"
         ),
         widget.Sep(
             linewidth = 1,
