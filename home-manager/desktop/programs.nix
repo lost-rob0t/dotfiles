@@ -59,7 +59,8 @@ in
     keepassxc
     # rice
     starship
-    emojione
+    emojione # wttr widget emojis
+    noto-fonts-emoji
   ];
   programs = {
       gpg = {

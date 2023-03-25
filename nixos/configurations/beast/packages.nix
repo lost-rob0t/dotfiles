@@ -27,6 +27,7 @@
           pkgs.nerdfonts
           pkgs.conky
           pkgs.emojione # wttr widget emojis
+          pkgs.noto-fonts-emoji
         ]);
       });
     })
