@@ -346,9 +346,10 @@ def init_widgets_list():
                       max_chars=60
                       ),
         widget.Wttr(
-            format =  '%t(%f)',
+            format =  '%t(%f) %c',
             location={f'@{myIp}': 'Home'},
             units = "u",
+            font = "Emoji One"
         ),
         widget.Sep(
             linewidth = 1,
