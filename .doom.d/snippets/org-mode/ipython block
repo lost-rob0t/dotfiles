@@ -2,6 +2,6 @@
 # name: ipython block
 # key: py
 # --
-#+BEGIN_SRC ein-python :session ${1:localhost}
+#+BEGIN_SRC python :session ${1:one} :results output replace
 $0
 #+END_SRC
