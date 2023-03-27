@@ -57,6 +57,9 @@ in
     mpv
     # Security
     keepassxc
+    hcxtools
+    hashcat-utils
+    hashcat
     # rice
     starship
     emojione # wttr widget emojis

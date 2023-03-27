@@ -12,6 +12,7 @@
      (eval require 'org-make-toc)))
  '(package-selected-packages
    '(xclip w3m vterm pylint pandoc lsp-pyright direnv use-package))
+ '(safe-local-variable-values '((eval require 'org-make-toc)))
  '(warning-suppress-types '((browse-url) (browse-url) (defvaralias))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

@@ -23,6 +23,33 @@
 (add-to-list 'display-buffer-alist
   (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
 
+(defvar browse-url-brave-program "brave")
+(defvar browse-url-brave-arguments nil)
+
+(defun browse-url-brave (url &optional _new-window)
+  "Ask the Brave browser to load URL.
+Default to the URL around or before point.  The strings in
+variable `browse-url-brave-arguments' are also passed to
+Brave.
+The optional argument NEW-WINDOW is not used."
+  (interactive (browse-url-interactive-arg "URL: "))
+  (setq url (browse-url-encode-url url))
+  (let* ((process-environment (browse-url-process-environment)))
+    (apply #'start-process
+	   (concat "brave" url) nil
+	   browse-url-brave-program
+	   (append
+	    browse-url-brave-arguments
+	    (list url)))))
+
+(setq
+ browse-url-browser-function
+ '(
+  ("wikipedia\\.org" . eww-browse-url)
+  ("github" . browse-url-brave)
+  ("." . browse-url-brave)
+  ))
+
 (map! :leader
       :desc "Push Current branch to remote branch"
       "g p P" #'magit-push-current-to-pushremote)
@@ -573,7 +600,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                   alist)))
 
 (add-to-list 'display-buffer-alist
-  (cons "*cheat*" (cons #'open-popup-on-side-or-below nil)))
+  (cons "*cheat.sh*" (cons #'open-popup-on-side-or-below nil)))
 (map! :leader
       :prefix ("s" . "search")
       :desc "cheat sheat" "c" #'cheat-sh)
@@ -605,7 +632,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (require 'midnight)
 
-(midnight-delay-set 'midnight-delay "7:00am")
+(midnight-delay-set 'midnight-delay "12:00am")
 
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry nil)
