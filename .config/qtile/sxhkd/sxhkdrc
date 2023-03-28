@@ -46,7 +46,7 @@ super + F8
 
 #Atom
 super + e
-    emacs
+    emacsclient --create-frame --alternate-editor=""
 
 #Browser
 super + w
