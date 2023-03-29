@@ -612,7 +612,8 @@ floating_layout = layout.Floating(float_rules=[
     Match(wm_class='archlinux-logout'),
     Match(wm_class='xfce4-terminal'),
     Match(title='floating'),
-    Match(title='Minecraft')
+    Match(title='Minecraft'),
+    Match(title='Emacs Everywhere')
 
 ],  fullscreen_border_width = 0, border_width = 0)
 

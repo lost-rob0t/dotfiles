@@ -48,6 +48,7 @@ super + e
     emacsclient --create-frame --alternate-editor=""
 super + z
     emacsclient --eval "(emacs-everywhere)"
+
 #Browser
 super + w
     brave
@@ -395,6 +396,3 @@ super + shift + x
 #super + control + Down
 ##################################
 
-# My stuff
-insert
-    emacsclient --eval "(emacs-everywhere)"
