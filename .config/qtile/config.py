@@ -657,7 +657,7 @@ groups.extend([ScratchPad("termpad", [
 
 keys.extend([Key([mod, "shift"], 'F1', lazy.group['browserPad'].dropdown_toggle('browser'))])
 keys.extend([Key([mod], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
-keys.extend([Key([mod], "F10", lazy.group['editorPad'].dropdown_toggle('emacs'))])
+keys.extend([Key([mod, "shift"], "E", lazy.group['editorPad'].dropdown_toggle('emacs'))])
 keys.extend([Key([mod], "F3", lazy.group['passwords'].dropdown_toggle('keepassxc'))])
 
 # Fix full screen games
