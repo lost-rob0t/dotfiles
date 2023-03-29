@@ -10,6 +10,7 @@ in
 {
   home.packages = with pkgs; [
     xdotool
+    xorg.xwininfo
     # TODO sort into categories
     vlc
     obs-studio

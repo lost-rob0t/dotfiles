@@ -43,11 +43,11 @@ super + F8
 #################################################################
 # SUPER + ... KEYS
 #################################################################
-
-#Atom
+# Emacs
 super + e
     emacsclient --create-frame --alternate-editor=""
-
+super + z
+    emacsclient --eval "(emacs-everywhere)"
 #Browser
 super + w
     brave
@@ -63,17 +63,7 @@ super + ctrl + c
 #super + h
 #    urxvt 'htop task manager' -e htop
 
-#archlinux-logout
-super + x
-    archlinux-logout
 
-#Rofi theme selector
-super + r
-    rofi-theme-selector
-
-#Urxvt
-super + t
-    urxvt
 
 #Pavucontrol
 super + v
@@ -91,10 +81,6 @@ super + Return
 super + Escape
     xkill
 
-#Keyboard dependent
-#alacritty
-super + KP_Enter
-	alacritty
 
 #################################################################
 # SUPER + SHIFT KEYS
@@ -109,7 +95,7 @@ super + shift + Return
 #super + shift + KP_Enter
 #	thunar
 
-#dmenu
+#j4-dmenu
 super + d
 	j4-dmenu-desktop
 #reload sxhkd:
@@ -125,13 +111,7 @@ super + shift + s
 # CONTROL + ALT KEYS
 #################################################################
 
-#arcolinux-welcome-app
-ctrl + alt + w
-     arcolinux-welcome-app
 
-#archlinux-tweak-tool
-ctrl + alt + e
-    archlinux-tweak-tool
 
 #conky-rotate
 ctrl + alt + Next
@@ -141,75 +121,12 @@ ctrl + alt + Next
 ctrl + alt + Prior
     conky-rotate -p
 
-#File-Manager
 ctrl + alt + b
      thunar
 
 #Catfish
 ctrl + alt + c
      catfish
-
-#Chromium
-ctrl + alt + g
-    chromium -no-default-browser-check
-
-#Firefox
-ctrl + alt + f
-     firefox
-
-#Nitrogen
-ctrl + alt + i
-     nitrogen
-
-#archlinux-logout
-ctrl + alt + k
-     archlinux-logout
-
-#archlinux-logout
-ctrl + alt + l
-    archlinux-logout
-
-#Pamac-manager
-ctrl + alt + p
-    pamac-manager
-
-#Xfce4-settings-manager
-ctrl + alt + m
-     xfce4-settings-manager
-
-#Pulse Audio Control
-ctrl + alt + u
-     pavucontrol
-
-#Rofi theme selector
-ctrl + alt + r
-  rofi-theme-selector
-
-#Spotify
-ctrl + alt + s
-   spotify
-
-#alacritty
-ctrl + alt + Return
-    alacritty
-
-#alacritty
-ctrl + alt + t
-    alacritty
-
-#Vivaldi
-ctrl + alt + v
-    vivaldi-stable
-
-#Xfce4-appfinder
-ctrl + alt + a
-    xfce4-appfinder
-
-
-#Keyboard dependent
-#alacritty
-#ctrl + alt + KP_Enter
-#     alacritty
 
 
 #################################################################
@@ -247,15 +164,6 @@ alt + Up
 #Wallpaper resume
 alt + Down
     variety --resume
-
-#Xfce4-appfinder
-alt + F2
-    xfce4-appfinder --collapsed
-
-#Xfce4-appfinder
-alt + F3
-    xfce4-appfinder
-
 
 #################################################################
 #VARIETY KEYS WITH PYWAL
@@ -296,7 +204,7 @@ ctrl + shift + Escape
 
 #Scrot
 Print
-    scrot 'ArcoLinux-%Y-%m-%d-%s_screenshot_$wx$h.jpg' -e 'mv $f $$(xdg-user-dir PICTURES)'
+    scrot '%Y-%m-%d-%s_screenshot_$wx$h.jpg' -e 'mv $f $$(xdg-user-dir PICTURES)'
 
 #screeenshooter
 ctrl + Print
