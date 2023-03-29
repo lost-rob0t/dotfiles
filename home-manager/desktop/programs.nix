@@ -9,6 +9,7 @@ let
 in
 {
   home.packages = with pkgs; [
+    xdotool
     # TODO sort into categories
     vlc
     obs-studio
