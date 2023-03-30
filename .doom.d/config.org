@@ -1004,6 +1004,17 @@ a better dired
    ("M-e" . dirvish-emerge-menu)
    ("M-j" . dirvish-fd-jump)))
 #+end_src
+
+
+** Atomic Chrome/Firefox
+Edit text areas in your web browser within emacs!
+
+I want it to open a new frame
+#+begin_src emacs-lisp
+(setq atomic-chrome-buffer-open-style 'frame)
+#+end_src
+
+
 ** Libraries :lib::programming::lisp:
 *** f.el :lisp:
 Much inspired by @magnarss excellent s.el and dash.el, f.el is a modern API for working with files and directories in Emacs.

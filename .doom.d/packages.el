@@ -59,6 +59,8 @@
 
 (package! discover :recipe (:type git :host github :repo "mickeynp/discover.el"))
 
+(package! atomic-chrome)
+
 (package! plz :recipe (:type git :host github :repo "alphapapa/plz.el"))
 
 (package! ts :recipe (:type git :host github :repo "alphapapa/ts.el"))

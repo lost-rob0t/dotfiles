@@ -152,7 +152,15 @@ Find more of emacs using context menus
 #+begin_src emacs-lisp
 (package! discover :recipe (:type git :host github :repo "mickeynp/discover.el"))
 #+end_src
+*** atomic-chrome
+This is the Emacs version of Atomic Chrome which is an extension for Google
+Chrome browser that allows you to edit text areas of the browser in Emacs.
 
+It's similar to Edit with Emacs, but has some advantages as below with the
+help of websocket.
+#+begin_src emacs-lisp
+(package! atomic-chrome)
+#+end_src
 ** Lib packages
 *** plz
 plz is an HTTP library for Emacs. It uses curl as a backend, which avoids some of the issues with using Emacs’s built-in url library.

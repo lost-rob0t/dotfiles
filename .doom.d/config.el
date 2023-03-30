@@ -533,6 +533,15 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
    ("M-e" . dirvish-emerge-menu)
    ("M-j" . dirvish-fd-jump)))
 
+(setq atomic-chrome-buffer-open-style 'frame)
+
+(defun nsaspy/atomic-frame-hook ()
+  "Setup the atomic-crome frame for my window manager."
+  (set-frame-parameter name "floating")
+  )
+
+
+
 (require 'f)
 
 (require 'dash)

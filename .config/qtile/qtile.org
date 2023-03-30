@@ -1,3 +1,15 @@
+#+title: Qtile Configuration
+#+property: header-args :python tangle: ./config.py :results none
+* Qtile Configuration
+This is my qtile config. Written in org-mode then the code blocks are tangled to ~config.py~.
+See https://orgmode.org/ for more info on orgmode.
+** config
+*** Imports
+Here are the imports Needed for qtile.
+
+~ip~ is a widget to get your external ip, and can be used to show the ip address on your computer
+
+#+BEGIN_SRC python :tangle ./config.py
 import os
 import re
 import socket
@@ -11,7 +23,13 @@ from libqtile.widget import Spacer
 #from qtile_widgets import ip
 import ip
 from libqtile.log_utils import logger
+#+END_SRC
 
+*** Initial setup
+Here is where i define some global values and modifier keys.
+
+~myTerm~ is the default terminal emulator to use, I like terminator.
+#+BEGIN_SRC python :tangle ./config.py
 mod = "mod4"
 mod1 = "alt"
 mod2 = "control"
@@ -20,7 +38,11 @@ myIp = ip.publicIp()
 myTerm = "terminator"
 wmname = "qtile"
 groups = []
+#+END_SRC
 
+*** Colors
+My Colors are based on the ~Doom Electric outrun theme~
+#+begin_src python :tangle ./config.py
 def init_colors():
     return [["#170c32", "#170c32"], # color 0
             ["#202146", "#202146"], # color 1
@@ -35,7 +57,12 @@ def init_colors():
 
 
 colors = init_colors()
+#+end_src
 
+*** AutoStart
+Many TWM needs programs started at login, which can be used to open your browser, start services.
+
+#+begin_src python :tangle ./config.py
 @hook.subscribe.startup_once
 def start_once():
     home = os.path.expanduser('~')
@@ -46,6 +73,13 @@ def start_always():
     # Set the cursor to something sane in X
     subprocess.Popen(['xsetroot', '-cursor_name', 'left_ptr'])
 
+
+#+end_src
+*** KeyBinds
+
+Some of my keys are bound in sxhkd, until I move them here.
+
+#+begin_src python :tangle ./config.py
 keys = [
     Key([mod], "f", lazy.window.toggle_fullscreen()),
     Key([mod], "q", lazy.window.kill()),
@@ -122,6 +156,10 @@ keys = [
     Key([mod, "shift"], "space", lazy.window.toggle_floating()),
     ]
 
+#+end_src
+
+Key binds to switch and move windows/groups
+#+begin_src python :tangle ./config.py
 for i in groups:
     keys.extend([
         Key([mod], i.name, lazy.group[i.name].toscreen()),
@@ -131,11 +169,22 @@ for i in groups:
         Key(["mod1", "shift"], "Tab", lazy.screen.prev_group()),
         Key([mod, "shift"], i.name, lazy.window.togroup(i.name) , lazy.group[i.name].toscreen()),
     ])
+#+end_src
 
+
+*** Groups
+Groups are basically workspaces and how you have multiple "windows" per screen
+
+Define the groups
+#+begin_src python :tangle ./config.py
 group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
 group_labels = ["爵", "", "", "", "", "", "", "", "", "",]
 group_layouts = ["max", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
+#+end_src
 
+
+Setup the groups
+#+begin_src python :tangle ./config.py
 for i in range(len(group_names)):
     groups.append(
         Group(
@@ -143,7 +192,18 @@ for i in range(len(group_names)):
             layout=group_layouts[i].lower(),
             label=group_labels[i],
         ))
+#+end_src
 
+**** Drop Downs and scratch pads
+I make heavy use of scratch and drop down tables to run floating emacs or use the terminal
+
+Currently I have 4 difrent scratchpads for difrent tasks
++ Terminal that is at the top of the screem
++ A Firefox window (Might move it to brave)
++ Emacs Client Frame
++ Keepassxc
+Keepassxc is directly in the qtile environment so there is no reason you should not use it.
+#+begin_src python :tangle ./config.py
 groups.extend([ScratchPad("termpad", [
     DropDown("term",
              myTerm)]),
@@ -180,10 +240,20 @@ groups.extend([ScratchPad("termpad", [
     ]),
                ])
 
+
+#+end_src
+
+Keybinds for drop downs
+#+begin_src python :tangle ./config.py
 keys.extend([Key([mod, "shift"], 'F1', lazy.group['browserPad'].dropdown_toggle('browser'))])
 keys.extend([Key([mod], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
 keys.extend([Key([mod, "shift"], "E", lazy.group['editorPad'].dropdown_toggle('emacs'))])
 keys.extend([Key([mod], "F3", lazy.group['passwords'].dropdown_toggle('keepassxc'))])
+
+
+#+end_src
+*** Layouts
+#+begin_src python :tangle ./config.py
 
 def init_layout_theme():
     return {"margin":5,
@@ -203,7 +273,12 @@ layouts = [
     layout.RatioTile(**layout_theme),
     layout.Max(**layout_theme)
 ]
+#+end_src
 
+
+*
+*** Move Programs to window groups
+#+begin_src python :tangle ./config.py
 @hook.subscribe.client_new
 def assign_app_group(client):
      d = {}
@@ -237,7 +312,10 @@ def assign_app_group(client):
 
 
 main = None
-
+#+end_src
+*** Window Functions
+Move windows to prev/next groups
+#+begin_src python :tangle ./config.py
 @lazy.function
 def window_to_prev_group(qtile):
     if qtile.currentWindow is not None:
@@ -249,7 +327,12 @@ def window_to_next_group(qtile):
     if qtile.currentWindow is not None:
         i = qtile.groups.index(qtile.currentGroup)
         qtile.currentWindow.togroup(qtile.groups[i + 1].name)
+#+end_src
 
+
+Move windows to prev/next screen.
+
+#+begin_src python :tangle ./config.py
 def window_to_previous_screen(qtile, switch_group=False, switch_screen=False):
     i = qtile.screens.index(qtile.current_screen)
     if i != 0:
@@ -265,22 +348,37 @@ def window_to_next_screen(qtile, switch_group=False, switch_screen=False):
         qtile.current_window.togroup(group, switch_group=switch_group)
         if switch_screen == True:
             qtile.cmd_to_screen(i + 1)
+#+end_src
 
+Add key binds to move window to screens
+
+#+begin_src python :tangle ./config.py
 keys.extend([
     # MOVE WINDOW TO NEXT SCREEN
     Key([mod,"shift"], "Right", lazy.function(window_to_next_screen, switch_screen=True)),
     Key([mod,"shift"], "Left", lazy.function(window_to_previous_screen, switch_screen=True)),
 ])
-
+#+end_src
+**** Screen behaviour
+I dont want auto fullscren
+Activate with "smart"
+Auto minimize helps with games
+#+begin_src python :tangle ./config.py
 auto_fullscreen = False # I dont want it "full screen"
 focus_on_window_activation = "smart"
 reconfigure_screens = True
 auto_minimize = False
+#+end_src
 
+Mouse related stuff
+#+begin_src python :tangle ./config.py
 follow_mouse_focus = True
 bring_front_click = False
 cursor_warp = True # Keep mouse inside game window!
-
+#+end_src
+cursor warp might helpt with games
+*** Widgets
+#+begin_src python :tangle ./config.py
 def init_widgets_defaults():
     return dict(font="Hack Regular Nerd Font Complete",
                 fontsize = 12,
@@ -497,6 +595,10 @@ def init_widgets_list():
     return widgets_list
 
 widgets_list = init_widgets_list()
+#+end_src
+
+Widgets per screen setup
+#+begin_src python :tangle ./config.py
 
 widgets_list = init_widgets_list()
 
@@ -524,6 +626,14 @@ def init_screens():
             Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=26, opacity=0.8))]
 screens = init_screens()
 
+
+#+end_src
+
+*** Mouse Config
+Super+Left click to make a window float
+Super+Right Click to resize a window
+
+#+begin_src python :tangle ./config.py
 mouse = [
     Drag([mod], "Button1", lazy.window.set_position_floating(),
          start=lazy.window.get_position()),
@@ -531,12 +641,26 @@ mouse = [
          start=lazy.window.get_size())
 ]
 
+
+#+end_src
+
+*** Floating Windows
+
+Hook New windows and match them to floating if needed
+
+#+begin_src python :tangle ./config.py
 @hook.subscribe.client_new
 def set_floating(window):
     if (window.window.get_wm_transient_for()
             or window.window.get_wm_type() in floating_types):
         window.floating = True
+#+end_src
 
+**** Float Rules
+You can match a wm_name, wm_class and make it float.
+the "floating" is how i make emacs float.
+
+#+begin_src python :tangle ./config.py
 floating_layout = layout.Floating(float_rules=[
     # Run the utility of `xprop` to see the wm class and name of an X client.
     *layout.Floating.default_float_rules,
@@ -567,3 +691,6 @@ floating_layout = layout.Floating(float_rules=[
     Match(title='Atomic Chrome')
 
 ],  fullscreen_border_width = 0, border_width = 0)
+
+
+#+end_src
