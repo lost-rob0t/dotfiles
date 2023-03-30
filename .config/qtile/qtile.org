@@ -75,6 +75,31 @@ def start_always():
 
 
 #+end_src
+
+
+*** Groups
+Groups are basically workspaces and how you have multiple "windows" per screen
+
+Define the groups
+#+begin_src python :tangle ./config.py
+group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
+group_labels = ["爵", "", "", "", "", "", "", "", "", "",]
+group_layouts = ["max", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
+#+end_src
+
+
+Setup the groups
+#+begin_src python :tangle ./config.py
+for i in range(len(group_names)):
+    groups.append(
+        Group(
+            name=group_names[i],
+            layout=group_layouts[i].lower(),
+            label=group_labels[i],
+        ))
+#+end_src
+
+
 *** KeyBinds
 
 Some of my keys are bound in sxhkd, until I move them here.
@@ -172,29 +197,7 @@ for i in groups:
 #+end_src
 
 
-*** Groups
-Groups are basically workspaces and how you have multiple "windows" per screen
-
-Define the groups
-#+begin_src python :tangle ./config.py
-group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
-group_labels = ["爵", "", "", "", "", "", "", "", "", "",]
-group_layouts = ["max", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
-#+end_src
-
-
-Setup the groups
-#+begin_src python :tangle ./config.py
-for i in range(len(group_names)):
-    groups.append(
-        Group(
-            name=group_names[i],
-            layout=group_layouts[i].lower(),
-            label=group_labels[i],
-        ))
-#+end_src
-
-**** Drop Downs and scratch pads
+*** Drop Downs and scratch pads
 I make heavy use of scratch and drop down tables to run floating emacs or use the terminal
 
 Currently I have 4 difrent scratchpads for difrent tasks
@@ -276,7 +279,6 @@ layouts = [
 #+end_src
 
 
-*
 *** Move Programs to window groups
 #+begin_src python :tangle ./config.py
 @hook.subscribe.client_new
