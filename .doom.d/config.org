@@ -477,7 +477,8 @@ I prefer being able to have different views within org agenda, so i can see what
         (:and (:todo "IDEA" :name "Starintel Idea" :tag ("starintel" "sit")) :name "Starintel ideas")
         (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")) :name "Star intel Bugs")
         (:and (:todo "TODO" :name "Starintel" :tag ("starintel")) :name "Star Intel")
-        (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash" "personal")) :name "Personal")
+        (:and (:todo "TODO" :name "Personal" :tag ("personal")) :name "Personal")
+        (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "Habits")
         (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
         (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading")))
 #+end_src
