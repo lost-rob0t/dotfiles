@@ -39,9 +39,14 @@
       pkgs.pylint
       pkgs.python310Packages.flake8
       pkgs.emacsPackages.vterm
+
+      # Pwnagotchi.el
       pkgs.hcxtools
       pkgs.hashcat-utils
       pkgs.hashcat
+
+      # Notifications
+      pkgs.libnotify
                          ];
 };
 }

@@ -231,6 +231,13 @@ Personnaly i find in other languages like nim creating a type then marshalling j
 #+begin_src emacs-lisp
 (package! jeison)
 #+end_src
+
+
+*** alert
+Alert is a Growl-workalike for Emacs which uses a common notification interface and multiple, selectable "styles", whose use is fully customizable by the user.
+#+begin_src emacs-lisp
+(package! alert)
+#+end_src
 ** Messaging
 *** ement
 a matrix client for emacs
