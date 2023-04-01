@@ -1033,6 +1033,30 @@ The long lost Emacs string manipulation library.
 #+begin_src emacs-lisp
 (require 's)
 #+end_src
+
+*** alert
+Send Alerts from emacs
+#+begin_src emacs-lisp
+(require 'alert)
+(setq alert-default-style 'alert-libnotify-notify)
+#+end_src
+
+I use dunst as my notification system, here is a config to
+#+begin_src emacs-lisp
+(use-package! org-timed-alerts
+  :after (org)
+  :config
+  (setq org-timed-alerts-alert-function #'alert-libnotify-notify)
+  (setq org-timed-alerts-tag-exclusions nil)
+  (setq org-timed-alerts-default-alert-props nil)
+  (setq org-timed-alerts-warning-times '(-10 -5))
+  (setq org-timed-alerts-agenda-hook-p t)
+  (setq org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline")
+  (setq org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
+                                          "it is now %current-time\n "
+                                          "*THIS IS YOUR %warning-time MINUTE WARNING*"))
+  (add-hook! 'org-mode-hook #'org-timed-alerts-mode))
+#+end_src
 * Programming
 
 This section would not fit well, therefor it is in its own.
