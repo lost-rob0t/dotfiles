@@ -1273,6 +1273,14 @@ Tell auth info to put authsource in my dotfiles
       auth-source-cache-expiry nil)
 #+end_src
 
+
+
+* Personal Lisp packages
+** Ppackage
+Simple utility to create local lisp code
+#+begin_src emacs-lisp
+(setq ppackage-template "~/.dotfiles/lisp/template")
+#+end_src
 * Footnotes
 
 [fn:1] https://www.reddit.com/r/emacs/comments/e7h3qw/comment/fa0k4c5
