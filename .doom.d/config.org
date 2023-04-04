@@ -6,6 +6,11 @@
 #+disable_spellchecker: t
 #+begin_src emacs-lisp;; -*- lexical-binding: t -*-
 #+end_src
+Load my Personal elisp
+#+begin_src emacs-lisp
+(dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
+  (load file))
+#+end_src
 * About
 This is my personal doom emacs config, you can find package related stuff in packages.org
 yasnippets are in snippets
@@ -383,8 +388,6 @@ Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][sourc
     (end-of-line))
 #+end_src
 **** Org Capture Templates
-i just dont want private shit being in here...
-
 Here i override the capture templates, some intergrating into org roam
 #+begin_src emacs-lisp
 
@@ -1036,9 +1039,12 @@ The long lost Emacs string manipulation library.
 
 *** alert
 Send Alerts from emacs
+
+You must set the command, it is nil be default
 #+begin_src emacs-lisp
 (require 'alert)
-(setq alert-default-style 'alert-libnotify-notify)
+(setq alert-default-style 'libnotify)
+(setq alert-libnotify-command "dunstify")
 #+end_src
 
 I use dunst as my notification system, here is a config to
@@ -1147,13 +1153,6 @@ Enable the xref back-end.
 (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
 #+end_src
 
-** Emacs Lisp
-
-Add my own elisp dir to the load-path
-#+begin_src emacs-lisp
-(let ((default-directory (f-expand "~/.dotfiles/lisp")))
-  (normal-top-level))
-#+end_src
 * Misc
 ** Performance
 Enable explain Pause mode

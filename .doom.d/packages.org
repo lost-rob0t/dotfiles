@@ -161,6 +161,12 @@ help of websocket.
 #+begin_src emacs-lisp
 (package! atomic-chrome)
 #+end_src
+
+*** noaa
+Get weather from the government
+#+begin_src emacs-lisp :tangle yes
+(package! noaa :recipe (:type git :host github :repo "thomp/noaa"))
+#+end_src
 ** Lib packages
 *** plz
 plz is an HTTP library for Emacs. It uses curl as a backend, which avoids some of the issues with using Emacs’s built-in url library.
