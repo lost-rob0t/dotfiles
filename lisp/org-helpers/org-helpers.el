@@ -1,6 +1,5 @@
 ;;; ../.dotfiles/.doom.d/lisp/org-helpers.el -*- lexical-binding: t; -*-
-(require 'org
-
+(require 'org)
  (defun get-org-tags ()
     "Get all tags from org headlines in the current buffer and append them to the top of the file under the #+filetags: line."
     (interactive)
@@ -21,4 +20,4 @@
               (insert "#+filetags: " (mapconcat 'identity tags " ")))
           (progn
             (goto-char (point-min))
-            (insert "#+filetags: " (mapconcat 'identity tags " "))))))))
+            (insert "#+filetags: " (mapconcat 'identity tags " ")))))))

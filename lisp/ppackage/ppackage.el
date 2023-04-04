@@ -1,4 +1,4 @@
-;;; ppackage.el --- Simple utility to create local lisp packages for emacs -*- lexical-binding: t; -*-
+;; ppackage.el --- Simple utility to create local lisp packages for emacs -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2023
 ;;
