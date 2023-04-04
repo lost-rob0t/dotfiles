@@ -23,6 +23,8 @@
 
 (package! org-timed-alerts :recipe (:type git :host github :repo "legalnonsense/org-timed-alerts"))
 
+(package! org-alert)
+
 (package! org-download :recipe (:type git :host github :repo "abo-abo/org-download"))
 
 (package! org-wiki :recipe (:type git :host github :repo "caiorss/org-wiki"))
@@ -61,6 +63,8 @@
 
 (package! atomic-chrome)
 
+(package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
+
 (package! plz :recipe (:type git :host github :repo "alphapapa/plz.el"))
 
 (package! ts :recipe (:type git :host github :repo "alphapapa/ts.el"))
@@ -84,6 +88,8 @@
 (package! emacs-kv :recipe (:type git :host github :repo "nicferrier/emacs-kv"))
 
 (package! jeison)
+
+(package! org-contrib)
 
 (package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
 

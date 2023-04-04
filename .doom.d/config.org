@@ -6,11 +6,7 @@
 #+disable_spellchecker: t
 #+begin_src emacs-lisp;; -*- lexical-binding: t -*-
 #+end_src
-Load my Personal elisp
-#+begin_src emacs-lisp
-(dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
-  (load file))
-#+end_src
+
 * About
 This is my personal doom emacs config, you can find package related stuff in packages.org
 yasnippets are in snippets
@@ -33,6 +29,13 @@ Stuff to determin os and apply settings to fit that system
   (with-temp-buffer
     (insert-file-contents path)
     (buffer-string)))
+#+end_src
+
+
+Load my Personal elisp
+#+begin_src emacs-lisp
+(dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
+  (load file))
 #+end_src
 * Styling
 ** Theme
@@ -1063,6 +1066,8 @@ I use dunst as my notification system, here is a config to
                                           "*THIS IS YOUR %warning-time MINUTE WARNING*"))
   (add-hook! 'org-mode-hook #'org-timed-alerts-mode))
 #+end_src
+
+
 * Programming
 
 This section would not fit well, therefor it is in its own.

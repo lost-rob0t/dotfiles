@@ -46,6 +46,13 @@ Receive warnings and alerts via alert.el for upcoming events in your day.
 (package! org-timed-alerts :recipe (:type git :host github :repo "legalnonsense/org-timed-alerts"))
 #+end_src
 
+*** org-alert
+Provides notifications for scheduled or deadlined agenda entries.
+#+begin_src emacs-lisp
+(package! org-alert)
+#+end_src
+
+
 *** org-download
 This extension facilitates moving images from point A to point B.
 
@@ -165,7 +172,7 @@ help of websocket.
 *** noaa
 Get weather from the government
 #+begin_src emacs-lisp :tangle yes
-(package! noaa :recipe (:type git :host github :repo "thomp/noaa"))
+(package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
 #+end_src
 ** Lib packages
 *** plz
@@ -199,6 +206,7 @@ Modern api for files
 #+begin_src emacs-lisp
 (package! f)
 #+end_src
+
 *** Async
 Async.el is for doing async processing in emacs. I use it for hack-mode.el
 Looks likes its already in doom emacs...
@@ -237,13 +245,14 @@ Personnaly i find in other languages like nim creating a type then marshalling j
 #+begin_src emacs-lisp
 (package! jeison)
 #+end_src
+*** org-contrib
 
-
-*** alert
-Alert is a Growl-workalike for Emacs which uses a common notification interface and multiple, selectable "styles", whose use is fully customizable by the user.
 #+begin_src emacs-lisp
-(package! org-plus-contrib)
+(package! org-contrib)
 #+end_src
+
+
+
 ** Messaging
 *** ement
 a matrix client for emacs

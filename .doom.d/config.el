@@ -8,6 +8,9 @@
     (insert-file-contents path)
     (buffer-string)))
 
+(dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
+  (load file))
+
 (setq doom-theme 'doom-outrun-electric)
 
 (setq display-line-numbers-type t)
@@ -165,7 +168,8 @@ The optional argument NEW-WINDOW is not used."
         (:and (:todo "IDEA" :name "Starintel Idea" :tag ("starintel" "sit")) :name "Starintel ideas")
         (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")) :name "Star intel Bugs")
         (:and (:todo "TODO" :name "Starintel" :tag ("starintel")) :name "Star Intel")
-        (:and (:todo "TODO" :name "Personal" :tag ("mow" "trash" "personal")) :name "Personal")
+        (:and (:todo "TODO" :name "Personal" :tag ("personal")) :name "Personal")
+        (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "Habits")
         (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
         (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading")))
 
@@ -535,18 +539,29 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (setq atomic-chrome-buffer-open-style 'frame)
 
-(defun nsaspy/atomic-frame-hook ()
-  "Setup the atomic-crome frame for my window manager."
-  (set-frame-parameter name "floating")
-  )
-
-
-
 (require 'f)
 
 (require 'dash)
 
 (require 's)
+
+(require 'alert)
+(setq alert-default-style 'libnotify)
+(setq alert-libnotify-command "dunstify")
+
+(use-package! org-timed-alerts
+  :after (org)
+  :config
+  (setq org-timed-alerts-alert-function #'alert-libnotify-notify)
+  (setq org-timed-alerts-tag-exclusions nil)
+  (setq org-timed-alerts-default-alert-props nil)
+  (setq org-timed-alerts-warning-times '(-10 -5))
+  (setq org-timed-alerts-agenda-hook-p t)
+  (setq org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline")
+  (setq org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
+                                          "it is now %current-time\n "
+                                          "*THIS IS YOUR %warning-time MINUTE WARNING*"))
+  (add-hook! 'org-mode-hook #'org-timed-alerts-mode))
 
 (setq lsp-package-path (executable-find "pyright"))
 
@@ -585,9 +600,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   :config (flycheck-package-setup))
 
 (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
-
-(let ((default-directory (f-expand "~/.dotfiles/lisp")))
-  (normal-top-level))
 
 (explain-pause-mode nil)
 
