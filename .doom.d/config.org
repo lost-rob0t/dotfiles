@@ -1280,6 +1280,7 @@ Tell auth info to put authsource in my dotfiles
 Simple utility to create local lisp code
 #+begin_src emacs-lisp
 (setq ppackage-template "~/.dotfiles/lisp/template")
+(setq ppackage-path "~/.dotfiles/lisp")
 #+end_src
 * Footnotes
 
