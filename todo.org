@@ -1,4 +1,7 @@
 * Inbox
+** TODO Fix js backend support
+
+[[file:~/Documents/Projects/starintel/doc/tests]]
 ** TODO Improments [0/3]
 + [ ] make urls open to brave
 + [ ] A way to synce contacts from my phone

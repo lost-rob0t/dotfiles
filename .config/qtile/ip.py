@@ -4,7 +4,7 @@ import os
 import json
 from libqtile.widget import base
 from libqtile.log_utils import logger
-
+import requests as r
 try:
     import requests as r
 except ImportError:
@@ -39,6 +39,7 @@ def publicIp():
         return "Error Getting IP"
     except r.TimeoutError:
         return "Timeout getting IP"
+
 class IpWidget(base.ThreadPoolText):
     defaults = [
         ("update_interval", 10),

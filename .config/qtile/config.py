@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 import re
 import socket
@@ -9,14 +10,14 @@ from libqtile.config import ScratchPad, DropDown
 from libqtile.command import lazy
 from libqtile.widget import Spacer
 #from qtile_widgets import ip
-import ip
 from libqtile.log_utils import logger
 
 mod = "mod4"
 mod1 = "alt"
 mod2 = "control"
 home = os.path.expanduser('~')
-myIp = ip.publicIp()
+#myIp = ip.publicIp()
+myIp = "127.0.0.1"
 myTerm = "terminator"
 wmname = "qtile"
 groups = []
@@ -189,7 +190,7 @@ def init_layout_theme():
     return {"margin":5,
             "border_width":2,
             "border_focus": colors[2],
-            "border_normal": colors[0]
+            "border_normal": colors[1]
             }
 layout_theme = init_layout_theme()
 layouts = [
