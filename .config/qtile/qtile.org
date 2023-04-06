@@ -263,6 +263,7 @@ keys.extend([Key([mod, "shift"], 'F1', lazy.group['browserPad'].dropdown_toggle(
 keys.extend([Key([mod], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
 keys.extend([Key([mod, "shift"], "E", lazy.group['editorPad'].dropdown_toggle('emacs'))])
 keys.extend([Key([mod], "F3", lazy.group['passwords'].dropdown_toggle('keepassxc'))])
+keys.extend([Key([mod], "x", lazy.group['editorPad'].dropdown_toggle('org-capture'))])
 
 
 #+end_src
