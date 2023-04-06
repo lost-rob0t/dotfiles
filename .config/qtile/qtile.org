@@ -21,8 +21,8 @@ from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule
 from libqtile.config import ScratchPad, DropDown
 from libqtile.command import lazy
 from libqtile.widget import Spacer
-#from qtile_widgets import ip
 from libqtile.log_utils import logger
+import ip
 #+END_SRC
 
 *** Initial setup
@@ -34,8 +34,8 @@ mod = "mod4"
 mod1 = "alt"
 mod2 = "control"
 home = os.path.expanduser('~')
-#myIp = ip.publicIp()
-myIp = "127.0.0.1"
+myIp = ip.publicIp()
+#myIp = "127.0.0.1"
 myTerm = "terminator"
 wmname = "qtile"
 groups = []

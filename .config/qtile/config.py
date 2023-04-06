@@ -9,15 +9,15 @@ from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule
 from libqtile.config import ScratchPad, DropDown
 from libqtile.command import lazy
 from libqtile.widget import Spacer
-#from qtile_widgets import ip
 from libqtile.log_utils import logger
+import ip
 
 mod = "mod4"
 mod1 = "alt"
 mod2 = "control"
 home = os.path.expanduser('~')
-#myIp = ip.publicIp()
-myIp = "127.0.0.1"
+myIp = ip.publicIp()
+#myIp = "127.0.0.1"
 myTerm = "terminator"
 wmname = "qtile"
 groups = []
@@ -195,6 +195,7 @@ keys.extend([Key([mod, "shift"], 'F1', lazy.group['browserPad'].dropdown_toggle(
 keys.extend([Key([mod], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
 keys.extend([Key([mod, "shift"], "E", lazy.group['editorPad'].dropdown_toggle('emacs'))])
 keys.extend([Key([mod], "F3", lazy.group['passwords'].dropdown_toggle('keepassxc'))])
+keys.extend([Key([mod], "x", lazy.group['editorPad'].dropdown_toggle('org-capture'))])
 
 def init_layout_theme():
     return {"margin":5,
