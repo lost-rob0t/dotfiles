@@ -58,3 +58,7 @@ run /home/unseen/.bin/graphics.sh &
 run firefox &
 run thunderbird &
 run bash /home/unseen/.dotfiles/.config/qtile/scripts/pinger.sh $HOME/.config/hosts &
+
+# Run activity watch
+
+steam-run run $HOME/.aw/activitywatch/aw-qt &

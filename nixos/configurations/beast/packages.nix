@@ -95,6 +95,7 @@
     racket
     sbcl
     roswell
+    (python310.withPackages(ps: with ps; [ requests ]))
 
     ## Security
     tor-browser-bundle-bin
