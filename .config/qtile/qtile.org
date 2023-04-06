@@ -230,6 +230,16 @@ groups.extend([ScratchPad("termpad", [
              y = 0.1,
              opacity = 0.95,
              on_focus_lost_hide=False),
+    DropDown("org-capture",
+             home + '/.config/qtile/scripts/org-capture.sh',
+             match = Match(title='org-capture'),
+             height=0.8,
+             width = 0.8,
+             x = 0.1,
+             y = 0.1,
+             opacity = 0.95,
+             on_focus_lost_hide=False)
+
     ]),
     ScratchPad("passwords", [
     DropDown("keepassxc",
@@ -691,7 +701,8 @@ floating_layout = layout.Floating(float_rules=[
     Match(title='floating'),
     Match(title='Minecraft'),
     Match(title='Emacs Everywhere'),
-    Match(title='Atomic Chrome')
+    Match(title='Atomic Chrome'),
+    Match(title="org-capture")
 
 ],  fullscreen_border_width = 0, border_width = 0)
 
