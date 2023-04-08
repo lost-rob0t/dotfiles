@@ -1,7 +1,6 @@
 { config, lib, pkgs, ... }:
 
 let
-  let
   nyxt = pkgs.nyxt.overrideAttrs (oldAttrs: {
     postFixup = ''
       wrapProgram $out/bin/nyxt \
@@ -31,7 +30,7 @@ let
     feh
     mindustry
     tlp
-    #outdated  nyxt
+    nyxt
     webkitgtk
     remmina
     freerdp
