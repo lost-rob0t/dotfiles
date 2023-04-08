@@ -1,4 +1,14 @@
 { config, lib, pkgs, ... }:
+
+let
+  let
+  nyxt = pkgs.nyxt.overrideAttrs (oldAttrs: {
+    postFixup = ''
+      wrapProgram $out/bin/nyxt \
+        --set-default WEBKIT_FORCE_SANDBOX 0
+    '';
+  });
+  in
 {
 
   home.packages = with pkgs; [
