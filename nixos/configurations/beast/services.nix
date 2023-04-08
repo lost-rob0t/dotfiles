@@ -89,7 +89,12 @@ in
   lighttpd = {
     enable = false;
     port = 1488;
-  };};
+  };
+  flatpak = {
+    # used for latest nyxt
+    enabled = true;
+  };
+  };
 virtualisation = {
     podman = {
       enable = false;
