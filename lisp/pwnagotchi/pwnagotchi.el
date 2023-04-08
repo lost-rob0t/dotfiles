@@ -71,11 +71,17 @@ Used to crack handshakes.")
 (defun pwnagotchi-backup ()
   "Backup the pwnagotchi files to pwnagotchi-dir."
   (interactive)
-  (pwnagotchi-make-daily-dir)
   (dolist (ip pwnagotchi-list)
     (message ip)
     (pwnagotchi-remote-backup ip)
     (f-copy-contents (pwnagotchi-get-handshakes ip) pwnagotchi-handshakes-dir)))
+(defun pwnagotchi-backup-host ()
+  "Backup the pwnagotchi files to pwnagotchi-dir."
+  (interactive)
+  (let ((ip (read-string "Enter ip: ")))
+    (pwnagotchiremote-backup ip)
+    (f-copy-contents (pwnagotchi-get-handshakes ip) pwnagotchi-handshakes-dir)))
+
 
 
 (defun pwnagotchi-collect-ssid (names prefixes)
@@ -161,6 +167,13 @@ The glob pattern would be Wifi*"
   (interactive)
   (let ((handshakes (f-glob "*.pcap" pwnagotchi-handshakes-dir)))
     (pwnagotchi-batch-hcxformat handshakes (f-join pwnagotchi-hashes-dir "all.22000"))))
+(defun pwnagotchi-convert-glob ()
+  "Convert all handshakes that match glob to a single file."
+  (interactive)
+  (let* ((glob (read-string "Enter Glob: "))(filename (read-file-name "Enter Output Filename: " pwnagotchi-hashes-dir))(handshakes (f-glob glob pwnagotchi-handshakes-dir)))
+    (message "Parsed: %d handshakes" (length handshakes))
+    (pwnagotchi-batch-hcxformat handshakes (f-join pwnagotchi-hashes-dir (format "%s.22000" filename))))
+)
 
 
 (provide 'pwnagotchi)

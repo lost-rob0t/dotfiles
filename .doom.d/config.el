@@ -539,6 +539,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (setq atomic-chrome-buffer-open-style 'frame)
 
+(setq eshell-aliases-file "~/.doom.d/eshell/aliases")
+
 (require 'f)
 
 (require 'dash)
@@ -657,3 +659,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry nil)
+
+(setq ppackage-template "~/.dotfiles/lisp/template")
+(setq ppackage-path "~/.dotfiles/lisp")

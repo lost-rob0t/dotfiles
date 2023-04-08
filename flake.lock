@@ -37,7 +37,7 @@
     "home-manager": {
       "inputs": {
         "nixpkgs": [
-          "nixpkgs"
+          "unseen"
         ],
         "utils": "utils"
       },
@@ -108,7 +108,19 @@
         "emacs-overlay": "emacs-overlay",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs_2",
-        "nixpkgs-stable": "nixpkgs-stable"
+        "nixpkgs-stable": "nixpkgs-stable",
+        "unseen": "unseen"
+      }
+    },
+    "unseen": {
+      "locked": {
+        "narHash": "sha256-jM8R8CCDX876zWF3hZUCxdxt2ifr4SxSzQEs8/4lxLM=",
+        "type": "tarball",
+        "url": "https://gitlab.nobodyhasthe.biz/nsaspy/nixpkgs/-/archive/master/nixpkgs-master.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://gitlab.nobodyhasthe.biz/nsaspy/nixpkgs/-/archive/master/nixpkgs-master.tar.gz"
       }
     },
     "utils": {

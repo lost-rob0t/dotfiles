@@ -1,146 +1,65 @@
-;;;; this is a more minimal version of theme.lisp, it's faster but my theme is
-;;;; hardcoded here. also, there's no styling of web pages (i don't feel like
-;;;; having it rn)
+(in-package #:nyxt-user)
 
-(in-package :nyxt-user)
 
-(let ((bg "#541388")
-      (fg "#F9C80E")
-      (mlbg "#540D6E") ; modeline bg
-      (mlfg "#F706CF")
-      (ml-highlight-fg "#FF4365")
-      (h1 "#F9C80E")
-      (a "#FF6C11")
-      (cursor "#2DE2E6")
-      (mb-prompt "#eeeee8") ; minibuffer prompt
-      (mb-separator "red"))
+;; Source: https://github.com/dracula/nyxt/blob/master/statusline.lisp
+(define-configuration status-buffer ((glyph-mode-presentation-p t)))
+(define-configuration nyxt/force-https-mode:force-https-mode ((glyph "")))
+(define-configuration nyxt/blocker-mode:blocker-mode ((glyph "")))
+(define-configuration nyxt/proxy-mode:proxy-mode ((glyph "")))
+(define-configuration nyxt/reduce-tracking-mode:reduce-tracking-mode  ((glyph "")))
+(define-configuration nyxt/certificate-exception-mode:certificate-exception-mode ((glyph "")))
+(define-configuration nyxt/style-mode:style-mode ((glyph "")))
+(define-configuration nyxt/help-mode:help-mode ((glyph "")))
+(define-configuration nyxt/web-mode:web-mode ((glyph "ω")))
+(define-configuration nyxt/auto-mode:auto-mode ((glyph "α")))
 
-  ;; minibuffer (bg and fg colors)
-  (define-configuration prompt-buffer
-      ((style
-        (str:concat
-         %slot-default%
-         (cl-css:css
-          `((body
-             :border-top ,(str:concat "1px solid" mb-separator)
-             :background-color ,bg
-             :color ,fg)
-            ("#input"
-	     :background-color ,bg
-             :color ,fg
-             :border-bottom ,(str:concat "solid 1px " mb-separator))
-            ("#cursor"
-             :background-color ,cursor
-             :color ,fg)
-            ("#prompt"
-             :color ,mb-prompt)
-	    (".source-content"
-	     :background-color ,bg)
-	    (".source-content th"
-	     :background-color ,bg)
-	    ("#selection"
-	     :background-color ,mlbg
-	     :color ,mlfg)
-            (.marked
-             :background-color "grey40"
-             :color "black")
-            (.selected
-             :background-color "white"
-             :color "black")))))))
 
-  (defun override (color)
-    (concatenate 'string color " !important"))
+;(define-configuration browser
+;  ((theme (make-instance
+;           'theme:theme
+;           :dark-p t
+;           :background-color "#170c32"
+;           :text-color "#f3f4f5"
+;           :accent-color "#f6019d"
+;           :primary-color "#fba922"
+;           :secondary-color "#dd546e"
+;           :tertiary-color "#202146"
+;           :quaternary-color "#92406e"))))
 
-  ;; internal buffers (help, list, etc)
-  (define-configuration internal-buffer
-      ((style
-        (str:concat
-         %slot-default%
-         (cl-css:css
-          `((body
-             :background-color ,(override bg)
-             :color ,(override fg))
-            (hr
-             :background-color ,(override bg)
-             :color ,(override cursor))
-            (.button
-             :background-color ,(override mlbg)
-             :color ,(override mlfg))
-            (".button:hover"
-             :color ,(override ml-highlight-fg))
-            (".button:active"
-             :color ,(override ml-highlight-fg))
-            (".button:visited"
-             :color ,(override ml-highlight-fg))
-            (a
-             :color ,(override a))
-            (h1
-             :color ,(override h1))
-            (h2
-             :color ,(override h1))
-            (h3
-             :color ,(override h1))
-            (h4
-             :color ,(override h1))
-            (h5
-             :color ,(override h1))
-            (h6
-             :color ,(override h1))))))))
+;; Custom Dark-mode for webpages
+;(define-configuration nyxt/style-mode:dark-mode
+;  ((style #.(cl-css:css
+;             '((*
+;                :background-color "#170c32 !important"
+;                :background-image "none !important"
+;                :color "#f3f4f5")
+;               (a
+;                :background-color "#170c32 !important"
+;                :background-image "none !important"
+;                :color "#2de2e6 !important"))))))
+(define-configuration browser
+  ((theme (make-instance
+           'theme:theme
+           :dark-p t
+           :background-color "black"
+           :text-color "white"
+           :accent-color "#CD5C5C"
+           :primary-color "rgb(170, 170, 170)"
+           :secondary-color "rgb(140, 140, 140)"
+           :tertiary-color "rgb(115, 115, 115)"
+           :quaternary-color "rgb(85, 85, 85)"))))
 
-  ;; status bar
-
-  (defun loadingp (&optional (buffer (current-buffer)))
-    (and (web-buffer-p buffer)
-         (eq (slot-value buffer 'nyxt::load-status) :loading)))
-
-  (hooks:add-hook nyxt/web-mode:scroll-to-top-after-hook
-                  (hooks:make-handler-void #'nyxt::print-status))
-  (hooks:add-hook nyxt/web-mode:scroll-to-bottom-after-hook
-                  (hooks:make-handler-void #'nyxt::print-status))
-  (hooks:add-hook nyxt/web-mode:scroll-page-up-after-hook
-                  (hooks:make-handler-void #'nyxt::print-status))
-  (hooks:add-hook nyxt/web-mode:scroll-page-down-after-hook
-                  (hooks:make-handler-void #'nyxt::print-status))
-  (hooks:add-hook nyxt/web-mode:scroll-down-after-hook
-                  (hooks:make-handler-void #'nyxt::print-status))
-  (hooks:add-hook nyxt/web-mode:scroll-up-after-hook
-                  (hooks:make-handler-void #'nyxt::print-status))
-  (hooks:add-hook nyxt/web-mode:scroll-to-top-after-hook
-                  (hooks:make-handler-void #'nyxt::print-status))
-  (hooks:add-hook nyxt/web-mode:scroll-to-bottom-after-hook
-                  (hooks:make-handler-void #'nyxt::print-status))
-
-  (defun my-status-formatter (window)
-    (let* ((buffer (current-buffer window))
-           (buffer-count (1+ (or (position buffer
-                                           (sort (buffer-list) #'string< :key #'id))
-                                 0))))
-      (markup:markup
-       (:div :id "status-formatter"
-             :style (str:concat "background-color:" mlbg "; color:" mlfg)
-             (:b (str:concat "[ " (format-status-modes (nyxt::current-buffer)
-						       (nyxt::current-window)) " ]"))
-             (markup:raw
-              (format nil " (~a/~a) "
-                      buffer-count
-                      (length (buffer-list)))
-              (format nil "~a~a — ~a"
-                      (if (and (web-buffer-p buffer)
-                               (eq (slot-value buffer 'nyxt::load-status) :loading))
-                          "(Loading) "
-                          "")
-                      (render-url (url buffer))
-                      (title buffer)))
-             (:span :id "percentage"
-                    :style "float:right"
-                    (format nil "~:[0~;~:*~a~]%" (%percentage)))))))
-
-  (define-configuration window
-      ((message-buffer-style
-        (str:concat
-         %slot-default%
-         (cl-css:css
-          `((body
-             :background-color ,(override bg)
-             :color ,(override fg))))))
-       (status-formatter #'my-status-formatter))))
+;;; Dark-mode is a simple mode for simple HTML pages to color those in
+;;; a darker palette. I don't like the default gray-ish colors,
+;;; though. Thus, I'm overriding those to be a bit more laconia-like.
+(define-configuration nyxt/style-mode:dark-mode
+  ((style #.(cl-css:css
+             '((*
+                :background-color "black !important"
+                :background-image "none !important"
+                :color "white")
+               (a
+                :background-color "black !important"
+                :background-image "none !important"
+                :color "#556B2F !important"))))))
+;;For version 2.2.4 AND below use this:
