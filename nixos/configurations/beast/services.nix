@@ -92,7 +92,7 @@ in
   };
   flatpak = {
     # used for latest nyxt
-    enabled = true;
+    enable = true;
   };
   };
 virtualisation = {
