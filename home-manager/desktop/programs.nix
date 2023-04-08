@@ -21,7 +21,7 @@
     feh
     mindustry
     tlp
-    nyxt
+    #outdated  nyxt
     webkitgtk
     remmina
     freerdp
