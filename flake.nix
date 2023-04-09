@@ -17,14 +17,14 @@
 
 
     # TODO: Add any other flake you might need
-    # hardware.url = "github:nixos/nixos-hardware";
+    hardware.url = "github:nixos/nixos-hardware";
 
     # Shameless plug: looking for a way to nixify your themes and make
     # everything match nicely? Try nix-colors!
     # nix-colors.url = "github:misterio77/nix-colors";
   };
 
-  outputs = { self, nixpkgs, home-manager, unseen, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, unseen, nixos-hardware, ... }@inputs:
     let
       inherit (self) outputs;
       forAllSystems = nixpkgs.lib.genAttrs [
@@ -74,7 +74,7 @@
           modules = [
             # > Our main nixos configuration file <
             ./nixos/configurations/fenrir/fenrir.nix
-
+            <nixos-hardware/common/gpu/intel>
           ];
         };
       };
