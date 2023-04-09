@@ -21,7 +21,7 @@
       ./services.nix
       ./networking.nix
       ./security.nix
-      ./misc.nix
+      # TODO Move fonts to misc ./misc.nix
     ];
 
   # Boot config

@@ -74,7 +74,7 @@
           modules = [
             # > Our main nixos configuration file <
             ./nixos/configurations/fenrir/fenrir.nix
-            nixos-hardware.nixosModules.common-gpu-intel
+            nixos-hardware.nixosModules.common-gpu-intel-disable
           ];
         };
       };
