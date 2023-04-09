@@ -69,6 +69,14 @@
 
           ];
         };
+        fenrir = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          modules = [
+            # > Our main nixos configuration file <
+            ./nixos/configurations/fenrir/fenrir.nix
+
+          ];
+        };
       };
 
       # Standalone home-manager configuration entrypoint
