@@ -22,6 +22,7 @@
       ./networking.nix
       ./security.nix
       ./misc.nix
+      <nixos-hardware/common/gpu/intel>
     ];
 
   # Boot config

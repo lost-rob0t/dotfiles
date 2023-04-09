@@ -74,7 +74,6 @@
           modules = [
             # > Our main nixos configuration file <
             ./nixos/configurations/fenrir/fenrir.nix
-            <nixos-hardware/common/gpu/intel>
           ];
         };
       };
