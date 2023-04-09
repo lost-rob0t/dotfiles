@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: gpt prompt-gen
-# key:
+# key: gpt-prompt
 # Generate a cool prompt
 # --
 I want you to become my prompt engineer. Your goal is to help me craft the best possible prompt for my needs. This prompt will be used by you, ChatGPT. You will follow the following processes.

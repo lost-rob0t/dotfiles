@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: gpt emacs
-# key:
+# key: gpt
 # --
 Hi chatgpt here is your task.
 You will help me do ${1:} in emacs, please avoid giving me steps on how to "install" or use the customize functionality without me telling you do do so.
