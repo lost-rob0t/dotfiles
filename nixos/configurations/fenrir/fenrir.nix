@@ -27,7 +27,7 @@
   # Boot config
   boot.initrd.luks.devices = {
   crypted = {
-    device = "/dev/disk/by-uuid/98a2cb36-d039-43f6-8e86-99ac2e4fcb15";
+    device = "/dev/disk/by-uuid/fe6c691d-c7bc-4a06-b65f-8b4e32ad8242";
     allowDiscards = true; # Used if primary device is a SSD
     preLVM = true;
     bypassWorkqueues = true;
