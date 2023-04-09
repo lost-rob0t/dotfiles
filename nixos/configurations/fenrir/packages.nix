@@ -159,6 +159,6 @@
    enable = true;
   };
   fonts.fonts = with pkgs; [
-  (nerdfonts.override { fonts = [ "Hack Nerd Font" ]; })
+  (nerdfonts.override { fonts = [ "Hack" ]; })
 ];
 }
