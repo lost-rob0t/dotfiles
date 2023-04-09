@@ -16,7 +16,7 @@ let
     # TODO sort into categories
     vlc
     obs-studio
-    #libreoffice
+    gparted
     filezilla
     nerdfonts
     terminator

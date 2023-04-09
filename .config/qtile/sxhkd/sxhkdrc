@@ -44,8 +44,8 @@ super + F8
 # SUPER + ... KEYS
 #################################################################
 # Emacs
-super + e
-    emacsclient --create-frame --alternate-editor=""
+#super + e
+#    emacsclient --create-frame --alternate-editor=""
 super + z
     emacsclient --eval "(emacs-everywhere)"
 

@@ -5,7 +5,7 @@ import socket
 import subprocess
 from typing import List  # noqa: F401
 from libqtile import layout, bar, widget, hook
-from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule
+from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule, KeyChord
 from libqtile.config import ScratchPad, DropDown
 from libqtile.command import lazy
 from libqtile.widget import Spacer
@@ -133,7 +133,46 @@ keys = [
     Key([mod, "shift"], "Left", lazy.layout.swap_left()),
     Key([mod, "shift"], "Right", lazy.layout.swap_right()),
     Key([mod, "shift"], "space", lazy.window.toggle_floating()),
-    ]
+
+    KeyChord([mod],"e", [
+             Key([], "e",
+                 lazy.spawn("emacsclient -c -a 'emacs'"),
+                 desc='Emacsclient Dashboard'
+                 ),
+             Key([], "a",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(emms)' --eval '(emms-play-directory-tree \"~/Music/\")'"),
+                 desc='Emacsclient EMMS (music)'
+                 ),
+             Key([], "b",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(ibuffer)'"),
+                 desc='Emacsclient Ibuffer'
+                 ),
+             Key([], "d",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(dired nil)'"),
+                 desc='Emacsclient Dired'
+                 ),
+             Key([], "i",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(erc)'"),
+                 desc='Emacsclient ERC (IRC)'
+                 ),
+             Key([], "n",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(elfeed-update)'  --eval '(elfeed)'"),
+                 desc='Emacsclient Elfeed (RSS)'
+                 ),
+             Key([], "s",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(eshell)'"),
+                 desc='Emacsclient Eshell'
+                 ),
+             Key([], "v",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(+vterm/here nil)'"),
+                 desc='Emacsclient Vterm'
+                 ),
+             Key([], "w",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(doom/window-maximize-buffer(eww \"distro.tube\"))'"),
+                 desc='Emacsclient EWW Browser'
+                 )
+         ])
+ ]
 
 for i in groups:
     keys.extend([
@@ -356,7 +395,8 @@ def init_widgets_list():
         #          foreground = colors[2],
         #          background = colors[1]
         #          ),
-
+        widget.Chord(background=colors[1],
+                      foreground=colors[6]),
         widget.Mpris2(background=colors[1],
                       foreground=colors[6],
                       scroll_fixed_width=True,

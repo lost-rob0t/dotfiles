@@ -22,8 +22,10 @@
     (list "emacsclient" "-cn" "-a" "" "-F"
           "(name . \"floating\")"))))
 
+
 (define-configuration browser
   ((default-new-buffer-url "http://10.50.50.10:3000")))
+
 
 (defvar *my-request-resource-handlers* '())
 
@@ -38,7 +40,6 @@
             :initial-value %slot-default%))))
 
 (load-after-system :nx-search-engines (nyxt-init-file "search-engines.lisp"))
-
 
 (nyxt::load-lisp "~/.config/nyxt/theme.lisp")
 (nyxt::load-lisp "~/.config/nyxt/proxy.lisp")

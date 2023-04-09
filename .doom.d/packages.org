@@ -206,7 +206,6 @@ Modern api for files
 #+begin_src emacs-lisp
 (package! f)
 #+end_src
-
 *** Async
 Async.el is for doing async processing in emacs. I use it for hack-mode.el
 Looks likes its already in doom emacs...
