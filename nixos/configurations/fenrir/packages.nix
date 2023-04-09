@@ -24,7 +24,6 @@
           pkgs.brave
           pkgs.firefox
           pkgs.emacs
-          pkgs.nerdfonts
           pkgs.conky
           pkgs.emojione # wttr widget emojis
           pkgs.noto-fonts-emoji
@@ -159,4 +158,7 @@
   programs.kdeconnect = {
    enable = true;
   };
+  fonts.fonts = with pkgs; [
+  (nerdfonts.override { fonts = [ "Hack Nerd Font" ]; })
+];
 }
