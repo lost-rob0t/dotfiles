@@ -12,7 +12,7 @@
   boot.initrd.kernelModules = [ "dm-snapshot" "dm-raid" ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
-
+  boot.uvesafb.enable = true;
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/a2c09835-8b7c-4e66-a9b4-38f26ce55444";
       fsType = "ext4";
