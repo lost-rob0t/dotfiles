@@ -34,7 +34,7 @@
     107.160.74.131 files.catbox.moe # may shutdown soon rip
   '';
   networking.useDHCP = false;
-  networking.interfaces.eno1.useDHCP = true;
+  #networking.interfaces.eno1.useDHCP = true;
   networking.hostName = "fenrir"; # Lokis wolf
   networking.networkmanager = {
     enable = true;
