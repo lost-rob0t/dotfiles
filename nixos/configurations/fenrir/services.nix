@@ -25,7 +25,7 @@ in
       };
     };
     windowManager.qtile.enable = true;
-    videoDrivers = [ "modesetting" ]; #  change this for laptop # TODO see if i can re add amdgpu
+    videoDrivers = [ "modesetting" "xf86videointel" ]; #  change this for laptop # TODO see if i can re add amdgpu
     layout = "us";
   };
 

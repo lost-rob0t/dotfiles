@@ -51,7 +51,7 @@ I like doom's outrun electric theme
 ** Frame resize
 This might help for wm like qtile
 #+begin_src emacs-lisp
-(setq frame-resize-pixelwise t)
+(setq frame-resize-pixelwise nil)
 #+end_src
 
 ** Fonts

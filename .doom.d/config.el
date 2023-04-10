@@ -15,7 +15,7 @@
 
 (setq display-line-numbers-type t)
 
-(setq frame-resize-pixelwise t)
+(setq frame-resize-pixelwise nil)
 
 (setq
  doom-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
