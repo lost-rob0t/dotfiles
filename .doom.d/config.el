@@ -15,13 +15,13 @@
 
 (setq display-line-numbers-type t)
 
-(setq frame-resize-pixelwise nil)
+(setq frame-resize-pixelwise t)
 
-(setq
- doom-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
- doom-big-font (font-spec :family "JetBrainsMono Nerd Font" :size 18)
- doom-variable-pitch-font (font-spec :family "JetBrainsMono Nerd Font" :size 12)
- doom-serif-font (font-spec :family "JetBrainsMono Nerd Font" :size 12))
+;(setq
+; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
+; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
 
 (add-to-list 'display-buffer-alist
   (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
