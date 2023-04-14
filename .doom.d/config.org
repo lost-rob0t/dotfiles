@@ -43,7 +43,27 @@ I like doom's outrun electric theme
 #+begin_src emacs-lisp
 (setq doom-theme 'doom-outrun-electric)
 #+end_src
+*** Theme toggle
+I like to use my laptop outside, dark-themes looks bad outside.
+[[https://emacs.stackexchange.com/a/26981][Source]].
+#+begin_src emacs-lisp :tangle yes
+(setq ivan/themes '(doom-gruvbox-light doom-outrun-electric))
+(setq ivan/themes-index 0)
 
+(defun ivan/cycle-theme ()
+  (interactive)
+  (setq ivan/themes-index (% (1+ ivan/themes-index) (length ivan/themes)))
+  (ivan/load-indexed-theme))
+
+(defun ivan/load-indexed-theme ()
+  (ivan/try-load-theme (nth ivan/themes-index ivan/themes)))
+
+(defun ivan/try-load-theme (theme)
+  (if (ignore-errors (load-theme theme :no-confirm))
+      (mapcar #'disable-theme (remove theme custom-enabled-themes))
+    (message "Unable to find theme file for ‘%s’" theme)))
+
+#+end_src
 ** Line numbers
 #+begin_src emacs-lisp
 (setq display-line-numbers-type t)

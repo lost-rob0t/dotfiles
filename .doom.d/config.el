@@ -13,6 +13,22 @@
 
 (setq doom-theme 'doom-outrun-electric)
 
+(setq ivan/themes '(doom-gruvbox-light doom-outrun-electric))
+(setq ivan/themes-index 0)
+
+(defun ivan/cycle-theme ()
+  (interactive)
+  (setq ivan/themes-index (% (1+ ivan/themes-index) (length ivan/themes)))
+  (ivan/load-indexed-theme))
+
+(defun ivan/load-indexed-theme ()
+  (ivan/try-load-theme (nth ivan/themes-index ivan/themes)))
+
+(defun ivan/try-load-theme (theme)
+  (if (ignore-errors (load-theme theme :no-confirm))
+      (mapcar #'disable-theme (remove theme custom-enabled-themes))
+    (message "Unable to find theme file for ‘%s’" theme)))
+
 (setq display-line-numbers-type t)
 
 (setq frame-resize-pixelwise t)
