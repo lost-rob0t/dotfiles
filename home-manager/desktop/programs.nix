@@ -70,6 +70,9 @@
     emojione # wttr widget emojis
     noto-fonts-emoji
     grc # colourize output
+    sxhkd
+    conky
+    j4-dmenu-desktop
     #
   ];
   programs = {

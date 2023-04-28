@@ -95,7 +95,7 @@
     racket
     sbcl
     roswell
-    (python310.withPackages(ps: with ps; [ requests ]))
+    (python3.withPackages(ps: with ps; [ requests ]))
 
     ## Security
     tor-browser-bundle-bin
@@ -134,7 +134,6 @@
    rocm-opencl-icd
    rocm-opencl-runtime
    amdvlk
-   mesa
 ];
   ## Some programs need SUID wrappers, can be configured further or are
   ## started in user sessions.

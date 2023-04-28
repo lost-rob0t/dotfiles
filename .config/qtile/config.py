@@ -10,14 +10,14 @@ from libqtile.config import ScratchPad, DropDown
 from libqtile.command import lazy
 from libqtile.widget import Spacer
 from libqtile.log_utils import logger
-import ip
+#import ip
 
 mod = "mod4"
 mod1 = "alt"
 mod2 = "control"
 home = os.path.expanduser('~')
-myIp = ip.publicIp()
-#myIp = "127.0.0.1"
+#myIp = ip.publicIp()
+myIp = "127.0.0.1"
 myTerm = "terminator"
 wmname = "qtile"
 groups = []
