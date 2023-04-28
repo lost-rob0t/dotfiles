@@ -21,5 +21,4 @@
   "ZAP Web app proxy."
   ((nyxt/proxy-mode:proxy (make-instance 'proxy
                                          :url (quri:uri "http://127.0.0.1:8080")
-                                         :allowlist '("localhost" "127.0.0.1")
                                          :proxied-downloads-p t))))
