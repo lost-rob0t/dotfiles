@@ -23,7 +23,8 @@
                                              :install-reminders nil
                                              :install-duckduckgo nil)
                          (engines:github :object :advanced :shortcut "git")
-                         (engines:brave :shortcut "b")
+
+                         ;; cve is the shortcut
                          (nyxt:make-search-engine "cve" "https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=~a" "https://cve.mitre.org/cve/search_cve_list.html")
 
                          (engines:brave :shortcut "b")

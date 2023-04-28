@@ -16,7 +16,7 @@
                                          :allowlist '("localhost" "127.0.0.1")
                                          :proxied-downloads-p t))))
 
-
+;; Lispy version of foxy proxy
 (define-mode zap-mode (nyxt/proxy-mode:proxy-mode)
   "ZAP Web app proxy."
   ((nyxt/proxy-mode:proxy (make-instance 'proxy
