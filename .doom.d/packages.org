@@ -263,6 +263,13 @@ Emacs client for mastodon/pleroma
 #+begin_src emacs-lisp
 ;(package! mastodon :recipe (:type git :host codeberg :repo "martianh/mastodon.el"))
 #+end_src
+
+*** Cuckord
+I only use it for normal fren stuff
+
+#+begin_src emacs-lisp
+(package! elcord)
+#+end_src
 ** rice
 *** inherit-org
 Add org faces to non org buffers.

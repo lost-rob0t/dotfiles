@@ -442,7 +442,15 @@ Here i override the capture templates, some intergrating into org roam
                                      ("on" "Project notes" entry #'+org-capture-central-project-notes-file "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
                                      ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
                                      ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
-                                      "* IDEA %? %^g")))
+                                      "* IDEA %? %^g")
+                                     ("a" "Templates for AI")
+                                     ("ap" "Save a AI prompt for later" entry
+                                      (file+headline "~/Documents/Notes/org/ai-prompts.org" "Prompts")
+                                      "* %U %?\n%i\n%a" :prepend t)
+                                      ("ai" "LLM/AI Injection (Bypasses)" entry
+                                      (file+headline "~/Documents/Notes/org/ai-prompts.org" "Injections")
+                                      "* %U %?\n%i\n%a" :prepend t)
+                ))
 
 #+end_src
 *** Org Agenda
@@ -1253,7 +1261,12 @@ Stuff that i use for games are here.
           mastodon-active-user "nott")
 
 #+end_src
-
+*** Discord rich presence
+So i can brag about coding all the time lol
+#+begin_src emacs-lisp
+(require 'elcord)
+(elcord-mode)
+#+end_src
 ** Other
 #+begin_src emacs-lisp
 (use-package! org-pomodoro
