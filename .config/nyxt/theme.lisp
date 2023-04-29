@@ -123,3 +123,12 @@
                 :background-color "#170c32 !important"
                 :background-image "none !important"
                 :color "#2de2e6 !important"))))))
+
+
+(defmethod ffi-buffer-make :after ((buffer nyxt::gtk-buffer))
+  (let* ((settings (webkit:webkit-web-view-get-settings (nyxt::gtk-object buffer))))
+    (setf
+     ;; Use Cantarell-18 as the default font and Hack as monospace one.
+     (webkit:webkit-settings-default-font-family settings) "Cantarell"
+     (webkit:webkit-settings-monospace-font-family settings) "Hack"
+     (webkit:webkit-settings-default-font-size settings) 18)))
