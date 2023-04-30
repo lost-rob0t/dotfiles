@@ -27,5 +27,9 @@
                          ;; cve is the shortcut
                          (nyxt:make-search-engine "cve" "https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=~a" "https://cve.mitre.org/cve/search_cve_list.html")
 
+                         (nyxt:make-search-engine "nix" "https://search.nixos.org/packages?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=~a" "https://search.nixos.org/packages?channel=unstable")
+
+                         (nyxt:make-search-engine "nix-options" "https://search.nixos.org/options?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=~a" "https://search.nixos.org/options?channel=unstable")
+
                          (engines:brave :shortcut "b")
 ))))

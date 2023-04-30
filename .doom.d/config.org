@@ -1174,7 +1174,11 @@ Load forth mode
 #+begin_src emacs-lisp
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 #+end_src
-
+** Lisp
+Setup roswell
+#+begin_src emacs-lisp
+(load (expand-file-name "~/.roswell/helper.el"))
+#+end_src
 ** Flycheck
 Check for errors!
 
