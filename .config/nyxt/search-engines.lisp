@@ -30,6 +30,7 @@
                          (nyxt:make-search-engine "nix" "https://search.nixos.org/packages?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=~a" "https://search.nixos.org/packages?channel=unstable")
 
                          (nyxt:make-search-engine "nix-options" "https://search.nixos.org/options?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=~a" "https://search.nixos.org/options?channel=unstable")
+                         (nyxt:make-search-engine "fec" "https://www.fec.gov/data/receipts/individual-contributions/?contributor_name=~a" "https://www.fec.gov/data/receipts/individual-contributions/?contributor_name=")
 
                          (engines:brave :shortcut "b")
 ))))
