@@ -65,6 +65,8 @@
 
 (package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
 
+(package! app-launcher :recipe (:type git :host github :repo "SebastienWae/app-launcher"))
+
 (package! plz :recipe (:type git :host github :repo "alphapapa/plz.el"))
 
 (package! ts :recipe (:type git :host github :repo "alphapapa/ts.el"))
@@ -94,6 +96,8 @@
 (package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
 
 ;(package! mastodon :recipe (:type git :host codeberg :repo "martianh/mastodon.el"))
+
+(package! elcord :recipe (:type git :host github :repo "Mstrodl/elcord"))
 
 (package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 

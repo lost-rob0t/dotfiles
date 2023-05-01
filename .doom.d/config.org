@@ -1178,6 +1178,7 @@ Load forth mode
 Setup roswell
 #+begin_src emacs-lisp
 (load (expand-file-name "~/.roswell/helper.el"))
+(setq inferior-lisp-program (format "%s -Q run" (executable-find "ros")))
 #+end_src
 ** Flycheck
 Check for errors!

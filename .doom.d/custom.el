@@ -3,6 +3,8 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(elcord-editor-icon "emacs_pen_icon")
+ '(elcord-mode t nil (elcord))
  '(ignored-local-variable-values
    '((org-export-initial-scope . buffer)
      (org-id-link-to-org-use-id)

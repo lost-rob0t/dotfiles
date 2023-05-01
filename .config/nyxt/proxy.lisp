@@ -12,7 +12,7 @@
 (define-mode i2p-proxy-mode (nyxt/proxy-mode:proxy-mode)
   "Set proxy to local i2p SOCKS5 proxy."
   ((nyxt/proxy-mode:proxy (make-instance 'proxy
-                                         :url (quri:uri "socks5://localhost:9090")
+                                         :url (quri:uri "http://localhost:4444")
                                          :allowlist '("localhost" "127.0.0.1")
                                          :proxied-downloads-p t))))
 

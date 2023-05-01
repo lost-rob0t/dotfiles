@@ -174,6 +174,13 @@ Get weather from the government
 #+begin_src emacs-lisp :tangle yes
 (package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
 #+end_src
+
+
+
+*** app-launcher
+#+begin_src emacs-lisp
+(package! app-launcher :recipe (:type git :host github :repo "SebastienWae/app-launcher"))
+#+end_src
 ** Lib packages
 *** plz
 plz is an HTTP library for Emacs. It uses curl as a backend, which avoids some of the issues with using Emacs’s built-in url library.
@@ -268,7 +275,7 @@ Emacs client for mastodon/pleroma
 I only use it for normal fren stuff
 
 #+begin_src emacs-lisp
-(package! elcord)
+(package! elcord :recipe (:type git :host github :repo "Mstrodl/elcord"))
 #+end_src
 ** rice
 *** inherit-org

@@ -140,7 +140,15 @@ The optional argument NEW-WINDOW is not used."
                                      ("on" "Project notes" entry #'+org-capture-central-project-notes-file "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
                                      ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
                                      ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
-                                      "* IDEA %? %^g")))
+                                      "* IDEA %? %^g")
+                                     ("a" "Templates for AI")
+                                     ("ap" "Save a AI prompt for later" entry
+                                      (file+headline "~/Documents/Notes/org/ai-prompts.org" "Prompts")
+                                      "* %U %?\n%i\n%a" :prepend t)
+                                      ("ai" "LLM/AI Injection (Bypasses)" entry
+                                      (file+headline "~/Documents/Notes/org/ai-prompts.org" "Injections")
+                                      "* %U %?\n%i\n%a" :prepend t)
+                ))
 
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
 ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
@@ -613,6 +621,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 
+(load (expand-file-name "~/.roswell/helper.el"))
+
 (use-package! flycheck-package
   :after flycheck
   :config (flycheck-package-setup))
@@ -652,6 +662,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
     (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
           mastodon-active-user "nott")
+
+(require 'elcord)
+(elcord-mode)
 
 (use-package! org-pomodoro
   :init
