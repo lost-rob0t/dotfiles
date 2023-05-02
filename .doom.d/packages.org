@@ -33,6 +33,14 @@ This org document contains all the packages that i install into emacs. I thought
 + Config is here [[./config.org]]
 
 ** Org mode
+*** org-roam-ui
+Org-Roam-UI is a frontend for exploring and interacting with your org-roam notes.
+
+unpin org-roam.
+#+begin_src emacs-lisp
+(unpin! org-roam)
+(package! org-roam-ui)
+#+end_src
 *** org-ql
 This package provides a query language for Org files. It offers two syntax styles: Lisp-like sexps and search engine-like keywords.
 #+begin_src emacs-lisp
