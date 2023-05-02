@@ -17,7 +17,8 @@
     sqlitebrowser
     zeal
     vim
-
+    lorri
+    direnv
     # Multimedia
     vlc
     obs-studio
@@ -64,10 +65,19 @@
     obsidian
     element-desktop
     thunderbird
-  # Misc
-  monero-gui
-  # GUI Toolkit
-  webkitgtk
+    # Misc
+    monero-gui
+    # GUI Toolkit
+    webkitgtk
+
+    # rice
+    starship
+    emojione # wttr widget emojis
+    noto-fonts-emoji
+    grc # colourize output
+    sxhkd
+    conky
+    j4-dmenu-desktop
 
   ];
   programs = {
