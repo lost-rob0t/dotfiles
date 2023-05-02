@@ -19,6 +19,9 @@
 
 (eval-when-compile (require 'use-package))
 
+(unpin! org-roam)
+(package! org-roam-ui)
+
 (package! org-ql :recipe (:type git :host github :repo "alphapapa/org-ql"))
 
 (package! org-timed-alerts :recipe (:type git :host github :repo "legalnonsense/org-timed-alerts"))
