@@ -280,7 +280,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (add-to-list 'org-structure-template-alist '("nim" . "src nim"))
   (add-to-list 'org-structure-template-alist '("erl" . "src erlang"))
   (add-to-list 'org-structure-template-alist '("ss" . "src scheme"))
-  (add-to-list 'org-structure-template-alist '("cl" . "src common-lisp"))
+  (add-to-list 'org-structure-template-alist '("cl" . "src lisp"))
   (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
 
 (defvar org-configs-list ()
@@ -622,7 +622,11 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 
 (load (expand-file-name "~/.roswell/helper.el"))
-(setq inferior-lisp-program (format "%s -Q run" (executable-find "ros")))
+(after! sly
+  (add-hook! 'sly-mode-hook :depth -100
+    (if (and (functionp #'projectile-project-type) (eq (projectile-project-type) 'qlot-common-lisp))
+        (setq inferior-lisp-program (format "%s -Q run" (executable-find "ros")))))
+)
 
 (use-package! flycheck-package
   :after flycheck
