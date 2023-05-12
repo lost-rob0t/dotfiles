@@ -34,6 +34,7 @@
         "aarch64-darwin"
         "x86_64-darwin"
       ];
+      npkgs = nixpkgs.legacyPackages.x86_64-linux;
     in
     rec {
       # Your custom packages
@@ -114,6 +115,20 @@
             ./home-manager/fenrir/home.nix
           ];
         };
+      };
+      devShell.x86_64-linux =
+      nixpkgs.legacyPackages.x86_64-linux.mkShell {
+        buildInputs = with nixpkgs.legacyPackages.x86_64-linux; [
+          openssl
+          pkg-config
+          roswell
+          sbcl
+          ecl
+        ];
+
+        shellHook = ''
+              export LD_LIBRARY_PATH=${nixpkgs.legacyPackages.x86_64-linux.lib.makeLibraryPath([nixpkgs.legacyPackages.x86_64-linux.openssl])}:${nixpkgs.legacyPackages.x86_64-linux.lib.makeLibraryPath([nixpkgs.legacyPackages.x86_64-linux.file])}
+            '';
       };
     };
 }
