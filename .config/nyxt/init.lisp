@@ -51,9 +51,11 @@ before running this command."
    (external-editor-program (list "emacsclient" "-c" "-F" "'(name . \"floating\")")))
   )
 
-(define-configuration browser
-  ((default-new-buffer-url "http://10.50.50.10:3000")))
+(define-configuration (browser )
+  ((default-new-buffer-url "http://10.50.50.10:3000")
+   ))
 
+;; (setf *extensions-data-path* (uiop:native-namestring "~/.config/nyxt/extensions"))
 
 (defvar *my-request-resource-handlers* '())
 
@@ -74,5 +76,5 @@ before running this command."
 (nyxt::load-lisp "~/.config/nyxt/proxy.lisp")
 (nyxt::load-lisp "~/.config/nyxt/status.lisp")
 ;; (nyxt::load-lisp "~/.config/nyxt/theme.lisp")
-;; (asdf:load-system :nx-hunt)
-(load-after-system :nx-hunt)
+(asdf:load-system :nx-hunt)
+(in-package :nx-hunt)
