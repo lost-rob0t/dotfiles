@@ -11,7 +11,7 @@
 (in-package :nyxt)
 
 (when (asdf:load-system :slynk)
-  (define-command start-slynk (&optional (slynk-port *swank-port*))
+  (define-command start-slynk (&optional (slynk-port 4006))
     "Start a Slynk server that can be connected to, for instance, in
 Emacs via SLY.
 
@@ -45,11 +45,11 @@ before running this command."
 
 (define-configuration browser
   ;; Enable --remote --eval code evaluation.
-  ((remote-execution-p t)
-   (external-editor-program
-    (list "emacsclient" "-cn" "-a" "" "-F"
-          "(name . \"floating\")"))))
+  (
+   ;; (remote-execution-p t)
 
+   (external-editor-program (list "emacsclient" "-c" "-F" "'(name . \"floating\")")))
+  )
 
 (define-configuration browser
   ((default-new-buffer-url "http://10.50.50.10:3000")))
@@ -69,7 +69,10 @@ before running this command."
 
 (load-after-system :nx-search-engines (nyxt-init-file "search-engines.lisp"))
 
+(nyxt::load-lisp "~/.config/nyxt/buffers.lisp")
 (nyxt::load-lisp "~/.config/nyxt/theme.lisp")
 (nyxt::load-lisp "~/.config/nyxt/proxy.lisp")
 (nyxt::load-lisp "~/.config/nyxt/status.lisp")
 ;; (nyxt::load-lisp "~/.config/nyxt/theme.lisp")
+;; (asdf:load-system :nx-hunt)
+(load-after-system :nx-hunt)
