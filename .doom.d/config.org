@@ -199,7 +199,7 @@ This section tangles the init file
        fold              ; (nigh) universal code folding
        ;;(format +onsave)  ; automated prettiness
        ;;god               ; run Emacs commands without modifier keys
-       ;;lispy             ; vim for lisp, for people who don't like vim
+       lispy             ; vim for lisp, for people who don't like vim
        multiple-cursors  ; editing in many places at once
        ;;objed             ; text object editing for the innocent
        ;;parinfer          ; turn lisp into python, sort of
@@ -902,6 +902,12 @@ Tell elfeed where to look for org mode files
 
 #+begin_src emacs-lisp
 (setq rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org"))
+#+end_src
+
+Disable evil for elfeed.
+#+begin_src emacs-lisp
+(add-hook 'elfeed-search-mode-hook 'turn-off-evil-mode)
+(add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode)
 #+end_src
 
 

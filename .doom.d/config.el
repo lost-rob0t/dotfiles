@@ -466,6 +466,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (setq rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org"))
 
+(add-hook 'elfeed-search-mode-hook 'turn-off-evil-mode)
+(add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode)
+
 (require 'webpaste)
 
 (setq webpaste-paste-confirmation t)
@@ -622,6 +625,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 
 (load (expand-file-name "~/.roswell/helper.el"))
+(setq inferior-lisp-program (format "%s -Q run" (executable-find "ros")))
 
 (use-package! flycheck-package
   :after flycheck
