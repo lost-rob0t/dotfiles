@@ -1,0 +1,3 @@
+[submodule "pkgs/ql2nix"]
+	path = pkgs/ql2nix
+	url = https://github.com/SquircleSpace/ql2nix.git

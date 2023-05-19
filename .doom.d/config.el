@@ -287,7 +287,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (add-to-list 'org-structure-template-alist '("nim" . "src nim"))
   (add-to-list 'org-structure-template-alist '("erl" . "src erlang"))
   (add-to-list 'org-structure-template-alist '("ss" . "src scheme"))
-  (add-to-list 'org-structure-template-alist '("cl" . "src common-lisp"))
+  (add-to-list 'org-structure-template-alist '("cl" . "src lisp"))
   (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
 
 (defvar org-configs-list ()

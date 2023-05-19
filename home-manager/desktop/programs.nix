@@ -13,18 +13,36 @@
 {
 
   home.packages = with pkgs; [
-    xdotool
-    xorg.xwininfo
-    # TODO sort into categories
+    # Development
+    gitRepo
+    sqlitebrowser
+    zeal
+    vim
+    lorri
+    direnv
+    # Multimedia
     vlc
     obs-studio
+    gimp
+    feh
+    kdenlive
+    mpv
+    qbittorrent
+    yt-dlp
+
+    # System Tools
     gparted
     filezilla
-    nerdfonts
     terminator
-    discord
-    obs-studio
-    obsidian
+    remmina
+    freerdp
+    rpi-imager
+    ark
+    virt-manager
+    virtiofsd
+
+    # Productivity
+    nerdfonts
     w3m
     cht-sh
     kleopatra
@@ -47,25 +65,29 @@
     vscodium-fhs # FHS
     librewolf
     bookworm
-    zeal
-    brave
-    thunderbird
-    vim
-    virt-manager
-    virtiofsd
-    element-desktop
-    qbittorrent
-    terminator
-    lbry ## You should use lbry and other yotube alternatives
-    yt-dlp
     libsForQt5.kdeconnect-kde
     ntfy # send notifications
-    mpv
+
     # Security
     keepassxc
     hcxtools
     hashcat-utils
     hashcat
+
+    # Web Browsers
+    librewolf
+    brave
+    firefox
+    # Communication
+    discord
+    obsidian
+    element-desktop
+    thunderbird
+    # Misc
+    monero-gui
+    # GUI Toolkit
+    webkitgtk
+
     # rice
     starship
     emojione # wttr widget emojis
