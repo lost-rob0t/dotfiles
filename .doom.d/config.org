@@ -320,7 +320,7 @@ This section tangles the init file
 
        :email
        ;;(mu4e +org +gmail)
-       ;;notmuch
+       notmuch
        ;;(wanderlust +gmail)
 
        :app
@@ -415,42 +415,49 @@ Here i override the capture templates, some intergrating into org roam
 #+begin_src emacs-lisp
 
 (setq  org-capture-templates '(("m" "Personal Meditations")
-                                     ("mm" "Meditations Moon" entry
-                                      (file+olp+datetree "~/Documents/Notes/org/moon.org")
-                                      "** Relections\n\n*** Acomplished\n\n*** Thoughts\n\n*** Happenings\n\n** Plans for next moon\n" :tree-type month)
-                                     ("t" "Personal todo" entry
-                                      (file+headline +org-capture-todo-file "Inbox")
-                                      "* [ ] %?\n%i\n%a" :prepend t)
-                                     ("n" "Personal notes" entry
-                                      (file+headline +org-capture-notes-file "Inbox")
-                                      "* %u %?\n%i\n%a" :prepend t)
-                                     ("j" "Journal" entry
-                                      (file+olp+datetree +org-capture-journal-file)
-                                      "* %U %?\n%i\n%a" :prepend t)
-                                     ("p" "Templates for projects")
-                                     ("pt" "Project-local todo" entry
-                                      (file+headline +org-capture-project-todo-file "Inbox")
-                                      "* TODO %?\n%i\n%a" :prepend t)
-                                     ("pn" "Project-local notes" entry
-                                      (file+headline +org-capture-project-notes-file "Inbox")
-                                      "* %U %?\n%i\n%a" :prepend t)
-                                     ("pc" "Project-local changelog" entry
-                                      (file+headline +org-capture-project-changelog-file "Changelog")
-                                      "* %U %?\n%i\n%a" :prepend t)
-                                     ("o" "Centralized templates for projects")
-                                     ("ot" "Project todo" entry #'+org-capture-central-project-todo-file "* TODO %?\n %i\n %a" :heading "Tasks" :prepend nil)
-                                     ("on" "Project notes" entry #'+org-capture-central-project-notes-file "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
-                                     ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
-                                     ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
-                                      "* IDEA %? %^g")
-                                     ("a" "Templates for AI")
-                                     ("ap" "Save a AI prompt for later" entry
-                                      (file+headline "~/Documents/Notes/org/ai-prompts.org" "Prompts")
-                                      "* %U %?\n%i\n%a" :prepend t)
-                                      ("ai" "LLM/AI Injection (Bypasses)" entry
-                                      (file+headline "~/Documents/Notes/org/ai-prompts.org" "Injections")
-                                      "* %U %?\n%i\n%a" :prepend t)
-                ))
+                               ("mm" "Meditations Moon" entry
+                                (file+olp+datetree "~/Documents/Notes/org/moon.org")
+                                "** Relections\n\n*** Acomplished\n\n*** Thoughts\n\n*** Happenings\n\n** Plans for next moon\n" :tree-type month)
+                               ("t" "Personal todo" entry
+                                (file+headline +org-capture-todo-file "Inbox")
+                                "* [ ] %?\n%i\n%a" :prepend t)
+                               ("n" "Personal notes" entry
+                                (file+headline +org-capture-notes-file "Inbox")
+                                "* %u %?\n%i\n%a" :prepend t)
+                               ("j" "Journal" entry
+                                (file+olp+datetree +org-capture-journal-file)
+                                "* %U %?\n%i\n%a" :prepend t)
+                               ("p" "Templates for projects")
+                               ("pt" "Project-local todo" entry
+                                (file+headline +org-capture-project-todo-file "Inbox")
+                                "* TODO %?\n%i\n%a" :prepend t)
+                               ("pn" "Project-local notes" entry
+                                (file+headline +org-capture-project-notes-file "Inbox")
+                                "* %U %?\n%i\n%a" :prepend t)
+                               ("pc" "Project-local changelog" entry
+                                (file+headline +org-capture-project-changelog-file "Changelog")
+                                "* %U %?\n%i\n%a" :prepend t)
+                               ("o" "Centralized templates for projects")
+                               ("ot" "Project todo" entry #'+org-capture-central-project-todo-file "* TODO %?\n %i\n %a" :heading "Tasks" :prepend nil)
+                               ("on" "Project notes" entry #'+org-capture-central-project-notes-file "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
+                               ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
+                               ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
+                                "* IDEA %? %^g")
+                               ("a" "Templates for AI")
+                               ("ap" "Save a AI prompt for later" entry
+                                (file+headline "~/Documents/Notes/org/ai-prompts.org" "Prompts")
+                                "* %U %?\n%i\n%a" :prepend t)
+                               ("ai" "LLM/AI Injection (Bypasses)" entry
+                                (file+headline "~/Documents/Notes/org/ai-prompts.org" "Injections")
+                                "* %U %?\n%i\n%a" :prepend t)
+                               ("h" "templates for hacking notes")
+                               ("hr" "Save a note about revsering a Piece of code" entry
+                                (file+headline +org-capture-project-todo-file "Reversing") "* %U %?\n%i\n%a")
+                               ("hs" "Save a note about a service" entry
+                                (file+headline +org-capture-project-todo-file "Services") "* %U Port %?\n%i\n%a")
+                               ("hl" "Save a note to check later" entry
+                                (file+headline  +org-capture-project-todo-file "Check Later") "* %U %?\n%i\n%a")
+                               ))
 
 #+end_src
 *** Org Agenda

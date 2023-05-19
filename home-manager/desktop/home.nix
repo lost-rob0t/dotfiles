@@ -15,6 +15,22 @@
       # Workaround for https://github.com/nix-community/home-manager/issues/2942
       allowUnfreePredicate = (_: true);
     };
+#      overlays = [ (final: prev: {
+#          lispPackages = prev.lispPackages // {
+#
+#            nyxt = prev.lispPackages.nyxt.overrideAttrs (oldAttrs:
+#          {
+#            version = "3.0.0";
+#            src = prev.fetchFromGitHub {
+#              owner = "atlas-engineer";
+#              repo = "nyxt";
+#              rev = "e12cc3a8141a0e11290b527035a356cba2e05219";
+#              sha256 = "sha256-GdTOFu5yIIL9776kfbo+KS1gHH1xNCfZSWF5yHUB9U8=";
+#            };
+#          });
+#        };
+#        })];
+
   };
   home = {
   username = "N545PY";

@@ -9,6 +9,7 @@
 #    '';
 #  });
 #  in
+#
 {
 
   home.packages = with pkgs; [
@@ -31,7 +32,7 @@
     feh
     mindustry
     tlp
-    nyxt
+    # BUG nyxt
     webkitgtk
     remmina
     freerdp
@@ -73,6 +74,7 @@
     sxhkd
     conky
     j4-dmenu-desktop
+    fetchmail
     #
   ];
   programs = {
@@ -103,6 +105,9 @@
       pkgs.python310
       pkgs.pylint
       pkgs.python310Packages.flake8
+      pkgs.mu # Email for mu4e
+      pkgs.isync
+      pkgs.fetchmail
 
                          ];
 };
