@@ -18,7 +18,7 @@
 ;;  Hack The box utils
 ;;
 ;;; Code:
-
+(require 'f) `
 (defvar hackmode-wordlist-dir "~/wordlists/")
 (defun hackmode-add-host ()
   "Add a Host to /etc/hosts"
@@ -27,6 +27,24 @@
         (ip (read-string "Enter IP: ")))
     (append-to-file (format "%s\t%s\n" ip hostname) nil "/sudo::/etc/hosts")))
 
+(defcustom hackmode-interface 'string
+  "Network interface to use by default")
+
+(defcustom hackmode-templates 'string
+  "Path to templates directory")
+
+
+
+(defun hackmode-copy (name dest)
+  "Copy a template NAME to DEST"
+  (f-copy (f-join hackmode-templates name) dest))
+
+(defun hackmode-init ()
+  "Interactivly create a operation."
+  (interactive)
+  (let* ((template (completing-read "Select Template: " (f-directories hackmode-templates)))
+         (name (read-string "Enter Operaton Name: ")))
+    (f-copy template (f-join default-directory name))))
 
 (defun hackmode-kill-wordlist ()
   "Copy the path of a wordlist to the kill ring"
