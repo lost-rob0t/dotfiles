@@ -49,6 +49,14 @@ strings."
     (alert-message-notify info)))
 
 
+(defun nsaspy/kill-ssh-key ()
+  "Interactivly Copy a public ssh key"
+  (interactive)
+  (let ((key (read-file-name "Select Key: " (f-expand "~/.ssh/"))))
+    (kill-new (with-temp-buffer
+                (insert-file-contents key)
+                (goto-char (point-min))
+                (buffer-string)))))
 
 (provide 'saved)
 ;;; saved.el ends here
