@@ -8,11 +8,8 @@
 #+end_src
 
 * About
-This is my personal doom emacs config, you can find package related stuff in packages.org
+This is my personal doom emacs config, you can find package related stuff in packages.org [[./packages.org][packages.org]]
 yasnippets are in snippets
-
-
-
 
 
 * Multi Platform config
@@ -279,7 +276,7 @@ This section tangles the init file
        ;;(go +lsp)         ; the hipster dialect
        ;;(graphql +lsp)    ; Give queries a REST
        ;;(haskell +lsp)    ; a language that's lazier than I am
-       ;;hy                ; readability of scheme w/ speed of python
+       hy                ; readability of scheme w/ speed of python
        ;;idris             ; a language you can depend on
        json              ; At least it ain't XML
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
@@ -1094,7 +1091,7 @@ Send Alerts from emacs
 You must set the command, it is nil be default
 #+begin_src emacs-lisp
 (require 'alert)
-(setq alert-default-style 'libnotify)
+(setq alert-default-style 'alert-libnotify-notify)
 (setq alert-libnotify-command "dunstify")
 #+end_src
 
@@ -1222,7 +1219,7 @@ Enable explain Pause mode
 Alerts you when something takes some time (40ms)
 disabled because I swear it causes me problems
 #+begin_src emacs-lisp
-(explain-pause-mode nil)
+(explain-pause-mode t)
 #+end_src
 
 ** Environment
