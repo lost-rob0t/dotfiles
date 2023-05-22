@@ -33,6 +33,8 @@
 (defcustom hackmode-templates 'string
   "Path to templates directory")
 
+(defcustom hackmode-checklists 'list
+  "List of checklists")
 
 
 (defun hackmode-copy (name dest)
@@ -50,6 +52,9 @@
   "Copy the path of a wordlist to the kill ring"
   (interactive)
   (kill-new (f-expand (read-file-name "Select Wordlist: " (f-expand hackmode-wordlist-dir)))))
+
+(defun hackmode-create-checklist (name description &rest tasks)
+  (list :name name :description description :tasks (apply #'list tasks)))
 
 (provide 'htb)
 ;;; htb.el ends here
