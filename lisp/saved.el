@@ -57,6 +57,9 @@ strings."
                 (insert-file-contents key)
                 (goto-char (point-min))
                 (buffer-string)))))
-
+(defun display-ansi-colors ()
+  (interactive)
+  (let ((inhibit-read-only t))
+    (ansi-color-apply-on-region (point-min) (point-max))))
 (provide 'saved)
 ;;; saved.el ends here
