@@ -38,6 +38,8 @@
 
 (package! org-pomodoro)
 
+(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
+
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 
 (package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
@@ -98,7 +100,7 @@
 
 (package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
 
-;(package! mastodon :recipe (:type git :host codeberg :repo "martianh/mastodon.el"))
+(package! mastodon)
 
 (package! elcord :recipe (:type git :host github :repo "Mstrodl/elcord"))
 

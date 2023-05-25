@@ -61,6 +61,14 @@ I like to use my laptop outside, dark-themes looks bad outside.
     (message "Unable to find theme file for ‘%s’" theme)))
 
 #+end_src
+
+Map this theme toggle to SPC t T
+#+begin_src emacs-lisp
+(map! :leader
+      (:prefix-map ("t" . "toggle")
+       :desc "Cycle The Theme" "T" #'ivan/cycle-theme))
+
+#+end_src
 ** Line numbers
 #+begin_src emacs-lisp
 (setq display-line-numbers-type t)
@@ -202,7 +210,7 @@ This section tangles the init file
        parinfer          ; turn lisp into python, sort of
        ;;rotate-text       ; cycle region at point between text candidates
        snippets          ; my elves. They type so I don't have to
-       ;;word-wrap         ; soft wrapping with language-aware indent
+       word-wrap         ; soft wrapping with language-aware indent
 
        :emacs
        dired             ; making dired pretty [functional]
@@ -234,7 +242,7 @@ This section tangles the init file
        ;;gist              ; interacting with github gists
        lookup              ; navigate your code and its documentation
        ;;lsp               ; M-x vscode
-       magit             ; a git porcelain for Emacs
+       (magit +forge)             ; a git porcelain for Emacs
        make              ; run make tasks from Emacs
        ;;pass              ; password manager for nerds
        ;;pdf               ; pdf enhancements
@@ -322,7 +330,7 @@ This section tangles the init file
 
        :app
        ;;calendar
-       ;;emms
+       emms
        everywhere        ; *leave* Emacs!? You must be joking
        ;;irc               ; how neckbeards socialize
        (rss +org)        ; emacs as an RSS reader
@@ -333,6 +341,7 @@ This section tangles the init file
        (default +bindings +smartparens))
 
 #+end_src
+
 ** Magit
 Set keybinds for pushing to remote
 Pushes the current branch to the remote
@@ -363,6 +372,13 @@ Create a new tag
 Show todos!
 #+begin_src emacs-lisp
 (require 'magit-todos)
+#+end_src
+
+*** Magit Forges
+Magit forges allow you to interact with the online git repositoes like github, gitea and gitlab. They are named "forges".
+#+begin_src emacs-lisp
+(after! 'magit
+  (require 'forge))
 #+end_src
 ** Projectile
 Setting the path to find projects
@@ -1116,7 +1132,69 @@ I use dunst as my notification system, here is a config to
 * Programming
 
 This section would not fit well, therefor it is in its own.
+** Codeium AI power completions
+#+begin_src emacs-lisp
+(use-package codeium
+    ;; if you use straight
+    ;; :straight '(:type git :host github :repo "Exafunction/codeium.el")
+    ;; otherwise, make sure that the codeium.el file is on load-path
 
+    :init
+    ;; use globally
+    ;(add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
+    ;; or on a hook
+    (add-hook 'python-mode-hook
+         (lambda ()
+             (setq-local completion-at-point-functions '(codeium-completion-at-point))))
+
+    ;; if you want multiple completion backends, use cape (https://github.com/minad/cape):
+    ;; (add-hook 'python-mode-hook
+    ;;     (lambda ()
+    ;;         (setq-local completion-at-point-functions
+    ;;             (list (cape-super-capf #'codeium-completion-at-point #'lsp-completion-at-point)))))
+    ;; an async company-backend is coming soon!
+
+    ;; codeium-completion-at-point is autoloaded, but you can
+    ;; optionally set a timer, which might speed up things as the
+    ;; codeium local language server takes ~0.2s to start up
+    ;; (add-hook 'emacs-startup-hook
+    ;;  (lambda () (run-with-timer 0.1 nil #'codeium-init)))
+
+    ;; :defer t ;; lazy loading, if you want
+    :config
+    (setq use-dialog-box nil) ;; do not use popup boxes
+
+    ;; if you don't want to use customize to save the api-key
+    ;; (setq codeium/metadata/api_key "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+
+    ;; get codeium status in the modeline
+    (setq codeium-mode-line-enable
+        (lambda (api) (not (memq api '(CancelRequest Heartbeat AcceptCompletion)))))
+    (add-to-list 'mode-line-format '(:eval (car-safe codeium-mode-line)) t)
+    ;; alternatively for a more extensive mode-line
+    ;; (add-to-list 'mode-line-format '(-50 "" codeium-mode-line) t)
+
+    ;; use M-x codeium-diagnose to see apis/fields that would be sent to the local language server
+    (setq codeium-api-enabled
+        (lambda (api)
+            (memq api '(GetCompletions Heartbeat CancelRequest GetAuthToken RegisterUser auth-redirect AcceptCompletion))))
+    ;; you can also set a config for a single buffer like this:
+    ;; (add-hook 'python-mode-hook
+    ;;     (lambda ()
+    ;;         (setq-local codeium/editor_options/tab_size 4)))
+
+    ;; You can overwrite all the codeium configs!
+    ;; for example, we recommend limiting the string sent to codeium for better performance
+    (defun my-codeium/document/text ()
+        (buffer-substring-no-properties (max (- (point) 3000) (point-min)) (min (+ (point) 1000) (point-max))))
+    ;; if you change the text, you should also change the cursor_offset
+    ;; warning: this is measured by UTF-8 encoded bytes
+    (defun my-codeium/document/cursor_offset ()
+        (codeium-utf8-byte-length
+            (buffer-substring-no-properties (max (- (point) 3000) (point-min)) (point))))
+    (setq codeium/document/text 'my-codeium/document/text)
+    (setq codeium/document/cursor_offset 'my-codeium/document/cursor_offset))
+#+end_src
 ** Python
 
 Set the exec path for pyright
@@ -1193,6 +1271,16 @@ Setup roswell
     (if (and (functionp #'projectile-project-type) (eq (projectile-project-type) 'qlot-common-lisp))
         (setq inferior-lisp-program (format "%s -Q run" (executable-find "ros")))))
 )
+#+end_src
+*** Templates
+Template for [[https://gitlab.common-lisp.net/asdf/asdf][ASDF]] system def.
+#+begin_src emacs-lisp
+(set-file-template! "\\.asd" :trigger "__.asd" :mode 'lisp-mode)
+#+end_src
+
+Package Def snippet
+#+begin_src emacs-lisp
+(set-file-template! "\\package.lisp" :trigger "__package.lisp" :mode 'lisp-mode)
 #+end_src
 ** Flycheck
 Check for errors!

@@ -18,7 +18,7 @@
 ;;  Hack The box utils
 ;;
 ;;; Code:
-(require 'f) `
+(require 'f)
 (defvar hackmode-wordlist-dir "~/wordlists/")
 (defun hackmode-add-host ()
   "Add a Host to /etc/hosts"
