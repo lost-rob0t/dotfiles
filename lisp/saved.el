@@ -61,5 +61,21 @@ strings."
   (interactive)
   (let ((inhibit-read-only t))
     (ansi-color-apply-on-region (point-min) (point-max))))
+
+
+
+(defun get-interface-ip (interface)
+  "Get the IP address of a network interface."
+  (let ((output (shell-command-to-string (concat "ip addr show dev " interface " | grep 'inet '"))))
+    (when (string-match "\\([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\\)" output)
+      (match-string 1 output))))
+
+(defun get-iterfaces ()
+  "Get a list of network interface names."
+  (let ((output (shell-command-to-string "ip addr show | awk '/^[0-9]+:/ {gsub(/:/,\"\"); print $2}'")))
+    (split-string output "\n" t)))
+
+
+
 (provide 'saved)
 ;;; saved.el ends here
