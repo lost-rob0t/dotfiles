@@ -77,4 +77,3 @@ before running this command."
 (nyxt::load-lisp "~/.config/nyxt/status.lisp")
 ;; (nyxt::load-lisp "~/.config/nyxt/theme.lisp")
 (asdf:load-system :nx-hunt)
-(in-package :nx-hunt)
