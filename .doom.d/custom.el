@@ -13,7 +13,7 @@
      (org-export-with-properties)
      (eval require 'org-make-toc)))
  '(package-selected-packages
-   '(xclip w3m vterm pylint pandoc lsp-pyright direnv use-package))
+   '(org-roam htmlize xclip w3m vterm pylint pandoc lsp-pyright direnv use-package))
  '(safe-local-variable-values '((eval require 'org-make-toc)))
  '(warning-suppress-types '((browse-url) (browse-url) (browse-url) (defvaralias))))
 (custom-set-faces

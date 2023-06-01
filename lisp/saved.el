@@ -76,6 +76,32 @@ strings."
     (split-string output "\n" t)))
 
 
+(defcustom nsaspy/docker-images
+  '(("ibmcom/couchdb3:latest" . "-d -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -v %s/db:/opt/couchdb/data -p 0.0.0.0:5984:5984")
+    ("postgres:latest" . "-d -e POSTGRES_USER=myuser -e POSTGRES_PASSWORD=mypassword -p 5432:5432")
+    ("mongo:latest" . "-d -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=password -p 27017:27017")
+    ("redis:latest" . "-d -p 6379:6379")
+    ("nginx:latest" . "-d -p 80:80")
+    ("wordpress:latest" . "-d -e WORDPRESS_DB_HOST=db -e WORDPRESS_DB_USER=myuser -e WORDPRESS_DB_PASSWORD=mypassword -p 8080:80")
+    ("rabbitmq:latest" . "-d -p 5672:5672 -p 15672:15672")
+    ("elasticsearch:latest" . "-d -p 9200:9200 -p 9300:9300")
+    ("memcached:latest" . "-d -p 11211:11211")
+    ("influxdb:latest" . "-d -p 8086:8086"))
+  "List of docker images for completing read.")
+
+
+(defun nsaspy/kill-docker-cmd ()
+  "Copy a commonly used docker command to the kill ring."
+  (interactive)
+  (let* ((image (completing-read "Select Image: " (mapcar #'car nsaspy/docker-images) nil nil))
+         (options (read-string "Options: " (cdr (assoc image nsaspy/docker-images))))
+
+         (docker (executable-find "docker")))
+
+
+    (kill-new (format "sudo %s %s %s" docker options image))))
+
+
 
 (provide 'saved)
 ;;; saved.el ends here
