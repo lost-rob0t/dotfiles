@@ -77,7 +77,7 @@ strings."
 
 
 (defcustom nsaspy/docker-images
-  '(("ibmcom/couchdb3:latest" . "-d -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -v %s/db:/opt/couchdb/data -p 0.0.0.0:5984:5984")
+  '(("ibmcom/couchdb3:latest" . "-d -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -v $PWD/db:/opt/couchdb/data -p 0.0.0.0:5984:5984")
     ("postgres:latest" . "-d -e POSTGRES_USER=myuser -e POSTGRES_PASSWORD=mypassword -p 5432:5432")
     ("mongo:latest" . "-d -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=password -p 27017:27017")
     ("redis:latest" . "-d -p 6379:6379")

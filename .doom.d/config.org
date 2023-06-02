@@ -1282,6 +1282,17 @@ Package Def snippet
 #+begin_src emacs-lisp
 (set-file-template! "\\package.lisp" :trigger "__package.lisp" :mode 'lisp-mode)
 #+end_src
+*** LispyVille Keybinds
+#+begin_src emacs-lisp
+
+
+(map! :after 'lispyville
+      :map 'lispyville-mode-map
+      "C-w" #'lispyville-move-up)
+(map! :after 'evil
+      :map 'lispyville-mode-map
+      "C-s" #'lispyville-move-down)
+#+end_src
 ** Flycheck
 Check for errors!
 

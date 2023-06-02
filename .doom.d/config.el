@@ -710,6 +710,13 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (set-file-template! "\\package.lisp" :trigger "__package.lisp" :mode 'lisp-mode)
 
+(map! :after 'evil
+      :map 'lispyville-mode-map
+      "-" #'lispyville-move-down)
+(map! :after 'evil
+      :map 'lispyville-mode-map
+      "=" #'lispyville-move-down)
+
 (use-package! flycheck-package
   :after flycheck
   :config (flycheck-package-setup))
