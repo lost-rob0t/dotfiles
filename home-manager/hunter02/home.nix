@@ -17,7 +17,7 @@
     };
   };
   home = {
-  username = "N545PY";
+  username = "unseen";
   homeDirectory = "/home/unseen";
   stateVersion = "22.05";
   };
