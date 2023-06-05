@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: org-tangle header
+# key: org-tangle
+# --
+
+#+property: header-args :${1:$$(yas-choose-value '("nim" "python" "emacs-lisp" "lisp" "json"))} tangle: ${2:$$(let ((basename (f-base buffer-file-name))) (f-join default-directory (read-file-name "Enter Path to tangle: " default-directory)))} :tangle yes :results ${1:$$(yas-choose-value '("output replace" "value" "table" "list" "file" "verbatim"))}
