@@ -15,19 +15,7 @@ yasnippets are in snippets
 * Multi Platform config
 Stuff to determin os and apply settings to fit that system
 
-
-#+begin_src emacs-lisp
-(defvar nsaspy/system "desktop"
-        "platform name to base config for.
-        it will load the name from ~/.platform")
-
-(defun nsaspy/load-platform (path)
-  "load the paatform name from file"
-  (with-temp-buffer
-    (insert-file-contents path)
-    (buffer-string)))
-#+end_src
-
+See [[file:~/.dotfiles/lisp/nixos-helpers/system.el][system.el]] for how I determin my system
 
 Load my Personal elisp
 #+begin_src emacs-lisp
@@ -1373,10 +1361,12 @@ Stuff that i use for games are here.
 
 #+end_src
 *** Discord rich presence
-So i can brag about coding all the time lol
+So i can brag about coding all the time lol.
+I only use it on the desktop so only load it there.
 #+begin_src emacs-lisp
-(require 'elcord)
-(elcord-mode)
+(with-system "flake"
+             (require 'elcord)
+             (elcord-mode))
 #+end_src
 ** Other
 #+begin_src emacs-lisp
@@ -1426,7 +1416,7 @@ Set the time to 7 am local
 Tell auth info to put authsource in my dotfiles
 #+begin_src emacs-lisp
 (setq auth-sources '("~/.authinfo.gpg")
-      auth-source-cache-expiry nil)
+      auth-source-cache-expiry 1360)
 #+end_src
 
 
