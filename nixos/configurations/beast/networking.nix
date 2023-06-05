@@ -8,7 +8,7 @@
                                           8384 #syncthing
                                           22000 # syncthing
                                           5332 # caldev
-                                          8080 # testing
+                                          3128
                                           15029
 
                                           47989 # moonlight
