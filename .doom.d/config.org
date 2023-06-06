@@ -1004,7 +1004,8 @@ fix text area
        (dme:w3m-textarea-mode))
      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
 #+end_src
-
+** Yasnippets
+Add common lisp tem
 ** Vterm
 its a good term
 
@@ -1026,7 +1027,7 @@ a better dired
 
 #+begin_src emacs-lisp
 (use-package! dirvish
-  :init
+  :init .
   (dirvish-override-dired-mode)
   :custom
   (dirvish-quick-access-entries ; It's a custom option, `setq' won't work
@@ -1263,15 +1264,7 @@ Load forth mode
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 #+end_src
 ** Lisp
-Setup roswell
-#+begin_src emacs-lisp
-(load (expand-file-name "~/.roswell/helper.el"))
-(after! sly
-  (add-hook! 'sly-mode-hook :depth -100
-    (if (and (functionp #'projectile-project-type) (eq (projectile-project-type) 'qlot-common-lisp))
-        (setq inferior-lisp-program (format "%s -Q run" (executable-find "ros")))))
-)
-#+end_src
+
 *** Templates
 Template for [[https://gitlab.common-lisp.net/asdf/asdf][ASDF]] system def.
 #+begin_src emacs-lisp
