@@ -1027,7 +1027,7 @@ a better dired
 
 #+begin_src emacs-lisp
 (use-package! dirvish
-  :init .
+  :init
   (dirvish-override-dired-mode)
   :custom
   (dirvish-quick-access-entries ; It's a custom option, `setq' won't work

@@ -35,9 +35,8 @@
       pkgs.mediainfo #audio previews
       pkgs.mpv # for bongo
       pkgs.pyright
-      pkgs.python310
-      pkgs.pylint
-      pkgs.python310Packages.flake8
+      pkgs.python311
+      pkgs.python311Packages.flake8
       pkgs.emacsPackages.vterm
 
       # Pwnagotchi.el
