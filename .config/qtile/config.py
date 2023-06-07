@@ -19,7 +19,7 @@ home = os.path.expanduser('~')
 #myIp = ip.publicIp()
 myIp = "127.0.0.1"
 myTerm = "terminator"
-wmname = "qtile"
+wmname = "LG3D"
 groups = []
 
 def init_colors():

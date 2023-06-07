@@ -22,22 +22,26 @@ from libqtile.config import ScratchPad, DropDown
 from libqtile.command import lazy
 from libqtile.widget import Spacer
 from libqtile.log_utils import logger
-import ip
+#import ip
 #+END_SRC
 
 *** Initial setup
 Here is where i define some global values and modifier keys.
 
 ~myTerm~ is the default terminal emulator to use, I like terminator.
+
+You have to set wmname to something java will accept, or they will not render.[fn:1]
 #+BEGIN_SRC python :tangle ./config.py
 mod = "mod4"
 mod1 = "alt"
 mod2 = "control"
 home = os.path.expanduser('~')
-myIp = ip.publicIp()
-#myIp = "127.0.0.1"
+#myIp = ip.publicIp()
+myIp = "127.0.0.1"
 myTerm = "terminator"
-wmname = "qtile"
+
+#https://archive.is/DOJvD
+wmname = "LG3D"
 groups = []
 #+END_SRC
 
@@ -748,3 +752,7 @@ floating_layout = layout.Floating(float_rules=[
 
 
 #+end_src
+
+* Footnotes
+
+[fn:1] https://archive.is/DOJvD
