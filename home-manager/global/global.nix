@@ -14,6 +14,10 @@
       };
     };
   };
+  home.packages = with pkgs; [
+    scrot
+    keepassxc
+  ];
   programs.emacs = {
     enable = true;
     extraPackages = epkgs: [

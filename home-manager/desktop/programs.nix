@@ -29,7 +29,7 @@
     mpv
     qbittorrent
     yt-dlp
-
+    scrot
     # System Tools
     gparted
     filezilla
