@@ -29,7 +29,6 @@
     mpv
     qbittorrent
     yt-dlp
-    scrot
     # System Tools
     gparted
     filezilla
@@ -69,7 +68,6 @@
     ntfy # send notifications
 
     # Security
-    keepassxc
     hcxtools
     hashcat-utils
     hashcat
