@@ -204,8 +204,8 @@ ctrl + shift + Escape
 #################################################################
 
 #Scrot
-Print
-    scrot '%Y-%m-%d-%s_screenshot_$wx$h.jpg' -e 'mv $f $$(xdg-user-dir PICTURES)'
+bindsym Print       exec flameshot full -p "~/Pictures/screenshots"
+bindsym Shift+Print exec flameshot gui -p "~/Pictures/screenshots"
 
 #screeenshooter
 ctrl + Print

@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 # BUG this really doesnt work in nyxt yet
 #let
@@ -29,6 +29,8 @@
     mpv
     qbittorrent
     yt-dlp
+    # Games
+    inputs.mousetrap.defaultPackage.x86_64-linux
     # System Tools
     gparted
     filezilla
@@ -95,7 +97,6 @@
     conky
     j4-dmenu-desktop
     fetchmail
-    #
   ];
   programs = {
       gpg = {
