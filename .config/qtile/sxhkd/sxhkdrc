@@ -195,9 +195,6 @@ alt + shift + u
 #################################################################
 
 #Xcfe4-TaskManager
-ctrl + shift + Escape
-    xfce4-taskmanager
-
 
 #################################################################
 #     SCREENSHOTS
@@ -400,6 +397,10 @@ super + shift + x
 # lock the mouse in a window
 #
 alt + l
-      mousetrap
+      mousetrap -t 30 -b 30 -l 30 -r 30
+
 super + l
       pkill -f -9 mousetrap
+
+ctrl + shift + Escape
+     bash /home/unseen/.dotfiles/.config/qtile/scripts/monitor-toggle.sh
