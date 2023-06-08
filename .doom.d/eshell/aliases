@@ -46,3 +46,4 @@ alias tail colourify tail $*
 alias traceroute colourify traceroute $*
 alias traceroute6 colourify traceroute6 $*
 alias wttr curl wttr.in $*
+alias get-ip curl -s -q ifconfig.me
