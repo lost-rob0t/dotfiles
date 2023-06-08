@@ -40,6 +40,11 @@ def publicIp():
     except r.TimeoutError:
         return "Timeout getting IP"
 
+def readIpFile(file_path= os.path.expanduser("~/.local/share/ip")):
+    with open(ip_file, "r") as file:
+        ip_address = file.read().strip()
+
+
 class IpWidget(base.ThreadPoolText):
     defaults = [
         ("update_interval", 10),

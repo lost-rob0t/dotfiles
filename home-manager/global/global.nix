@@ -16,6 +16,7 @@
   };
   home.packages = with pkgs; [
     scrot
+    flameshot
     keepassxc
   ];
   programs.emacs = {

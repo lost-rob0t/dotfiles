@@ -11,14 +11,20 @@ from libqtile.command import lazy
 from libqtile.widget import Spacer
 from libqtile.log_utils import logger
 #import ip
+def readIpFile(file_path= os.path.expanduser("~/.local/share/ip")):
+    with open(file_path, "r") as file:
+        return file.read().strip()
+
+thermalTag="Tctl"
 
 mod = "mod4"
 mod1 = "alt"
 mod2 = "control"
 home = os.path.expanduser('~')
-#myIp = ip.publicIp()
-myIp = "127.0.0.1"
+myIp = readIpFile()
 myTerm = "terminator"
+
+#https://archive.is/DOJvD
 wmname = "LG3D"
 groups = []
 
@@ -48,7 +54,8 @@ def start_always():
     subprocess.Popen(['xsetroot', '-cursor_name', 'left_ptr'])
 
 group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
-group_labels = ["爵", "", "", "", "", "", "", "", "", "",]
+#group_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
+group_labels = ["", "", "", "", "", "", "", "", "", "",]
 group_layouts = ["max", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
 
 for i in range(len(group_names)):
@@ -151,10 +158,7 @@ keys = [
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(dired nil)'"),
                  desc='Emacsclient Dired'
                  ),
-             Key([], "i",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(erc)'"),
-                 desc='Emacsclient ERC (IRC)'
-                 ),
+
              Key([], "n",
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(elfeed-update)'  --eval '(elfeed)'"),
                  desc='Emacsclient Elfeed (RSS)'
@@ -167,10 +171,7 @@ keys = [
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(+vterm/here nil)'"),
                  desc='Emacsclient Vterm'
                  ),
-             Key([], "w",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(doom/window-maximize-buffer(eww \"distro.tube\"))'"),
-                 desc='Emacsclient EWW Browser'
-                 )
+
          ])
  ]
 
@@ -333,7 +334,7 @@ bring_front_click = False
 cursor_warp = True # Keep mouse inside game window!
 
 def init_widgets_defaults():
-    return dict(font="Hack Regular Nerd Font Complete",
+    return dict(font="Hack Nerd Regular",
                 fontsize = 12,
                 padding = 2,
                 background=colors[1])
@@ -343,10 +344,10 @@ widget_defaults = init_widgets_defaults()
 def init_widgets_list():
     prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
     widgets_list = [
-        widget.GroupBox(font="Hack Regular Nerd Font Complete",
+        widget.GroupBox(font="3270 Nerd Font",
                         fontsize = 25,
                         margin_y = -1,
-                        margin_x = 0,
+                        margin_x = 1,
                         padding_y = 6,
                         padding_x = 5,
                         borderwidth = 0,
@@ -408,10 +409,9 @@ def init_widgets_list():
                       max_chars=60
                       ),
         widget.Wttr(
-            format =  '%t(%f) %c',
+            format =  '%f %C',
             location={f'@{myIp}': 'Home'},
             units = "u",
-            font = "all-the-icons"
         ),
         widget.Sep(
             linewidth = 1,
@@ -426,7 +426,8 @@ def init_widgets_list():
             background = colors[1],
             metric = True,
             padding = 3,
-            threshold = 80
+            threshold = 70,
+            tag_sensor=thermalTag
         ),
         widget.Sep(
             linewidth = 1,
@@ -539,12 +540,19 @@ def init_widgets_list():
             fontsize = 12,
             format="%Y-%m-%d %H:%M"
         ),
-        # widget.Sep(
-        #          linewidth = 1,
-        #          padding = 10,
-        #          foreground = colors[2],
-        #          background = colors[1]
-        #          ),
+        widget.Sep(
+                  linewidth = 1,
+                  padding = 10,
+                  foreground = colors[2],
+                  background = colors[1]
+                  ),
+        widget.Volume(
+            #emoji="󱄠",
+            foreground = colors[2],
+            background = colors[1],
+            volume_up_command = "amixer set Master 10%+",
+            volume_down_command = "amixer set Master 10%-",
+        )
     ]
     return widgets_list
 

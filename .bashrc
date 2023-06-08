@@ -26,6 +26,9 @@ fi
 }
 init_platform
 
+alias get-ip="curl -s -q ifconfig.me"
+get-ip > "$HOME/.local/share/ip"
+
 function install_doom_emacs () {
  if [ -d ~/.emacs.d ]; then
  	echo "Are you sure you want to delete ~/.emacs.d/ directory and install doom emacs? (y/n)"
