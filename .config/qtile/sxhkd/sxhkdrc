@@ -396,3 +396,10 @@ super + shift + x
 #super + control + Down
 ##################################
 
+
+# lock the mouse in a window
+#
+alt + l
+      mousetrap
+super + l
+      pkill -f -9 mousetrap
