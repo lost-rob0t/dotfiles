@@ -97,6 +97,7 @@
     conky
     j4-dmenu-desktop
     fetchmail
+    variety
   ];
   programs = {
       gpg = {
