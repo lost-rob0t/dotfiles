@@ -3,6 +3,6 @@
 # key: async-shell
 # --
 
-#+begin_src shell :async :results  ${1:$$(yas-choose-value '("ouput" "table" "raw")) ${2:$$(yas-choose-value '("replace" "append" "prepend"))}
+#+begin_src sh :async :results  ${1:$$(yas-choose-value '("ouput" "table" "raw"))} ${2:$$(yas-choose-value '("replace" "append" "prepend"))}
 $0
 #+end_src
