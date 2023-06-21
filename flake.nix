@@ -4,7 +4,7 @@
   description = "My Nixos Config";
   inputs = {
     unseen.url = "https://gitlab.nobodyhasthe.biz/nsaspy/nixpkgs/-/archive/master/nixpkgs-master.tar.gz";
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs.url = "https://github.com/NixOS/nixpkgs/archive/refs/heads/master.zip";
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-22.11";
     # Also see the 'unstable-packages' overlay at 'overlays/default.nix'.
 
