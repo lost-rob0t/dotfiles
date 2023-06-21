@@ -13,7 +13,7 @@
      (org-export-with-properties)
      (eval require 'org-make-toc)))
  '(package-selected-packages
-   '(org-roam htmlize xclip w3m vterm pylint pandoc lsp-pyright direnv use-package))
+   '(color-theme-sanityinc-tomorrow org-roam htmlize xclip w3m vterm pylint pandoc lsp-pyright direnv use-package))
  '(safe-local-variable-values '((eval require 'org-make-toc)))
  '(warning-suppress-types '((browse-url) (browse-url) (browse-url) (defvaralias))))
 (custom-set-faces
@@ -22,6 +22,11 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ 
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.

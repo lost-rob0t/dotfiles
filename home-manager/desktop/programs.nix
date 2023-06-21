@@ -20,6 +20,7 @@
     vim
     lorri
     direnv
+    sbcl
     # Multimedia
     vlc
     obs-studio
