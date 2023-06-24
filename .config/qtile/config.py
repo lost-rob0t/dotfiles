@@ -419,7 +419,8 @@ def init_widgets_list():
             foreground = colors[2],
             background = colors[1]
         ),
-               # # do not activate in Virtualbox - will break qtile
+        ## do not activate in Virtualbox - will break qtile
+        ## NOTE is this really the case for libvirt? lol
         widget.ThermalSensor(
             foreground = colors[5],
             foreground_alert = colors[6],
@@ -563,16 +564,17 @@ widgets_list = init_widgets_list()
 
 def init_widgets_screen1():
     widgets_screen1 = init_widgets_list()
+
+    widgets_screen1.append(widget.Systray(
+                        background=colors[1],
+                        icon_size=20,
+                        padding = 4))
     return widgets_screen1
 
 def init_widgets_screen2():
     widgets_screen2 = init_widgets_list()
     widget_len = len(widgets_screen2) - 10
 
-    widgets_screen2.append(widget.Systray(
-                        background=colors[1],
-                        icon_size=20,
-                        padding = 4))
     return widgets_screen2
 
 widgets_screen1 = init_widgets_screen1()

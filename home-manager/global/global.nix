@@ -43,8 +43,8 @@
       pkgs.python311
       pkgs.python311Packages.flake8
       pkgs.emacsPackages.vterm
-
       # Pwnagotchi.el
+
       pkgs.hcxtools
       pkgs.hashcat-utils
       pkgs.hashcat
