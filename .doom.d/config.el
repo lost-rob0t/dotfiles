@@ -1,13 +1,3 @@
-(defvar nsaspy/system "desktop"
-        "platform name to base config for.
-        it will load the name from ~/.platform")
-
-(defun nsaspy/load-platform (path)
-  "load the paatform name from file"
-  (with-temp-buffer
-    (insert-file-contents path)
-    (buffer-string)))
-
 (dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
   (load file))
 
@@ -750,8 +740,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
     (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
           mastodon-active-user "nott")
 
-(require 'elcord)
-(elcord-mode)
+(with-system "flake"
+             (require 'elcord)
+             (elcord-mode))
 
 (use-package! org-pomodoro
   :init
@@ -774,7 +765,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (midnight-delay-set 'midnight-delay "12:00am")
 
 (setq auth-sources '("~/.authinfo.gpg")
-      auth-source-cache-expiry nil)
+      auth-source-cache-expiry 1360)
 
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")
