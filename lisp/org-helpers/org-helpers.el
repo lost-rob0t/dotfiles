@@ -45,4 +45,4 @@
   (interactive)
   (let ((org-setup (read-file-name "Enter org-setup filename: " org-directory))
         (path (read-directory-name "Enter path: " org-directory)))
-    (add-setup-file-to-org-files path org-setup)))
+    (nsaspy/add-setup-file-to-org-files path org-setup)))

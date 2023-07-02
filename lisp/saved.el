@@ -103,5 +103,14 @@ strings."
 
 
 
+(defun run-emacs-script ()
+  "Run a emacs script in batch mode"
+  (interactive)
+  (let* ((file (read-file-name "Script to run: " default-directory))
+         (buffer (get-buffer-create "*emacs-script*"))
+         (args (read-string "Arguments: " nil t)))
+    (async-shell-command (format "%s --script %s %s" (executable-find "emacs") file args) buffer buffer)
+    (switch-to-buffer buffer)))
+
 (provide 'saved)
 ;;; saved.el ends here
