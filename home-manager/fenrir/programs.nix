@@ -65,6 +65,7 @@
     hashcat-utils
     # rice
     starship
+    j4-dmenu-desktop
     emojione # wttr widget emojis
     noto-fonts-emoji
     grc # colourize output
