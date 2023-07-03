@@ -42,16 +42,16 @@
 
   hardware.pulseaudio = {
     enable = true;
-    extraConfig = ''
-    load-module module-native-protocol-unix
-    load-module module-suspend-on-idle timeout=1
-    load-module module-null-sink sink_name=rtp
-    load-module module-rtp-send source=rtp.monitor
-    '';
-    daemon.config = {
-      exit-idle-time = "-1";
-      default-sample-format = "s16le";
-    };
+   # extraConfig = ''
+   # load-module module-native-protocol-unix
+   # load-module module-suspend-on-idle timeout=1
+   # load-module module-null-sink sink_name=rtp
+   # load-module module-rtp-send source=rtp.monitor
+   # '';
+   # daemon.config = {
+   #   exit-idle-time = "1";
+   #   default-sample-format = "s16le";
+   # };
   };
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
