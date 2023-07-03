@@ -1,9 +1,9 @@
-;;; yt-music-.el --- Download music   -*- lexical-binding: t; -*-
+;;; yt-dlp-music-.el --- Download music   -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2023
 ;;
-;; Author:  <unseen@flake>
-;; Maintainer:  <unseen@flake>
+;; Author:  <nsaspy@airmail.cc>
+;; Maintainer:  <nsaspy@airmail.cc>
 ;; Created: July 02, 2023
 ;; Modified: July 02, 2023
 ;; Version: 0.0.1
@@ -44,7 +44,7 @@
 (defun nsaspy/dl-song ()
   "Download a song."
   (interactive)
-  (let* ((default-directory nsaspy/music-dir)
+  (let* (
          (link (read-string "Url: " (current-kill 0)))
          (genre (downcase (completing-read "genre: " nsaspy/genres nil nil)))
          (output-dir (f-join nsaspy/music-dir genre))
