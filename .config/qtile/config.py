@@ -147,7 +147,7 @@ keys = [
                  desc='Emacsclient Dashboard'
                  ),
              Key([], "a",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(emms)' --eval '(emms-play-directory-tree \"~/Music/\")'"),
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(emms)' --eval '(emms-play-directory-tree \"~/usb/Music/\")'"),
                  desc='Emacsclient EMMS (music)'
                  ),
              Key([], "b",
