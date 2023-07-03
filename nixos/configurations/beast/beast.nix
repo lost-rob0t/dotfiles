@@ -42,12 +42,9 @@
 
   hardware.pulseaudio = {
     enable = true;
-   # extraConfig = ''
-   # load-module module-native-protocol-unix
-   # load-module module-suspend-on-idle timeout=1
-   # load-module module-null-sink sink_name=rtp
-   # load-module module-rtp-send source=rtp.monitor
-   # '';
+    extraConfig = ''
+    load-module module-native-protocol-tcp auth-ip-acl=10.50.50.25
+    '';
    # daemon.config = {
    #   exit-idle-time = "1";
    #   default-sample-format = "s16le";
