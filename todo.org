@@ -1,4 +1,8 @@
 * Inbox
+** TODO make all the * functions no be duplicated code
+I copy pasted them but in hindsight this is not a good idea. Just call the normal method with the json/automagick
+
+[[file:~/.roswell/local-projects/cl-couch/couch.lisp::(defmacro couchdb-request (client path &key]]
 ** TODO Improments [0/3]
 + [ ] make urls open to brave
 + [ ] A way to synce contacts from my phone
