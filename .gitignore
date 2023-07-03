@@ -6,3 +6,4 @@ tmp/
 *discord*
 *.pyc
 *;;
+.config/starintel/*.ini
