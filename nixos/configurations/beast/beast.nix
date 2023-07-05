@@ -44,6 +44,10 @@
     enable = true;
     extraConfig = ''
     load-module module-native-protocol-tcp auth-ip-acl=10.50.50.25
+    load-module module-esound-protocol-tcp
+    load-module module-native-protocol-tcp
+    load-module module-zeroconf-publish
+    load-module module-rtp-recv
     '';
    # daemon.config = {
    #   exit-idle-time = "1";
