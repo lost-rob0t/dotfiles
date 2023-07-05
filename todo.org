@@ -1,4 +1,6 @@
 * Inbox
+** TODO Add functionality to mount usb drives
+
 ** TODO make all the * functions no be duplicated code
 I copy pasted them but in hindsight this is not a good idea. Just call the normal method with the json/automagick
 
