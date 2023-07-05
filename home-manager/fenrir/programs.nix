@@ -69,7 +69,8 @@
     emojione # wttr widget emojis
     noto-fonts-emoji
     grc # colourize output
-    #
+
+    sonixd # self hosted music streaming
   ];
   programs = {
       gpg = {
