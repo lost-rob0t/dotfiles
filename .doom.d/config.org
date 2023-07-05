@@ -1428,6 +1428,13 @@ Simple utility to create local lisp code
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")
 #+end_src
+** yt-dlp.el
+A simple wraper for yt-dlp a youtube-dl fork that still works.
+
+#+begin_src emacs-lisp
+(setq nsaspy/music-dir "/ssh:gitea:/mnt/usb/music/")
+#+end_src
+
 * Footnotes
 
 [fn:1] https://www.reddit.com/r/emacs/comments/e7h3qw/comment/fa0k4c5
