@@ -20,7 +20,7 @@
 ;;; Code:
 (require 'async)
 (require 'f)
-(defun nsaspy/pretify-json-dir ()
+(defun nsaspy/pretify-js-dir ()
   "Beautify all JavaScript files in the current directory."
 
   (dolist (filename (f-glob "./*.js"))
