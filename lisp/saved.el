@@ -128,6 +128,10 @@ strings."
         (shell-command
          (concat "wget " url))))))
 
+(defun nsaspy/wget-mirror (url directory)
+  "Mirror a website using wget."
+  (interactive "sEnter the URL to mirror: \nDEnter the target directory: ")
+  (async-shell-command (format "wget --mirror --convert-links --adjust-extension --page-requisites --no-parent -P %s %s" directory url)))
 
 
 
