@@ -22,7 +22,7 @@
 (require 'f)
 (defun nsaspy/pretify-js-dir ()
   "Beautify all JavaScript files in the current directory."
-
+  (interactive)
   (dolist (filename (f-glob "./*.js"))
     (async-start-process "uglyjs" (executable-find "uglifyjs") #'(lambda (buffer) (message "%s is done" filename)) filename "-b" "-o" (format "%s-cleaned.js" filename))))
 
