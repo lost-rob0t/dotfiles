@@ -112,5 +112,24 @@ strings."
     (async-shell-command (format "%s --script %s %s" (executable-find "emacs") file args) buffer buffer)
     (switch-to-buffer buffer)))
 
+(defun nsaspy/wget-region
+    (start end)
+  "Download a region of URLs using wget."
+  (interactive "r")
+  (let
+      ((url-list
+        (split-string
+         (buffer-substring start end)
+         "\n" t)))
+    (dolist
+        (url url-list)
+      (when
+          (string-match-p "^https?://" url)
+        (shell-command
+         (concat "wget " url))))))
+
+
+
+
 (provide 'saved)
 ;;; saved.el ends here
