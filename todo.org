@@ -1,4 +1,8 @@
 * Inbox
+** TODO Add ob-http
+https://github.com/zweifisch/ob-http
+
+[[file:~/.dotfiles/.direnv]]
 ** TODO Configure diered as the default file manager
 
 [[file:~/.dotfiles/.direnv]]
