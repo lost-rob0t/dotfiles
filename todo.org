@@ -1,4 +1,7 @@
 * Inbox
+** TODO Make this callable from dired
+
+[[file:~/.dotfiles/lisp/dired/dired-helpers.el]]
 ** TODO Add functionality to mount usb drives
 
 ** TODO make all the * functions no be duplicated code
