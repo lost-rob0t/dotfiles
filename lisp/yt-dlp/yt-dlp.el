@@ -61,6 +61,27 @@
     (async-shell-command cmd "*yt-dlp*" "*yt-dlp*")))
 
 
+(defun nsaspy/remove-duplicate-titles ()
+  "Remove duplicate song titles in artist - title.song format format in subdirectories."
+  (interactive)
+  (let* ((root-dir (read-directory-name "Enter root directory: "))
+         (files (directory-files-recursively root-dir (format "\\.%s$" nsaspy/music-format)))
+         (titles-alist (make-hash-table :test 'equal))
+         (duplicates '()))
+    ;; Iterate over each file
+    (dolist (file files)
+      (when (string-match (format  "\\([^/]+\\)/\\([^/]+\\) - \\([^/]+\\)\\.%s$" nsaspy/music-format) file)
+        (let* ((artist (match-string 2 file))
+               (title (match-string 3 file))
+               (key (concat artist " - " title)))
+          (if (gethash key titles-alist)
+              (push file duplicates)
+            (puthash key t titles-alist)))))
+    ;; Delete duplicate files
+    (dolist (duplicate duplicates)
+      (delete-file duplicate))
+    (message "Removed %d duplicate song titles." (length duplicates))))
+
 
 (provide 'yt-dlp)
 ;;; yt-dlp.el ends here
