@@ -147,7 +147,7 @@ keys = [
                  desc='Emacsclient Dashboard'
                  ),
              Key([], "a",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(emms)' --eval '(emms-play-directory-tree \"~/usb/Music/\")'"),
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(emms)' --eval '(emms-play-directory-tree nsaspy/music-dir)'"),
                  desc='Emacsclient EMMS (music)'
                  ),
              Key([], "b",
@@ -168,9 +168,10 @@ keys = [
                  desc='Emacsclient Eshell'
                  ),
              Key([], "v",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(+vterm/here nil)'"),
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(lish-vterm)'"),
                  desc='Emacsclient Vterm'
                  ),
+
 
          ])
  ]
