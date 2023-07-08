@@ -1,4 +1,7 @@
 * Inbox
+** TODO Configure diered as the default file manager
+
+[[file:~/.dotfiles/.direnv]]
 ** TODO Make this callable from dired
 
 [[file:~/.dotfiles/lisp/dired/dired-helpers.el]]
