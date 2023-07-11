@@ -661,7 +661,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (envrc-global-mode)
 
-(add-to-list 'company-backends 'company-nixos-options)
+;(add-to-list 'company-backends 'company-nixos-options)
 
 (require 'nix-update)
 (map! :localleader
@@ -669,8 +669,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :map nix-mode-map
       :prefix ("u" . "update")
       :desc "Update fetchgit" "g" #'nix-update-fetch)
-
-(add-to-list 'company-backends 'company-nixos-options)
 
 (setq flycheck-command-wrapper-function
         (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
@@ -769,3 +767,5 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")
+
+(setq nsaspy/music-dir "/ssh:gitea:/mnt/usb/music/")

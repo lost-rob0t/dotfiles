@@ -1200,7 +1200,7 @@ Make life easy!
 Nix is a language that allows for reproducible declarative systems/packages.
 Add nixos-options to company backend
 #+begin_src emacs-lisp
-(add-to-list 'company-backends 'company-nixos-options)
+;(add-to-list 'company-backends 'company-nixos-options)
 #+end_src
 
 Update the rev and sha of a fetchgit package
@@ -1212,11 +1212,6 @@ Update the rev and sha of a fetchgit package
       :map nix-mode-map
       :prefix ("u" . "update")
       :desc "Update fetchgit" "g" #'nix-update-fetch)
-
-#+end_src
-add nix-options to company backends
-#+begin_src emacs-lisp
-(add-to-list 'company-backends 'company-nixos-options)
 
 #+end_src
 
