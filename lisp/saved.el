@@ -75,6 +75,15 @@ strings."
   (let ((output (shell-command-to-string "ip addr show | awk '/^[0-9]+:/ {gsub(/:/,\"\"); print $2}'")))
     (split-string output "\n" t)))
 
+(defun nsaspy/kill-ip ()
+  "Select and copy a network interface ip address."
+  (interactive)
+  (let* ((interface (completing-read "Interface: " (get-iterfaces)))
+         (ip
+          (get-interface-ip interface)))
+    (kill-new ip)
+    (message "%s" ip)
+    ip))
 
 (defcustom nsaspy/docker-images
   '(("ibmcom/couchdb3:latest" . "-d -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -v $PWD/db:/opt/couchdb/data -p 0.0.0.0:5984:5984")
