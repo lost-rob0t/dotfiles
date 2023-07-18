@@ -1,0 +1,2 @@
+#+title: Readme
+Lish is the common lisp shell, so far looks to be the most feature complete and i plan on hacking on it to add other features
