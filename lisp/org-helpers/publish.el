@@ -99,6 +99,7 @@ PUB-DIR is when the output will be placed."
   (if (equal "rss.org" (file-name-nondirectory filename))
       (org-rss-publish-to-rss plist filename pub-dir)))
 
+(defun nsaspy/publish-all-formats (plists filename pubdir))
 
 (setq org-html-validation-link nil)
 
@@ -146,39 +147,39 @@ PUB-DIR is when the output will be placed."
                               :publishing-function #'org-html-publish-to-html)
 
                         (list "lostWiki-tutorials"
-                                   :recursive t
-                                   :base-directory (format "%s/Tutorial" project-dir)
-                                   :publishing-directory (format "%s/Tutorial"  project-output-dir)
-                                   :base-extension "org"
-                                   :toc nil
-                                   :exclude (regexp-opt '("sunshine" "daily" "globalist"))
-                                   :auto-sitemap t
-                                   :base-extension "org"
-                                   :section-numbers nil
-                                   :sitemap-filename "index.org"
-                                   :sitemap-title "The Lost Wiki"
-                                   :sitemap-sort-files 'anti-chronologically
-                                   :html-preamble-format (postamble-format 'preamble)
-                                   :html-postamble t
+                              :recursive t
+                              :base-directory (format "%s/Tutorial" project-dir)
+                              :publishing-directory (format "%s/Tutorial"  project-output-dir)
+                              :base-extension "org"
+                              :toc nil
+                              :exclude (regexp-opt '("sunshine" "daily" "globalist"))
+                              :auto-sitemap t
+                              :base-extension "org"
+                              :section-numbers nil
+                              :sitemap-filename "index.org"
+                              :sitemap-title "The Lost Wiki"
+                              :sitemap-sort-files 'anti-chronologically
+                              :html-preamble-format (postamble-format 'preamble)
+                              :html-postamble t
 
-                                   :publishing-function #'org-html-publish-to-html)
+                              :publishing-function #'org-html-publish-to-html)
                         (list "lostWiki-programming"
-                                   :recursive t
-                                   :base-directory (format "%s/programming" project-dir)
-                                   :publishing-directory (format "%s/programming"  project-output-dir)
-                                   :base-extension "org"
-                                   :toc nil
-                                   :exclude (regexp-opt '("sunshine" "daily" "globalist"))
-                                   :auto-sitemap t
-                                   :base-extension "org"
-                                   :section-numbers nil
-                                   :sitemap-filename "index.org"
-                                   :sitemap-title "The Lost Wiki - Programming"
-                                   :sitemap-sort-files 'anti-chronologically
-                                   :html-preamble-format (postamble-format 'preamble)
-                                   :html-postamble t
+                              :recursive t
+                              :base-directory (format "%s/programming" project-dir)
+                              :publishing-directory (format "%s/programming"  project-output-dir)
+                              :base-extension "org"
+                              :toc nil
+                              :exclude (regexp-opt '("sunshine" "daily" "globalist"))
+                              :auto-sitemap t
+                              :base-extension "org"
+                              :section-numbers nil
+                              :sitemap-filename "index.org"
+                              :sitemap-title "The Lost Wiki - Programming"
+                              :sitemap-sort-files 'anti-chronologically
+                              :html-preamble-format (postamble-format 'preamble)
+                              :html-postamble t
 
-                                   :publishing-function #'org-html-publish-to-html)
+                              :publishing-function #'org-html-publish-to-html)
 
 
 
@@ -197,6 +198,7 @@ PUB-DIR is when the output will be placed."
                               :recurse t
                               :publishing-directory (format "%s/static/" project-output-dir)
                               :publishing-function #'org-publish-attachment)
+
                         (list "lost-rss"
 
                               :base-directory project-dir
@@ -234,7 +236,7 @@ PUB-DIR is when the output will be placed."
                               :sitemap-sort-files 'anti-chronologically
                               :base-extension "org"
                               :section-numbers nil
-                                       :html-preamble-format (postamble-format 'preamble)
+                              :html-preamble-format (postamble-format 'preamble)
                               :html-postamble t
 
                               :publishing-function #'org-html-publish-to-html)))

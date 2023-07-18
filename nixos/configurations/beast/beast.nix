@@ -40,20 +40,14 @@
   # Enable sound.
   sound.enable = true;
 
-  hardware.pulseaudio = {
-    enable = true;
-    extraConfig = ''
-    load-module module-native-protocol-tcp auth-ip-acl=10.50.50.25
-    load-module module-esound-protocol-tcp
-    load-module module-native-protocol-tcp
-    load-module module-zeroconf-publish
-    load-module module-rtp-recv
-    '';
-   # daemon.config = {
-   #   exit-idle-time = "1";
-   #   default-sample-format = "s16le";
-   # };
-  };
+  hardware.pulseaudio.enable = true;
+  #hardware.pulseaudio = {
+  #  enable = false;
+  #};
+  # hardware.pipewire = {
+  #  enable = true;
+  #};
+
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
 
@@ -74,7 +68,6 @@
     enable = true;
     dates = "weekly";
   };
-
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave

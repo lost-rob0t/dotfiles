@@ -94,6 +94,12 @@ in
     # used for latest nyxt
     enable = true;
   };
+  pipewire = {
+    enable = true;
+    audio = {
+      enable = false;
+    };
+  };
   };
 virtualisation = {
     podman = {
