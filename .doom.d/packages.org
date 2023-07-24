@@ -322,10 +322,3 @@ Disable flyspell
 #+begin_src emacs-lisp
 (package! flyspell-lazy :disable t)
 #+end_src
-* Multi media
-** Music
-*** Bongo
-Play music!
-#+begin_src emacs-lisp
-(package! bongo)
-#+end_src

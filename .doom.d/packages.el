@@ -113,5 +113,3 @@
 (package! ks-mode :recipe (:type git :host github :repo "jarpy/ks-mode"))
 
 (package! flyspell-lazy :disable t)
-
-(package! bongo)
