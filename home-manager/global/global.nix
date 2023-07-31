@@ -7,7 +7,7 @@
   programs.git = {
     enable = true;
     userName = "N545PY";
-    userEmail = "nsaspy@airmail.cc";
+    userEmail = "nsaspy@fedora.email";
     extraConfig = {
       merge = {
         conflictStyle = "diff3";
