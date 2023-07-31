@@ -1,4 +1,7 @@
 * Inbox
+** TODO Work on a Major mode to write brave goggles
+
+[[file:~/.dotfiles/.direnv]]
 ** TODO Add ob-http
 https://github.com/zweifisch/ob-http
 
