@@ -23,4 +23,3 @@ I copy pasted them but in hindsight this is not a good idea. Just call the norma
 ** TODO Add nicy prompt
 Nicy is a prompt written in nim
 ** TODO Magit script to track and merge a fork's upstream
-* Reversing
