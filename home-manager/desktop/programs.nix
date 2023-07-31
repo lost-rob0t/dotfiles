@@ -22,6 +22,8 @@
     direnv
     sbcl
     nim
+
+    nimph
     # Multimedia
     vlc
     obs-studio
