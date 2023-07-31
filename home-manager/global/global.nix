@@ -1,5 +1,17 @@
 { config, lib, pkgs, ... }:
 
+let
+
+emacsDired = pkgs.makeDesktopItem {
+    name = "dired";
+    desktopName = "Dired";
+    exec = "emacsclient --eval \"(dired \"%f\")\"";
+    terminal = false;
+    mimeTypes=["application/x-directory" "inode/directory"];
+  };
+
+in
+
 {
   imports = [
     ./services.nix
@@ -22,6 +34,7 @@
   programs.emacs = {
     enable = true;
     extraPackages = epkgs: [
+      emacsDired # Desktop item
       epkgs.vterm
       epkgs.direnv
       epkgs.lsp-pyright
@@ -53,4 +66,15 @@
       pkgs.libnotify
                          ];
 };
+  xdg.mimeApps = {
+    enable = true;
+    associations.added = {
+      "application/x-directory" = ["dired.desktop"];
+      "inode/directory" = ["dired.desktop"];
+    };
+    defaultApplications = {
+      "application/x-directory" = ["dired.desktop"];
+      "inode/directory" = ["dired.desktop"];
+    };
+  };
 }
