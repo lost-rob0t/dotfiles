@@ -13,7 +13,7 @@
     home-manager.inputs.nixpkgs.follows = "unseen";
 
     # Emacs Overlay
-    emacs-overlay.url  = "github:nix-community/emacs-overlay";
+    emacs-overlay.url = "github:nix-community/emacs-overlay";
 
 
     # TODO: Add any other flake you might need
@@ -24,6 +24,8 @@
     # Shameless plug: looking for a way to nixify your themes and make
     # everything match nicely? Try nix-colors!
     # nix-colors.url = "github:misterio77/nix-colors";
+    nix-pre-commit.url = "github:jmgilman/nix-pre-commit";
+
   };
 
   outputs = { self, nixpkgs, home-manager, unseen, nixos-hardware, ... }@inputs:
@@ -101,7 +103,7 @@
             ./home-manager/phone/home.nix
           ];
         };
-       "unseen@hunter02" = home-manager.lib.homeManagerConfiguration {
+        "unseen@hunter02" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
@@ -109,7 +111,7 @@
             ./home-manager/hunter02/home.nix
           ];
         };
-       "unseen@fenrir" = home-manager.lib.homeManagerConfiguration {
+        "unseen@fenrir" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
@@ -118,19 +120,20 @@
           ];
         };
       };
-      devShell.x86_64-linux =
-      nixpkgs.legacyPackages.x86_64-linux.mkShell {
-        buildInputs = with nixpkgs.legacyPackages.x86_64-linux; [
-          openssl
-          pkg-config
-          roswell
-          sbcl
-          ecl
-        ];
 
-        shellHook = ''
-              export LD_LIBRARY_PATH=${nixpkgs.legacyPackages.x86_64-linux.lib.makeLibraryPath([nixpkgs.legacyPackages.x86_64-linux.openssl])}:${nixpkgs.legacyPackages.x86_64-linux.lib.makeLibraryPath([nixpkgs.legacyPackages.x86_64-linux.file])}
-            '';
-      };
+      devShell.x86_64-linux =
+        nixpkgs.legacyPackages.x86_64-linux.mkShell {
+          buildInputs = with nixpkgs.legacyPackages.x86_64-linux; [
+            openssl
+            pkg-config
+            roswell
+            sbcl
+            ecl
+          ];
+
+          shellHook = ''
+            export LD_LIBRARY_PATH=${nixpkgs.legacyPackages.x86_64-linux.lib.makeLibraryPath([nixpkgs.legacyPackages.x86_64-linux.openssl])}:${nixpkgs.legacyPackages.x86_64-linux.lib.makeLibraryPath([nixpkgs.legacyPackages.x86_64-linux.file])}
+          '';
+        };
     };
 }

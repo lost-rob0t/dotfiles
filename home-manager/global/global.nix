@@ -2,12 +2,12 @@
 
 let
 
-emacsDired = pkgs.makeDesktopItem {
+  emacsDired = pkgs.makeDesktopItem {
     name = "dired";
     desktopName = "Dired";
     exec = "emacsclient --eval \"(dired \"%f\")\"";
     terminal = false;
-    mimeTypes=["application/x-directory" "inode/directory"];
+    mimeTypes = [ "application/x-directory" "inode/directory" ];
   };
 
 in
@@ -30,6 +30,7 @@ in
     scrot
     flameshot
     keepassxc
+    nixpkgs-fmt
   ];
   programs.emacs = {
     enable = true;
@@ -64,17 +65,17 @@ in
 
       # Notifications
       pkgs.libnotify
-                         ];
-};
+    ];
+  };
   xdg.mimeApps = {
     enable = true;
     associations.added = {
-      "application/x-directory" = ["dired.desktop"];
-      "inode/directory" = ["dired.desktop"];
+      "application/x-directory" = [ "dired.desktop" ];
+      "inode/directory" = [ "dired.desktop" ];
     };
     defaultApplications = {
-      "application/x-directory" = ["dired.desktop"];
-      "inode/directory" = ["dired.desktop"];
+      "application/x-directory" = [ "dired.desktop" ];
+      "inode/directory" = [ "dired.desktop" ];
     };
   };
 }
