@@ -525,6 +525,20 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
     (rename-buffer (format "term %s" title))))
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
 
+(defun nsaspy/dired-exec ()
+  "Run the script under point in Dired mode, prompting for arguments."
+  (interactive)
+  (let* ((script (dired-get-filename))
+         (arguments (read-string "Arguments: "))
+         (command (format "sh -c '%s %s'" script arguments)))
+    (if (not (file-executable-p script))
+        (message "The script '%s' is not executable." script)
+      (let ((default-directory (file-name-directory script)))
+        (async-shell-command command)))))
+
+
+(define-key dired-mode-map (kbd "C-c C-c") 'nsaspy/dired-exec)
+
 (require 'dirvish)
 (dirvish-override-dired-mode)
 

@@ -1005,8 +1005,27 @@ set the window title
     (rename-buffer (format "term %s" title))))
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
 #+end_src
+** Dired
+*** exec in dired
+Run executable from within dired.
 
-** Dirvish
+Internally to my head, =C-c C-c= is the same as the org-babel, so it makes since to use is
+#+begin_src emacs-lisp
+(defun nsaspy/dired-exec ()
+  "Run the script under point in Dired mode, prompting for arguments."
+  (interactive)
+  (let* ((script (dired-get-filename))
+         (arguments (read-string "Arguments: "))
+         (command (format "sh -c '%s %s'" script arguments)))
+    (if (not (file-executable-p script))
+        (message "The script '%s' is not executable." script)
+      (let ((default-directory (file-name-directory script)))
+        (async-shell-command command)))))
+
+
+(define-key dired-mode-map (kbd "C-c C-c") 'nsaspy/dired-exec)
+#+end_src
+*** Dirvish
 a better dired
 #+begin_src emacs-lisp
 (require 'dirvish)

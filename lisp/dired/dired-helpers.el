@@ -35,6 +35,5 @@
                 (message "Skipping existing remote file: %s" remote-file)
               (copy-file entry remote-file t t))))))))
 
-
 (provide 'dired-helpers)
 ;;; dired-helpers.el ends here
