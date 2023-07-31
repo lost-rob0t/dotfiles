@@ -331,6 +331,28 @@ This section tangles the init file
 #+end_src
 
 ** Magit
+*** magit-clone
+Function to use the current clipboard as path to clone[fn:2]
+#+begin_src emacs-lisp
+(defun ar/git-clone-clipboard-url ()
+  "Clone git URL in clipboard asynchronously and open in dired when finished."
+  (interactive)
+  (require 'cl-lib)
+  (let ((url (current-kill 0))
+        (download-dir (read-directory-name "Path to git clone: " default-directory))
+        (magit-clone-set-remote.pushDefault t))
+    (magit-clone-internal url download-dir '())))
+#+end_src
+*** Keys
+Override magit-clone
+
+#+begin_src emacs-lisp
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
+#+end_src
+
 Set keybinds for pushing to remote
 Pushes the current branch to the remote
 (eg: local master > remote master)
@@ -1450,5 +1472,6 @@ A simple wraper for yt-dlp a youtube-dl fork that still works.
 #+end_src
 
 * Footnotes
+[fn:2] https://www.reddit.com/r/emacs/comments/k3iter/comment/ge4pn9w/?utm_source=share&utm_medium=web2x&context=3
 
 [fn:1] https://www.reddit.com/r/emacs/comments/e7h3qw/comment/fa0k4c5
