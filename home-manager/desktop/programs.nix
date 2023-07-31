@@ -21,6 +21,7 @@
     lorri
     direnv
     sbcl
+    nim
     # Multimedia
     vlc
     obs-studio
