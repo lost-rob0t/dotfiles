@@ -160,6 +160,8 @@ fi
 
 alias wttr="curl wttr.in"
 
+alias couchdb="mkdir -p /tmp/database && sudo chown 1001:1001 /tmp/database && sudo docker run -d  -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password  -v /tmp/database:/opt/couchdb/data  -p 0.0.0.0:5984:5984 ibmcom/couchdb3"
+
 eval "$(direnv hook bash)"
 
 eval "$(starship init bash)"

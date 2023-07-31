@@ -100,6 +100,11 @@ A GNU Emacs library which uses direnv to set environment variables on a per-buff
 #+begin_src emacs-lisp
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 #+end_src
+
+*** protobufs
+#+begin_src emacs-lisp
+(package! protobuf-mode)
+#+end_src
 *** Langauges
 **** Nim lang
 ***** flycheck-nim
@@ -124,6 +129,7 @@ set of usful emacs modes for nix
 #+begin_src emacs-lisp
 (package! lsp-pyright :recipe (:type git :host github :repo "emacs-lsp/lsp-pyright"))
 #+end_src
+
 ** Utils
 *** webpaste.el
 paste your buffer to a pastebin like service.
@@ -192,6 +198,13 @@ Get weather from the government
 *** app-launcher
 #+begin_src emacs-lisp
 (package! app-launcher :recipe (:type git :host github :repo "SebastienWae/app-launcher"))
+#+end_src
+
+*** yassnippets collection
+#+begin_src emacs-lisp :tangle yes
+(package! yasnippet-snippets)
+
+
 #+end_src
 ** Lib packages
 *** plz

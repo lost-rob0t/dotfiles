@@ -47,3 +47,4 @@ alias traceroute colourify traceroute $*
 alias traceroute6 colourify traceroute6 $*
 alias wttr curl wttr.in $*
 alias get-ip curl -s -q ifconfig.me
+alias couchdb mkdir -p /tmp/database && sudo chown 1001:1001 $PWD/db && sudo docker run -d  -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password  -v $PWD/db:/opt/couchdb/data  -p 0.0.0.0:5984:5984 ibmcom/couchdb3

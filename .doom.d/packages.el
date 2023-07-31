@@ -42,6 +42,8 @@
 
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 
+(package! protobuf-mode)
+
 (package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
 
 (package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
@@ -71,6 +73,8 @@
 (package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
 
 (package! app-launcher :recipe (:type git :host github :repo "SebastienWae/app-launcher"))
+
+(package! yasnippet-snippets)
 
 (package! plz :recipe (:type git :host github :repo "alphapapa/plz.el"))
 
