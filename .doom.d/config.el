@@ -63,6 +63,20 @@ The optional argument NEW-WINDOW is not used."
   ("." . browse-url-brave)
   ))
 
+(defun ar/git-clone-clipboard-url ()
+  "Clone git URL in clipboard asynchronously and open in dired when finished."
+  (interactive)
+  (require 'cl-lib)
+  (let ((url (current-kill 0))
+        (download-dir (read-directory-name "Path to git clone: " default-directory))
+        (magit-clone-set-remote.pushDefault t))
+    (magit-clone-internal url download-dir '())))
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
+
 (map! :leader
       :desc "Push Current branch to remote branch"
       "g p P" #'magit-push-current-to-pushremote)
@@ -151,7 +165,7 @@ The optional argument NEW-WINDOW is not used."
                                ("hs" "Save a note about a service" entry
                                 (file+headline +org-capture-project-todo-file "Services") "* %U Port %?\n%i\n%a")
                                ("hl" "Save a note to check later" entry
-                                (file+headline  +org-capture-project-todo-file "Check Later") "* %U %?\n%i\n%a")
+                                (file+headline  +org-capture-project-todo-file "Check Later") "* %U %?\n%i\n%a")        
                                ))
 
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
