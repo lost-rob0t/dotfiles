@@ -31,11 +31,13 @@ in
     flameshot
     keepassxc
     nixpkgs-fmt
+    khoj
   ];
   programs.emacs = {
     enable = true;
     extraPackages = epkgs: [
       emacsDired # Desktop item
+      epkgs.khoj
       epkgs.vterm
       epkgs.direnv
       epkgs.lsp-pyright
