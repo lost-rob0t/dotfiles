@@ -21,7 +21,6 @@
     lorri
     direnv
     sbcl
-    nim
     pre-commit
     # Multimedia
     vlc
