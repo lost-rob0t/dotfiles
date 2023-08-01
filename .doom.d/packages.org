@@ -89,6 +89,7 @@ Make presentations
 #+begin_src emacs-lisp
 (package! org-pomodoro)
 #+end_src
+
 ** Development
 *** Codeium ai code completion tool
 #+begin_src emacs-lisp

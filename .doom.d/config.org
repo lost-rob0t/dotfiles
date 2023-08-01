@@ -479,7 +479,7 @@ Here i override the capture templates, some intergrating into org roam
                                ("hs" "Save a note about a service" entry
                                 (file+headline +org-capture-project-todo-file "Services") "* %U Port %?\n%i\n%a")
                                ("hl" "Save a note to check later" entry
-                                (file+headline  +org-capture-project-todo-file "Check Later") "* %U %?\n%i\n%a")
+                                (file+headline  +org-capture-project-todo-file "Check Later") "* %U %?\n%i\n%a")        
                                ))
 
 #+end_src
