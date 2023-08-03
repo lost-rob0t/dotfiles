@@ -1455,6 +1455,15 @@ Tell auth info to put authsource in my dotfiles
       auth-source-cache-expiry 1360)
 #+end_src
 
+** Hackmode
+Pentest utils from emacs
+
+#+begin_src emacs-lisp
+(after! 'hackmode
+  (setq hackmode-dir "~/Documents/hackmode")
+  (setq hackmode-templates "~/.dotfiles/hackmode")
+  (setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode/.tools/")))
+#+end_src
 
 
 * Personal Lisp packages

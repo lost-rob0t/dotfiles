@@ -52,6 +52,8 @@
 
 (package! lsp-pyright :recipe (:type git :host github :repo "emacs-lsp/lsp-pyright"))
 
+(package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode"))
+
 (package! webpaste :recipe (:type git :host github :repo "etu/webpaste.el"))
 
 (package! burly :recipe (:type git :host github :repo "alphapapa/burly.el"))

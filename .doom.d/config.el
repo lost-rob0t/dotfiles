@@ -793,6 +793,11 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
 
+(after! 'hackmode
+  (setq hackmode-dir "~/Documents/hackmode")
+  (setq hackmode-templates "~/.dotfiles/hackmode")
+  (setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode/.tools/")))
+
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")
 
