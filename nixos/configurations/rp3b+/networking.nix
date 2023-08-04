@@ -25,7 +25,7 @@
     # If you want to connect also via WIFI to your router
     #wireless.networks."WIFI-SSID".psk = "wifipass";
     # You can set default nameservers
-    nameservers = [ "9.9.9.9" "149.112.112.112" "2620:fe::fe"  ];
+    nameservers = [ "9.9.9.9" "149.112.112.112" "2620:fe::fe" ];
     # You can set default gateway
     defaultGateway = {
       address = "10.50.50.1";

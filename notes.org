@@ -1,4 +1,5 @@
 * Inbox
+[[file:~/Documents/Projects/starintel/starRouter/src/lib/server.nim::da]]
 ** [2023-07-30 Sun 22:15] Nimph
 Testing out nimph, it looks to be a full featured nim package manger that can even fork upstream packages much easier
 https://github.com/disruptek/nimph#fork

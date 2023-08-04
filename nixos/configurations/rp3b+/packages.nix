@@ -6,11 +6,11 @@ let
 
 in
 {
-   nixpkgs.overlays = [
+  nixpkgs.overlays = [
     (import (builtins.fetchTarball {
       url = https://github.com/nix-community/emacs-overlay/archive/master.tar.gz;
     }))
-    ];
+  ];
   nixpkgs.config.packageOverrides = pkgs: {
     nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
       inherit pkgs;
@@ -49,7 +49,8 @@ in
     pipenv
     direnv
     python310
-    nim nimlsp
+    nim
+    nimlsp
     rnix-lsp
     sqlite
     gforth
@@ -81,7 +82,7 @@ in
   # programs.mtr.enable = true;
 
   programs.gnupg.agent = {
-   enable = true;
-   enableSSHSupport = true;
+    enable = true;
+    enableSSHSupport = true;
   };
 }

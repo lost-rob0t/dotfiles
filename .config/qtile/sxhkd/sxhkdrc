@@ -229,21 +229,21 @@ XF86AudioMute
 #mpc stop
 
 #PLAY
-XF86AudioPlay
-    emacsclient --eval "(bongo-pause/resume)"
+#XF86AudioPlay
+#    emacsclient --eval "(bongo-pause/resume)"
 #Next
-XF86AudioNext
-    emacsclient --eval "(bongo-next)"
+#XF86AudioNext
+#    emacsclient --eval "(bongo-next)"
 
 #previous
-XF86AudioPrev
-    emacsclient --eval "(bongo-previous)"
+#XF86AudioPrev
+#    emacsclient --eval "(bongo-previous)"
 #Stop
-XF86AudioStop
-    emacsclient --eval "(bongo-stop)"
+#XF86AudioStop
+#    emacsclient --eval "(bongo-stop)"
 # Play random
-super + F9
-    emacsclient --eval "(bongo-play-random)"
+#super + F9
+#    emacsclient --eval "(bongo-play-random)"
 #Brightness up
 XF86MonBrightnessUp
     xbacklight -inc 10
