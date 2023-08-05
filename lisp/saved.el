@@ -142,6 +142,45 @@ strings."
   (interactive "sEnter the URL to mirror: \nDEnter the target directory: ")
   (async-shell-command (format "wget --mirror --convert-links --adjust-extension --page-requisites --no-parent -P %s %s" directory url)))
 
+(defun nsa/list-drives ()
+  "Create a list of  disks on a Linux system."
+  (let ((output (shell-command-to-string "lsblk --nodeps --output NAME -n")))
+    (split-string output)))
+
+(defun nsa/select-disk ()
+  "Select a Linux Drive."
+  (completing-read "Drive: " (nsa/list-drives)))
+
+
+(defun nsa/are-you-fucking-sure (&optional str)
+  "Ask for confirmation three times., Optionaly include a STR message."
+  (interactive)
+  (unless (y-or-n-p (format  "%s Are you fucking sure? (1/3) " str))
+    (message "Cancelled.")
+    (setq this-command 'ignore)
+    nil)
+  (unless (y-or-n-p (format " %s Are you really fucking sure? (2/3) " str))
+    (message "Cancelled.")
+    (setq this-command 'ignore)
+    nil)
+  (unless (y-or-n-p (format "%s Are you absolutely fucking sure? (3/3) " str))
+    (message "Cancelled.")
+    (setq this-command 'ignore)
+    nil)
+  t)
+
+
+(defun nsa/dd-drive (&optional source-file)
+  "Copy data from SOURCE-FILE (or file under point in Dired) to a selected drive using dd."
+  (interactive)
+  (unless source-file
+    (setq source-file (dired-get-filename)))
+  (let* ((drive-list (nsa/list-drives))
+         (selected-drive (nsa/select-disk))
+         (dd-command (format "sudo dd if=%s of=/dev/%s bs=4M status=progress" source-file selected-drive)))
+    (nsa/are-you-fucking-sure (format  "You have selected the drive %s" selected-drive))
+    (async-shell-command dd-command "*dd*")
+    (message "Copying %s to drive %s. Command: %s" source-file selected-drive dd-command)))
 
 
 (provide 'saved)
