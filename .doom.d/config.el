@@ -548,7 +548,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
     (if (not (file-executable-p script))
         (message "The script '%s' is not executable." script)
       (let ((default-directory (file-name-directory script)))
-        (async-shell-command command)))))
+        (nsa/async-shell-command-alert command (format "*%s*" (f-base script)))))))
 
 
 (define-key dired-mode-map (kbd "C-c C-c") 'nsaspy/dired-exec)
@@ -597,6 +597,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
    ("M-j" . dirvish-fd-jump)))
 
 (setq atomic-chrome-buffer-open-style 'frame)
+
+(bind-key "M-&" #'nsa/async-shell-command-alert)
 
 (setq eshell-aliases-file "~/.doom.d/eshell/aliases")
 

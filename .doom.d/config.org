@@ -1042,7 +1042,7 @@ Internally to my head, =C-c C-c= is the same as the org-babel, so it makes since
     (if (not (file-executable-p script))
         (message "The script '%s' is not executable." script)
       (let ((default-directory (file-name-directory script)))
-        (async-shell-command command)))))
+        (nsa/async-shell-command-alert command (format "*%s*" (f-base script)))))))
 
 
 (define-key dired-mode-map (kbd "C-c C-c") 'nsaspy/dired-exec)
@@ -1103,6 +1103,14 @@ Edit text areas in your web browser within emacs!
 I want it to open a new frame
 #+begin_src emacs-lisp
 (setq atomic-chrome-buffer-open-style 'frame)
+#+end_src
+
+** shell commands
+I defined a function to run dunstify to send an alert when it is done.
+
+Here I bind it to a key.
+#+begin_src emacs-lisp
+(bind-key "M-&" #'nsa/async-shell-command-alert)
 #+end_src
 
 ** Eshell
