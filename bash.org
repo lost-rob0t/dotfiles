@@ -31,6 +31,24 @@ if [ ! -d ~/.bashrc.d ]; then
 fi
 
 #+end_src
+
+*** History File
+I Like having a large bashrc history, sometimes theres a command I really want but will get buried under the others.
+#+begin_src shell :tangle .bashrc
+unset HISTFILESIZE
+unset HISTSIZE
+HISTCONTROL="ignoreboth"
+#+end_src
+
+Set the format of the time.
+#+begin_src shell :tangle .bashrc
+HISTTIMEFORMAT="[%Y-%m-%d %H:%M:%S] "
+#+end_src
+Ignore  cd, ls, fg, bg
+#+begin_src shell :tangle .bashrc
+export HISTIGNORE=fg:bg:ls:cd
+#+end_src
+
 *** Bootstrap
 This stuff will be ran on first start
 
@@ -57,7 +75,7 @@ get-ip > "$HOME/.local/share/ip"
 Reinstall Doom emacs
 *warning this will remove your emacs install!
 #+begin_src shell :tangle .bashrc
-function install_doom_emacs () {
+function install-doom () {
  if [ -d ~/.emacs.d ]; then
  	echo "Are you sure you want to delete ~/.emacs.d/ directory and install doom emacs? (y/n)"
     read -p "$* [y/n]: " yn

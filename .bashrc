@@ -16,6 +16,14 @@ if [ ! -d ~/.bashrc.d ]; then
 	done
 fi
 
+unset HISTFILESIZE
+unset HISTSIZE
+HISTCONTROL="ignoreboth"
+
+HISTTIMEFORMAT="[%Y-%m-%d %H:%M:%S] "
+
+export HISTIGNORE=fg:bg:ls:cd
+
 function init_platform () {
 # create the .platform file i use
 if [ ! -f "$HOME/.platform" ]; then
@@ -29,7 +37,7 @@ init_platform
 alias get-ip="curl -s -q ifconfig.me"
 get-ip > "$HOME/.local/share/ip"
 
-function install_doom_emacs () {
+function install-doom () {
  if [ -d ~/.emacs.d ]; then
  	echo "Are you sure you want to delete ~/.emacs.d/ directory and install doom emacs? (y/n)"
     read -p "$* [y/n]: " yn
