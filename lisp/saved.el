@@ -19,6 +19,8 @@
 ;;
 ;;; Code:
 
+(require 'async)
+
 (defun alert-libnotify-notify (info)
   "Send INFO using notifications-notify.
 Handles :ICON, :CATEGORY, :SEVERITY, :PERSISTENT, :NEVER-PERSIST, :TITLE
@@ -40,10 +42,10 @@ strings."
                                          #'symbol-name
                                        #'identity)
                                      category ",")))
-         :timeout (* 1000 ; notify-send takes msecs
+         :timeout (* 1000               ; notify-send takes msecs
                      (if (and (plist-get info :persistent)
                               (not (plist-get info :never-persist)))
-                         0 ; 0 indicates persistence
+                         0              ; 0 indicates persistence
                        alert-fade-time))
          :urgency (if urgency (symbol-name urgency) "normal")))
     (alert-message-notify info)))
@@ -181,6 +183,14 @@ strings."
     (nsa/are-you-fucking-sure (format  "You have selected the drive %s" selected-drive))
     (async-shell-command dd-command "*dd*")
     (message "Copying %s to drive %s. Command: %s" source-file selected-drive dd-command)))
+
+(defun nsa/async-shell-command-alert (&optional cmd)
+  "Send an alert when a command finishes."
+  (interactive "MEnter Shell Command: ")
+  (async-shell-command  (format "%s && dunstify %s" cmd cmd) (format "*%s*" cmd)))
+
+
+
 
 
 (provide 'saved)
