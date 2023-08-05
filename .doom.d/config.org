@@ -872,6 +872,32 @@ Go sub to him if you havent hes worth your time.
 *** Org Idea box
 Keep my ideas seperated from my todos and give me a random idea from the file
 
+*** Org alerts
+Configure Org alerts to use alert.el
+#+begin_src emacs-lisp
+(require 'org-alert)
+(use-package! org-timed-alerts
+  :after (org)
+  :config
+  (setq org-timed-alerts-alert-function #'alert-libnotify-notify)
+  (setq org-timed-alerts-tag-exclusions nil)
+  (setq org-timed-alerts-default-alert-props nil)
+  (setq org-timed-alerts-warning-times '(-10 -5))
+  (setq org-timed-alerts-agenda-hook-p t)
+  (setq org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline")
+  (setq org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
+                                          "it is now %current-time\n "
+                                          "*THIS IS YOUR %warning-time MINUTE WARNING*"))
+  (add-hook! 'org-mode-hook #'org-timed-alerts-mode))
+#+end_src
+
+Set up alert intervals
+#+begin_src emacs-lisp
+(setq org-alert-interval 300
+      org-alert-notify-cutoff 10
+      org-alert-notify-after-event-cutoff 10)
+#+end_src
+
 *** Misc related functions for org mode
 ****  Time Stamp updater
 #+begin_src emacs-lisp
@@ -1143,28 +1169,13 @@ The long lost Emacs string manipulation library.
 Send Alerts from emacs
 
 You must set the command, it is nil be default
+I use dunst as my notification system, here is a config to set that up
 #+begin_src emacs-lisp
 (require 'alert)
-(setq alert-default-style 'alert-libnotify-notify)
+(setq alert-default-style 'libnotify)
 (setq alert-libnotify-command "dunstify")
 #+end_src
 
-I use dunst as my notification system, here is a config to
-#+begin_src emacs-lisp
-(use-package! org-timed-alerts
-  :after (org)
-  :config
-  (setq org-timed-alerts-alert-function #'alert-libnotify-notify)
-  (setq org-timed-alerts-tag-exclusions nil)
-  (setq org-timed-alerts-default-alert-props nil)
-  (setq org-timed-alerts-warning-times '(-10 -5))
-  (setq org-timed-alerts-agenda-hook-p t)
-  (setq org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline")
-  (setq org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
-                                          "it is now %current-time\n "
-                                          "*THIS IS YOUR %warning-time MINUTE WARNING*"))
-  (add-hook! 'org-mode-hook #'org-timed-alerts-mode))
-#+end_src
 
 
 * Programming

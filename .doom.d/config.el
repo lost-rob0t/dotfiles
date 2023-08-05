@@ -450,6 +450,25 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
 (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
 
+(require 'org-alert)
+(use-package! org-timed-alerts
+  :after (org)
+  :config
+  (setq org-timed-alerts-alert-function #'alert-libnotify-notify)
+  (setq org-timed-alerts-tag-exclusions nil)
+  (setq org-timed-alerts-default-alert-props nil)
+  (setq org-timed-alerts-warning-times '(-10 -5))
+  (setq org-timed-alerts-agenda-hook-p t)
+  (setq org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline")
+  (setq org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
+                                          "it is now %current-time\n "
+                                          "*THIS IS YOUR %warning-time MINUTE WARNING*"))
+  (add-hook! 'org-mode-hook #'org-timed-alerts-mode))
+
+(setq org-alert-interval 300
+      org-alert-notify-cutoff 10
+      org-alert-notify-after-event-cutoff 10)
+
 (defun update-timestamps (directory)
   "Update timestamps in all org files in DIRECTORY."
   (interactive "DDirectory: ")
@@ -609,22 +628,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (require 's)
 
 (require 'alert)
-(setq alert-default-style 'alert-libnotify-notify)
+(setq alert-default-style 'libnotify)
 (setq alert-libnotify-command "dunstify")
-
-(use-package! org-timed-alerts
-  :after (org)
-  :config
-  (setq org-timed-alerts-alert-function #'alert-libnotify-notify)
-  (setq org-timed-alerts-tag-exclusions nil)
-  (setq org-timed-alerts-default-alert-props nil)
-  (setq org-timed-alerts-warning-times '(-10 -5))
-  (setq org-timed-alerts-agenda-hook-p t)
-  (setq org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline")
-  (setq org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
-                                          "it is now %current-time\n "
-                                          "*THIS IS YOUR %warning-time MINUTE WARNING*"))
-  (add-hook! 'org-mode-hook #'org-timed-alerts-mode))
 
 (use-package codeium
     ;; if you use straight
