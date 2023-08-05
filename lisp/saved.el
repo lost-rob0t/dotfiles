@@ -184,10 +184,10 @@ strings."
     (async-shell-command dd-command "*dd*")
     (message "Copying %s to drive %s. Command: %s" source-file selected-drive dd-command)))
 
-(defun nsa/async-shell-command-alert (&optional cmd)
+(defun nsa/async-shell-command-alert (&optional cmd buffer error-buffer)
   "Send an alert when a command finishes."
   (interactive "MEnter Shell Command: ")
-  (async-shell-command  (format "%s && dunstify %s" cmd cmd) (format "*%s*" cmd)))
+  (async-shell-command  (format "%s && dunstify %s" cmd cmd) buffer error-buffer))
 
 
 
