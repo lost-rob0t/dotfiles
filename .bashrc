@@ -16,6 +16,12 @@ if [ ! -d ~/.bashrc.d ]; then
 	done
 fi
 
+export TERM="xterm-256color"                      # getting proper colors
+
+shopt -s histappend
+
+shopt -s cmdhist # save multi-line commands in history as single line
+
 unset HISTFILESIZE
 unset HISTSIZE
 HISTCONTROL="ignoreboth"
@@ -36,6 +42,35 @@ init_platform
 
 alias get-ip="curl -s -q ifconfig.me"
 get-ip > "$HOME/.local/share/ip"
+
+ex ()
+{
+  if [ -f "$1" ] ; then
+    case $1 in
+      *.tar.bz2)   tar xjf $1   ;;
+      *.tar.gz)    tar xzf $1   ;;
+      *.bz2)       bunzip2 $1   ;;
+      *.rar)       unrar x $1   ;;
+      *.gz)        gunzip $1    ;;
+      *.tar)       tar xf $1    ;;
+      *.tbz2)      tar xjf $1   ;;
+      *.tgz)       tar xzf $1   ;;
+      *.zip)       unzip $1     ;;
+      *.Z)         uncompress $1;;
+      *.7z)        7z x $1      ;;
+      *.deb)       ar x $1      ;;
+      *.tar.xz)    tar xf $1    ;;
+      *.tar.zst)   unzstd $1    ;;
+      *)           echo "'$1' cannot be extracted via ex()" ;;
+    esac
+  else
+    echo "'$1' is not a valid file"
+  fi
+}
+
+export ALTERNATE_EDITOR=""                        # setting for emacsclient
+export EDITOR="emacsclient -t -a ''"              # $EDITOR use Emacs in terminal
+export VISUAL="emacsclient -c -a emacs"           # $VISUAL use Emacs in GUI mode
 
 function install-doom () {
  if [ -d ~/.emacs.d ]; then
@@ -102,9 +137,12 @@ export PATH=$PATH:$HOME/.nimble/bin
 
 export PATH=$PATH:$HOME/.cargo/bin
 
+shopt -s expand_aliases # expand aliases
+
 alias debug-emacs="emacs --debug-init"
 
-alias emacs="emacs-clean"
+alias em="emacs -nw"
+alias emacs="emacsclient -c -a 'emacs'"
 
 alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
 
@@ -169,6 +207,14 @@ fi
 alias wttr="curl wttr.in"
 
 alias couchdb="mkdir -p /tmp/database && sudo chown 1001:1001 /tmp/database && sudo docker run -d  -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password  -v /tmp/database:/opt/couchdb/data  -p 0.0.0.0:5984:5984 ibmcom/couchdb3"
+
+alert_cmd=$(which "dunstify" || which "notify-send")
+alias alert='$alert_cmd --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+alias tb="nc termbin.com 9999"' >> .bashrc
+
+alias paste="curl -F 'f:1=<-' ix.io"
+alias ix.io="curl -F 'f:1=<-' ix.io"
 
 eval "$(direnv hook bash)"
 

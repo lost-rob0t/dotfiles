@@ -1,5 +1,7 @@
 #+title: Bash
 #+author: nsaspy
+
+
 * Bash Config
 This is a literate configuration of my .bashrc
 ** Setup
@@ -32,13 +34,29 @@ fi
 
 #+end_src
 
+Setting up colors
+#+begin_src shell :tangle .bashrc
+export TERM="xterm-256color"                      # getting proper colors
+#+end_src
+
 *** History File
+Append to the history, dont overwrite.
+#+begin_src shell :tangle .bashrc
+shopt -s histappend
+#+end_src
+
+Save multi line commands as a single line
+#+begin_src shell :tangle .bashrc
+shopt -s cmdhist # save multi-line commands in history as single line
+#+end_src
+
 I Like having a large bashrc history, sometimes theres a command I really want but will get buried under the others.
 #+begin_src shell :tangle .bashrc
 unset HISTFILESIZE
 unset HISTSIZE
 HISTCONTROL="ignoreboth"
 #+end_src
+
 
 Set the format of the time.
 #+begin_src shell :tangle .bashrc
@@ -47,6 +65,15 @@ HISTTIMEFORMAT="[%Y-%m-%d %H:%M:%S] "
 Ignore  cd, ls, fg, bg
 #+begin_src shell :tangle .bashrc
 export HISTIGNORE=fg:bg:ls:cd
+#+end_src
+
+*** SHOPT
+Common settings.[fn:3]
+#+begin_src shell
+shopt -s cdspell # autocorrects cd misspellings
+shopt -s dotglob
+shopt -s checkwinsize # checks term size when bash regains control
+
 #+end_src
 
 *** Bootstrap
@@ -71,7 +98,47 @@ alias get-ip="curl -s -q ifconfig.me"
 get-ip > "$HOME/.local/share/ip"
 #+end_src
 ** Bashrc
+
+*** Functions
+
+Extract compresses files[fn:3]
+#+begin_src shell :tangle .bashrc
+ex ()
+{
+  if [ -f "$1" ] ; then
+    case $1 in
+      *.tar.bz2)   tar xjf $1   ;;
+      *.tar.gz)    tar xzf $1   ;;
+      *.bz2)       bunzip2 $1   ;;
+      *.rar)       unrar x $1   ;;
+      *.gz)        gunzip $1    ;;
+      *.tar)       tar xf $1    ;;
+      *.tbz2)      tar xjf $1   ;;
+      *.tgz)       tar xzf $1   ;;
+      *.zip)       unzip $1     ;;
+      *.Z)         uncompress $1;;
+      *.7z)        7z x $1      ;;
+      *.deb)       ar x $1      ;;
+      *.tar.xz)    tar xf $1    ;;
+      *.tar.zst)   unzstd $1    ;;
+      *)           echo "'$1' cannot be extracted via ex()" ;;
+    esac
+  else
+    echo "'$1' is not a valid file"
+  fi
+}
+
+#+end_src
+
 *** Emacs
+
+Set emacs as my editor.[fn:3]
+#+begin_src shell :tangle .bashrc
+export ALTERNATE_EDITOR=""                        # setting for emacsclient
+export EDITOR="emacsclient -t -a ''"              # $EDITOR use Emacs in terminal
+export VISUAL="emacsclient -c -a emacs"           # $VISUAL use Emacs in GUI mode
+#+end_src
+
 Reinstall Doom emacs
 *warning this will remove your emacs install!
 #+begin_src shell :tangle .bashrc
@@ -171,6 +238,11 @@ export PATH=$PATH:$HOME/.cargo/bin
 ** Aliases
 Bash aliases allow you to use a short "alias" for a long command
 
+Expand Aliases
+#+begin_src shell :tangle .bashrc
+shopt -s expand_aliases # expand aliases
+#+end_src
+
 *** Emacs
 Run emacs in debug mode
 #+begin_src shell :tangle .bashrc
@@ -179,7 +251,8 @@ alias debug-emacs="emacs --debug-init"
 
 Open emacs
 #+begin_src shell :tangle .bashrc
-alias emacs="emacs-clean"
+alias em="emacs -nw"
+alias emacs="emacsclient -c -a 'emacs'"
 #+end_src
 *** Nix
 Link home-manager/nix-env to the xgd dirs, without it non nixos systems apps will not be in start bars
@@ -265,6 +338,27 @@ Run a couchdb docker container
 alias couchdb="mkdir -p /tmp/database && sudo chown 1001:1001 /tmp/database && sudo docker run -d  -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password  -v /tmp/database:/opt/couchdb/data  -p 0.0.0.0:5984:5984 ibmcom/couchdb3"
 #+end_src
 
+Send a notification whenever a command is done.
+It defaults to using dunstify.
+#+begin_src shell :tangle .bashrc
+alert_cmd=$(which "dunstify" || which "notify-send")
+alias alert='$alert_cmd --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+#+end_src
+
+paste to termbin
+
+#+begin_src shell :tangle .bashrc
+alias tb="nc termbin.com 9999"' >> .bashrc
+#+end_src
+
+Paste to ix.io
+#+begin_src shell :tangle .bashrc
+alias paste="curl -F 'f:1=<-' ix.io"
+alias ix.io="curl -F 'f:1=<-' ix.io"
+#+end_src
+
+#+RESULTS:
+
 ** Shell Hooks
 *** Direnv
 #+begin_src shell :tangle .bashrc
@@ -276,6 +370,7 @@ eval "$(starship init bash)"
 #+end_src
 
 * Footnotes
+[fn:3] https://gitlab.com/dwt1/dotfiles/-/blob/master/.bashrc?ref_type=heads
 
 [fn:2] https://taingram.org/blog/emacs-client.html
 [fn:1] https://github.com/labbots/bash-oneliners#terminal
