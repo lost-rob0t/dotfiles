@@ -348,7 +348,7 @@ alias alert='$alert_cmd --urgency=low -i "$([ $? = 0 ] && echo terminal || echo 
 paste to termbin
 
 #+begin_src shell :tangle .bashrc
-alias tb="nc termbin.com 9999"' >> .bashrc
+alias tb="nc termbin.com 9999 >> .bashrc"
 #+end_src
 
 Paste to ix.io

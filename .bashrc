@@ -211,7 +211,7 @@ alias couchdb="mkdir -p /tmp/database && sudo chown 1001:1001 /tmp/database && s
 alert_cmd=$(which "dunstify" || which "notify-send")
 alias alert='$alert_cmd --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
-alias tb="nc termbin.com 9999"' >> .bashrc
+alias tb="nc termbin.com 9999 >> .bashrc"
 
 alias paste="curl -F 'f:1=<-' ix.io"
 alias ix.io="curl -F 'f:1=<-' ix.io"
