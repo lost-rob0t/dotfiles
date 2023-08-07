@@ -35,6 +35,7 @@ in
   ];
   programs.emacs = {
     enable = true;
+    package = pkgs.emacs29;
     extraPackages = epkgs: [
       emacsDired # Desktop item
       epkgs.khoj

@@ -171,8 +171,6 @@ keys = [
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(lish-vterm)'"),
                  desc='Emacsclient Vterm'
                  ),
-
-
          ])
  ]
 
