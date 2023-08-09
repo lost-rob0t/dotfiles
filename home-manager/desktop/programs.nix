@@ -24,6 +24,7 @@
     pre-commit
     # Multimedia
     vlc
+    simplescreenrecorder
     obs-studio
     gimp
     feh
