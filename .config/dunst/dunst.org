@@ -1,0 +1,234 @@
+#+title: Dunst
+#+property: header-args conf tangle: ~/.dotfiles/.config/dunst/dunstrc-test :tangle yes
+
+* Dunst Config
+This is my Dunst config which is my notification system.
+
+
+** Behavior
+Follow The keyboard, I want the notification where my mouse is.
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+[global]
+follow = keyboard
+#+end_src
+
+Set The size of the max size of a single notification.
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+width = 300
+height = 300
+# Scale factor. It is auto-detected if value is 0.
+scale = 0
+#+end_src
+
+Placement of notification and offset.
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+origin = top-right
+offset = 10x50
+#+end_src
+
+Make sure a small gap is created.
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+
+separator_height = 2
+#+end_src
+
+Max Notifications.
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+notification_limit = 0
+#+end_src
+
+Show How many are hidden under the limit
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+indicate_hidden = yes
+#+end_src
+
+Transparency
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+transparency = 0
+#+end_src
+
+Padding
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+padding = 8
+horizontal_padding = 8
+text_icon_padding = 0
+#+end_src
+
+Sort the messages by Urgency
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+sort = yes
+#+end_src
+
+Show age of message if its older, setting it to -1 disables it.
+
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+show_age_threshold = 60
+#+end_src
+
+Stack Dupplicates.
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+stack_duplicates = true
+hide_duplicate_count = false
+#+end_src
+
+Show actions.
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+
+show_indicators = yes
+#+end_src
+
+** Icons
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+enable_recursive_icon_lookup = true
+
+    # Set icon theme (only used for recursive icon lookup)
+icon_theme = Adwaita
+    # You can also set multiple icon themes, with the leftmost one being used first.
+    # icon_theme = "Adwaita, breeze"
+
+    # Align icons left/right/top/off
+icon_position = left
+
+    # Scale small icons up to this size, set to 0 to disable. Helpful
+    # for e.g. small files or high-dpi screens. In case of conf :tangle ~/.dotfiles/.config/dunst/dunstrclict,
+    # max_icon_size takes precedence over this.
+min_icon_size = 32
+
+    # Scale larger icons down to this size, set to 0 to disable
+max_icon_size = 128
+#+end_src
+** Markup and Content
+Set Font
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+font = Monospace 8
+#+end_src
+
+Set the space between lines
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+line_height = 0
+#+end_src
+Where to put ellipis in long messages
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+ellipsize = middle
+#+end_src
+Ignore newlinees
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+ignore_newline = no
+#+end_src
+** Frame
+Width
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+frame_width = 3
+#+end_src
+Color
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+frame_color = "#92406e"
+separator_color = frame
+#+end_src
+Allow Markup
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+markup = full
+#+end_src
+
+Alignment
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+
+# Possible values are "left", "center" and "right".
+alignment = left
+# Vertical alignment of message text and icon.
+# Possible values are "top", "center" and "bottom".
+vertical_alignment = center
+#+end_src
+
+Round windows
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+corner_radius = 0
+#+end_src
+
+Do not ignore the dbus close message.
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+ignore_dbusclose = false
+#+end_src
+Do not force wayland and do not force xinerama
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+force_xwayland = false
+force_xinerama = false
+#+end_src
+
+Mouse actions, left click opens them. Middle to open the context menu, right close all.
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+mouse_left_click = do_action, close_current, open_url
+mouse_middle_click = close_current, context
+mouse_right_click = close_all
+#+end_src
+
+** Progress Bar
+Progress bar only works when a progress hint is sent.
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+progress_bar = true
+# Set the progress bar height. This includes the frame, so make sure
+# it's at least twice as big as the frame width.
+progress_bar_height = 10
+# Set the frame width of the progress bar
+progress_bar_frame_width = 1
+# Set the minimum width for the progress bar
+progress_bar_min_width = 150
+# Set the maximum width for the progress bar
+progress_bar_max_width = 300
+# Corner radius for the progress bar. 0 disables rounded corners.
+progress_bar_corner_radius = 0
+#+end_src
+
+** History
+** Misc
+Set path to a dmenu
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+dmenu = ~/.nix-profile/bin/j4-dmenu-desktop -p dunst:
+#+end_src
+
+Always Use browser for opening urls
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+browser = ~/.nix-profile/bin/xdg-open
+#+end_src
+
+** Scripts
+Always run script
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+always_run_script = true
+#+end_src
+
+** Urgency
+*** Low
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+
+[urgency_low]
+    # IMPORTANT: colors have to be defined in quotation marks.
+    # Otherwise the "#" and following would be interpreted as a comment.
+    background = "#285577"
+    foreground = "#888888"
+    frame_color = "#f6019d"
+    timeout = 10
+# Icon for notifications with low urgency, uncomment to enable
+#default_icon = /path/to/icon
+
+
+#+end_src
+*** normal
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+[urgency_normal]
+    background = "#202146"
+    foreground = "#ffffff"
+    timeout = 10
+    # Icon for notifications with normal urgency, uncomment to enable
+    #default_icon = /path/to/icon
+
+
+#+end_src
+*** Critical
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+[urgency_critical]
+    background = "#fba922"
+    foreground = "#ffffff"
+    frame_color = "#ff0000"
+    timeout = 0
+#+end_src
