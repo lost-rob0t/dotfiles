@@ -3,14 +3,13 @@
   # https://github.com/Misterio77/nix-starter-configs/blob/main/standard/flake.nix
   description = "My Nixos Config";
   inputs = {
-    unseen.url = "https://gitlab.nobodyhasthe.biz/nsaspy/nixpkgs/-/archive/master/nixpkgs-master.tar.gz";
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-22.11";
     # Also see the 'unstable-packages' overlay at 'overlays/default.nix'.
 
     # Home manager
     home-manager.url = "github:nix-community/home-manager";
-    home-manager.inputs.nixpkgs.follows = "unseen";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
     # Emacs Overlay
     emacs-overlay.url = "github:nix-community/emacs-overlay";
@@ -28,7 +27,7 @@
 
   };
 
-  outputs = { self, nixpkgs, home-manager, unseen, nixos-hardware, ... }@inputs:
+  outputs = { self, nixpkgs, home-manager, nixos-hardware, ... }@inputs:
     let
       inherit (self) outputs;
       forAllSystems = nixpkgs.lib.genAttrs [

@@ -60,5 +60,5 @@ run thunderbird &
 run bash /home/unseen/.dotfiles/.config/qtile/scripts/pinger.sh $HOME/.config/hosts &
 run kdeconnect-indicator &
 # Run activity watch
-
-run steam-run $HOME/.aw/activitywatch/aw-qt &
+# TODO Bring this into home-manager
+#run steam-run $HOME/.aw/activitywatch/aw-qt &
