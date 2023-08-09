@@ -32,6 +32,7 @@ in
     keepassxc
     nixpkgs-fmt
     khoj
+    xdg-open
   ];
   programs.emacs = {
     enable = true;
