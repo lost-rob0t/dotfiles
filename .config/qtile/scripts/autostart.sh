@@ -61,4 +61,4 @@ run bash /home/unseen/.dotfiles/.config/qtile/scripts/pinger.sh $HOME/.config/ho
 run kdeconnect-indicator &
 # Run activity watch
 # TODO Bring this into home-manager
-#run steam-run $HOME/.aw/activitywatch/aw-qt &
+run aw-qt &

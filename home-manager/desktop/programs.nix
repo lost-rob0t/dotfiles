@@ -16,7 +16,6 @@
     # Development
     gitRepo
     sqlitebrowser
-    zeal
     vim
     lorri
     direnv
