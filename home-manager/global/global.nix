@@ -32,7 +32,9 @@ in
     keepassxc
     nixpkgs-fmt
     khoj
-    xdg-open
+    xdg-utils
+    # NOTE maybe move to this to desktop
+    mimic
   ];
   programs.emacs = {
     enable = true;
