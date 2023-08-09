@@ -99,6 +99,10 @@ browser = ~/.nix-profile/bin/xdg-open
 
 always_run_script = true
 
+[speak]
+summary = "*"
+script = dunst_speak.sh
+
 [urgency_low]
     # IMPORTANT: colors have to be defined in quotation marks.
     # Otherwise the "#" and following would be interpreted as a comment.

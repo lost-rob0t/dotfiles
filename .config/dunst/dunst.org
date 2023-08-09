@@ -196,7 +196,14 @@ Always run script
 #+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
 always_run_script = true
 #+end_src
+*** Speak the notification
+#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+[speak]
+summary = "*"
+script = dunst_speak.sh
 
+
+#+end_src
 ** Urgency
 *** Low
 #+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc

@@ -2,21 +2,21 @@
 
 ## Packages and programs go here
 {
-   nixpkgs.overlays = [
+  nixpkgs.overlays = [
     #(import "/etc/nixos/nixos-overlay/overlay.nix")
     (self: super: {
       python3Packages = super.python3Packages.override {
         overrides = pfinal: pprev: {
           dbus-next = pprev.dbus-next.overridePythonAttrs (old: {
             #  temporary fix for https://github.com/NixOS/nixpkgs/issues/197408
-            checkPhase = builtins.replaceStrings ["not test_peer_interface"] ["not test_peer_interface and not test_tcp_connection_with_forwarding"] old.checkPhase;
+            checkPhase = builtins.replaceStrings [ "not test_peer_interface" ] [ "not test_peer_interface and not test_tcp_connection_with_forwarding" ] old.checkPhase;
           });
         };
       };
     })
-    (self: super:  {
+    (self: super: {
       qtile = super.qtile.unwrapped.override (old: {
-        propagatedBuildInputs = (old.propagatedBuildInputs or []) ++ (with self.python3Packages; [
+        propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ (with self.python3Packages; [
           requests
           pkgs.sxhkd
           pkgs.j4-dmenu-desktop
@@ -37,7 +37,7 @@
       };
     })
 
-   ];
+  ];
   nixpkgs.config.packageOverrides = pkgs: {
     nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
       inherit pkgs;
@@ -87,13 +87,14 @@
     pyright
     pylint
     python310Packages.flake8
-    nim nimlsp
+    nim
+    nimlsp
     podman-compose
     rnix-lsp
     sqlite
     gforth
     racket
-    (python3.withPackages(ps: with ps; [ requests ]))
+    (python3.withPackages (ps: with ps; [ requests ]))
 
     ## Security
     tor-browser-bundle-bin
@@ -119,6 +120,7 @@
     mpvScripts.mpris
     ## Services
     dunst
+    mimic # TTS
     libvirt
     dmenu
     blueman
@@ -128,18 +130,18 @@
     ## Needed for spice
     spice-vdagent
   ];
- hardware.opengl.extraPackages = with pkgs; [
-   rocm-opencl-icd
-   rocm-opencl-runtime
-   amdvlk
-];
+  hardware.opengl.extraPackages = with pkgs; [
+    rocm-opencl-icd
+    rocm-opencl-runtime
+    amdvlk
+  ];
   ## Some programs need SUID wrappers, can be configured further or are
   ## started in user sessions.
   # programs.mtr.enable = true;
 
   programs.gnupg.agent = {
-   enable = true;
-   enableSSHSupport = true;
+    enable = true;
+    enableSSHSupport = true;
   };
   programs.adb.enable = true;
   programs.nm-applet.enable = true;
@@ -158,6 +160,6 @@
     dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
   };
   programs.kdeconnect = {
-   enable = true;
+    enable = true;
   };
 }

@@ -4,6 +4,7 @@
 + [[./bash.org][Bash]]
 + [[./.doom.d/config.org][Emacs config]]
 + [[./.config/qtile/qtile.org][Qtile Config]]
++ [[./.config/dunst/dunst.org][Dunst Config]]
 + [[./todo.org][Todo List]]
 * Setup
 ** Dependencies

@@ -35,6 +35,7 @@ in
     xdg-utils
     # NOTE maybe move to this to desktop
     mimic
+    dunst
   ];
   programs.emacs = {
     enable = true;
