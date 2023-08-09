@@ -55,6 +55,7 @@
     feh
     mindustry
     tlp
+    activitywatch
     # BUG nyxt
     webkitgtk
     remmina
