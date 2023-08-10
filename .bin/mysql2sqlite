@@ -2,7 +2,7 @@
 
 # Source: https://github.com/dumblob/mysql2sqlite/blob/master/unit_tests.sh
 
-M2S=./mysql2sqlite
+#M2S=./mysql2sqlite
 S=sqlite3
 
 type "$S" >/dev/null 2>&1 || {
@@ -10,14 +10,14 @@ type "$S" >/dev/null 2>&1 || {
   exit 1
 }
 
-[ -r "$M2S" ] || {
-  printf 'ERR file "%s" not found\n' "$M2S" >&2
-  exit 1
-}
+#[ -r "$M2S" ] || {
+#  printf 'ERR file "%s" not found\n' "$M2S" >&2
+#  exit 1
+#}
 
 # FIXME
-printf 'ERR Unit testing not yet fully implemented\n' >&2
-exit 1
+#printf 'ERR Unit testing not yet fully implemented\n' >&2
+#exit 1
 
 # Hex numbers with 15, 16, and 17 characters
 
