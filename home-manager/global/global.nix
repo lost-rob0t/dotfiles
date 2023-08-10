@@ -42,6 +42,7 @@ in
     package = pkgs.emacs29;
     extraPackages = epkgs: [
       emacsDired # Desktop item
+      pkgs.shfmt
       epkgs.khoj
       epkgs.vterm
       epkgs.direnv
