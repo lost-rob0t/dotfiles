@@ -137,6 +137,8 @@ export PATH=$PATH:$HOME/.nimble/bin
 
 export PATH=$PATH:$HOME/.cargo/bin
 
+export PATH=$PATH:$HOME/.bin/
+
 shopt -s expand_aliases # expand aliases
 
 alias debug-emacs="emacs --debug-init"

@@ -225,7 +225,7 @@ function cmdtop () {
     history | awk '{CMD[$2]++;count++;}END { for (a in CMD)print CMD[a] " " CMD[a]/count*100 "% " a;}' | grep -v "./" | column -c3 -s " " -t | sort -nr | nl |  head -n10
 }
 #+end_src
-** Exports
+** Paths
 Export nimble path for nim.
 #+begin_src shell :tangle .bashrc
 export PATH=$PATH:$HOME/.nimble/bin
@@ -234,6 +234,11 @@ export PATH=$PATH:$HOME/.nimble/bin
 Export rust cargo path (nasty wax wound lol)
 #+begin_src shell :tangle .bashrc
 export PATH=$PATH:$HOME/.cargo/bin
+#+end_src
+
+Setup my local bin
+#+begin_src shell :tangle .bashrc
+export PATH=$PATH:$HOME/.bin/
 #+end_src
 ** Aliases
 Bash aliases allow you to use a short "alias" for a long command

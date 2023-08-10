@@ -102,6 +102,9 @@ always_run_script = true
 [speak]
 summary = "*"
 script = dunst_speak.sh
+[speak1]
+summary = "*test*"
+script = dunstify "hello"
 
 [urgency_low]
     # IMPORTANT: colors have to be defined in quotation marks.
