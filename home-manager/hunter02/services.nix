@@ -10,8 +10,6 @@
     };
     syncthing = {
       enable = true;
-      user = "unseen";
-      dataDir = "/home/unseen/Documents"; # Default folder for new synced folders
     };
   };
 }
