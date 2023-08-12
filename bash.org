@@ -362,7 +362,10 @@ alias paste="curl -F 'f:1=<-' ix.io"
 alias ix.io="curl -F 'f:1=<-' ix.io"
 #+end_src
 
-#+RESULTS:
+Go to my hackmode directory.
+#+begin_src shell :tangle .bashrc
+alias hackmode="cd $HOME/Documents/hackmode"
+#+end_src
 
 ** Shell Hooks
 *** Direnv

@@ -218,6 +218,8 @@ alias tb="nc termbin.com 9999 >> .bashrc"
 alias paste="curl -F 'f:1=<-' ix.io"
 alias ix.io="curl -F 'f:1=<-' ix.io"
 
+alias hackmode="cd $HOME/Documents/hackmode"
+
 eval "$(direnv hook bash)"
 
 eval "$(starship init bash)"
