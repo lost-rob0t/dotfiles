@@ -347,7 +347,7 @@ Send a notification whenever a command is done.
 It defaults to using dunstify.
 #+begin_src shell :tangle .bashrc
 alert_cmd=$(which "dunstify" || which "notify-send")
-alias alert='$alert_cmd --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+alias alert='$alert_cmd --urgency=medium -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 #+end_src
 
 paste to termbin

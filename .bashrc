@@ -211,7 +211,7 @@ alias wttr="curl wttr.in"
 alias couchdb="mkdir -p /tmp/database && sudo chown 1001:1001 /tmp/database && sudo docker run -d  -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password  -v /tmp/database:/opt/couchdb/data  -p 0.0.0.0:5984:5984 ibmcom/couchdb3"
 
 alert_cmd=$(which "dunstify" || which "notify-send")
-alias alert='$alert_cmd --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+alias alert='$alert_cmd --urgency=medium -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
 alias tb="nc termbin.com 9999 >> .bashrc"
 
