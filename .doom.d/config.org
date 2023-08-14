@@ -909,6 +909,13 @@ Set up alert intervals
       org-alert-notify-cutoff 10
       org-alert-notify-after-event-cutoff 10)
 #+end_src
+Add hook to run after org-mode runs
+
+#+begin_src emacs-lisp
+(after! 'org
+  (org-alert-enable)
+  (org-alert-check))
+#+end_src
 
 *** Misc related functions for org mode
 ****  Time Stamp updater

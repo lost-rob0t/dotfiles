@@ -1,4 +1,8 @@
 * Inbox
+** TODO Why Does word wrap break org mode?
+Stuff like indentation, org tempo breaks
+
+[[file:~/.dotfiles/.doom.d/config.org::*Org alerts][Org alerts]]
 ** TODO Work on a Major mode to write brave goggles
 
 [[file:~/.dotfiles/.direnv]]

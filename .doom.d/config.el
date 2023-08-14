@@ -473,6 +473,10 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       org-alert-notify-cutoff 10
       org-alert-notify-after-event-cutoff 10)
 
+(after! 'org
+  (org-alert-enable)
+  (org-alert-check))
+
 (defun update-timestamps (directory)
   "Update timestamps in all org files in DIRECTORY."
   (interactive "DDirectory: ")
