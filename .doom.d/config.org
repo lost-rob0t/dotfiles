@@ -871,6 +871,18 @@ Go sub to him if you havent hes worth your time.
 
 *** Org Idea box
 Keep my ideas seperated from my todos and give me a random idea from the file
+*** alert
+Send Alerts from emacs
+
+You must set the command, it is nil be default
+I use dunst as my notification system, here is a config to set that up
+#+begin_src emacs-lisp
+(require 'alert)
+(setq alert-default-style 'libnotify)
+(setq alert-libnotify-command "dunstify")
+#+end_src
+
+
 
 *** Org alerts
 Configure Org alerts to use alert.el
@@ -1163,17 +1175,6 @@ A modern list API for Emacs. No 'cl required.
 The long lost Emacs string manipulation library.
 #+begin_src emacs-lisp
 (require 's)
-#+end_src
-
-*** alert
-Send Alerts from emacs
-
-You must set the command, it is nil be default
-I use dunst as my notification system, here is a config to set that up
-#+begin_src emacs-lisp
-(require 'alert)
-(setq alert-default-style 'libnotify)
-(setq alert-libnotify-command "dunstify")
 #+end_src
 
 

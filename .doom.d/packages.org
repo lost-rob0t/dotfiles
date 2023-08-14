@@ -32,6 +32,12 @@ This org document contains all the packages that i install into emacs. I thought
 
 + Config is here [[./config.org]]
 
+
+** Emacs gc stats
+To help emacs find better defaults
+#+begin_src emacs-lisp
+(package!  emacs-gc-stats)
+#+end_src
 ** Org mode
 *** org-roam-ui
 Org-Roam-UI is a frontend for exploring and interacting with your org-roam notes.

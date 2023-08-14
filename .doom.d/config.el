@@ -450,6 +450,10 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
 (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
 
+(require 'alert)
+(setq alert-default-style 'libnotify)
+(setq alert-libnotify-command "dunstify")
+
 (require 'org-alert)
 (use-package! org-timed-alerts
   :after (org)
@@ -626,10 +630,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (require 'dash)
 
 (require 's)
-
-(require 'alert)
-(setq alert-default-style 'libnotify)
-(setq alert-libnotify-command "dunstify")
 
 (use-package codeium
     ;; if you use straight

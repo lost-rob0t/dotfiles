@@ -19,6 +19,8 @@
 
 (eval-when-compile (require 'use-package))
 
+(package!  emacs-gc-stats)
+
 (unpin! org-roam)
 (package! org-roam-ui)
 
