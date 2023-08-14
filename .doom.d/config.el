@@ -454,9 +454,37 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (setq alert-default-style 'libnotify)
 (setq alert-libnotify-command "dunstify")
 
+(defun alert-libnotify-notify (info)
+  "Send INFO using notifications-notify.
+Handles :ICON, :CATEGORY, :SEVERITY, :PERSISTENT, :NEVER-PERSIST, :TITLE
+and :MESSAGE keywords from the INFO plist.  :CATEGORY can be
+passed as a single symbol, a string or a list of symbols or
+strings."
+  (if (fboundp #'notifications-notify)
+      (let ((category (plist-get info :category))
+            (urgency (cdr (assq (plist-get info :severity) alert-libnotify-priorities))))
+        (notifications-notify
+         :title (alert-encode-string (plist-get info :title))
+         :body (alert-encode-string (plist-get info :message))
+         :app-icon (or (plist-get info :icon) alert-default-icon)
+         :category (cond ((symbolp category)
+                          (symbol-name category))
+                         ((stringp category) category)
+                         ((listp category)
+                          (mapconcat (if (symbolp (car category))
+                                         #'symbol-name
+                                       #'identity)
+                                     category ",")))
+         :timeout (* 1000 ; notify-send takes msecs
+                     (if (and (plist-get info :persistent)
+                              (not (plist-get info :never-persist)))
+                         0 ; 0 indicates persistence
+                       alert-fade-time))
+         :urgency (if urgency (symbol-name urgency) "normal")))
+    (alert-message-notify info)))
+
 (require 'org-alert)
 (use-package! org-timed-alerts
-  :after (org)
   :config
   (setq org-timed-alerts-alert-function #'alert-libnotify-notify)
   (setq org-timed-alerts-tag-exclusions nil)
@@ -473,9 +501,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       org-alert-notify-cutoff 10
       org-alert-notify-after-event-cutoff 10)
 
-(after! 'org
-  (org-alert-enable)
-  (org-alert-check))
+(org-alert-enable)
+(org-alert-check)
 
 (defun update-timestamps (directory)
   "Update timestamps in all org files in DIRECTORY."
