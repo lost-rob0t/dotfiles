@@ -19,6 +19,8 @@
 
 (eval-when-compile (require 'use-package))
 
+(package!  emacs-gc-stats)
+
 (unpin! org-roam)
 (package! org-roam-ui)
 
@@ -109,6 +111,8 @@
 (package! mastodon)
 
 (package! elcord :recipe (:type git :host github :repo "Mstrodl/elcord"))
+
+(package! elfeed-tube)
 
 (package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 

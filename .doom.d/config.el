@@ -450,9 +450,41 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
 (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
 
+(require 'alert)
+(setq alert-default-style 'libnotify)
+(setq alert-libnotify-command "dunstify")
+
+(defun alert-libnotify-notify (info)
+  "Send INFO using notifications-notify.
+Handles :ICON, :CATEGORY, :SEVERITY, :PERSISTENT, :NEVER-PERSIST, :TITLE
+and :MESSAGE keywords from the INFO plist.  :CATEGORY can be
+passed as a single symbol, a string or a list of symbols or
+strings."
+  (if (fboundp #'notifications-notify)
+      (let ((category (plist-get info :category))
+            (urgency (cdr (assq (plist-get info :severity) alert-libnotify-priorities))))
+        (notifications-notify
+         :title (alert-encode-string (plist-get info :title))
+         :body (alert-encode-string (plist-get info :message))
+         :app-icon (or (plist-get info :icon) alert-default-icon)
+         :category (cond ((symbolp category)
+                          (symbol-name category))
+                         ((stringp category) category)
+                         ((listp category)
+                          (mapconcat (if (symbolp (car category))
+                                         #'symbol-name
+                                       #'identity)
+                                     category ",")))
+         :timeout (* 1000 ; notify-send takes msecs
+                     (if (and (plist-get info :persistent)
+                              (not (plist-get info :never-persist)))
+                         0 ; 0 indicates persistence
+                       alert-fade-time))
+         :urgency (if urgency (symbol-name urgency) "normal")))
+    (alert-message-notify info)))
+
 (require 'org-alert)
 (use-package! org-timed-alerts
-  :after (org)
   :config
   (setq org-timed-alerts-alert-function #'alert-libnotify-notify)
   (setq org-timed-alerts-tag-exclusions nil)
@@ -468,6 +500,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (setq org-alert-interval 300
       org-alert-notify-cutoff 10
       org-alert-notify-after-event-cutoff 10)
+
+(org-alert-enable)
+(org-alert-check)
 
 (defun update-timestamps (directory)
   "Update timestamps in all org files in DIRECTORY."
@@ -626,10 +661,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (require 'dash)
 
 (require 's)
-
-(require 'alert)
-(setq alert-default-style 'libnotify)
-(setq alert-libnotify-command "dunstify")
 
 (use-package codeium
     ;; if you use straight
@@ -797,13 +828,28 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (midnight-delay-set 'midnight-delay "12:00am")
 
+(use-package! elfeed-tube
+  :ensure t ;; or :straight t
+  :after elfeed
+  :demand t
+  :config
+  ;; (setq elfeed-tube-auto-save-p nil) ; default value
+  ;; (setq elfeed-tube-auto-fetch-p t)  ; default value
+  (elfeed-tube-setup)
+  :bind (:map elfeed-show-mode-map
+         ("F" . elfeed-tube-fetch)
+         ([remap save-buffer] . elfeed-tube-save)
+         :map elfeed-search-mode-map
+         ("F" . elfeed-tube-fetch)
+         ([remap save-buffer] . elfeed-tube-save)))
+
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
 
-(after! 'hackmode
-  (setq hackmode-dir "~/Documents/hackmode")
-  (setq hackmode-templates "~/.dotfiles/hackmode")
-  (setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode/.tools/")))
+(require 'hackmode)
+(setq hackmode-dir "~/Documents/hackmode")
+(setq hackmode-templates "~/.dotfiles/hackmode")
+(setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode/.tools/"))
 
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")

@@ -1,5 +1,5 @@
 # -*- mode: snippet -*-
-# name: __.asd
+# name: __.asdf
 # key:
 # --
 (asdf:defsystem :${1:name of package}

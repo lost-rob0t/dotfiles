@@ -66,13 +66,13 @@ in
       pkgs.python311Packages.flake8
       pkgs.emacsPackages.vterm
       # Pwnagotchi.el
-
       pkgs.hcxtools
       pkgs.hashcat-utils
       pkgs.hashcat
-
       # Notifications
       pkgs.libnotify
+      pkgs.coreutils
+      pkgs.ripgrep
     ];
   };
   xdg.mimeApps = {
