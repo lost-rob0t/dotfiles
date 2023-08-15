@@ -828,13 +828,28 @@ strings."
 
 (midnight-delay-set 'midnight-delay "12:00am")
 
+(use-package! elfeed-tube
+  :ensure t ;; or :straight t
+  :after elfeed
+  :demand t
+  :config
+  ;; (setq elfeed-tube-auto-save-p nil) ; default value
+  ;; (setq elfeed-tube-auto-fetch-p t)  ; default value
+  (elfeed-tube-setup)
+  :bind (:map elfeed-show-mode-map
+         ("F" . elfeed-tube-fetch)
+         ([remap save-buffer] . elfeed-tube-save)
+         :map elfeed-search-mode-map
+         ("F" . elfeed-tube-fetch)
+         ([remap save-buffer] . elfeed-tube-save)))
+
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
 
-(after! 'hackmode
-  (setq hackmode-dir "~/Documents/hackmode")
-  (setq hackmode-templates "~/.dotfiles/hackmode")
-  (setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode/.tools/")))
+(require 'hackmode)
+(setq hackmode-dir "~/Documents/hackmode")
+(setq hackmode-templates "~/.dotfiles/hackmode")
+(setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode/.tools/"))
 
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")

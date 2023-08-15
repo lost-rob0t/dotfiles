@@ -296,7 +296,7 @@ Personnaly i find in other languages like nim creating a type then marshalling j
 
 
 
-** Messaging
+** Messaging And media
 *** ement
 a matrix client for emacs
 #+begin_src emacs-lisp
@@ -313,6 +313,12 @@ I only use it for normal fren stuff
 
 #+begin_src emacs-lisp
 (package! elcord :recipe (:type git :host github :repo "Mstrodl/elcord"))
+#+end_src
+
+*** elfeed-tube
+MPV+elfeed
+#+begin_src emacs-lisp
+(package! elfeed-tube)
 #+end_src
 ** rice
 *** inherit-org

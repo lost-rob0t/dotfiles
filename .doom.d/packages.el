@@ -112,6 +112,8 @@
 
 (package! elcord :recipe (:type git :host github :repo "Mstrodl/elcord"))
 
+(package! elfeed-tube)
+
 (package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 
 (package! golden-ratio.el :recipe (:host github :repo "roman/golden-ratio.el"))
