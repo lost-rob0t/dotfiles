@@ -410,6 +410,7 @@ def init_widgets_list():
             format =  '%f %C',
             location={f'@{myIp}': 'Home'},
             units = "u",
+            update_interval = 300
         ),
         widget.Sep(
             linewidth = 1,

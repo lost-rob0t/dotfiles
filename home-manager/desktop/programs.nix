@@ -55,7 +55,7 @@
     mindustry
     tlp
     activitywatch
-    # BUG nyxt
+    nyxt
     webkitgtk
     remmina
     freerdp
