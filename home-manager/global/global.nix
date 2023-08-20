@@ -39,7 +39,7 @@ in
   ];
   programs.emacs = {
     enable = true;
-    package = pkgs.emacs29;
+    package = pkgs.emacs28;
     extraPackages = epkgs: [
       emacsDired # Desktop item
       pkgs.shfmt

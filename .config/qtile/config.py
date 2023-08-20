@@ -3,6 +3,7 @@ import os
 import re
 import socket
 import subprocess
+import psutil # For window swallow
 from typing import List  # noqa: F401
 from libqtile import layout, bar, widget, hook
 from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule, KeyChord
@@ -331,6 +332,26 @@ auto_minimize = False
 follow_mouse_focus = True
 bring_front_click = False
 cursor_warp = True # Keep mouse inside game window!
+
+@hook.subscribe.client_new
+def _swallow(window):
+    pid = window.window.get_net_wm_pid()
+    ppid = psutil.Process(pid).ppid()
+    cpids = {c.window.get_net_wm_pid(): wid for wid, c in window.qtile.windows_map.items()}
+    for i in range(5):
+        if not ppid:
+            return
+        if ppid in cpids:
+            parent = window.qtile.windows_map.get(cpids[ppid])
+            parent.minimized = True
+            window.parent = parent
+            return
+        ppid = psutil.Process(ppid).ppid()
+
+@hook.subscribe.client_killed
+def _unswallow(window):
+    if hasattr(window, 'parent'):
+        window.parent.minimized = False
 
 def init_widgets_defaults():
     return dict(font="Hack Nerd Regular",

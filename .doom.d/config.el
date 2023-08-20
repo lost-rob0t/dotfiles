@@ -741,15 +741,15 @@ strings."
       flycheck-executable-find
         (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
 
-(require 'flycheck-nim)
+;(require 'flycheck-nim)
 
-(require 'lsp-mode)
-(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
-(lsp-register-client
- (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
-                  :major-modes '(nim-mode)
-                  :server-id 'nimlsp))
-(add-hook 'nim-mode-hook #'lsp)
+;(require 'lsp-mode)
+;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
+;(lsp-register-client
+; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
+;                  :major-modes '(nim-mode)
+;                  :server-id 'nimlsp))
+;(add-hook 'nim-mode-hook #'lsp)
 
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 
