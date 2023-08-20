@@ -421,7 +421,7 @@ def init_widgets_list():
                       foreground=colors[6],
                       scroll_fixed_width=True,
                       poll_interval=1,
-                      width=200,
+                      width=100,
                       padding=10,
                       size=60,
                       linewidth = 60,
@@ -431,7 +431,7 @@ def init_widgets_list():
             format =  '%f %C',
             location={f'@{myIp}': 'Home'},
             units = "u",
-            update_interval = 300
+            update_interval = 300,
         ),
         widget.Sep(
             linewidth = 1,
