@@ -36,6 +36,8 @@ in
     # NOTE maybe move to this to desktop
     mimic
     dunst
+    htop
+    gotop # better htop
   ];
   programs.emacs = {
     enable = true;
