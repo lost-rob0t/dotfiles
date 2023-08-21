@@ -22,55 +22,77 @@
 (require 's)
 (require 'f)
 
-(defcustom nsaspy/music-dir (f-expand "~/usb/Music/")
+(defcustom nsa/music-dir (f-expand "~/usb/Music/")
   "path to music dir.")
-(defcustom nsaspy/genres '("psytrance" "retrowave" "misc")
+(defcustom nsa/genres '("psytrance" "retrowave" "misc")
   "Default list of music genre to use")
 
-(defcustom nsaspy/music-format "mp3"
+(defcustom nsa/music-format "mp3"
   "Format of the music")
-(defcustom nsaspy/music-embed-thumnail t
+(defcustom nsa/music-embed-thumnail t
   "Weather to embed the thumnail.")
 
 
 
-(defun nsaspy/music-append-link (link genre)
+(defun nsa/music-append-link (link genre)
   "Append a LINK to the Genre  links file so we dont lose it."
   (with-temp-buffer
     (insert (format "%s\n" link))
-    (append-to-file (point-min) (point-max) (f-join nsaspy/music-dir (format "%s.links" genre)))))
+    (append-to-file (point-min) (point-max) (f-join nsa/music-dir (format "%s.links" genre)))))
 
 
-(defun nsaspy/dl-song ()
+(defun nsa/dl-song ()
   "Download a song."
   (interactive)
   (let* (
          (link (read-string "Url: " (current-kill 0)))
-         (genre (downcase (completing-read "genre: " nsaspy/genres nil nil)))
-         (output-dir (f-join nsaspy/music-dir genre))
+         (genre (downcase (completing-read "genre: " nsa/genres nil nil)))
+         (output-dir (f-join nsa/music-dir genre))
          (output-string (concat output-dir "/%(title)s.%(ext)s"))
 
          (format-string (shell-quote-argument output-string))
 
-         (cmd (read-string "cmd: " (format "yt-dlp -x --audio-format %s --embed-thumbnail --output %s %s"
-                                           nsaspy/music-format format-string link))))
+         (cmd (read-string "cmd: " (format "yt-dlp --audio-quality=best -x --audio-format %s --embed-thumbnail --output %s %s"
+                                           nsa/music-format format-string link))))
 
-    (nsaspy/music-append-link link genre)
+    (nsa/music-append-link link genre)
     (if (not (f-dir? output-dir))
         (f-mkdir-full-path output-dir))
-    (async-shell-command cmd "*yt-dlp*" "*yt-dlp*")))
+    (nsa/async-shell-command-alert cmd "*yt-dlp*" "*yt-dlp*")))
 
 
-(defun nsaspy/remove-duplicate-titles ()
+(defun nsa/dl-artist ()
+  "Download a artist. Highly recomended to find the artist's releases page."
+  (interactive)
+  (let* (
+         (link (read-string "Url: " (current-kill 0)))
+         (genre (downcase (completing-read "genre: " nsa/genres nil nil)))
+         (artist (read-string "Artist: "))
+         (output-dir (f-join nsa/music-dir genre))
+         (output-string (concat output-dir "/" artist "/%(playlist)s/%(title)s.%(ext)s"))
+
+         (format-string (shell-quote-argument output-string))
+
+         (cmd (read-string "cmd: " (format "yt-dlp --audio-quality=best -x --audio-format %s --embed-thumbnail --output %s %s"
+                                           nsa/music-format format-string link))))
+
+    (nsa/music-append-link link genre)
+    (if (not (f-dir? output-dir))
+        (f-mkdir-full-path output-dir))
+    (nsa/async-shell-command-alert cmd "*yt-dlp*" "*yt-dlp*")))
+
+
+
+(defun nsa/remove-duplicate-titles ()
   "Remove duplicate song titles in artist - title.song format format in subdirectories."
   (interactive)
   (let* ((root-dir (read-directory-name "Enter root directory: "))
-         (files (directory-files-recursively root-dir (format "\\.%s$" nsaspy/music-format)))
+         (files (directory-files-recursively root-dir (format "\\.%s$" nsa/music-format)))
          (titles-alist (make-hash-table :test 'equal))
          (duplicates '()))
     ;; Iterate over each file
     (dolist (file files)
-      (when (string-match (format  "\\([^/]+\\)/\\([^/]+\\) - \\([^/]+\\)\\.%s$" nsaspy/music-format) file)
+      (when (string-match (format  "\\([^/]+\\)/\\([^/]+\\) - \\([^/]+\\)\\.%s$" nsa/music-format) file)
         (let* ((artist (match-string 2 file))
                (title (match-string 3 file))
                (key (concat artist " - " title)))
