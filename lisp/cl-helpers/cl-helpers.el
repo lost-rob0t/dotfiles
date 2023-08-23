@@ -37,5 +37,17 @@
             (let ((rev-sexp (nsaspy/rev-sexp-string sexp)))
               (push rev-sexp result)))))
       (kill-new (mapconcat 'prin1-to-string (reverse result) "\n")))))
+
+
+;; Are you on nixos? Do you use direnv and nix-shell/flakes?
+;; If so this function is for you!
+;; Reload the direnv enviroment, and restart lisp
+;; Replace envrc/sly with your setup
+(defun nsa/reload-lisp-env ()
+  "Reload lisp enviroment after changing the nix paths/envrc."
+  (interactive)
+  (envrc-reload)
+  (sly-restart-inferior-lisp))
+
 (provide 'cl-helpers)
 ;;; cl-helpers.el ends here
