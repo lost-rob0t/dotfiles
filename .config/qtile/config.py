@@ -190,7 +190,7 @@ groups.extend([ScratchPad("termpad", [
              myTerm)]),
     ScratchPad("browserPad", [
     DropDown("browser",
-             ["firefox"],
+             ["nyxt"],
              height=0.8,
              width = 0.8,
              x = 0.1,
@@ -229,6 +229,19 @@ groups.extend([ScratchPad("termpad", [
              opacity = 0.95,
              on_focus_lost_hide=False),
     ]),
+    ScratchPad("media", [
+    DropDown("sonixd",
+             "sonixd",
+             match = Match(wm_class='sonixd'),
+             height=0.8,
+             width = 0.8,
+             x = 0.1,
+             y = 0.1,
+             opacity = 0.95,
+             on_focus_lost_hide=True),
+    ]),
+
+
                ])
 
 keys.extend([Key([mod, "shift"], 'F1', lazy.group['browserPad'].dropdown_toggle('browser'))])
@@ -236,6 +249,7 @@ keys.extend([Key([mod], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
 keys.extend([Key([mod, "shift"], "E", lazy.group['editorPad'].dropdown_toggle('emacs'))])
 keys.extend([Key([mod], "F3", lazy.group['passwords'].dropdown_toggle('keepassxc'))])
 keys.extend([Key([mod], "x", lazy.group['editorPad'].dropdown_toggle('org-capture'))])
+keys.extend([Key([mod, "shift"], "M", lazy.group['media'].dropdown_toggle('sonixd'))])
 
 def init_layout_theme():
     return {"margin":5,
@@ -647,6 +661,7 @@ floating_layout = layout.Floating(float_rules=[
     Match(title='Minecraft'),
     Match(title='Emacs Everywhere'),
     Match(title='Atomic Chrome'),
-    Match(title="org-capture")
+    Match(title="org-capture"),
+    Match(title="Sonixd")
 
 ],  fullscreen_border_width = 0, border_width = 0)
