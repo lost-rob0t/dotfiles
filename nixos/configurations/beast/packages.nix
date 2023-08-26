@@ -69,7 +69,7 @@
     aspellDicts.en
     ## Android
     android-tools
-    android-studio
+    waydroid
     ## Games
     lutris
     steam-run-native
