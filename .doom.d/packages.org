@@ -136,6 +136,10 @@ set of usful emacs modes for nix
 (package! lsp-pyright :recipe (:type git :host github :repo "emacs-lsp/lsp-pyright"))
 #+end_src
 
+**** Lisp
+#+begin_src emacs-lisp
+(package! evil-smartparens)
+#+end_src
 ** Utils
 *** Hackmode
 Hack banks from emacs

@@ -1056,11 +1056,12 @@ inherit-org: Inherit org faces to non-org buffers.
 (with-eval-after-load 'org
   (require 'inherit-org)
 ; BUG something is wrong with spc h f on nixos, works on arch
-  (with-eval-after-load 'info
-    (add-hook 'Info-mode-hook 'inherit-org-mode))
+  ;(with-eval-after-load 'info
+  ;  (add-hook 'Info-mode-hook 'inherit-org-mode))
 
-  (with-eval-after-load 'helpful
-    (add-hook 'helpful-mode-hook 'inherit-org-mode))
+  ; BUG?
+  ;(with-eval-after-load 'helpful
+  ;  (add-hook 'helpful-mode-hook 'inherit-org-mode))
 
   (with-eval-after-load 'w3m
     (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
@@ -1106,7 +1107,7 @@ Run executable from within dired.
 
 Internally to my head, =C-c C-c= is the same as the org-babel, so it makes since to use is
 #+begin_src emacs-lisp
-(defun nsaspy/dired-exec ()
+(defun nsa/dired-exec ()
   "Run the script under point in Dired mode, prompting for arguments."
   (interactive)
   (let* ((script (dired-get-filename))
@@ -1118,7 +1119,7 @@ Internally to my head, =C-c C-c= is the same as the org-babel, so it makes since
         (nsa/async-shell-command-alert command (format "*%s*" (f-base script)))))))
 
 
-(define-key dired-mode-map (kbd "C-c C-c") 'nsaspy/dired-exec)
+(define-key dired-mode-map (kbd "C-c C-c") 'nsa/dired-exec)
 #+end_src
 *** Dirvish
 a better dired
@@ -1343,6 +1344,12 @@ Load forth mode
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 #+end_src
 ** Lisp
+*** Evil Smartparans
+Evil smartparens is a minor mode which makes evil play nice with smartparens.
+#+begin_src emacs-lisp
+(add-hook 'emacs-lisp-mode-hook #'evil-smartparens-mode)
+(add-hook 'common-lisp-mode #'evil-smartparens-mode)
+#+end_src
 
 *** Templates
 Template for [[https://gitlab.common-lisp.net/asdf/asdf][ASDF]] system def.
@@ -1549,7 +1556,7 @@ Simple utility to create local lisp code
 A simple wraper for yt-dlp a youtube-dl fork that still works.
 
 #+begin_src emacs-lisp
-(setq nsaspy/music-dir "/ssh:gitea:/mnt/usb/music/")
+(setq nsa/music-dir "/ssh:gitea:/mnt/usb/music/")
 #+end_src
 
 * Footnotes

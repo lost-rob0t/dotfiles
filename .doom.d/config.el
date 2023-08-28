@@ -561,11 +561,12 @@ strings."
 (with-eval-after-load 'org
   (require 'inherit-org)
 ; BUG something is wrong with spc h f on nixos, works on arch
-  (with-eval-after-load 'info
-    (add-hook 'Info-mode-hook 'inherit-org-mode))
+  ;(with-eval-after-load 'info
+  ;  (add-hook 'Info-mode-hook 'inherit-org-mode))
 
-  (with-eval-after-load 'helpful
-    (add-hook 'helpful-mode-hook 'inherit-org-mode))
+  ; BUG?
+  ;(with-eval-after-load 'helpful
+  ;  (add-hook 'helpful-mode-hook 'inherit-org-mode))
 
   (with-eval-after-load 'w3m
     (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
@@ -593,7 +594,7 @@ strings."
     (rename-buffer (format "term %s" title))))
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
 
-(defun nsaspy/dired-exec ()
+(defun nsa/dired-exec ()
   "Run the script under point in Dired mode, prompting for arguments."
   (interactive)
   (let* ((script (dired-get-filename))
@@ -605,7 +606,7 @@ strings."
         (nsa/async-shell-command-alert command (format "*%s*" (f-base script)))))))
 
 
-(define-key dired-mode-map (kbd "C-c C-c") 'nsaspy/dired-exec)
+(define-key dired-mode-map (kbd "C-c C-c") 'nsa/dired-exec)
 
 (require 'dirvish)
 (dirvish-override-dired-mode)
@@ -753,6 +754,9 @@ strings."
 
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 
+(add-hook 'emacs-lisp-mode-hook #'evil-smartparens-mode)
+(add-hook 'common-lisp-mode #'evil-smartparens-mode)
+
 (set-file-template! "\\.asd" :trigger "__.asd" :mode 'lisp-mode)
 
 (set-file-template! "\\package.lisp" :trigger "__package.lisp" :mode 'lisp-mode)
@@ -854,4 +858,4 @@ strings."
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")
 
-(setq nsaspy/music-dir "/ssh:gitea:/mnt/usb/music/")
+(setq nsa/music-dir "/ssh:gitea:/mnt/usb/music/")

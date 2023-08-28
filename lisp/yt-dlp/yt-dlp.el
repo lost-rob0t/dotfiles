@@ -73,7 +73,7 @@
 
          (format-string (shell-quote-argument output-string))
 
-         (cmd (read-string "cmd: " (format "yt-dlp -audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s"
+         (cmd (read-string "cmd: " (format "yt-dlp --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s"
                                            nsa/music-format format-string link))))
 
     (nsa/music-append-link link genre)
