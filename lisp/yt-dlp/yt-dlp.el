@@ -52,8 +52,8 @@
 
          (format-string (shell-quote-argument output-string))
 
-         (cmd (read-string "cmd: " (format "yt-dlp --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s"
-                                           nsa/music-format format-string link))))
+         (cmd (read-shell-command "cmd: " (format "yt-dlp --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s"
+                                                  nsa/music-format format-string link))))
 
     (nsa/music-append-link link genre)
     (if (not (f-dir? output-dir))
@@ -73,8 +73,8 @@
 
          (format-string (shell-quote-argument output-string))
 
-         (cmd (read-string "cmd: " (format "yt-dlp --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s"
-                                           nsa/music-format format-string link))))
+         (cmd (read-shell-command "cmd: " (format "yt-dlp --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s"
+                                                  nsa/music-format format-string link))))
 
     (nsa/music-append-link link genre)
     (if (not (f-dir? output-dir))
