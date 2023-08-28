@@ -303,7 +303,7 @@ groups.extend([ScratchPad("termpad", [
              x = 0.1,
              y = 0.1,
              opacity = 0.95,
-             on_focus_lost_hide=True),
+             on_focus_lost_hide=False),
     ]),
 
 
