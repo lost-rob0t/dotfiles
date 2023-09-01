@@ -15,3 +15,12 @@
       (when (eql (symbol-package sym) pack)
         (when (fboundp sym)
           (format stream ":~A~%" (symbol-name sym)))))))
+
+
+#+asdf (require :asdf)
+(ql:quickload :cffi :silent t)
+(pushnew (merge-pathnames ".nix-profile/lib/" (user-homedir-pathname))
+         cffi:*foreign-library-directories*)
+
+(pushnew (merge-pathnames "/run/current-system/sw/lib/" (user-homedir-pathname))
+         cffi:*foreign-library-directories*)
