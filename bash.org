@@ -367,6 +367,10 @@ Go to my hackmode directory.
 alias hackmode="cd $HOME/Documents/hackmode"
 #+end_src
 
+Reload Bash
+#+begin_src shell :tangle .bashrc
+alias reload-bash="source $HOME/.bashrc"
+#+end_src
 ** Shell Hooks
 *** Direnv
 #+begin_src shell :tangle .bashrc

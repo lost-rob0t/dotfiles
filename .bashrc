@@ -220,6 +220,8 @@ alias ix.io="curl -F 'f:1=<-' ix.io"
 
 alias hackmode="cd $HOME/Documents/hackmode"
 
+alias reload-bash="source $HOME/.bashrc"
+
 eval "$(direnv hook bash)"
 
 eval "$(starship init bash)"
