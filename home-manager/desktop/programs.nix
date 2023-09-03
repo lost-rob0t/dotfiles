@@ -32,6 +32,7 @@
     qbittorrent
     yt-dlp
     sonixd # self hosted music streaming
+    picard
     # Games
     inputs.mousetrap.defaultPackage.x86_64-linux
     # System Tools

@@ -31,6 +31,16 @@
         ]);
       });
     })
+
+    (self: super: {
+      sbcl = super.sbcl.unwrapped.override (old: {
+        propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ (with self.pkgs; [
+          openssl
+          quicklispPackagesClisp.cl-libuv
+        ]);
+      });
+    })
+
     (self: super: {
       mpv = super.mpv.override {
         scripts = [ self.mpvScripts.mpris ];

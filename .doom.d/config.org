@@ -76,7 +76,7 @@ Setting nerdfonts
 ; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
 ; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
 #+end_src
-*** TODO Fix the wrong fonts
+*** DONE Fix the wrong fonts
 ** Hide async shell commands
 #+begin_src emacs-lisp
 (add-to-list 'display-buffer-alist
