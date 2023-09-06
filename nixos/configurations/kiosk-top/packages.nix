@@ -16,16 +16,12 @@
     cmake
     ripgrep
     htop
-    atop
-    clinfo
     ispell
     unzip
     bash
-    zsh
     p7zip
     coreutils
     pandoc #emacs
-    hunspellDicts.en_US
 
     ## User Programs
     brave
@@ -37,7 +33,6 @@
     nim
     nimlsp
     podman-compose
-    rnix-lsp
     sqlite
     ## Security
     tor
