@@ -81,6 +81,14 @@
             nixos-hardware.nixosModules.common-gpu-intel-disable
           ];
         };
+        kiosk-top = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          modules = [
+            # > Our main nixos configuration file <
+            ./nixos/configurations/kiosk-top/kiosk-top.nix
+            nixos-hardware.nixosModules.common-gpu-intel-disable
+          ];
+        };
       };
 
       # Standalone home-manager configuration entrypoint
