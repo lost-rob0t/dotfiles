@@ -3,16 +3,7 @@
 ## Packages and programs go here
 
 {
-  nixpkgs.overlays = [
-    (import (builtins.fetchTarball {
-      url = https://github.com/nix-community/emacs-overlay/archive/master.tar.gz;
-    }))
-  ];
-  nixpkgs.config.packageOverrides = pkgs: {
-    nur = import (builtins.fetchTarball "https://github.com/nix-community/NUR/archive/master.tar.gz") {
-      inherit pkgs;
-    };
-  };
+
   environment.systemPackages = with pkgs; [
     # Utils
     wget
@@ -54,15 +45,6 @@
     ## Libs
     libtool
     libvterm
-    ((emacsPackagesFor emacsNativeComp).emacsWithPackages (epkgs: [
-      epkgs.vterm
-      epkgs.ac-ispell
-      epkgs.direnv
-      epkgs.lsp-pyright
-      epkgs.pylint
-      epkgs.w3m
-      epkgs.pandoc
-    ]))
 
     # Rice
     breeze-icons

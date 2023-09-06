@@ -19,8 +19,8 @@
     ''
       10.50.50.25 lost-git.local
     '';
-  networking.useDHCP = true;
-  networking.hostName = "kiosk.local"; # Define your hostname.
+  networking.useDHCP = lib.mkDefault true;
+  networking.hostName = "kiosk"; # Define your hostname.
   networking.networkmanager = {
     enable = true;
   };
