@@ -21,7 +21,6 @@
       ./services.nix
       ./packages.nix
       ./networking.nix
-      ./security.nix
     ];
 
   boot.loader.systemd-boot.enable = true;
