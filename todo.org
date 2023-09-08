@@ -1,4 +1,7 @@
 * Inbox
+** TODO use a macro to capture default args....
+
+[[file:~/Documents/Projects/fedi/src/fedi/api.nim::await castRateLimit(res=req, client=client.hc)]]
 ** TODO Why Does word wrap break org mode?
 Stuff like indentation, org tempo breaks
 
@@ -30,3 +33,5 @@ I copy pasted them but in hindsight this is not a good idea. Just call the norma
 ** TODO Add nicy prompt
 Nicy is a prompt written in nim
 ** TODO Magit script to track and merge a fork's upstream
+** TODO Modern org
+https://github.com/minad/org-modern
