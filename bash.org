@@ -371,16 +371,27 @@ Reload Bash
 #+begin_src shell :tangle .bashrc
 alias reload-bash="source $HOME/.bashrc"
 #+end_src
-** Shell Hooks
-*** Direnv
+** Fancy Shell and Dumb Shell
+Incase  dumb terminal, You need to make sure its a basic PS1 so tramp's regex and detect the shell login.
+Anything fancy can go into this function.
 #+begin_src shell :tangle .bashrc
-eval "$(direnv hook bash)"
+function fancy-shell () {
+    eval "$(direnv hook bash)"
+    eval "$(starship init bash)"
+}
 #+end_src
-*** Starship
+Heres the dumb shell catcher
 #+begin_src shell :tangle .bashrc
-eval "$(starship init bash)"
-#+end_src
+case $TERM in
+    xterm-256color)
+        fancy-shell;;
+    xterm)
+        fancy-shell;;
+    *)
+        PS1="$";;
+esac
 
+#+end_src
 * Footnotes
 [fn:3] https://gitlab.com/dwt1/dotfiles/-/blob/master/.bashrc?ref_type=heads
 

@@ -222,6 +222,16 @@ alias hackmode="cd $HOME/Documents/hackmode"
 
 alias reload-bash="source $HOME/.bashrc"
 
-eval "$(direnv hook bash)"
+function fancy-shell () {
+    eval "$(direnv hook bash)"
+    eval "$(starship init bash)"
+}
 
-eval "$(starship init bash)"
+case $TERM in
+    xterm-256color)
+        fancy-shell;;
+    xterm)
+        fancy-shell;;
+    *)
+        PS1="$";;
+esac
