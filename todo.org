@@ -35,3 +35,8 @@ Nicy is a prompt written in nim
 ** TODO Magit script to track and merge a fork's upstream
 ** TODO Modern org
 https://github.com/minad/org-modern
+** TODO Add keybind envrc-allow/deny for sh mode
+** TODO Add flake devshell yasnippet
+** TODO Qtile Bar should show current active Org clock
+** TODO Improved writing interface
+https://github.com/rnkn/olivetti
