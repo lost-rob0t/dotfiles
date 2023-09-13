@@ -4,7 +4,7 @@
   description = "My Nixos Config";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-22.11";
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-23.05";
     # Also see the 'unstable-packages' overlay at 'overlays/default.nix'.
 
     # Home manager
@@ -27,7 +27,7 @@
 
   };
 
-  outputs = { self, nixpkgs, home-manager, nixos-hardware, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, ... }@inputs:
     let
       inherit (self) outputs;
       forAllSystems = nixpkgs.lib.genAttrs [

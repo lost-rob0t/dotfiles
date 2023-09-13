@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ inputs, config, lib, pkgs, ... }:
 
 ## Services go into here
 # let
@@ -23,7 +23,13 @@
           mobile.enable = false; #maybe for Neptune touchscreen?
         };
       };
-      windowManager.qtile.enable = true;
+      windowManager = {
+        qtile = {
+          enable = true;
+          package = inputs.nixpkgs-stable.legacyPackages.x86_64-linux.qtile;
+        };
+      };
+
       videoDrivers = [ "amdgpu" ];
       layout = "us";
     };

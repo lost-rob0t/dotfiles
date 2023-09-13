@@ -1,4 +1,4 @@
-{ config, lib, pkgs, nimPackages, ... }:
+{ config, lib, pkgs, nimPackages, inputs, ... }:
 
 ## Packages and programs go here
 {

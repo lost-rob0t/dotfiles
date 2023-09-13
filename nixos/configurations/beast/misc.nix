@@ -2,7 +2,7 @@
 
 {
   fonts = {
-    fonts =  with pkgs; [
+    packages = with pkgs; [
       nerdfonts
     ];
   };
