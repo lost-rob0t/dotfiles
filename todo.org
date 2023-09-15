@@ -40,3 +40,6 @@ https://github.com/minad/org-modern
 ** TODO Qtile Bar should show current active Org clock
 ** TODO Improved writing interface
 https://github.com/rnkn/olivetti
+** TODO A "install package from projectile project"
+you can run spc p & to run a async command, why not something to run nimble or pip or quicklisp?
+it just needs to run at the project root?
