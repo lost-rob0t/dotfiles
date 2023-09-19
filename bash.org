@@ -343,6 +343,19 @@ Run a couchdb docker container
 alias couchdb="mkdir -p $PWD/.database && sudo chown 1001:1001 $PWD/.database && sudo docker run -d  -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password  -v $PWD/.database:/opt/couchdb/data  -p 0.0.0.0:5984:5984 ibmcom/couchdb3" && echo $PWD/.database >> $HOME/.config/couchdb-databases
 #+end_src
 
+Alias to delete all temp couchdb databases
+#+begin_src shell :tangle .bashrc
+alias couchdb-gc="grep -e '\.database$' ~/.config/couchdb-databases | xargs -I {} sudo rm -rf {} && rm -f ~/.config/couchdb-databases && touch ~/.config/couchdb-databases"
+#+end_src
+#+begin_src shell :tangle .bashrc
+function couchdb-rm-db() {
+  selected_file=$(cat ~/.config/couchdb-databases | sort -u | fzf)
+  if [ -n "$selected_file" ]; then
+    sed -i "\~$selected_file~d" ~/.config/couchdb-databases
+    sudo rm -rfv "$selected_file"
+  fi
+}
+#+end_src
 Send a notification whenever a command is done.
 It defaults to using dunstify.
 #+begin_src shell :tangle .bashrc

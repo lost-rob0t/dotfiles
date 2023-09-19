@@ -210,6 +210,16 @@ alias wttr="curl wttr.in"
 
 alias couchdb="mkdir -p $PWD/.database && sudo chown 1001:1001 $PWD/.database && sudo docker run -d  -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password  -v $PWD/.database:/opt/couchdb/data  -p 0.0.0.0:5984:5984 ibmcom/couchdb3" && echo $PWD/.database >> $HOME/.config/couchdb-databases
 
+alias couchdb-gc="grep -e '\.database$' ~/.config/couchdb-databases | xargs -I {} sudo rm -rf {} && rm -f ~/.config/couchdb-databases && touch ~/.config/couchdb-databases"
+
+function couchdb-rm-db() {
+  selected_file=$(cat ~/.config/couchdb-databases | sort -u | fzf)
+  if [ -n "$selected_file" ]; then
+    sed -i "\~$selected_file~d" ~/.config/couchdb-databases
+    sudo rm -rfv "$selected_file"
+  fi
+}
+
 alert_cmd=$(which "dunstify" || which "notify-send")
 alias alert='$alert_cmd --urgency=medium -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 
