@@ -24,10 +24,19 @@
         };
       };
       windowManager = {
-        qtile = {
-          enable = true;
-          package = inputs.nixpkgs-stable.legacyPackages.x86_64-linux.qtile;
-        };
+        # qtile = {
+        #   enable = true;
+        #   package = inputs.nixpkgs-stable.legacyPackages.x86_64-linux.qtile;
+        # };
+        session = [{
+          name = "qtile";
+          start = ''
+            ${inputs.nixpkgs-stable.legacyPackages.x86_64-linux.qtile}/bin/qtile start -b x11 \
+            --config  /home/unseen/.config/qtile/config.py &
+            waitPID=$!
+          '';
+        }];
+
       };
 
       videoDrivers = [ "amdgpu" ];

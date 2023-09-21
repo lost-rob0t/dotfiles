@@ -10,12 +10,13 @@
     extraOptions = ''
       experimental-features = nix-command flakes
     '';
-   };
+  };
   nixpkgs.config.allowUnfree = true;
 
 
   imports =
-    [ # Include the results of the hardware scan.
+    [
+      # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ./packages.nix
       ./services.nix
@@ -26,15 +27,15 @@
 
   # Boot config
   boot.initrd.luks.devices = {
-  crypted = {
-    device = "/dev/disk/by-partuuid/e530f416-662e-4e97-a698-63096214c5f9";
-    allowDiscards = true; # Used if primary device is a SSD
-    preLVM = true;
-    bypassWorkqueues = true;
+    crypted = {
+      device = "/dev/disk/by-partuuid/e530f416-662e-4e97-a698-63096214c5f9";
+      allowDiscards = true; # Used if primary device is a SSD
+      preLVM = true;
+      bypassWorkqueues = true;
+    };
   };
- };
   boot.loader.systemd-boot.enable = true;
- # Set your time zone.
+  # Set your time zone.
   time.timeZone = "America/New_York";
 
   # Enable sound.
@@ -56,7 +57,7 @@
     isNormalUser = true;
     subUidRanges = [{ startUid = 100000; count = 65536; }];
     subGidRanges = [{ startGid = 100000; count = 65536; }];
-    extraGroups = [ "wheel" "libvirtd" "adbusers" ]; # Enable ‘sudo’ for the user.
+    extraGroups = [ "wheel" "libvirtd" "adbusers" "docker" ]; # Enable ‘sudo’ for the user.
   };
 
 

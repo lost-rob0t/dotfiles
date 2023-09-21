@@ -38,6 +38,7 @@ in
     dunst
     htop
     gotop # better htop
+    fzf # fuzzy finding
   ];
   programs.emacs = {
     enable = true;
