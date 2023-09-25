@@ -17,7 +17,6 @@
     gitRepo
     sqlitebrowser
     vim
-    lorri
     direnv
     sbcl
     pre-commit
@@ -63,13 +62,8 @@
     sqlitebrowser
     tdesktop
     rpi-imager
-    ark
     kdenlive
     virt-viewer
-    monero-gui
-    gitRepo
-    vscodium-fhs # FHS
-    librewolf
     bookworm
     libsForQt5.kdeconnect-kde
     ntfy # send notifications
@@ -80,7 +74,6 @@
     hashcat
 
     # Web Browsers
-    librewolf
     brave
     firefox
     # Communication

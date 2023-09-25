@@ -66,7 +66,6 @@
     ripgrep
     htop
     atop
-    clinfo
     unzip
     bash
     zsh
@@ -102,8 +101,6 @@
     podman-compose
     rnix-lsp
     sqlite
-    gforth
-    racket
     (python3.withPackages (ps: with ps; [ requests ]))
 
     ## Security
