@@ -380,7 +380,7 @@ alias hackmode="cd $HOME/Documents/hackmode"
 #+end_src
 
 #+begin_src shell :tangle .bashrc
-alias starintel="cd ~Documents/Projects/starintel"
+alias starintel="cd ~/Documents/Projects/starintel"
 #+end_src
 
 Reload Bash

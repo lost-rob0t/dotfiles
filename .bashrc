@@ -230,7 +230,7 @@ alias ix.io="curl -F 'f:1=<-' ix.io"
 
 alias hackmode="cd $HOME/Documents/hackmode"
 
-alias starintel="cd ~Documents/Projects/starintel"
+alias starintel="cd ~/Documents/Projects/starintel"
 
 alias reload-bash="source $HOME/.bashrc"
 
