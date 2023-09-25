@@ -364,7 +364,6 @@ alias alert='$alert_cmd --urgency=medium -i "$([ $? = 0 ] && echo terminal || ec
 #+end_src
 
 paste to termbin
-
 #+begin_src shell :tangle .bashrc
 alias tb="nc termbin.com 9999 >> .bashrc"
 #+end_src
@@ -378,6 +377,10 @@ alias ix.io="curl -F 'f:1=<-' ix.io"
 Go to my hackmode directory.
 #+begin_src shell :tangle .bashrc
 alias hackmode="cd $HOME/Documents/hackmode"
+#+end_src
+
+#+begin_src shell :tangle .bashrc
+alias starintel="cd ~Documents/Projects/starintel"
 #+end_src
 
 Reload Bash

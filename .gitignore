@@ -9,3 +9,16 @@ tmp/
 .config/starintel/*.ini
 .direnv/*
 .direnv
+/.config/variety/.firstrun
+/.config/variety/.last_change_time
+/.config/variety/.version
+/.config/variety/Downloaded/
+/.config/variety/Favorites/
+/.config/variety/banned.txt
+/.config/variety/favorite_quotes.txt
+/.config/variety/history.txt
+/.config/variety/pluginconfig/
+/.config/variety/scripts/
+/.config/variety/ui.conf
+/.config/variety/variety_latest_default.conf
+/.config/variety/wallpaper/

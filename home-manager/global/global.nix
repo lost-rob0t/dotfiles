@@ -76,6 +76,7 @@ in
       pkgs.libnotify
       pkgs.coreutils
       pkgs.ripgrep
+      pkgs.bash # [2023-09-25 Mon] Somehow it was missing this
     ];
   };
   xdg.mimeApps = {
