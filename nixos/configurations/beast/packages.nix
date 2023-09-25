@@ -133,7 +133,8 @@
     mimic # TTS
     libvirt
     dmenu
-    blueman
+    inputs.nixpkgs-stable.legacyPackages.x86_64-linux.blueman
+    # BUG blueman
     ## Nixos
     nixos-generators
 

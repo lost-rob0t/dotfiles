@@ -5,37 +5,39 @@
 
 {
   imports =
-    [ (modulesPath + "/installer/scan/not-detected.nix")
+    [
+      (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
   boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "uas" "sd_mod" ];
   boot.initrd.kernelModules = [ "dm-snapshot" "dm-raid" ];
-  boot.kernelModules = [ "kvm-amd" "amdgpu" "dm-raid" "xpadneo"];
+  boot.kernelModules = [ "kvm-amd" "amdgpu" "dm-raid" "xpadneo" ];
   boot.extraModulePackages = [ ];
   boot.extraModprobeConfig = "options kvm_intel nested=1 bluetooth disable_ertm=1";
 
   fileSystems."/" =
-    { device = "/dev/disk/by-uuid/dfced3b1-91f1-445a-ab83-2345f4a45440";
+    {
+      device = "/dev/disk/by-uuid/dfced3b1-91f1-445a-ab83-2345f4a45440";
       fsType = "ext4";
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-partuuid/e3b65262-076c-40e5-9686-7c3717a9fc0a";
+    {
+      device = "/dev/disk/by-partuuid/e3b65262-076c-40e5-9686-7c3717a9fc0a";
       fsType = "vfat";
     };
   swapDevices =
-    [ { device = "/dev/disk/by-uuid/a13703b7-ce75-453f-8d67-474523e051f8"; }
-    ];
+    [{ device = "/dev/disk/by-uuid/a13703b7-ce75-453f-8d67-474523e051f8"; }];
 
   hardware = {
     bluetooth = {
-      package = pkgs.bluezFull;
+      package = pkgs.bluez;
       enable = true;
       settings = {
         LE = {
-          MinConnectionInterval=7;
-          MaxConnectionInterval=9;
-          ConnectionLatency=0;
+          MinConnectionInterval = 7;
+          MaxConnectionInterval = 9;
+          ConnectionLatency = 0;
         };
       };
     };
