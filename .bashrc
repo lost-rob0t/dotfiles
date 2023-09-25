@@ -232,6 +232,8 @@ alias hackmode="cd $HOME/Documents/hackmode"
 
 alias reload-bash="source $HOME/.bashrc"
 
+alias unix="date +%s"
+
 function fancy-shell () {
     eval "$(direnv hook bash)"
     eval "$(starship init bash)"

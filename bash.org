@@ -384,6 +384,11 @@ Reload Bash
 #+begin_src shell :tangle .bashrc
 alias reload-bash="source $HOME/.bashrc"
 #+end_src
+
+Get the current time in unix-epoch
+#+begin_src shell :tangle .bashrc
+alias unix="date +%s"
+#+end_src
 ** Fancy Shell and Dumb Shell
 Incase  dumb terminal, You need to make sure its a basic PS1 so tramp's regex and detect the shell login.
 Anything fancy can go into this function.
