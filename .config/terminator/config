@@ -1,10 +1,10 @@
 [global_config]
+  enabled_plugins = ActivityWatch, InactivityWatch, LaunchpadBugURLHandler, LaunchpadCodeURLHandler, APTURLHandler
 [keybindings]
 [profiles]
   [[default]]
     allow_bold = False
-    background_darkness = 0.9
-    background_type = transparent
+    background_darkness = 0.09
     font = Hack Nerd Font Mono 12
     show_titlebar = False
     scrollbar_position = hidden
