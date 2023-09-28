@@ -1,3 +1,10 @@
+[custom.HACKMODE_OP]
+command = "echo $HACKMODE_OP"
+when = '[[ -n "$HACKMODE_OP" ]]'
+style = '(bold green)'
+symbol='🎯'
+format ='[$symbol($output )]($style)'
+
 [character]
 success_symbol = '[ϟ](bold white)'
 error_symbol = '[ϟ](bold red)'
@@ -153,3 +160,6 @@ format = '\[[$symbol($version)]($style)\]'
 
 [zig]
 format = '\[[$symbol($version)]($style)\]'
+
+
+
