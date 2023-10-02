@@ -425,12 +425,16 @@ def init_widgets_list():
         #          background=colors[1],
         #          padding = 0,
         #          ),
-        # widget.Sep(
-        #          linewidth = 1,
-        #          padding = 10,
-        #          foreground = colors[2],
-        #          background = colors[1]
-        #          ),
+
+        widget.Pomodoro(foreground = colors[2],
+            background = colors[1],
+            ),
+        widget.Sep(
+                  linewidth = 1,
+                  padding = 10,
+                  foreground = colors[2],
+                  background = colors[1]
+                  ),
         widget.Mpris2(background=colors[1],
                       foreground=colors[6],
                       scroll_fixed_width=True,
