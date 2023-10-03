@@ -1541,7 +1541,7 @@ Pentest utils from emacs
 (require 'hackmode)
 (setq hackmode-dir "~/Documents/hackmode")
 (setq hackmode-templates "~/.dotfiles/hackmode")
-(setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode/.tools/"))
+(setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode-tools/"))
 #+end_src
 
 
@@ -1556,7 +1556,7 @@ Simple utility to create local lisp code
 A simple wraper for yt-dlp a youtube-dl fork that still works.
 
 #+begin_src emacs-lisp
-(setq nsa/music-dir "/ssh:gitea:/mnt/usb/music/")
+(setq nsa/music-dir "~/Music/Music-inbox")
 #+end_src
 
 * Footnotes
