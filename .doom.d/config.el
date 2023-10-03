@@ -558,19 +558,19 @@ strings."
 
 (require 'pcap-mode)
 
-(with-eval-after-load 'org
-  (require 'inherit-org)
-; BUG something is wrong with spc h f on nixos, works on arch
-  ;(with-eval-after-load 'info
-  ;  (add-hook 'Info-mode-hook 'inherit-org-mode))
+;; (with-eval-after-load 'org
+;;   (require 'inherit-org)
+;; ; BUG something is wrong with spc h f on nixos, works on arch
+;;   ;(with-eval-after-load 'info
+;;   ;  (add-hook 'Info-mode-hook 'inherit-org-mode))
 
-  ; BUG?
-  ;(with-eval-after-load 'helpful
-  ;  (add-hook 'helpful-mode-hook 'inherit-org-mode))
+;;   ; BUG?
+;;   ;(with-eval-after-load 'helpful
+;;   ;  (add-hook 'helpful-mode-hook 'inherit-org-mode))
 
-  (with-eval-after-load 'w3m
-    (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
-    (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
+;;   (with-eval-after-load 'w3m
+;;     (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
+;;     (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
 
 (eval-after-load "w3m-form"
   '(progn

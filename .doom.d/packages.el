@@ -19,8 +19,6 @@
 
 (eval-when-compile (require 'use-package))
 
-(package!  emacs-gc-stats)
-
 (unpin! org-roam)
 (package! org-roam-ui)
 
@@ -45,6 +43,8 @@
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 
 (package! protobuf-mode)
+
+(package! nim-mode :pin "674ecd1ebfe23cb13791edbf5c79e3bec25dbdc5")
 
 (package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
 
@@ -116,7 +116,7 @@
 
 (package! elfeed-tube)
 
-(package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
+;(package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 
 (package! golden-ratio.el :recipe (:host github :repo "roman/golden-ratio.el"))
 
