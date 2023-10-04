@@ -1,1 +1,11 @@
 #+title: Readme
+
+* Simple emacs templates
+This package is for simple management of templates.
+
+By default templates lay in =~/templates/emacs=. You can change this with ~templates-dir~ var.
+
+** TODO
+Fill in values like cookie cutter/yasnippet
+
+#(question <default>)
