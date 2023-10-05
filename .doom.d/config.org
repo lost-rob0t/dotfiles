@@ -574,7 +574,7 @@ Add languages to org babel
 #+begin_src emacs-lisp
 (org-babel-do-load-languages
  'org-babel-load-languages
- '((emacs-lisp . t) (org . t) (nim . t) (python . t) (erlang . t) (ein . t) (lisp . t)))
+ '((emacs-lisp . t) (org . t) (nim . t) (python . t) (erlang . t) (ein . t) (lisp . t) (prolog . t)))
 #+end_src
 
 **** Better Formating in org-babel

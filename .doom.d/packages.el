@@ -56,6 +56,8 @@
 
 (package! evil-smartparens)
 
+(package! ob-prolog)
+
 (package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode"))
 
 (package! webpaste :recipe (:type git :host github :repo "etu/webpaste.el"))
