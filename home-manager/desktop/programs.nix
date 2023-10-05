@@ -20,6 +20,7 @@
     direnv
     sbcl
     pre-commit
+    swiProlog
     # Multimedia
     vlc
     simplescreenrecorder
