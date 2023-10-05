@@ -7,7 +7,7 @@
     (load quicklisp-init)))
 
 ;; https://stackoverflow.com/a/70235441
-(defun show-all-fboundp-symbols-of-package
+(defun nsa/list-symbols
     (package-name
      &optional (stream t))
   (let ((pack (find-package package-name)))
