@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: inline
+# key: inline
+# --
+(declaim (inline ${1:function-name}))
