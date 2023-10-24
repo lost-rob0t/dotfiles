@@ -287,8 +287,7 @@ This section tangles the init file
        (nim +lsp)               ; python + lisp at the speed of c
        nix               ; I hereby declare "nix geht mehr!"
        ;;ocaml             ; an objective camel
-       (org +roam2
-            +pretty)               ; organize your plain life in plain text
+       (org +roam2)               ; organize your plain life in plain text
        php               ; perl's insecure younger brother
        ;;plantuml          ; diagrams for confusing people more
        ;;purescript        ; javascript, but functional
@@ -944,7 +943,37 @@ Add hook to run after org-mode runs
 (org-alert-enable)
 (org-alert-check)
 #+end_src
+*** Modern Org
+Enable it globally
+#+begin_src emacs-lisp
+(with-eval-after-load 'org (global-org-modern-mode))
+#+end_src
 
+Config, mostly defaults since it looks good enough.
+#+begin_src emacs-lisp
+(setq
+ ;; Edit settings
+ org-auto-align-tags nil
+ org-tags-column 0
+ org-catch-invisible-edits 'show-and-error
+ org-special-ctrl-a/e t
+ org-insert-heading-respect-content t
+
+ ;; Org styling, hide markup etc.
+ org-hide-emphasis-markers t
+ org-pretty-entities t
+ org-ellipsis "…"
+
+ ;; Agenda styling
+ org-agenda-tags-column 0
+ org-agenda-block-separator ?─
+ org-agenda-time-grid
+ '((daily today require-timed)
+   (800 1000 1200 1400 1600 1800 2000)
+   " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
+ org-agenda-current-time-string
+ "◀── now ─────────────────────────────────────────────────")
+#+end_src
 *** Misc related functions for org mode
 ****  Time Stamp updater
 #+begin_src emacs-lisp
@@ -968,6 +997,7 @@ Add hook to run after org-mode runs
           (time-stamp))))))
 
 #+end_src
+
 
 
 ** Deft
