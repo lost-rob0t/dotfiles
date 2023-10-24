@@ -81,8 +81,9 @@ Make presentations
 #+end_src
 
 *** org-pomodoro
+I dont actually use this any more... I now have a pomodoro timer in my qtile bar.
 #+begin_src emacs-lisp
-(package! org-pomodoro)
+;; (package! org-pomodoro)
 #+end_src
 *** Org Modern
 
