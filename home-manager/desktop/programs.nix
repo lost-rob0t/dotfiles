@@ -1,6 +1,6 @@
 { config, lib, pkgs, inputs, ... }:
 
-# BUG this really doesnt work in nyxt yet
+# this really doesnt work in nyxt yet
 #let
 #  nyxt = pkgs.nyxt.overrideAttrs (oldAttrs: {
 #    postFixup = ''
