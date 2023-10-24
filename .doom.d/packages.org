@@ -69,15 +69,10 @@ This extension facilitates moving images from point A to point B.
 #+end_src
 
 
-*** org-wiki
-Build and publish your own wiki based on org mode
-#+begin_src emacs-lisp
-(package! org-wiki :recipe (:type git :host github :repo "caiorss/org-wiki"))
-#+end_src
 *** ox-hugo
 export to hugo markdown
 #+begin_src emacs-lisp
-(package! ox-hugo)
+;; (package! ox-hugo)
 #+end_src
 *** org-present-mode
 Make presentations
