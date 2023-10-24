@@ -2,9 +2,9 @@
 ** TODO use a macro to capture default args....
 
 [[file:~/Documents/Projects/fedi/src/fedi/api.nim::await castRateLimit(res=req, client=client.hc)]]
-** TODO Why Does word wrap break org mode?
+** DONE Why Does word wrap break org mode?
 Stuff like indentation, org tempo breaks
-
+fixed with org-modern? <2023-10-24 Tue>
 [[file:~/.dotfiles/.doom.d/config.org::*Org alerts][Org alerts]]
 ** TODO Work on a Major mode to write brave goggles
 
