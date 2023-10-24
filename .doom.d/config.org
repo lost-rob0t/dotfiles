@@ -790,15 +790,6 @@ Eyes off my doccuments
 (setq epa-file-select-keys "235327FBDEFB3719")
 #+end_src
 
-*** Org Pomodoro
-#+begin_src emacs-lisp
-(map! :localleader
-      :after org
-      :map org-mode-map
-      :prefix ("c" . "clock")
-      :desc "Start Pomodoro" "T" #'org-pomodoro)
-#+end_src
-
 *** Org Present
 Create presentations with org mode
 
@@ -1496,13 +1487,6 @@ I only use it on the desktop so only load it there.
              (require 'elcord)
              (elcord-mode))
 #+end_src
-** Other
-#+begin_src emacs-lisp
-(use-package! org-pomodoro
-  :init
-  (setq org-pomodoro-audio-player "/usr/bin/mpv"))
-#+end_src
-
 ** Spell check
 Make sure its using aspell
 #+begin_src emacs-lisp

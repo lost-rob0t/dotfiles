@@ -48,7 +48,7 @@
 
 (package! nim-mode :pin "674ecd1ebfe23cb13791edbf5c79e3bec25dbdc5")
 
-(package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
+;;(package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
 
 (package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
 

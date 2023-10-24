@@ -385,12 +385,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (setq epa-file-select-keys "235327FBDEFB3719")
 
-(map! :localleader
-      :after org
-      :map org-mode-map
-      :prefix ("c" . "clock")
-      :desc "Start Pomodoro" "T" #'org-pomodoro)
-
 ;; Hide emphasis markers on formatted text
 (setq org-hide-emphasis-markers t)
 ;;; Centering Org Documents --------------------------------
@@ -836,10 +830,6 @@ strings."
 (with-system "flake"
              (require 'elcord)
              (elcord-mode))
-
-(use-package! org-pomodoro
-  :init
-  (setq org-pomodoro-audio-player "/usr/bin/mpv"))
 
 (setq ispell-program-name "aspell")
 
