@@ -90,6 +90,11 @@ I dont actually use this any more... I now have a pomodoro timer in my qtile bar
 #+begin_src emacs-lisp
 (package! org-modern)
 #+end_src
+*** writeroom-mode
+Distraction free writing.
+#+begin_src emacs-lisp
+(package! writeroom-mode)
+#+end_src
 
 ** Development
 *** Codeium ai code completion tool
