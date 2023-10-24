@@ -97,7 +97,8 @@ Distraction free writing.
 #+end_src
 
 ** Development
-*** Codeium ai code completion tool
+*** TODO Codeium ai code completion tool
+
 #+begin_src emacs-lisp
 (package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
 #+end_src
