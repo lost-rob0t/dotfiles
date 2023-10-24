@@ -28,7 +28,6 @@
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
   ####HOSTS#####
-  #### TODO Create a "global" config for all configurations to import
   networking.extraHosts =
     ''
       10.50.50.5 search.goyim.fre
