@@ -87,6 +87,7 @@
     faudio
     xboxdrv
     qjoypad
+    sunshine
     ##(winetricks.override { wine = wineWowPackages.staging; })
 
     ## Programming
@@ -131,7 +132,6 @@
     libvirt
     dmenu
     inputs.nixpkgs-stable.legacyPackages.x86_64-linux.blueman
-    # BUG blueman
     ## Nixos
     nixos-generators
 
