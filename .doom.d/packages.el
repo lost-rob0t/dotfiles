@@ -30,15 +30,15 @@
 
 (package! org-download :recipe (:type git :host github :repo "abo-abo/org-download"))
 
-(package! org-wiki :recipe (:type git :host github :repo "caiorss/org-wiki"))
-
-(package! ox-hugo)
+;; (package! ox-hugo)
 
 (package! org-present :recipe (:type git :host github :repo "rlister/org-present"))
 
-(package! org-pomodoro)
+;; (package! org-pomodoro)
 
 (package! org-modern)
+
+(package! writeroom-mode)
 
 (package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
 
