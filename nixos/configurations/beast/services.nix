@@ -24,6 +24,13 @@
         };
       };
       windowManager = {
+        exwm = {
+          enable = true;
+          loadScript = ''
+            (require 'exwm')
+            (load (expand-file-name "~/.dotfiles/exwm/exwm.el"))
+          '';
+        };
         # qtile = {
         #   enable = true;
         #   package = inputs.nixpkgs-stable.legacyPackages.x86_64-linux.qtile;
