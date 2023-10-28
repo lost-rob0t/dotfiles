@@ -30,6 +30,13 @@ in
     pkgs.tor-browser-bundle-bin
     pkgs.brave
     pkgs.cloc
+
+    pkgs.sbcl
+
+    #hackerman
+    pkgs.nodePackages.uglify-js
+
+
   ];
   programs = {
       gpg = {
