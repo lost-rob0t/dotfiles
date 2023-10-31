@@ -139,6 +139,8 @@ export PATH=$PATH:$HOME/.cargo/bin
 
 export PATH=$PATH:$HOME/.bin/
 
+export PATH=$PATH:$HOME/.node/bin/
+
 shopt -s expand_aliases # expand aliases
 
 alias debug-emacs="emacs --debug-init"
@@ -235,6 +237,9 @@ alias starintel="cd ~/Documents/Projects/starintel"
 alias reload-bash="source $HOME/.bashrc"
 
 alias unix="date +%s"
+
+alias npm-init-dir="mkdir -p ~/.node"
+alias npm-install="npm install --prefix ~/.node -g"
 
 function fancy-shell () {
     eval "$(direnv hook bash)"

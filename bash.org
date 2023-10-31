@@ -240,6 +240,13 @@ Setup my local bin
 #+begin_src shell :tangle .bashrc
 export PATH=$PATH:$HOME/.bin/
 #+end_src
+
+NPM path
+#+begin_src shell :tangle .bashrc
+export PATH=$PATH:$HOME/.node/bin/
+#+end_src
+
+
 ** Aliases
 Bash aliases allow you to use a short "alias" for a long command
 
@@ -392,6 +399,12 @@ Get the current time in unix-epoch
 #+begin_src shell :tangle .bashrc
 alias unix="date +%s"
 #+end_src
+
+init node-directory
+#+begin_src shell :tangle .bashrc
+alias npm-init-dir="mkdir -p ~/.node"
+alias npm-install="npm install --prefix ~/.node -g"
+#+END_SRC
 ** Fancy Shell and Dumb Shell
 Incase  dumb terminal, You need to make sure its a basic PS1 so tramp's regex and detect the shell login.
 Anything fancy can go into this function.
