@@ -155,6 +155,12 @@ Org babel functions for prolog.
 #+begin_src emacs-lisp
 (package! ob-prolog)
 #+end_src
+
+
+**** gnuplot
+#+begin_src emacs-lisp
+(package! gnuplot)
+#+end_src
 ** Utils
 *** Hackmode
 Hack banks from emacs
@@ -371,4 +377,31 @@ KOs mode for writing scripts
 Disable flyspell
 #+begin_src emacs-lisp
 (package! flyspell-lazy :disable t)
+#+end_src
+
+
+
+* System
+** Exwm
+#+begin_src emacs-lisp
+(package! exwm)
+#+end_src
+
+*** exwm-firefox-evil
+Evil mode keys in firefox
+#+begin_src emacs-lisp
+(package! exwm-firefox-evil)
+#+end_src
+
+
+*** perspective-exwm-mode
+Improve the default exwm workspace features
+#+begin_src emacs-lisp
+(package! perspective )
+(package! perspective-exwm)
+#+end_src
+*** sysmon
+Sysmon for displaying system status
+#+begin_src emacs-lisp
+;(package! )
 #+end_src

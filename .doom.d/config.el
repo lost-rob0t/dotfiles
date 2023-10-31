@@ -124,6 +124,7 @@ The optional argument NEW-WINDOW is not used."
     (end-of-line))
 
 (setq  org-capture-templates '(("m" "Personal Meditations")
+
                                ("mm" "Meditations Moon" entry
                                 (file+olp+datetree "~/Documents/Notes/org/moon.org")
                                 "** Relections\n\n*** Acomplished\n\n*** Thoughts\n\n*** Happenings\n\n** Plans for next moon\n" :tree-type month)
@@ -159,13 +160,21 @@ The optional argument NEW-WINDOW is not used."
                                ("ai" "LLM/AI Injection (Bypasses)" entry
                                 (file+headline "~/Documents/Notes/org/ai-prompts.org" "Injections")
                                 "* %U %?\n%i\n%a" :prepend t)
-                               ("h" "templates for hacking notes")
-                               ("hr" "Save a note about revsering a Piece of code" entry
-                                (file+headline +org-capture-project-todo-file "Reversing") "* %U %?\n%i\n%a")
-                               ("hs" "Save a note about a service" entry
-                                (file+headline +org-capture-project-todo-file "Services") "* %U Port %?\n%i\n%a")
-                               ("hl" "Save a note to check later" entry
-                                (file+headline  +org-capture-project-todo-file "Check Later") "* %U %?\n%i\n%a")        
+                               ("h" "Journal" entry (file+headline "~/Documents/Notes/org/health.org" "Journal")
+"* %t
+:PROPERTIES:
+:exercise:
+:sleep:
+:weight:
+:caffine:
+:distress:
+:distractedness:
+:anger:
+:END:
+")
+
+
+
                                ))
 
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
@@ -874,3 +883,5 @@ strings."
 (setq ppackage-path "~/.dotfiles/lisp")
 
 (setq nsa/music-dir "~/Music/Music-inbox")
+
+(require 'persp-mode)

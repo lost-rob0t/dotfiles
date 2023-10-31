@@ -437,6 +437,7 @@ Here i override the capture templates, some intergrating into org roam
 #+begin_src emacs-lisp
 
 (setq  org-capture-templates '(("m" "Personal Meditations")
+
                                ("mm" "Meditations Moon" entry
                                 (file+olp+datetree "~/Documents/Notes/org/moon.org")
                                 "** Relections\n\n*** Acomplished\n\n*** Thoughts\n\n*** Happenings\n\n** Plans for next moon\n" :tree-type month)
@@ -472,13 +473,21 @@ Here i override the capture templates, some intergrating into org roam
                                ("ai" "LLM/AI Injection (Bypasses)" entry
                                 (file+headline "~/Documents/Notes/org/ai-prompts.org" "Injections")
                                 "* %U %?\n%i\n%a" :prepend t)
-                               ("h" "templates for hacking notes")
-                               ("hr" "Save a note about revsering a Piece of code" entry
-                                (file+headline +org-capture-project-todo-file "Reversing") "* %U %?\n%i\n%a")
-                               ("hs" "Save a note about a service" entry
-                                (file+headline +org-capture-project-todo-file "Services") "* %U Port %?\n%i\n%a")
-                               ("hl" "Save a note to check later" entry
-                                (file+headline  +org-capture-project-todo-file "Check Later") "* %U %?\n%i\n%a")        
+                               ("h" "Journal" entry (file+headline "~/Documents/Notes/org/health.org" "Journal")
+"* %t
+:PROPERTIES:
+:exercise:
+:sleep:
+:weight:
+:caffine:
+:distress:
+:distractedness:
+:anger:
+:END:
+")
+
+
+
                                ))
 
 #+end_src
@@ -989,7 +998,8 @@ Config, mostly defaults since it looks good enough.
 
 #+end_src
 
-
+*** Qtile Org Clock
+Write the current active org clock to a file
 
 ** Deft
 Deft is used for notes. here im setting the default directory
@@ -1216,6 +1226,8 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
 #+begin_src emacs-lisp
 (setq eshell-aliases-file "~/.doom.d/eshell/aliases")
 #+end_src
+
+
 ** Libraries :lib::programming::lisp:
 *** f.el :lisp:
 Much inspired by @magnarss excellent s.el and dash.el, f.el is a modern API for working with files and directories in Emacs.
@@ -1573,6 +1585,12 @@ A simple wraper for yt-dlp a youtube-dl fork that still works.
 (setq nsa/music-dir "~/Music/Music-inbox")
 #+end_src
 
+
+* Exwm
+Only load when its actually exwm
+#+begin_src emacs-lisp
+(require 'persp-mode)
+#+end_src
 * Footnotes
 
 [fn:3] https://github.com/jwiegley/alert/issues/91

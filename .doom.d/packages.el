@@ -60,6 +60,8 @@
 
 (package! ob-prolog)
 
+(package! gnuplot)
+
 (package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode"))
 
 (package! webpaste :recipe (:type git :host github :repo "etu/webpaste.el"))
@@ -129,3 +131,12 @@
 (package! ks-mode :recipe (:type git :host github :repo "jarpy/ks-mode"))
 
 (package! flyspell-lazy :disable t)
+
+(package! exwm)
+
+(package! exwm-firefox-evil)
+
+(package! perspective )
+(package! perspective-exwm)
+
+;(package! )
