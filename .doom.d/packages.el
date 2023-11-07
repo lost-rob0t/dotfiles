@@ -40,6 +40,12 @@
 
 (package! writeroom-mode)
 
+(package! ob-ffuf :recipe (:type git :host github :repo "daniel-ts/ob-ffuf"))
+
+(package! ob-http)
+
+(package! ob-graphql)
+
 ;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
 
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
@@ -128,7 +134,7 @@
 
 (package! ks-mode :recipe (:type git :host github :repo "jarpy/ks-mode"))
 
-(package! flyspell-lazy :disable t)
+;(package! flyspell-lazy :disable t)
 
 ;(package! exwm)
 
