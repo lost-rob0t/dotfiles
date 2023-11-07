@@ -35,12 +35,13 @@ in
 
     #hackerman
     pkgs.nodePackages.uglify-js
-
+    # Graphql Client
+    pkgs.altair
 
   ];
   programs = {
-      gpg = {
-          enable = true;
-      };
+    gpg = {
+      enable = true;
+    };
   };
 }
