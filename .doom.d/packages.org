@@ -128,7 +128,7 @@ Flycheck-nim is a syntax checker definition for flycheck which supports the Nim 
 **** gForth
 major mode for gforth
 #+begin_src emacs-lisp
-(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
+;(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
 #+end_src
 
 **** nix

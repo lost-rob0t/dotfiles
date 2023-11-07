@@ -77,6 +77,7 @@ in
       pkgs.coreutils
       pkgs.ripgrep
       pkgs.bash # [2023-09-25 Mon] Somehow it was missing this
+      pkgs.nodePackages_latest.graphql-language-service-cli
     ];
   };
   xdg.mimeApps = {
