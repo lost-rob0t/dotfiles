@@ -96,6 +96,22 @@ Distraction free writing.
 (package! writeroom-mode)
 #+end_src
 
+
+*** ob-ffuf
+#+begin_src emacs-lisp
+(package! ob-ffuf :recipe (:type git :host github :repo "daniel-ts/ob-ffuf"))
+
+#+end_src
+
+*** ob-http
+#+begin_src emacs-lisp
+(package! ob-http)
+#+end_src
+
+*** ob-graphql
+#+begin_src emacs-lisp
+(package! ob-graphql)
+#+end_src
 ** Development
 *** TODO Codeium ai code completion tool
 <2023-11-07 Tue> Not removing this, just never used it.
@@ -127,8 +143,9 @@ Flycheck-nim is a syntax checker definition for flycheck which supports the Nim 
 
 **** gForth
 major mode for gforth
+<2023-11-07 Tue> Not removing this, just not using it for now.
 #+begin_src emacs-lisp
-(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
+;(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
 #+end_src
 
 **** nix
@@ -222,7 +239,7 @@ help of websocket.
 *** noaa
 Get weather from the government
 #+begin_src emacs-lisp :tangle yes
-(package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
+;;(package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
 #+end_src
 
 
@@ -371,29 +388,28 @@ KOs mode for writing scripts
 
 Disable flyspell
 #+begin_src emacs-lisp
-(package! flyspell-lazy :disable t)
+;(package! flyspell-lazy :disable t)
 #+end_src
 
 
-
 * System
-** Exwm
+** TODO Exwm
 #+begin_src emacs-lisp
-(package! exwm)
+;(package! exwm)
 #+end_src
 
 *** exwm-firefox-evil
 Evil mode keys in firefox
 #+begin_src emacs-lisp
-(package! exwm-firefox-evil)
+;(package! exwm-firefox-evil)
 #+end_src
 
 
 *** perspective-exwm-mode
 Improve the default exwm workspace features
 #+begin_src emacs-lisp
-(package! perspective )
-(package! perspective-exwm)
+;(package! perspective )
+;(package! perspective-exwm)
 #+end_src
 *** sysmon
 Sysmon for displaying system status

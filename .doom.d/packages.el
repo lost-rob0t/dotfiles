@@ -40,7 +40,7 @@
 
 (package! writeroom-mode)
 
-(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
+;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
 
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 
@@ -50,9 +50,7 @@
 
 ;;(package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
 
-(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
-
-(package! nix-emacs :recipe (:type git :host github :repo "travisbhartwell/nix-emacs"))
+;(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
 
 (package! lsp-pyright :recipe (:type git :host github :repo "emacs-lsp/lsp-pyright"))
 
@@ -82,7 +80,7 @@
 
 (package! atomic-chrome)
 
-(package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
+;;(package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
 
 (package! app-launcher :recipe (:type git :host github :repo "SebastienWae/app-launcher"))
 
@@ -132,11 +130,11 @@
 
 (package! flyspell-lazy :disable t)
 
-(package! exwm)
+;(package! exwm)
 
-(package! exwm-firefox-evil)
+;(package! exwm-firefox-evil)
 
-(package! perspective )
-(package! perspective-exwm)
+;(package! perspective )
+;(package! perspective-exwm)
 
 ;(package! )
