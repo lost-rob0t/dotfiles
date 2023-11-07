@@ -98,9 +98,9 @@ Distraction free writing.
 
 ** Development
 *** TODO Codeium ai code completion tool
-
+<2023-11-07 Tue> Not removing this, just never used it.
 #+begin_src emacs-lisp
-(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
+;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
 #+end_src
 *** envrc
 A GNU Emacs library which uses direnv to set environment variables on a per-buffer basis. This means that when you work across multiple projects which have .envrc files, all processes launched from the buffers "in" those projects will be executed with the environment variables specified in those files. This allows different versions of linters and other tools to be used in each project if desired.
@@ -128,7 +128,7 @@ Flycheck-nim is a syntax checker definition for flycheck which supports the Nim 
 **** gForth
 major mode for gforth
 #+begin_src emacs-lisp
-;(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
+(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
 #+end_src
 
 **** nix
