@@ -8,36 +8,36 @@ let
   });
 in
 {
-  home.packages = [
-    pkgs.vlc
-    pkgs.filezilla
-    #pkgs.nerdfonts
-    pkgs.w3m
-    pkgs.cht-sh
-    pkgs.kleopatra
-    pkgs.gimp
-    pkgs.feh
-    pkgs.tlp
+  home.packages = with pkgs; [
+    vlc
+    filezilla
+    #nerdfonts
+    w3m
+    cht-sh
+    kleopatra
+    gimp
+    feh
+    tlp
     nyxt
-    pkgs.webkitgtk
-    pkgs.remmina
-    pkgs.freerdp
-    pkgs.sqlitebrowser
-    pkgs.ark
-    pkgs.direnv
-    pkgs.starship
-    pkgs.rlwrap
-    pkgs.tor-browser-bundle-bin
-    pkgs.brave
-    pkgs.cloc
+    webkitgtk
+    remmina
+    freerdp
+    sqlitebrowser
+    ark
+    direnv
+    starship
+    rlwrap
+    tor-browser-bundle-bin
+    brave
+    cloc
 
-    pkgs.sbcl
+    sbcl
 
     #hackerman
-    pkgs.nodePackages.uglify-js
+    nodePackages.uglify-js
     # Graphql Client
-    pkgs.altair
-
+    altair
+    inql
   ];
   programs = {
     gpg = {
