@@ -35,9 +35,10 @@ in
 
     #hackerman
     nodePackages.uglify-js
-    # Graphql Client
+    # Graphql related stuff
     altair
     inql
+    graphw00f
   ];
   programs = {
     gpg = {
