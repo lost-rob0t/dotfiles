@@ -796,6 +796,22 @@ strings."
       :map 'lispyville-mode-map
       "C-s" #'lispyville-move-down)
 
+(put 'defvar*   'doc-string-elt 3)
+(put 'defparameter*   'doc-string-elt 3)
+(put 'lambda*   'doc-string-elt 2)
+
+(defvar *lisp-special-forms*
+(regexp-opt '("defvar*"
+              "defconstant*"
+              "defparameter*"
+              "defgeneric*"
+              "defmethod*"
+              "lambda*"
+              "flet*"
+              "labels*") 'words))
+(font-lock-add-keywords 'lisp-mode
+  `((,*lisp-special-forms* . font-lock-keyword-face)))
+
 (use-package! flycheck-package
   :after flycheck
   :config (flycheck-package-setup))

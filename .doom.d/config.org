@@ -1382,6 +1382,7 @@ Evil smartparens is a minor mode which makes evil play nice with smartparens.
 (add-hook 'common-lisp-mode #'evil-smartparens-mode)
 #+end_src
 
+
 *** Templates
 Template for [[https://gitlab.common-lisp.net/asdf/asdf][ASDF]] system def.
 #+begin_src emacs-lisp
@@ -1403,6 +1404,26 @@ Package Def snippet
       :map 'lispyville-mode-map
       "C-s" #'lispyville-move-down)
 #+end_src
+*** Defstar
+Defstar is a type declaration macro for common lisp
+#+begin_src emacs-lisp
+(put 'defvar*   'doc-string-elt 3)
+(put 'defparameter*   'doc-string-elt 3)
+(put 'lambda*   'doc-string-elt 2)
+
+(defvar *lisp-special-forms*
+(regexp-opt '("defvar*"
+              "defconstant*"
+              "defparameter*"
+              "defgeneric*"
+              "defmethod*"
+              "lambda*"
+              "flet*"
+              "labels*") 'words))
+(font-lock-add-keywords 'lisp-mode
+  `((,*lisp-special-forms* . font-lock-keyword-face)))
+#+end_src
+
 ** Flycheck
 Check for errors!
 
