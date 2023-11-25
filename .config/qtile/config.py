@@ -141,7 +141,6 @@ keys = [
     Key([mod, "shift"], "Left", lazy.layout.swap_left()),
     Key([mod, "shift"], "Right", lazy.layout.swap_right()),
     Key([mod, "shift"], "space", lazy.window.toggle_floating()),
-
     KeyChord([mod],"e", [
              Key([], "e",
                  lazy.spawn("emacsclient -c -a 'emacs'"),
@@ -331,6 +330,11 @@ def window_to_next_screen(qtile, switch_group=False, switch_screen=False):
         qtile.current_window.togroup(group, switch_group=switch_group)
         if switch_screen == True:
             qtile.cmd_to_screen(i + 1)
+
+keys.extend([
+    Key(["mod1"], "Right", lazy.next_screen(), desc="Next Monitor"),
+    Key(["mod1"], "Left", lazy.prev_screen(), desc="Prev Monitor")
+])
 
 keys.extend([
     # MOVE WINDOW TO NEXT SCREEN
