@@ -34,6 +34,15 @@ in
     sbcl
 
     #hackerman
+    webanalyze
+    wafw00f
+    go-dork
+    nikto
+    cloudhunter
+    whatweb
+    wpscan
+    naabu
+
     nodePackages.uglify-js
     # Graphql related stuff
     altair

@@ -21,6 +21,9 @@
     sbcl
     pre-commit
     swiProlog
+    gnuplot
+    ansible
+    graphviz
     # Multimedia
     vlc
     simplescreenrecorder
@@ -97,6 +100,8 @@
     j4-dmenu-desktop
     fetchmail
     variety
+
+
   ];
   programs = {
     gpg = {
@@ -130,6 +135,9 @@
         pkgs.isync
         pkgs.fetchmail
 
+        epkgs.gnuplot
+        pkgs.gnuplot
+        pkgs.graphviz
       ];
     };
   };

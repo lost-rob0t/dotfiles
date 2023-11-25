@@ -131,21 +131,21 @@ alt + p
 alt + f
     variety -f
 
-#Wallpaper previous
-alt + Left
-    variety -p
+# #Wallpaper previous
+# alt + Left
+#     variety -p
 
-#Wallpaper next
-alt + Right
-    variety -n
+# #Wallpaper next
+# alt + Right
+#     variety -n
 
-#Wallpaper toggle-pause
-alt + Up
-    variety --toggle-pause
+# #Wallpaper toggle-pause
+# alt + Up
+#     variety --toggle-pause
 
-#Wallpaper resume
-alt + Down
-    variety --resume
+# #Wallpaper resume
+# alt + Down
+#     variety --resume
 
 #################################################################
 #VARIETY KEYS WITH PYWAL

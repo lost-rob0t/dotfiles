@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#!/bin/bash
+
+# Default values
+source_dir=""
+remote_dir=""
+remote_user=""
+
+# Parse command line options
+while getopts "d:r:" opt; do
+  case $opt in
+    d)
+      source_dir="$OPTARG"
+      ;;
+    r)
+      remote_dir="$OPTARG"
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Check if source directory and remote directory are provided
+if [ -z "$source_dir" ] || [ -z "$remote_dir" ]; then
+  echo "Usage: $0 -d <source_directory> -r <remote_user@remote_server:/remote_directory>"
+  exit 1
+fi
+
+# Find directories containing .saveme files and copy their contents to the remote directory
+find "$source_dir" -type f -name '.saveme' -exec dirname {} \

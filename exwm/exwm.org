@@ -1,0 +1,104 @@
+#+title: Exwm
+#+author: nsaspy
+
+#+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
+#+startup: org-startup-folded: showall
+#+disable_spellchecker: t
+#+begin_src emacs-lisp;; -*- lexical-binding: t -*-
+#+end_src
+
+#+begin_src emacs-lisp
+(require 'exwm)
+(require 'exwm-randr)
+#+end_src
+* TODO Make EXWM usable [0/5]
+** Copy paste
+** Some sort of virtual work space system
+:LOGBOOK:
+CLOCK: [2023-10-27 Fri 15:08]--[2023-10-27 Fri 15:21] =>  0:13
+:END:
+** sysbar/system monitor
+** pomodoro
+** floating windows
+
+
+* EXWM
+
+Exwm lets you use emacs as your window manager
+
+
+** auto start
+
+** Basic config
+
+Set default number of workspaces
+
+#+begin_src emacs-lisp
+  (setq exwm-workspace-number 5)
+  (setq exwm-input-prefix-keys
+        '(?\C-x
+          ?\C-u
+          ?\C-h
+          ?\M-x
+          ?\M-`
+          ?\M-&
+          ?\M-:
+          ?\C-\M-j ;; Buffer list
+          ?\C-\ ))
+#+end_src
+
+*** Randr
+set the workspace plist
+
+#+begin_src emacs-lisp
+(setq exwm-randr-workspace-output-plist '(1 "HDMI-A-0" 3 "DisplayPort-2"))
+#+end_src
+
+
+add hook to setup screen on change hook.
+#+begin_src emacs-lisp
+(exwm-randr-enable)
+(start-process-shell-command "xrandr" "xrandr" "~/.screenlayout/exwm.sh")
+#+end_src
+
+Enable exwm-randr
+
+*** Virtual desktops
+Set a prefix key for =persp-mode=
+Which i set to =M-TAB= like =SPC-TAB= from normal doom
+#+begin_src emacs-lisp
+;(after! perspective-exwm
+;  (setq persp-mode-prefix-key (kbd "M-TAB")))
+#+end_src
+Set inital perspectives
+#+begin_src emacs-lisp
+(setq perspective-exwm-override-initial-name
+'((0 . "browser")
+        (1 . "dev")
+        (2 . "vm")
+        (3 . "media")
+        (4 . "comms")
+        (5 . "system")))
+#+end_src
+Enable the mode
+#+begin_src emacs-lisp
+(perspective-exwm-mode)
+#+end_src
+*** System tray
+Im not really sure what i want to do right now for a sysbar as it is quite wastefull of space and everything really is a single command away.
+#+begin_src emacs-lisp
+  (require 'exwm-systemtray)
+  (exwm-systemtray-enable)
+#+end_src
+
+Enable time mode for a clock
+#+begin_src emacs-lisp
+(display-time-mode)
+#+end_src
+
+*** enable exwm
+enable exwm
+
+#+begin_src emacs-lisp
+(exwm-enable)
+#+end_src

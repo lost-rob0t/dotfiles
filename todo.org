@@ -1,7 +1,4 @@
 * Inbox
-** TODO use a macro to capture default args....
-
-[[file:~/Documents/Projects/fedi/src/fedi/api.nim::await castRateLimit(res=req, client=client.hc)]]
 ** DONE Why Does word wrap break org mode?
 Stuff like indentation, org tempo breaks
 fixed with org-modern? <2023-10-24 Tue>
@@ -16,7 +13,7 @@ https://github.com/zweifisch/ob-http
 ** TODO Configure diered as the default file manager
 
 [[file:~/.dotfiles/.direnv]]
-** TODO Make this callable from dired
+** NO Make this callable from dired
 
 [[file:~/.dotfiles/lisp/dired/dired-helpers.el]]
 ** TODO Add functionality to mount usb drives
@@ -28,13 +25,17 @@ https://github.com/zweifisch/ob-http
 [[file:~/.dotfiles/.doom.d/config.org::*inherit org][inherit org]]
 ** TODO Add nicy prompt
 Nicy is a prompt written in nim
-** TODO Magit script to track and merge a fork's upstream
-** TODO Modern org
+** NO Magit script to track and merge a fork's upstream
+** DONE Modern org
+:LOGBOOK:
+CLOCK: [2023-10-24 Tue 02:52]--[2023-10-24 Tue 03:05] =>  0:13
+:END:
 https://github.com/minad/org-modern
-** TODO Add keybind envrc-allow/deny for sh mode
 ** TODO Add flake devshell yasnippet
 ** TODO Qtile Bar should show current active Org clock
-** TODO Improved writing interface
+** DONE Improved writing interface
+Writeroom-mode looks better
+https://github.com/joostkremers/writeroom-mode
 https://github.com/rnkn/olivetti
 ** TODO A "install package from projectile project"
 you can run spc p & to run a async command, why not something to run nimble or pip or quicklisp?

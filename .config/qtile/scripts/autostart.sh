@@ -30,7 +30,7 @@ fi
 
 #Some ways to set your wallpaper besides variety or nitrogen
 #feh --bg-fill /usr/share/backgrounds/archlinux/arch-wallpaper.jpg &
-feh --bg-fill "/home/unseen/Pictures/wallpaper/10 - B6GTMQL.png" &
+# feh --bg-fill "/home/unseen/Pictures/wallpaper/10 - B6GTMQL.png" &
 #wallpaper for other Arch based systems
 #feh --bg-fill /usr/share/archlinux-tweak-tool/data/wallpaper/wallpaper.png &
 #start the conky to learn the shortcuts
@@ -39,6 +39,8 @@ feh --bg-fill "/home/unseen/Pictures/wallpaper/10 - B6GTMQL.png" &
 #start sxhkd to replace Qtile native key-bindings
 run sxhkd -c ~/.config/qtile/sxhkd/sxhkdrc &
 
+# NOTE: this is system dependent
+# TODO create a system to find the screen settings by host name and run it.
 run /home/unseen/.screenlayout/screen.sh
 
 #starting utility applications at boot time
@@ -55,10 +57,7 @@ spice-vdagent &
 #starting user applications at boot time
 run volumeicon &
 run /home/unseen/.bin/graphics.sh &
-run firefox &
-run thunderbird &
+run brave &
 run bash /home/unseen/.dotfiles/.config/qtile/scripts/pinger.sh $HOME/.config/hosts &
 run kdeconnect-indicator &
-# Run activity watch
-# TODO Bring this into home-manager
 run aw-qt &

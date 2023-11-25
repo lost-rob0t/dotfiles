@@ -27,8 +27,8 @@
         exwm = {
           enable = true;
           loadScript = ''
-            (require 'exwm')
-            (load (expand-file-name "~/.dotfiles/exwm/exwm.el"))
+            (require 'exwm)
+            ;(load (expand-file-name "~/.dotfiles/exwm/exwm.el"))
           '';
         };
         # qtile = {
