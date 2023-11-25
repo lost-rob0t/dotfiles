@@ -135,8 +135,11 @@
     ## Nixos
     nixos-generators
 
-    ## Needed for spice
+    ## Needed for spice aka virt-man
     spice-vdagent
+
+    # Ricing related.
+    xsettingsd
   ];
   hardware.opengl.extraPackages = with pkgs; [
     rocm-opencl-icd
