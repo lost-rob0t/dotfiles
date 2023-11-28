@@ -6,8 +6,8 @@
 ;; Maintainer:  <nsaspy@airmail.cc>
 ;; Created: July 02, 2023
 ;; Modified: July 02, 2023
-;; Version: 0.0.1
-;; Keywords: abbrev bib c calendar comm convenience data docs emulations extensions faces files frames games hardware help hypermedia i18n internal languages lisp local maint mail matching mouse multimedia news outlines processes terminals tex tools unix vc wp
+;; Version: 0.3.0
+;; Keywords: music yt-dlp youtube
 ;; Homepage: https://github.com/lost-rob0t/yt-dlp
 ;; Package-Requires: ((emacs "24.3"))
 ;;
@@ -52,7 +52,7 @@
 
          (format-string (shell-quote-argument output-string))
 
-         (cmd (read-shell-command "cmd: " (format "yt-dlp --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s"
+         (cmd (read-shell-command "cmd: " (format "yt-dlp --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s --embed-metadata"
                                                   nsa/music-format format-string link))))
 
     (nsa/music-append-link link genre)
@@ -73,7 +73,27 @@
 
          (format-string (shell-quote-argument output-string))
 
-         (cmd (read-shell-command "cmd: " (format "yt-dlp --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s"
+         (cmd (read-shell-command "cmd: " (format "yt-dlp --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s --embed-metadata"
+                                                  nsa/music-format format-string link))))
+
+    (nsa/music-append-link link genre)
+    (if (not (f-dir? output-dir))
+        (f-mkdir-full-path output-dir))
+    (nsa/async-shell-command-alert cmd "*yt-dlp*" "*yt-dlp*")))
+
+(defun nsa/dl-artist* ()
+  "Download a artist, but sort songs by metadata."
+  (interactive)
+  (let* (
+         (link (read-string "Url: " (current-kill 0)))
+         (genre (downcase (completing-read "genre: " nsa/genres nil nil)))
+         (artist (read-string "Artist: "))
+         (output-dir (f-join nsa/music-dir "auto-sort/"))
+         (output-string (concat output-dir "%(release_date)%(artist,uploader|NA)s" "/%(album,playist|NA)s/%(track,title|NA)s.%(ext)s"))
+
+         (format-string (shell-quote-argument output-string))
+
+         (cmd (read-shell-command "cmd: " (format "yt-dlp --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s --embed-metadata"
                                                   nsa/music-format format-string link))))
 
     (nsa/music-append-link link genre)

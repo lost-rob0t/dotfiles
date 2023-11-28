@@ -187,7 +187,7 @@ strings."
 (defun nsa/async-shell-command-alert (&optional cmd buffer error-buffer)
   "Send an alert when a command finishes."
   (interactive "MEnter Shell Command: ")
-  (async-shell-command  (format "%s && dunstify %s" cmd cmd) buffer error-buffer))
+  (async-shell-command  (format "%s && dunstify \"%s\" \"Finished!\" " cmd (car  (split-string cmd))) buffer error-buffer))
 
 
 
