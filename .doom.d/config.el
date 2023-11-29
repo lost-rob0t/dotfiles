@@ -902,6 +902,8 @@ strings."
 
 (setq nsa/music-dir "~/Music/Music-inbox")
 
+(require 'project-tasks)
+
 ;(require 'persp-mode)
 
 (atomic-chrome-start-server)

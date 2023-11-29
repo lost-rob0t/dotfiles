@@ -1611,6 +1611,10 @@ A simple wraper for yt-dlp a youtube-dl fork that still works.
 #+end_src
 
 * System Wide
+** Project Tasks
+#+begin_src emacs-lisp
+(require 'project-tasks)
+#+end_src
 ** Exwm
 Only load when its actually exwm
 #+begin_src emacs-lisp

@@ -112,6 +112,11 @@ Distraction free writing.
 #+begin_src emacs-lisp
 (package! ob-graphql)
 #+end_src
+*** Project tasks
+Sysadmin/hackmode checklists with orgmode
+#+begin_src emacs-lisp
+(package! project-tasks :recipe (:type git :host github :repo "TxGVNN/project-tasks"))
+#+end_src
 ** Development
 *** TODO Codeium ai code completion tool
 <2023-11-07 Tue> Not removing this, just never used it.
