@@ -393,6 +393,12 @@ Disable flyspell
 
 
 * System
+
+** Libvirt
+Manage virtual machines.
+#+begin_src emacs-lisp
+(package! libvirt :recipe (:type git :host github :repo "lost-rob0t/libvirt-el"))
+#+end_src
 ** TODO Exwm
 #+begin_src emacs-lisp
 ;(package! exwm)

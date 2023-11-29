@@ -63,6 +63,8 @@ The optional argument NEW-WINDOW is not used."
   ("." . browse-url-brave)
   ))
 
+(require 'libvirt)
+
 (defun ar/git-clone-clipboard-url ()
   "Clone git URL in clipboard asynchronously and open in dired when finished."
   (interactive)

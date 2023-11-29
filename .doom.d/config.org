@@ -126,6 +126,12 @@ Define a open in brave function
   ("." . browse-url-brave)
   ))
 #+end_src
+** Libvirt
+Manage virtual machines from emacs
+#+begin_src emacs-lisp
+(require 'libvirt)
+#+end_src
+
 * Package Config
 ** init.el
 This section tangles the init file

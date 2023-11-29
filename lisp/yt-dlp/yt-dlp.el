@@ -89,7 +89,7 @@
          (genre (downcase (completing-read "genre: " nsa/genres nil nil)))
          (artist (read-string "Artist: "))
          (output-dir (f-join nsa/music-dir "auto-sort/"))
-         (output-string (concat output-dir "%(release_date)%(artist,uploader|NA)s" "/%(album,playist|NA)s/%(track,title|NA)s.%(ext)s"))
+         (output-string (concat output-dir "%(artist,uploader|NA)s" "/%(album,playist|NA)s/%(track,title|NA)s.%(ext)s"))
 
          (format-string (shell-quote-argument output-string))
 

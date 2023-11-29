@@ -136,6 +136,8 @@
 
 ;(package! flyspell-lazy :disable t)
 
+(package! libvirt :recipe (:type git :host github :repo "lost-rob0t/libvirt-el"))
+
 ;(package! exwm)
 
 ;(package! exwm-firefox-evil)
