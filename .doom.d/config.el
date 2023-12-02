@@ -897,6 +897,8 @@ strings."
 (setq hackmode-templates "~/.dotfiles/hackmode") ; Path to directory holding templates
 (setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode-tools/")) ;; this is the path to the directory where tools can be placed in that will be loaded into your $PATH.
 
+(setq hackmode-checklists '(("Program overview" . "/home/unseen/Documents/Notes/org/roam/hacking/20231107093523-bug_bounty_methods.org") ("Url" . "/home/unseen/Templates/hackmode/url.org") ("Account Takeover" . "/home/unseen/Templates/hackmode/account-take-over.org")))
+
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")
 

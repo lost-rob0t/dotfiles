@@ -1598,7 +1598,9 @@ This also makes for a good example config
 #+end_src
 
 Hackmode Checklists
-
+#+begin_src emacs-lisp
+(setq hackmode-checklists '(("Program overview" . "/home/unseen/Documents/Notes/org/roam/hacking/20231107093523-bug_bounty_methods.org") ("Url" . "/home/unseen/Templates/hackmode/url.org") ("Account Takeover" . "/home/unseen/Templates/hackmode/account-take-over.org")))
+#+end_src
 
 
 * Personal Lisp packages
