@@ -892,10 +892,10 @@ strings."
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
 
-(require 'hackmode)
-(setq hackmode-dir "~/Documents/hackmode")
-(setq hackmode-templates "~/.dotfiles/hackmode")
-(setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode-tools/"))
+(require 'hackmode) ;load it
+(setq hackmode-dir "~/Documents/hackmode") ;set the path to the directory where you working dirs will be stored
+(setq hackmode-templates "~/.dotfiles/hackmode") ; Path to directory holding templates
+(setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode-tools/")) ;; this is the path to the directory where tools can be placed in that will be loaded into your $PATH.
 
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")
