@@ -46,6 +46,8 @@
 
 (package! ob-graphql)
 
+(package! org-recoll :recipe (:type git :host github :repo "alraban/org-recoll"))
+
 ;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
 
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
