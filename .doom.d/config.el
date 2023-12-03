@@ -624,6 +624,19 @@ strings."
     (rename-buffer (format "term %s" title))))
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
 
+(defun nsa/tmux-vterm (arg)
+  "Start a new tmux session or switch to one in vterm."
+      (interactive "sSession: ")
+
+  (let ((buffer-name (format "*tmux-%s*" arg)))
+
+    (unless (get-buffer buffer-name)
+      (with-current-buffer (get-buffer-create buffer-name)
+        (vterm-mode)
+        (vterm-send-string (format  "tmux new -s %s || tmux a -s %s" arg arg))
+        (vterm-send-return)))
+    (switch-to-buffer buffer-name)))
+
 (defun nsa/dired-exec ()
   "Run the script under point in Dired mode, prompting for arguments."
   (interactive)

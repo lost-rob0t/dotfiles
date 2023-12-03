@@ -2,7 +2,7 @@
 #+author: nsaspy
 
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
-#+startup: org-startup-folded: showall
+#+startup: org-startup-folded: overview
 #+disable_spellchecker: t
 #+begin_src emacs-lisp;; -*- lexical-binding: t -*-
 #+end_src
@@ -243,8 +243,8 @@ This section tangles the init file
        ;;prodigy           ; FIXME managing external services & code builders
        rgb               ; creating color strings
        taskrunner        ; taskrunner for all your projects
-       terraform         ; infrastructure as code
-       ;;tmux              ; an API for interacting with tmux
+       ;terraform         ; infrastructure as code
+       tmux              ; an API for interacting with tmux
        tree-sitter       ; syntax and parsing, sitting in a tree...
        upload            ; map local to remote projects via ssh/ftp
 
@@ -1134,6 +1134,22 @@ set the window title
     (cd-absolute dir)
     (rename-buffer (format "term %s" title))))
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+#+end_src
+
+*** Tmux
+#+begin_src emacs-lisp
+(defun nsa/tmux-vterm (arg)
+  "Start a new tmux session or switch to one in vterm."
+      (interactive "sSession: ")
+
+  (let ((buffer-name (format "*tmux-%s*" arg)))
+
+    (unless (get-buffer buffer-name)
+      (with-current-buffer (get-buffer-create buffer-name)
+        (vterm-mode)
+        (vterm-send-string (format  "tmux new -s %s || tmux a -s %s" arg arg))
+        (vterm-send-return)))
+    (switch-to-buffer buffer-name)))
 #+end_src
 ** Dired
 *** exec in dired
