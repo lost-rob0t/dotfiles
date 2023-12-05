@@ -65,42 +65,6 @@ The optional argument NEW-WINDOW is not used."
 
 (require 'libvirt)
 
-(defun ar/git-clone-clipboard-url ()
-  "Clone git URL in clipboard asynchronously and open in dired when finished."
-  (interactive)
-  (require 'cl-lib)
-  (let ((url (current-kill 0))
-        (download-dir (read-directory-name "Path to git clone: " default-directory))
-        (magit-clone-set-remote.pushDefault t))
-    (magit-clone-internal url download-dir '())))
-
-(map! :leader
-      :map 'magit-mode-map
-      (:prefix-map ("g" . "git")
-      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
-
-(map! :leader
-      :desc "Push Current branch to remote branch"
-      "g p P" #'magit-push-current-to-pushremote)
-
-(map! :leader
-      :desc "Pull current branch from remote"
-      "g p p" #'magit-pull-from-pushremote)
-
-(map! :leader
-      :map 'magit-mode-map
-      (:prefix-map ("g" . "git")
-       (:prefix ("c" . "create")
-      :desc "Create new git tag" "t" #'magit-tag-create)))
-
-(require 'magit-todos)
-
-(after! 'magit
-  (require 'forge))
-
-(setq projectile-project-search-path
-      '(("~/Documents/Projects" . 1)))
-
 (setq org-directory "~/Documents/Notes/org")
 
 (setq time-stamp-active t
@@ -541,6 +505,42 @@ strings."
           (goto-char (point-min))
           (time-stamp))))))
 
+(defun ar/git-clone-clipboard-url ()
+  "Clone git URL in clipboard asynchronously and open in dired when finished."
+  (interactive)
+  (require 'cl-lib)
+  (let ((url (current-kill 0))
+        (download-dir (read-directory-name "Path to git clone: " default-directory))
+        (magit-clone-set-remote.pushDefault t))
+    (magit-clone-internal url download-dir '())))
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
+
+(map! :leader
+      :desc "Push Current branch to remote branch"
+      "g p P" #'magit-push-current-to-pushremote)
+
+(map! :leader
+      :desc "Pull current branch from remote"
+      "g p p" #'magit-pull-from-pushremote)
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+       (:prefix ("c" . "create")
+      :desc "Create new git tag" "t" #'magit-tag-create)))
+
+(require 'magit-todos)
+
+(after! 'magit
+  (require 'forge))
+
+(setq projectile-project-search-path
+      '(("~/Documents/Projects" . 1)))
+
 (setq deft-extenstions '("txt", "org", "md"))
 (setq deft-directory "~/Documents/Notes")
 
@@ -755,10 +755,10 @@ strings."
       :prefix ("u" . "update")
       :desc "Update fetchgit" "g" #'nix-update-fetch)
 
-(setq flycheck-command-wrapper-function
-        (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
-      flycheck-executable-find
-        (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
+;; (setq flycheck-command-wrapper-function
+;;         (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
+;;       flycheck-executable-find
+;;         (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
 
 ;(require 'flycheck-nim)
 

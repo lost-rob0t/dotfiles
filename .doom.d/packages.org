@@ -124,6 +124,8 @@ Polymode is a framework for multiple major modes (MMM) inside a single Emacs buf
 Creating new polymodes normally takes a few lines of code.
 #+begin_src emacs-lisp
 (package! polymode)
+(package! poly-org)
+(package! poly-markdown)
 #+end_src
 ** Development
 *** TODO Codeium ai code completion tool
