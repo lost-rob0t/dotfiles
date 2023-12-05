@@ -282,20 +282,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :prefix ("b" . "org-babel-fomats")
       :desc "format src" "f" #'format-elisp-src-blocks)
 
-(defun org-babel-edit-prep:python (babel-info)
-  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
-  (lsp))
-
-(defun org-babel-edit-prep:nim (babel-info)
-  "Setup for lsp-mode in Org Src buffer using BABEL-INFO."
-  (setq-local default-directory (->> babel-info caddr (alist-get :dir)))
-  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
-  (lsp))
-
-(defun org-babel-edit-prep:sh (babel-info)
-  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
-  (lsp))
-
 (with-eval-after-load 'org
   ;; is needed as of Org 9.2
   (require 'org-tempo)
@@ -533,6 +519,8 @@ strings."
    " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
  org-agenda-current-time-string
  "◀── now ─────────────────────────────────────────────────")
+
+(require 'polymode)
 
 (defun update-timestamps (directory)
   "Update timestamps in all org files in DIRECTORY."

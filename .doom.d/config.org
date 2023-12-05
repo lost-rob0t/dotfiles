@@ -2,7 +2,7 @@
 #+author: nsaspy
 
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
-#+startup: org-startup-folded: showall
+#+startup: org-startup-folded: overview
 #+disable_spellchecker: t
 #+begin_src emacs-lisp;; -*- lexical-binding: t -*-
 #+end_src
@@ -636,32 +636,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 #+end_src
 
 
-**** LSP with org-babel
-[[https://github.com/emacs-lsp/lsp-mode/issues/2842#issuecomment-870807018][Source]]
-***** Python
-#+begin_src emacs-lisp
-(defun org-babel-edit-prep:python (babel-info)
-  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
-  (lsp))
-#+end_src
-
-***** Nim
-#+begin_src emacs-lisp
-(defun org-babel-edit-prep:nim (babel-info)
-  "Setup for lsp-mode in Org Src buffer using BABEL-INFO."
-  (setq-local default-directory (->> babel-info caddr (alist-get :dir)))
-  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
-  (lsp))
-#+end_src
-
-***** Bash
-#+begin_src emacs-lisp
-(defun org-babel-edit-prep:sh (babel-info)
-  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
-  (lsp))
-#+end_src
-
-
 *** Org Tempo templates
 I experiment with different languages, org babel makes things easy.
 #+begin_src emacs-lisp
@@ -979,6 +953,11 @@ Config, mostly defaults since it looks good enough.
    " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
  org-agenda-current-time-string
  "◀── now ─────────────────────────────────────────────────")
+#+end_src
+*** polymode
+Make source blocks use their native mode.
+#+begin_src emacs-lisp
+(require 'polymode)
 #+end_src
 *** Misc related functions for org mode
 ****  Time Stamp updater

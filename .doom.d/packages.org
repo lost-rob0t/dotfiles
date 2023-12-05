@@ -117,6 +117,14 @@ Sysadmin/hackmode checklists with orgmode
 #+begin_src emacs-lisp
 (package! project-tasks :recipe (:type git :host github :repo "TxGVNN/project-tasks"))
 #+end_src
+
+
+*** Poly-org
+Polymode is a framework for multiple major modes (MMM) inside a single Emacs buffer. It is fast and has a simple but flexible object oriented design.
+Creating new polymodes normally takes a few lines of code.
+#+begin_src emacs-lisp
+(package! polymode)
+#+end_src
 ** Development
 *** TODO Codeium ai code completion tool
 <2023-11-07 Tue> Not removing this, just never used it.
