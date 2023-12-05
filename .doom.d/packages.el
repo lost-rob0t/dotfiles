@@ -49,6 +49,8 @@
 (package! project-tasks :recipe (:type git :host github :repo "TxGVNN/project-tasks"))
 
 (package! polymode)
+(package! poly-org)
+(package! poly-markdown)
 
 ;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
 
