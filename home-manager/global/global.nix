@@ -39,6 +39,7 @@ in
     htop
     gotop # better htop
     fzf # fuzzy finding
+    recoll
   ];
   programs.emacs = {
     enable = true;
@@ -78,6 +79,7 @@ in
       pkgs.ripgrep
       pkgs.bash # [2023-09-25 Mon] Somehow it was missing this
       pkgs.nodePackages_latest.graphql-language-service-cli
+      pkgs.recoll
     ];
   };
   xdg.mimeApps = {

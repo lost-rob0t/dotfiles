@@ -306,7 +306,7 @@ This section tangles the init file
        ;;(ruby +rails)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
        ;;(rust +lsp)       ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
        ;;scala             ; java, but good
-       (scheme +guile)   ; a fully conniving family of lisps
+       ;;(scheme +guile)   ; a fully conniving family of lisps
        sh                ; she sells {ba,z,fi}sh shells on the C xor
        ;;sml
        ;;solidity          ; do you need a blockchain? No.
@@ -1586,16 +1586,59 @@ Tell auth info to put authsource in my dotfiles
 #+end_src
 
 ** Hackmode
+
 Pentest utils from emacs
+This also makes for a good example config
 
 #+begin_src emacs-lisp
-(require 'hackmode)
-(setq hackmode-dir "~/Documents/hackmode")
-(setq hackmode-templates "~/.dotfiles/hackmode")
-(setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode-tools/"))
+(require 'hackmode) ;load it
+(setq hackmode-dir "~/Documents/hackmode") ;set the path to the directory where you working dirs will be stored
+(setq hackmode-templates "~/.dotfiles/hackmode") ; Path to directory holding templates
+(setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode-tools/")) ;; this is the path to the directory where tools can be placed in that will be loaded into your $PATH.
 #+end_src
 
+Hackmode Checklists
+#+begin_src emacs-lisp
+(setq hackmode-checklists '(("Program overview" . "/home/unseen/Documents/Notes/org/roam/hacking/20231107093523-bug_bounty_methods.org") ("Url" . "/home/unseen/Templates/hackmode/url.org") ("Account Takeover" . "/home/unseen/Templates/hackmode/account-take-over.org")))
+#+end_src
 
+**** TODO Merge with hackmode
+Temp addon to hackmode
+#+begin_src emacs-lisp
+(after! hackmode
+(defun hackmode-capture ()
+  "Capture data!"
+  (interactive)
+  (let ((org-capture-templates (list
+
+
+                                (list "t" "Tech" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Tech")
+                                      "* %t
+                                        :PROPERTIES:
+                                        :endpoint:
+                                        :notes:
+                                        :tech:
+                                        :tags:
+                                        :END:")
+                                (list "b" "Bug" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Bugs")
+                                      "* %t
+                                        :PROPERTIES:
+                                        :endpoint:
+                                        :notes:
+                                        :type:
+                                        :score:
+                                        :END:")
+                                (list "i" "Interesting enpoint" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Interesting Endpoints")
+                                      "* %t
+                                        :PROPERTIES:
+                                        :endpoint:
+                                        :notes:
+                                        :tags:
+                                        :END:")))
+        (org-directory (hackmode-get-operation-path hackmode-operation)))
+    (call-interactively #'org-capture))))
+
+#+end_src
 * Personal Lisp packages
 ** Ppackage
 Simple utility to create local lisp code

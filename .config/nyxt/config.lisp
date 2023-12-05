@@ -59,8 +59,14 @@ before running this command."
     (append
      (mapcar (lambda (engine) (apply 'make-search-engine engine))
              *my-search-engines*)
-     %slot-default%))))
+     %slot-default%)))
 
+
+
+  ;; Use emacs
+
+  (define-configuration browser
+    ((external-editor-program (list "emacsclient" "-c" "-F" "'(name . \"floating\")")))))
 
 
 
