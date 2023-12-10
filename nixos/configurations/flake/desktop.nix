@@ -10,12 +10,13 @@
     extraOptions = ''
       experimental-features = nix-command flakes
     '';
-   };
+  };
   nixpkgs.config.allowUnfree = true;
 
 
   imports =
-    [ # Include the results of the hardware scan.
+    [
+      # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ./services.nix
       ./packages.nix
@@ -25,15 +26,15 @@
 
   # Boot config
   boot.initrd.luks.devices = {
-  crypted = {
-    device = "/dev/disk/by-partuuid/e530f416-662e-4e97-a698-63096214c5f9";
-    allowDiscards = true; # Used if primary device is a SSD
-    preLVM = true;
-    bypassWorkqueues = true;
+    crypted = {
+      device = "/dev/disk/by-partuuid/e530f416-662e-4e97-a698-63096214c5f9";
+      allowDiscards = true; # Used if primary device is a SSD
+      preLVM = true;
+      bypassWorkqueues = true;
+    };
   };
- };
   boot.loader.systemd-boot.enable = true;
- # Set your time zone.
+  # Set your time zone.
   time.timeZone = "America/New_York";
 
   # Enable sound.
@@ -53,7 +54,7 @@
   environment.pathsToLink = [ "/share/hunspell" "/share/myspell" "/share/hyphen" ];
 
   environment.variables.DICPATH = "/run/current-system/sw/share/hunspell:/run/current-system/sw/share/hyphen";
-    # This value determines the NixOS release from which the default
+  # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave
   # this value at the release version of the first install of this system.

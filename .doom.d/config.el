@@ -101,6 +101,42 @@ The optional argument NEW-WINDOW is not used."
 (setq projectile-project-search-path
       '(("~/Documents/Projects" . 1)))
 
+(defun ar/git-clone-clipboard-url ()
+  "Clone git URL in clipboard asynchronously and open in dired when finished."
+  (interactive)
+  (require 'cl-lib)
+  (let ((url (current-kill 0))
+        (download-dir (read-directory-name "Path to git clone: " default-directory))
+        (magit-clone-set-remote.pushDefault t))
+    (magit-clone-internal url download-dir '())))
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
+
+(map! :leader
+      :desc "Push Current branch to remote branch"
+      "g p P" #'magit-push-current-to-pushremote)
+
+(map! :leader
+      :desc "Pull current branch from remote"
+      "g p p" #'magit-pull-from-pushremote)
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+       (:prefix ("c" . "create")
+      :desc "Create new git tag" "t" #'magit-tag-create)))
+
+(require 'magit-todos)
+
+(after! 'magit
+  (require 'forge))
+
+(setq projectile-project-search-path
+      '(("~/Documents/Projects" . 1)))
+
 (setq org-directory "~/Documents/Notes/org")
 
 (setq time-stamp-active t
@@ -281,20 +317,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :after org
       :prefix ("b" . "org-babel-fomats")
       :desc "format src" "f" #'format-elisp-src-blocks)
-
-(defun org-babel-edit-prep:python (babel-info)
-  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
-  (lsp))
-
-(defun org-babel-edit-prep:nim (babel-info)
-  "Setup for lsp-mode in Org Src buffer using BABEL-INFO."
-  (setq-local default-directory (->> babel-info caddr (alist-get :dir)))
-  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
-  (lsp))
-
-(defun org-babel-edit-prep:sh (babel-info)
-  (setq-local buffer-file-name (->> babel-info caddr (alist-get :tangle)))
-  (lsp))
 
 (with-eval-after-load 'org
   ;; is needed as of Org 9.2
@@ -534,6 +556,8 @@ strings."
  org-agenda-current-time-string
  "◀── now ─────────────────────────────────────────────────")
 
+(require 'polymode)
+
 (defun update-timestamps (directory)
   "Update timestamps in all org files in DIRECTORY."
   (interactive "DDirectory: ")
@@ -552,6 +576,42 @@ strings."
         (save-excursion
           (goto-char (point-min))
           (time-stamp))))))
+
+(defun ar/git-clone-clipboard-url ()
+  "Clone git URL in clipboard asynchronously and open in dired when finished."
+  (interactive)
+  (require 'cl-lib)
+  (let ((url (current-kill 0))
+        (download-dir (read-directory-name "Path to git clone: " default-directory))
+        (magit-clone-set-remote.pushDefault t))
+    (magit-clone-internal url download-dir '())))
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
+
+(map! :leader
+      :desc "Push Current branch to remote branch"
+      "g p P" #'magit-push-current-to-pushremote)
+
+(map! :leader
+      :desc "Pull current branch from remote"
+      "g p p" #'magit-pull-from-pushremote)
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+       (:prefix ("c" . "create")
+      :desc "Create new git tag" "t" #'magit-tag-create)))
+
+(require 'magit-todos)
+
+(after! 'magit
+  (require 'forge))
+
+(setq projectile-project-search-path
+      '(("~/Documents/Projects" . 1)))
 
 (setq deft-extenstions '("txt", "org", "md"))
 (setq deft-directory "~/Documents/Notes")
@@ -780,10 +840,10 @@ strings."
       :prefix ("u" . "update")
       :desc "Update fetchgit" "g" #'nix-update-fetch)
 
-(setq flycheck-command-wrapper-function
-        (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
-      flycheck-executable-find
-        (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
+;; (setq flycheck-command-wrapper-function
+;;         (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
+;;       flycheck-executable-find
+;;         (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
 
 ;(require 'flycheck-nim)
 
@@ -949,6 +1009,8 @@ strings."
 (setq ppackage-path "~/.dotfiles/lisp")
 
 (setq nsa/music-dir "~/Music/Music-inbox")
+
+(require 'project-tasks)
 
 ;(require 'persp-mode)
 

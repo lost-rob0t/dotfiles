@@ -33,6 +33,7 @@ in
     nixpkgs-fmt
     khoj
     xdg-utils
+    grc
     # NOTE maybe move to this to desktop
     mimic
     dunst
