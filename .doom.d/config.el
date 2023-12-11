@@ -484,8 +484,6 @@ strings."
  org-agenda-current-time-string
  "◀── now ─────────────────────────────────────────────────")
 
-(require 'polymode)
-
 (defun update-timestamps (directory)
   "Update timestamps in all org files in DIRECTORY."
   (interactive "DDirectory: ")

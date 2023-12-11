@@ -48,17 +48,14 @@
 
 (package! project-tasks :recipe (:type git :host github :repo "TxGVNN/project-tasks"))
 
-(package! polymode)
-(package! poly-org)
-(package! poly-markdown)
-
 ;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
 
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 
 (package! protobuf-mode)
 
-(package! nim-mode :pin "674ecd1ebfe23cb13791edbf5c79e3bec25dbdc5")
+(unpin! nim-mode)
+(unpin! nim-mode :pin "1338e5b0d5e111ad932efb77d3cad680cc3b86c9")
 
 ;;(package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
 

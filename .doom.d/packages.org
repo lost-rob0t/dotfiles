@@ -119,15 +119,6 @@ Sysadmin/hackmode checklists with orgmode
 #+end_src
 
 
-** Poly-org
-Polymode is a framework for multiple major modes (MMM) inside a single Emacs buffer. It is fast and has a simple but flexible object oriented design.
-Creating new polymodes normally takes a few lines of code.
-#+begin_src emacs-lisp
-(package! polymode)
-(package! poly-org)
-(package! poly-markdown)
-#+end_src
-
 * Development
 ** TODO Codeium ai code completion tool
 <2023-11-07 Tue> Not removing this, just never used it.
@@ -148,8 +139,10 @@ A GNU Emacs library which uses direnv to set environment variables on a per-buff
 ** Langauges
 **** Nim lang
 ***** Nim Mode
+Doom's Version is way too old.
 #+begin_src emacs-lisp
-(package! nim-mode :pin "674ecd1ebfe23cb13791edbf5c79e3bec25dbdc5")
+(unpin! nim-mode)
+(unpin! nim-mode :pin "1338e5b0d5e111ad932efb77d3cad680cc3b86c9")
 #+end_src
 ***** flycheck-nim
 Flycheck-nim is a syntax checker definition for flycheck which supports the Nim programming language using the nim compiler as the backend.
