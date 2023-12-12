@@ -65,6 +65,78 @@ The optional argument NEW-WINDOW is not used."
 
 (require 'libvirt)
 
+(defun ar/git-clone-clipboard-url ()
+  "Clone git URL in clipboard asynchronously and open in dired when finished."
+  (interactive)
+  (require 'cl-lib)
+  (let ((url (current-kill 0))
+        (download-dir (read-directory-name "Path to git clone: " default-directory))
+        (magit-clone-set-remote.pushDefault t))
+    (magit-clone-internal url download-dir '())))
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
+
+(map! :leader
+      :desc "Push Current branch to remote branch"
+      "g p P" #'magit-push-current-to-pushremote)
+
+(map! :leader
+      :desc "Pull current branch from remote"
+      "g p p" #'magit-pull-from-pushremote)
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+       (:prefix ("c" . "create")
+      :desc "Create new git tag" "t" #'magit-tag-create)))
+
+(require 'magit-todos)
+
+(after! 'magit
+  (require 'forge))
+
+(setq projectile-project-search-path
+      '(("~/Documents/Projects" . 1)))
+
+(defun ar/git-clone-clipboard-url ()
+  "Clone git URL in clipboard asynchronously and open in dired when finished."
+  (interactive)
+  (require 'cl-lib)
+  (let ((url (current-kill 0))
+        (download-dir (read-directory-name "Path to git clone: " default-directory))
+        (magit-clone-set-remote.pushDefault t))
+    (magit-clone-internal url download-dir '())))
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
+
+(map! :leader
+      :desc "Push Current branch to remote branch"
+      "g p P" #'magit-push-current-to-pushremote)
+
+(map! :leader
+      :desc "Pull current branch from remote"
+      "g p p" #'magit-pull-from-pushremote)
+
+(map! :leader
+      :map 'magit-mode-map
+      (:prefix-map ("g" . "git")
+       (:prefix ("c" . "create")
+      :desc "Create new git tag" "t" #'magit-tag-create)))
+
+(require 'magit-todos)
+
+(after! 'magit
+  (require 'forge))
+
+(setq projectile-project-search-path
+      '(("~/Documents/Projects" . 1)))
+
 (setq org-directory "~/Documents/Notes/org")
 
 (setq time-stamp-active t
@@ -609,6 +681,19 @@ strings."
     (cd-absolute dir)
     (rename-buffer (format "term %s" title))))
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+
+(defun nsa/tmux-vterm (arg)
+  "Start a new tmux session or switch to one in vterm."
+      (interactive "sSession: ")
+
+  (let ((buffer-name (format "*tmux-%s*" arg)))
+
+    (unless (get-buffer buffer-name)
+      (with-current-buffer (get-buffer-create buffer-name)
+        (vterm-mode)
+        (vterm-send-string (format  "tmux new -s %s || tmux a -s %s" arg arg))
+        (vterm-send-return)))
+    (switch-to-buffer buffer-name)))
 
 (defun nsa/dired-exec ()
   "Run the script under point in Dired mode, prompting for arguments."

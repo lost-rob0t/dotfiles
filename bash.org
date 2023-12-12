@@ -246,7 +246,12 @@ NPM path
 export PATH=$PATH:$HOME/.node/bin/
 #+end_src
 
+Go path
+#+begin_src shell :tangle .bashrc
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
 
+#+end_src
 ** Aliases
 Bash aliases allow you to use a short "alias" for a long command
 

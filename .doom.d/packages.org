@@ -112,6 +112,13 @@ Distraction free writing.
 #+begin_src emacs-lisp
 (package! ob-graphql)
 #+end_src
+** org-recoll
+
+#+begin_src emacs-lisp
+(package! org-recoll :recipe (:type git :host github :repo "alraban/org-recoll"))
+#+end_src
+
+
 ** Project tasks
 Sysadmin/hackmode checklists with orgmode
 #+begin_src emacs-lisp
@@ -121,6 +128,7 @@ Sysadmin/hackmode checklists with orgmode
 
 * Development
 ** TODO Codeium ai code completion tool
+>>>>>>> refs/remotes/origin/master
 <2023-11-07 Tue> Not removing this, just never used it.
 #+begin_src emacs-lisp
 ;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))

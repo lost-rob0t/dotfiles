@@ -141,6 +141,9 @@ export PATH=$PATH:$HOME/.bin/
 
 export PATH=$PATH:$HOME/.node/bin/
 
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+
 shopt -s expand_aliases # expand aliases
 
 alias debug-emacs="emacs --debug-init"
