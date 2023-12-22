@@ -76,6 +76,7 @@
     xclip
     aspell
     aspellDicts.en
+    cifs-utils
     ## Android
     android-tools
     waydroid
@@ -114,6 +115,8 @@
     calyx-vpn
     gnome.gnome-keyring
 
+    # lxqt
+    lxqt.lxqt-policykit
     #mypkgs.maltego
     ## Libs
     libtool
@@ -140,6 +143,8 @@
 
     # Ricing related.
     xsettingsd
+
+
   ];
   hardware.opengl.extraPackages = with pkgs; [
     rocm-opencl-icd

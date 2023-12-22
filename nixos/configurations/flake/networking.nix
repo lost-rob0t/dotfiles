@@ -28,6 +28,7 @@
     47999 #moonlight
     47800 #moonlight
   ];
+  networking.firewall.extraCommands = ''iptables -t raw -A OUTPUT -p udp -m udp --dport 137 -j CT --helper netbios-ns'';
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
   ####HOSTS#####
