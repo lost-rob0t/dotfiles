@@ -858,7 +858,12 @@ strings."
 
 (require 'midnight)
 
-(midnight-delay-set 'midnight-delay "12:00am")
+(midnight-delay-set 'midnight-delay "07:00am")
+
+(add-hook 'midnight-hook #'(lambda ()
+                             (alert "Midnight mode is running.\nEmacs is fresh and clean again!")))
+
+(add-hook 'after-init-hook #'midnight-mode)
 
 (use-package! elfeed-tube
   :ensure t ;; or :straight t
@@ -926,5 +931,3 @@ strings."
 (require 'project-tasks)
 
 ;(require 'persp-mode)
-
-(atomic-chrome-start-server)

@@ -1536,7 +1536,18 @@ require it
 #+end_src
 Set the time to 7 am local
 #+begin_src emacs-lisp
-(midnight-delay-set 'midnight-delay "12:00am")
+(midnight-delay-set 'midnight-delay "07:00am")
+#+end_src
+
+Ensure a desktop notification is made indicating that the buffers will be cleared as a result of midnight mode being ran.
+#+begin_src emacs-lisp
+(add-hook 'midnight-hook #'(lambda ()
+                             (alert "Midnight mode is running.\nEmacs is fresh and clean again!")))
+#+end_src
+
+Make sure it is loaded
+#+begin_src emacs-lisp
+(add-hook 'after-init-hook #'midnight-mode)
 #+end_src
 
 ** Multi media
@@ -1645,13 +1656,6 @@ Only load when its actually exwm
 #+begin_src emacs-lisp
 ;(require 'persp-mode)
 #+end_src
-** Atomic chrome
-Edit Text inside firefox/chrome
-
-#+begin_src emacs-lisp
-(atomic-chrome-start-server)
-#+end_src
-
 * Footnotes
 
 [fn:3] https://github.com/jwiegley/alert/issues/91
