@@ -65,78 +65,6 @@ The optional argument NEW-WINDOW is not used."
 
 (require 'libvirt)
 
-(defun ar/git-clone-clipboard-url ()
-  "Clone git URL in clipboard asynchronously and open in dired when finished."
-  (interactive)
-  (require 'cl-lib)
-  (let ((url (current-kill 0))
-        (download-dir (read-directory-name "Path to git clone: " default-directory))
-        (magit-clone-set-remote.pushDefault t))
-    (magit-clone-internal url download-dir '())))
-
-(map! :leader
-      :map 'magit-mode-map
-      (:prefix-map ("g" . "git")
-      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
-
-(map! :leader
-      :desc "Push Current branch to remote branch"
-      "g p P" #'magit-push-current-to-pushremote)
-
-(map! :leader
-      :desc "Pull current branch from remote"
-      "g p p" #'magit-pull-from-pushremote)
-
-(map! :leader
-      :map 'magit-mode-map
-      (:prefix-map ("g" . "git")
-       (:prefix ("c" . "create")
-      :desc "Create new git tag" "t" #'magit-tag-create)))
-
-(require 'magit-todos)
-
-(after! 'magit
-  (require 'forge))
-
-(setq projectile-project-search-path
-      '(("~/Documents/Projects" . 1)))
-
-(defun ar/git-clone-clipboard-url ()
-  "Clone git URL in clipboard asynchronously and open in dired when finished."
-  (interactive)
-  (require 'cl-lib)
-  (let ((url (current-kill 0))
-        (download-dir (read-directory-name "Path to git clone: " default-directory))
-        (magit-clone-set-remote.pushDefault t))
-    (magit-clone-internal url download-dir '())))
-
-(map! :leader
-      :map 'magit-mode-map
-      (:prefix-map ("g" . "git")
-      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
-
-(map! :leader
-      :desc "Push Current branch to remote branch"
-      "g p P" #'magit-push-current-to-pushremote)
-
-(map! :leader
-      :desc "Pull current branch from remote"
-      "g p p" #'magit-pull-from-pushremote)
-
-(map! :leader
-      :map 'magit-mode-map
-      (:prefix-map ("g" . "git")
-       (:prefix ("c" . "create")
-      :desc "Create new git tag" "t" #'magit-tag-create)))
-
-(require 'magit-todos)
-
-(after! 'magit
-  (require 'forge))
-
-(setq projectile-project-search-path
-      '(("~/Documents/Projects" . 1)))
-
 (setq org-directory "~/Documents/Notes/org")
 
 (setq time-stamp-active t
@@ -161,11 +89,12 @@ The optional argument NEW-WINDOW is not used."
       (insert "* " hd "\n")))
     (end-of-line))
 
+;; TODO Fix the mm template
 (setq  org-capture-templates '(("m" "Personal Meditations")
 
-                               ("mm" "Meditations Moon" entry
-                                (file+olp+datetree "~/Documents/Notes/org/moon.org")
-                                "** Relections\n\n*** Acomplished\n\n*** Thoughts\n\n*** Happenings\n\n** Plans for next moon\n" :tree-type month)
+                               ("mm" "Meditations Life General" entry
+                                (file+olp+datetree "~/Documents/Notes/org/meditations.org")
+                                "* %<%Y>\n ** %<%B>\n *** %<%d> %<%H:%M>\n %x")
                                ("t" "Personal todo" entry
                                 (file+headline +org-capture-todo-file "Inbox")
                                 "* [ ] %?\n%i\n%a" :prepend t)
@@ -197,23 +126,7 @@ The optional argument NEW-WINDOW is not used."
                                 "* %U %?\n%i\n%a" :prepend t)
                                ("ai" "LLM/AI Injection (Bypasses)" entry
                                 (file+headline "~/Documents/Notes/org/ai-prompts.org" "Injections")
-                                "* %U %?\n%i\n%a" :prepend t)
-                               ("h" "Journal" entry (file+headline "~/Documents/Notes/org/health.org" "Journal")
-"* %t
-:PROPERTIES:
-:exercise:
-:sleep:
-:weight:
-:caffine:
-:distress:
-:distractedness:
-:anger:
-:END:
-")
-
-
-
-                               ))
+                                "* %U %?\n%i\n%a" :prepend t)))
 
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
 ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
@@ -753,6 +666,8 @@ strings."
    ("M-j" . dirvish-fd-jump)))
 
 (setq atomic-chrome-buffer-open-style 'frame)
+
+(add-hook 'after-init-hook #'atomic-chrome-start-server)
 
 (bind-key "M-&" #'nsa/async-shell-command-alert)
 

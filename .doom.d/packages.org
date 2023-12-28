@@ -128,7 +128,6 @@ Sysadmin/hackmode checklists with orgmode
 
 * Development
 ** TODO Codeium ai code completion tool
->>>>>>> refs/remotes/origin/master
 <2023-11-07 Tue> Not removing this, just never used it.
 #+begin_src emacs-lisp
 ;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
