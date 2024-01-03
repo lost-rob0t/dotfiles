@@ -376,10 +376,6 @@ alert_cmd=$(which "dunstify" || which "notify-send")
 alias alert='$alert_cmd --urgency=medium -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 #+end_src
 
-paste to termbin
-#+begin_src shell :tangle .bashrc
-alias tb="nc termbin.com 9999 >> .bashrc"
-#+end_src
 
 Paste to ix.io
 #+begin_src shell :tangle .bashrc
