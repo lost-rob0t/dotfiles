@@ -73,7 +73,7 @@
   # NOTE This will require me to make sure this is always up.
   # If its down will it prevent my system from booting?
   fileSystems."/mnt/share" = {
-      device = "//10.50.50.30/unseen/";
+      device = "//10.50.50.81/unseen/";
       fsType = "cifs";
       options = let
         # this line prevents hanging on network split

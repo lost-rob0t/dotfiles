@@ -82,7 +82,6 @@
     firefox
     # Communication
     discord
-    obsidian
     element-desktop
     thunderbird
     # Misc
