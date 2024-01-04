@@ -66,9 +66,10 @@ before running this command."
   ;; Use emacs
 
   (define-configuration browser
-    ((external-editor-program (list "emacsclient" "-c" "-F" "'(name . \"floating\")")))))
+      ((external-editor-program (list "emacsclient" "-c" "-F" "'(name . \"floating\")")))))
 
 
+(setf (uiop:getenv "WEBKIT_DISABLE_COMPOSITING_MODE") "1")
 
 (nyxt::load-lisp "~/.config/nyxt/proxy.lisp")
 (nyxt::load-lisp "~/.config/nyxt/status.lisp")
