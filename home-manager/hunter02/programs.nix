@@ -23,6 +23,7 @@
     rlwrap
     tor-browser-bundle-bin
     brave
+    firefox
     cloc
 
     sbcl
