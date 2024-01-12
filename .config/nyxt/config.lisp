@@ -47,6 +47,7 @@ before running this command."
    '("sp" "https://www.startpage.com/do/search?query=~a" "https://www.startpage.com")
    '("py" "https://docs.python.org/3/search.html?q=~a"
      "https://docs.python.org/3")
+   '("cve" "https://cve.mitre.org/cgi-bin/cvekey.cgi?keyword=~a")
    '("fec" "https://www.fec.gov/data/receipts/individual-contributions/?contributor_name=~a" "https://www.fec.gov/data/receipts/individual-contributions/")
    '("nixpkgs" "https://search.nixos.org/packages?channel=unstable&from=0&size=50&sort=relevance&type=packages&query=~a" "https://search.nixos.org/packages")
    '("brave" "https://search.brave.com/search?q=~a" "https://search.brave.com/search"))
