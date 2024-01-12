@@ -34,6 +34,10 @@
       package = pkgs.bluez;
       enable = true;
       settings = {
+        General = {
+          MultiProfile="multiple";
+        };
+
         LE = {
           MinConnectionInterval = 7;
           MaxConnectionInterval = 9;
@@ -41,6 +45,10 @@
         };
       };
     };
+    pulseaudio.extraConfig = "ifexists module-bluetooth-policy.so
+load-module module-bluetooth-policy auto_switch=false
+.endif
+\"load-module module-bluetooth-discover a2dp_config=\"sbc_cmode=dual sbc_min_bp=53 sbc_max_bp=53 sbc_freq=44k";
     cpu.amd = {
       updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
     };

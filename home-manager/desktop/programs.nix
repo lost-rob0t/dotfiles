@@ -81,7 +81,7 @@
     brave
     firefox
     # Communication
-    discord
+    vesktop
     element-desktop
     thunderbird
     # Misc

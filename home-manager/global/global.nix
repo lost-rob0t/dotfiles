@@ -39,6 +39,8 @@ in
     gotop # better htop
     fzf # fuzzy finding
     recoll
+    rar
+    zip
   ];
   programs.emacs = {
     enable = true;
@@ -75,6 +77,8 @@ in
       # Notifications
       pkgs.libnotify
       pkgs.coreutils
+      pkgs.zip
+      pkgs.rar
       pkgs.ripgrep
       pkgs.bash # [2023-09-25 Mon] Somehow it was missing this
       pkgs.nodePackages_latest.graphql-language-service-cli

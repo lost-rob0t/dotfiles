@@ -24,3 +24,5 @@
 
 (pushnew (merge-pathnames "/run/current-system/sw/lib/" (user-homedir-pathname))
          cffi:*foreign-library-directories*)
+
+(ql:quickload :literate-lisp)
