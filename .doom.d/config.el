@@ -101,9 +101,8 @@ The optional argument NEW-WINDOW is not used."
                                ("n" "Personal notes" entry
                                 (file+headline +org-capture-notes-file "Inbox")
                                 "* %u %?\n%i\n%a" :prepend t)
-                               ("j" "Journal" entry
-                                (file+olp+datetree +org-capture-journal-file)
-                                "* %U %?\n%i\n%a" :prepend t)
+                               ("j" "Journal" entry #'org-roam-dailies-capture-today
+                                "* %I %?" :prepend t)
                                ("p" "Templates for projects")
                                ("pt" "Project-local todo" entry
                                 (file+headline +org-capture-project-todo-file "Inbox")
@@ -281,7 +280,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   :ensure t
   :init
   (setq org-roam-v2-ack t)
-  (setq org-roam-directory "~/Documents/Notes/org/roam")
+  (setq org-roam-directory "~/Documents/Notes/log")
+  (setq org-roam-dailies-directory "journals/")
   (setq org-roam-complete-everywhere t)
   (setq org-roam-capture-templates
         '(
@@ -309,8 +309,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))))
-   (setq org-roam-dailies-capture-templates
-   '(("d" "default" entry "* %<%I:%M %p>: %?"
+  (setq org-roam-dailies-capture-templates
+   '(("d" "default" entry "* %?"
       :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
      ("n" "news" entry "* %? :news:"
          :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
@@ -389,6 +389,16 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (add-hook 'org-present-mode-hook 'my/org-present-start)
 (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
 (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
+
+;; (defvar nsa/ideas-file (f-join org-directory "ideas.org"))
+;; (defvar nsa/ideas-file (f-join org-directory "ideas.org") "The file that holds your cool ideas.")
+
+;; (defun get-idea ()
+;;   "Get a random idea todo."
+;;   (with-temp-buffer
+;;     (insert-file-contents nsa/ideas-file)
+;;     (org-element-cache-map #'identity)
+;;     (let ((elements (org-map-entries #'identity "TODO=\"IDEA\""))) elements)))
 
 (require 'alert)
 (setq alert-default-style 'libnotify)
@@ -944,3 +954,6 @@ strings."
 (require 'project-tasks)
 
 ;(require 'persp-mode)
+
+(fset 'nsa/spawn-window
+   (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))
