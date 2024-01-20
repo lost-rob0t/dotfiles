@@ -86,6 +86,7 @@
     thunderbird
     # Misc
     monero-gui
+    hugo
     # GUI Toolkit
     webkitgtk
 
