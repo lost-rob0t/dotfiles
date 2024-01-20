@@ -6,6 +6,13 @@
 + [[./.config/qtile/qtile.org][Qtile Config]]
 + [[./.config/dunst/dunst.org][Dunst Config]]
 + [[./todo.org][Todo List]]
+
+
+
+#+OWNLOADED: screenshot @ 2024-01-19 23:41:49
+[[file:desktop.png]]
+#+CAPTION: My desktop
+
 * Setup
 ** Dependencies
 If you want everything to work out of the box, i highly recommend nixos.
@@ -22,16 +29,15 @@ clone repo  to ~/.dotfiles and run gnu stow .
 
 ** nix
 *** Setup nix
-for example to use the desktop config
-
+Install nix: https://nixos.org/download
+Make sure you are in the current dir as the flake.nix.
 #+begin_src shell
-evolve desktop
+nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+nix-channel --update
+nix-shell '<home-manager>' -A install
+home-manager switch --flake .#unseen@flake
 #+end_src
-
-** Evolve
-`evolve` is a bash function to wrap the nixos rebuild switch so you config can stay in the ~/.dotfiles/ folder.
-
-You can pass other options to it and it will be passed to it, by default it will just use the switch option.
+you might need to update the username to match yours.
 
 * License
 The MIT License (MIT)
