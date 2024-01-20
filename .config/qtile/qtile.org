@@ -39,7 +39,7 @@ Here is where i define some global values and modifier keys.
 You have to set wmname to something java will accept, or they will not render.[fn:1]
 #+BEGIN_SRC python :tangle ./config.py
 mod = "mod4"
-mod1 = "alt"
+mod1 = "mod1"
 mod2 = "control"
 home = os.path.expanduser('~')
 myIp = readIpFile()

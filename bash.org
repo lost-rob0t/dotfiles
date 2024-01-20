@@ -407,6 +407,83 @@ init node-directory
 alias npm-init-dir="mkdir -p ~/.node"
 alias npm-install="npm install --prefix ~/.node -g"
 #+END_SRC
+
+
+
+** hackmode
+
+#+begin_src shell :tangle .bashrc
+export HACKMODE_OP=$(cat ~/.local/share/hackmode/current-op | head -n 1)
+export HACKMODE_PATH=$(cat ~/.local/share/hackmode/op-path | head -n 1)
+export HACKMODE_BASE_DIR="/home/$USER/Documents/hackmode/"
+function shm() {
+  selected_dir=$(find "$HACKMODE_BASE_DIR" -maxdepth 1 -type d | fzf)
+  if [ -n "$selected_dir" ]; then
+    export HACKMODE_OP=$(basename "$selected_dir")
+    export HACKMODE_PATH="$selected_dir"
+    echo "$HACKMODE_OP" > ~/.local/share/hackmode/current-op
+    echo "$HACKMODE_PATH" > ~/.local/share/hackmode/op-path
+    cd "$selected_dir"
+  fi
+}
+
+function hackmode-setting() {
+  if [ -z "$HACKMODE_OP" ]; then
+    echo "HACKMODE_OP is not set. Please select a hackmode directory using 'shm' first."
+    return 1
+  fi
+
+  settings_dir="$HACKMODE_PATH/.config/$HACKMODE_OP"
+
+  # Create settings directory if it doesn't exist
+  if [ ! -d "$settings_dir" ]; then
+    mkdir -p "$settings_dir"
+    read -p "Enter the name of the setting: " setting_name
+  else
+    setting_name=$(basename =$(find "$settings_dir" -type f | fzf ))
+  fi
+
+  # Use the specified editor or fallback to a default editor (e.g., nano)
+  editor=${VISUAL:-$EDITOR}
+  editor=${editor:-nano}
+
+  # Prompt user for setting name
+  if [ -n "$setting_name" ]; then
+    setting_file="$settings_dir/$setting_name"
+    $editor "$setting_file"
+  else
+    echo "Setting name cannot be empty."
+  fi
+}
+
+
+function list-hackmode-settings () {
+
+  if [ -z "$HACKMODE_OP" ]; then
+    echo "HACKMODE_OP is not set. Please select a hackmode directory using 'shm' first."
+    return 1
+  fi
+
+  settings_dir="$HACKMODE_PATH/.config/"
+
+  if [ ! -d "$settings_dir" ]; then
+    echo "Settings directory not found: $settings_dir"
+    return 1
+  fi
+
+  for setting_file in "$settings_dir"/*; do
+    setting_name=$(basename "$setting_file")
+
+    if [ -f "$setting_file" ]; then
+      while IFS= read -r line; do
+        echo "$setting_name: $line"
+      done < "$setting_file"
+    fi
+  done
+}
+
+alias cdhm="cd $HACKMODE_PATH"
+#+end_src
 ** Fancy Shell and Dumb Shell
 Incase  dumb terminal, You need to make sure its a basic PS1 so tramp's regex and detect the shell login.
 Anything fancy can go into this function.

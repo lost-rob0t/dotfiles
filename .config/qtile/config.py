@@ -19,7 +19,7 @@ def readIpFile(file_path= os.path.expanduser("~/.local/share/ip")):
 thermalTag="Tctl"
 
 mod = "mod4"
-mod1 = "alt"
+mod1 = "mod1"
 mod2 = "control"
 home = os.path.expanduser('~')
 myIp = readIpFile()
@@ -332,8 +332,8 @@ def window_to_next_screen(qtile, switch_group=False, switch_screen=False):
             qtile.cmd_to_screen(i + 1)
 
 keys.extend([
-    Key(["mod1"], "Right", lazy.next_screen(), desc="Next Monitor"),
-    Key(["mod1"], "Left", lazy.prev_screen(), desc="Prev Monitor")
+    Key([mod1], "Right", lazy.next_screen(), desc="Next Monitor"),
+    Key([mod1], "Left", lazy.prev_screen(), desc="Prev Monitor")
 ])
 
 keys.extend([
