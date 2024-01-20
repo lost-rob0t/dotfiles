@@ -30,12 +30,11 @@ clone repo  to ~/.dotfiles and run gnu stow .
 ** nix
 *** Setup nix
 Install nix: https://nixos.org/download
-Make sure you are in the current dir as the flake.nix.
 #+begin_src shell
 nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
 nix-channel --update
 nix-shell '<home-manager>' -A install
-home-manager switch --flake .#unseen@flake
+home-manager switch --flake github:lost-rob0t/dotfiles#unseen@flake
 #+end_src
 you might need to update the username to match yours.
 
