@@ -22,13 +22,68 @@ shopt -s histappend
 
 shopt -s cmdhist # save multi-line commands in history as single line
 
-unset HISTFILESIZE
-unset HISTSIZE
+export HISTFILESIZE=
+export HISTSIZE=
 HISTCONTROL="ignoreboth"
 
 HISTTIMEFORMAT="[%Y-%m-%d %H:%M:%S] "
 
 export HISTIGNORE=fg:bg:ls:cd
+
+__fzfcmd() {
+  [[ -n "${TMUX_PANE-}" ]] && { [[ "${FZF_TMUX:-0}" != 0 ]] || [[ -n "${FZF_TMUX_OPTS-}" ]]; } &&
+    echo "fzf-tmux ${FZF_TMUX_OPTS:--d${FZF_TMUX_HEIGHT:-40%}} -- " || echo "fzf"
+}
+if command -v perl > /dev/null; then
+  __fzf_history__() {
+    local output opts script
+    opts="--height ${FZF_TMUX_HEIGHT:-40%} --bind=ctrl-z:ignore ${FZF_DEFAULT_OPTS-} -n2..,.. --scheme=history --bind=ctrl-r:toggle-sort ${FZF_CTRL_R_OPTS-} +m --read0"
+    script='BEGIN { getc; $/ = "\n\t"; $HISTCOUNT = $ENV{last_hist} + 1 } s/^[ *]//; print $HISTCOUNT - $. . "\t$_" if !$seen{$_}++'
+    output=$(
+      set +o pipefail
+      builtin fc -lnr -2147483648 |
+        last_hist=$(HISTTIMEFORMAT='' builtin history 1) command perl -n -l0 -e "$script" |
+        FZF_DEFAULT_OPTS="$opts" $(__fzfcmd) --query "$READLINE_LINE"
+    ) || return
+    READLINE_LINE=${output#*$'\t'}
+    if [[ -z "$READLINE_POINT" ]]; then
+      echo "$READLINE_LINE"
+    else
+      READLINE_POINT=0x7fffffff
+    fi
+  }
+else # awk - fallback for POSIX systems
+  __fzf_history__() {
+    local output opts script n x y z d
+    if [[ -z $__fzf_awk ]]; then
+      __fzf_awk=awk
+      # choose the faster mawk if: it's installed && build date >= 20230322 && version >= 1.3.4
+      IFS=' .' read n x y z d <<< $(command mawk -W version 2> /dev/null)
+      [[ $n == mawk ]] && (( d >= 20230302 && (x *1000 +y) *1000 +z >= 1003004 )) && __fzf_awk=mawk
+    fi
+    opts="--height ${FZF_TMUX_HEIGHT:-40%} --bind=ctrl-z:ignore ${FZF_DEFAULT_OPTS-} -n2..,.. --scheme=history --bind=ctrl-r:toggle-sort ${FZF_CTRL_R_OPTS-} +m --read0"
+    [[ $(HISTTIMEFORMAT='' builtin history 1) =~ [[:digit:]]+ ]]    # how many history entries
+    script='function P(b) { ++n; sub(/^[ *]/, "", b); if (!seen[b]++) { printf "%d\t%s%c", '$((BASH_REMATCH + 1))' - n, b, 0 } }
+    NR==1 { b = substr($0, 2); next }
+    /^\t/ { P(b); b = substr($0, 2); next }
+    { b = b RS $0 }
+    END { if (NR) P(b) }'
+    output=$(
+      set +o pipefail
+      builtin fc -lnr -2147483648 2> /dev/null |   # ( $'\t '<lines>$'\n' )* ; <lines> ::= [^\n]* ( $'\n'<lines> )*
+        command $__fzf_awk "$script"           |   # ( <counter>$'\t'<lines>$'\000' )*
+        FZF_DEFAULT_OPTS="$opts" $(__fzfcmd) --query "$READLINE_LINE"
+    ) || return
+    READLINE_LINE=${output#*$'\t'}
+    if [[ -z "$READLINE_POINT" ]]; then
+      echo "$READLINE_LINE"
+    else
+      READLINE_POINT=0x7fffffff
+    fi
+  }
+fi
+
+bind -m emacs-standard -x '"\C-r": __fzf_history__'
 
 function init_platform () {
 # create the .platform file i use
@@ -242,6 +297,77 @@ alias unix="date +%s"
 
 alias npm-init-dir="mkdir -p ~/.node"
 alias npm-install="npm install --prefix ~/.node -g"
+
+export HACKMODE_OP=$(cat ~/.local/share/hackmode/current-op | head -n 1)
+export HACKMODE_PATH=$(cat ~/.local/share/hackmode/op-path | head -n 1)
+export HACKMODE_BASE_DIR="/home/$USER/Documents/hackmode/"
+function shm() {
+  selected_dir=$(find "$HACKMODE_BASE_DIR" -maxdepth 1 -type d | fzf)
+  if [ -n "$selected_dir" ]; then
+    export HACKMODE_OP=$(basename "$selected_dir")
+    export HACKMODE_PATH="$selected_dir"
+    echo "$HACKMODE_OP" > ~/.local/share/hackmode/current-op
+    echo "$HACKMODE_PATH" > ~/.local/share/hackmode/op-path
+    cd "$selected_dir"
+  fi
+}
+
+function hackmode-setting() {
+  if [ -z "$HACKMODE_OP" ]; then
+    echo "HACKMODE_OP is not set. Please select a hackmode directory using 'shm' first."
+    return 1
+  fi
+
+  settings_dir="$HACKMODE_PATH/.config/$HACKMODE_OP"
+
+  # Create settings directory if it doesn't exist
+  if [ ! -d "$settings_dir" ]; then
+    mkdir -p "$settings_dir"
+    read -p "Enter the name of the setting: " setting_name
+  else
+    setting_name=$(basename =$(find "$settings_dir" -type f | fzf ))
+  fi
+
+  # Use the specified editor or fallback to a default editor (e.g., nano)
+  editor=${VISUAL:-$EDITOR}
+  editor=${editor:-nano}
+
+  # Prompt user for setting name
+  if [ -n "$setting_name" ]; then
+    setting_file="$settings_dir/$setting_name"
+    $editor "$setting_file"
+  else
+    echo "Setting name cannot be empty."
+  fi
+}
+
+
+function list-hackmode-settings () {
+
+  if [ -z "$HACKMODE_OP" ]; then
+    echo "HACKMODE_OP is not set. Please select a hackmode directory using 'shm' first."
+    return 1
+  fi
+
+  settings_dir="$HACKMODE_PATH/.config/"
+
+  if [ ! -d "$settings_dir" ]; then
+    echo "Settings directory not found: $settings_dir"
+    return 1
+  fi
+
+  for setting_file in "$settings_dir"/*; do
+    setting_name=$(basename "$setting_file")
+
+    if [ -f "$setting_file" ]; then
+      while IFS= read -r line; do
+        echo "$setting_name: $line"
+      done < "$setting_file"
+    fi
+  done
+}
+
+alias cdhm="cd $HACKMODE_PATH"
 
 function fancy-shell () {
     eval "$(direnv hook bash)"
