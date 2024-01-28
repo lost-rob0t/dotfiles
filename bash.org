@@ -467,7 +467,10 @@ alias npm-init-dir="mkdir -p ~/.node"
 alias npm-install="npm install --prefix ~/.node -g"
 #+END_SRC
 
-
+SSH forwarding proxy for ai
+#+begin_src shell :tangle .bashrc
+alias ai-proxy="ssh -N -L 7860:127.0.0.1:7860 unseen@10.50.50.18"
+#+end_src
 
 ** hackmode
 
