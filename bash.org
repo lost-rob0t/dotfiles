@@ -472,6 +472,11 @@ SSH forwarding proxy for ai
 alias ai-proxy="ssh -N -L 7860:127.0.0.1:7860 unseen@10.50.50.18"
 #+end_src
 
+Rsync new music to music server
+#+begin_src shell :tangle .bashrc
+alias music-sync="rsync -av --progress /home/unseen/Music/Music-Sorted/ proxmox:/mnt/Music/"
+#+end_src
+
 ** hackmode
 
 #+begin_src shell :tangle .bashrc

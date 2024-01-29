@@ -300,6 +300,8 @@ alias npm-install="npm install --prefix ~/.node -g"
 
 alias ai-proxy="ssh -N -L 7860:127.0.0.1:7860 unseen@10.50.50.18"
 
+alias music-sync="rsync -av --progress /home/unseen/Music/Music-Sorted/ proxmox:/mnt/Music/"
+
 export HACKMODE_OP=$(cat ~/.local/share/hackmode/current-op | head -n 1)
 export HACKMODE_PATH=$(cat ~/.local/share/hackmode/op-path | head -n 1)
 export HACKMODE_BASE_DIR="/home/$USER/Documents/hackmode/"
