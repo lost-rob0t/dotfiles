@@ -15,6 +15,7 @@
   home.packages = with pkgs; [
     # Development
     gitRepo
+    nim
     sqlitebrowser
     vim
     direnv
