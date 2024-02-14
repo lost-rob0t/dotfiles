@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: sudo
+# key: sudo
+# --
+
+
+#+Name: $1
+#+begin_src shell :async :results output replace :dir /sudo::
+$0
+#+end_src

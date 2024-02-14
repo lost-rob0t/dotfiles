@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: sh
+# key: sh
+# --
+
+#+Name: $1
+#+begin_src shell :async :results output replace
+$0
+#+end_src

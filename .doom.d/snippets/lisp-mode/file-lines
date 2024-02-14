@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: file-lines
+# key: file-lines
+# --
+(with-open-file (stream ${1:filename})
+  (do ((line (read-line stream nil)
+       (read-line stream nil)))
+       ((null line))
+       ($0)))

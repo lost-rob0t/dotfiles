@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: <ll
+# key: <ll
+# --
+
+#+Name: ${1:Name}
+#+begin_src lisp :tangle ./lisp/$1.lisp
+$0
+#+end_src

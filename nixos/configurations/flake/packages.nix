@@ -98,7 +98,7 @@
     pyright
     pylint
     python310Packages.flake8
-    nim
+    nim-unwrapped
     nimlsp
     podman-compose
     rnix-lsp
