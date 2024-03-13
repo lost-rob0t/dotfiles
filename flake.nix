@@ -24,10 +24,10 @@
     # everything match nicely? Try nix-colors!
     # nix-colors.url = "github:misterio77/nix-colors";
     nix-pre-commit.url = "github:jmgilman/nix-pre-commit";
-
+    nimble.url = "github:lost-rob0t/flake-nimble";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, nimble, ... }@inputs:
     let
       inherit (self) outputs;
       forAllSystems = nixpkgs.lib.genAttrs [

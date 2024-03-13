@@ -125,10 +125,28 @@
         "type": "github"
       }
     },
+    "nimble": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_3"
+      },
+      "locked": {
+        "lastModified": 1710206513,
+        "narHash": "sha256-ai+xEi30g3lBK3NU0AT2CD4WnZEbJqo5U24EeMeO6yE=",
+        "owner": "lost-rob0t",
+        "repo": "flake-nimble",
+        "rev": "8524fdb16c28b0655562d02c278a9be982728bbf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lost-rob0t",
+        "repo": "flake-nimble",
+        "type": "github"
+      }
+    },
     "nix-pre-commit": {
       "inputs": {
         "flake-utils": "flake-utils_3",
-        "nixpkgs": "nixpkgs_3"
+        "nixpkgs": "nixpkgs_4"
       },
       "locked": {
         "lastModified": 1653259102,
@@ -224,6 +242,20 @@
     },
     "nixpkgs_3": {
       "locked": {
+        "lastModified": 1688738153,
+        "narHash": "sha256-FHVW6kzWIlhRjpdNq/327kC6J7oQmVGvzkSIjzZbSdw=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "73d174c62ba412c79358895282b6ecee9497469a",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "nixpkgs_4": {
+      "locked": {
         "lastModified": 1653155645,
         "narHash": "sha256-gUf4oDJnwZXXyMzf3FyMd9ivvP8lG+mNmyFhpm/AIaA=",
         "owner": "nixos",
@@ -237,7 +269,7 @@
         "type": "github"
       }
     },
-    "nixpkgs_4": {
+    "nixpkgs_5": {
       "locked": {
         "lastModified": 1709961763,
         "narHash": "sha256-6H95HGJHhEZtyYA3rIQpvamMKAGoa8Yh2rFV29QnuGw=",
@@ -259,9 +291,10 @@
         "hardware": "hardware",
         "home-manager": "home-manager",
         "mousetrap": "mousetrap",
+        "nimble": "nimble",
         "nix-pre-commit": "nix-pre-commit",
         "nixos-hardware": "nixos-hardware",
-        "nixpkgs": "nixpkgs_4",
+        "nixpkgs": "nixpkgs_5",
         "nixpkgs-stable": "nixpkgs-stable_2"
       }
     },
