@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-01-20 Sat 00:23]
+#+LAST_MODIFIED: [2024-02-24 Sat 18:00]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -427,8 +427,8 @@ Set roam directory
   :ensure t
   :init
   (setq org-roam-v2-ack t)
-  (setq org-roam-directory "~/Documents/Notes/log")
-  (setq org-roam-dailies-directory "journals/")
+  (setq org-roam-directory "~/Documents/Notes/org/roam/")
+  (setq org-roam-dailies-directory "daily")
   (setq org-roam-complete-everywhere t)
   (setq org-roam-capture-templates
         '(
@@ -1681,6 +1681,38 @@ Only load when its actually exwm
 #+begin_src emacs-lisp
 ;(require 'persp-mode)
 #+end_src
+** EZF fzf but emacs
+I really like fzf but i also want the options to use emacs when I can.[fn:5]
+#+begin_src emacs-lisp
+(defun ezf-default (filename)
+  "EZF completion with your default completion system."
+  (completing-read-multiple
+   "Pick a Candidate: "
+   (with-temp-buffer
+     (insert-file-contents-literally filename nil)
+     (string-lines (buffer-string) t))))
+
+
+(defvar ezf-separators " "
+  "Regexp of separators `ezf' should use to split a line.")
+
+(defun ezf (filename &optional field completing-fn)
+  "Wrapper that calls COMPLETION-FN with FILENAME.
+
+Optionally split each line of string by `ezf-separators' if FIELD
+is non-nil and return FIELD.
+
+If COMPLETING-FN is nil default to `ezf-default'."
+  (when-let (candidates (funcall (or completing-fn 'ezf-default) filename))
+    (mapconcat (lambda (candidate)
+                 (shell-quote-argument
+                  (if field
+                      (nth (1- field) (split-string candidate ezf-separators t " "))
+                    candidate)))
+               candidates
+               " ")))
+
+#+end_src
 
 * Macros
 ** Frame macros
@@ -1690,6 +1722,8 @@ Spawn a new window
    (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))
 #+end_src
 * Footnotes
+
+[fn:5] https://www.masteringemacs.org/article/fuzzy-finding-emacs-instead-of-fzf
 [fn:4] https://github.com/alexluigit/dirvish/blob/main/docs/CUSTOMIZING.org#tramp-integration
 [fn:3] https://github.com/jwiegley/alert/issues/91
 [fn:2] https://www.reddit.com/r/emacs/comments/k3iter/comment/ge4pn9w/?utm_source=share&utm_medium=web2x&context=3

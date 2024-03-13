@@ -1,6 +1,6 @@
 alias as colourify as $*
 alias blkid colourify blkid $*
-alias colourify /home/unseen/.nix-profile/bin/grc -es $*
+alias colourify grc -es $*
 alias configure colourify ./configure $*
 alias debug-emacs emacs --debug-init $*
 alias df colourify df $*

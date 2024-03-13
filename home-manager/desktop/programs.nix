@@ -15,7 +15,6 @@
   home.packages = with pkgs; [
     # Development
     gitRepo
-    nim-unwrapped
     sqlitebrowser
     vim
     direnv
@@ -71,7 +70,7 @@
     virt-viewer
     bookworm
     libsForQt5.kdeconnect-kde
-    ntfy # send notifications
+    inputs.nixpkgs-stable.legacyPackages.x86_64-linux.ntfy # send notifications
 
     # Security
     hcxtools
@@ -82,7 +81,8 @@
     brave
     firefox
     # Communication
-    vesktop
+    #vesktop
+    discord
     element-desktop
     thunderbird
     # Misc
