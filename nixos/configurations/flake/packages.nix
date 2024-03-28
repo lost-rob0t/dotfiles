@@ -101,7 +101,6 @@
     nim-unwrapped-2
     nimlsp
     podman-compose
-    rnix-lsp
     sqlite
     (python3.withPackages (ps: with ps; [ requests ]))
 
