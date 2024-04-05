@@ -19,6 +19,7 @@
     vim
     direnv
     sbcl
+    erlang
     pre-commit
     swiProlog
     gnuplot
