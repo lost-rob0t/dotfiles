@@ -38,6 +38,20 @@ home-manager switch --flake github:lost-rob0t/dotfiles#unseen@flake
 #+end_src
 you might need to update the username to match yours.
 
+To update the home-manager install just run
+
+#+Name: Update home-manager
+#+begin_src shell :async :results output replace
+home-manager switch --flake github:lost-rob0t/dotfiles#unseen@flake
+#+end_src
+
+Since you will be using this with your username, you will need to edit the username.
+
+#+Name: update
+#+begin_src shell :async :results output replace
+
+#+end_src
+
 * License
 The MIT License (MIT)
 
