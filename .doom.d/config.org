@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-02-24 Sat 18:00]
+#+LAST_MODIFIED: [2024-04-19 Fri 03:15]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -304,7 +304,7 @@ Add languages to org babel
 #+begin_src emacs-lisp
 (org-babel-do-load-languages
  'org-babel-load-languages
- '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t)))
+ '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t)))
 #+end_src
 
 **** Better Formating in org-babel
@@ -1454,15 +1454,6 @@ Enable the xref back-end.
 #+end_src
 
 * Misc
-** Performance
-Enable explain Pause mode
-
-Alerts you when something takes some time (40ms)
-disabled because I swear it causes me problems
-#+begin_src emacs-lisp
-(explain-pause-mode t)
-#+end_src
-
 ** Environment
 
 Sets PATH

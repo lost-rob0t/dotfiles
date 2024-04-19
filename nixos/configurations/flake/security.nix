@@ -22,5 +22,9 @@
     item = "nofile";
     value = "80192";
   }];
-
+  services = {
+    opensnitch = {
+      enable = true;
+};
+      };
 }

@@ -69,7 +69,39 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
-            ./nixos/configurations/flake/flake.nix
+            ./nixos/configurations/flake/flake-qtile.nix
+
+          ];
+        };
+        flake-qtile = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          modules = [
+            # > Our main nixos configuration file <
+            ./nixos/configurations/flake/flake-qtile.nix
+
+          ];
+        };
+        flake-kde = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          modules = [
+            # > Our main nixos configuration file <
+            ./nixos/configurations/flake/flake-kde.nix
+
+          ];
+        };
+        flake-budgie = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          modules = [
+            # > Our main nixos configuration file <
+            ./nixos/configurations/flake/flake-budgie.nix
+
+          ];
+        };
+        flake-lxqt = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          modules = [
+            # > Our main nixos configuration file <
+            ./nixos/configurations/flake/flake-lxqt.nix
 
           ];
         };
