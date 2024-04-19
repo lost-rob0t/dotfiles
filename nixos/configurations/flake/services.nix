@@ -74,9 +74,9 @@
       enable = false;
     };
     ## Open snitch
-    #opensnitch = {
-    #  enable = true;
-    #};
+    opensnitch = {
+      enable = true;
+    };
     syncthing = {
       enable = true;
       user = "unseen";
