@@ -4,6 +4,6 @@
 # --
 
 #+Name: ${1:Name}
-#+begin_src lisp :tangle ./lisp/$1.lisp
+#+begin_src lisp :tangle ./source/$1.lisp
 $0
 #+end_src

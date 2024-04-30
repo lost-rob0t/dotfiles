@@ -70,6 +70,7 @@
           modules = [
             # > Our main nixos configuration file <
             ./nixos/configurations/flake/flake-qtile.nix
+            ./nixos/configurations/flake/flake-lxqt.nix
 
           ];
         };
@@ -77,6 +78,7 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
+            ./nixos/configurations/flake/flake.nix
             ./nixos/configurations/flake/flake-qtile.nix
 
           ];
@@ -85,6 +87,7 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
+            ./nixos/configurations/flake/flake.nix
             ./nixos/configurations/flake/flake-kde.nix
 
           ];
@@ -93,6 +96,7 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
+            ./nixos/configurations/flake/flake.nix
             ./nixos/configurations/flake/flake-budgie.nix
 
           ];
@@ -101,6 +105,7 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
+            ./nixos/configurations/flake/flake.nix
             ./nixos/configurations/flake/flake-lxqt.nix
 
           ];

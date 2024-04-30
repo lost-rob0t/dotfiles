@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: <cl
+# key: <cl
+# --
+
+#+begin_src lisp :tangle ./source/$1.lisp :results ${2:$$(yas-choose-value '("output replace" "value" "file" "none"))}
+$0
+#+end_src

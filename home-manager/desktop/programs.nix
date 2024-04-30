@@ -89,6 +89,8 @@
     # Misc
     monero-gui
     hugo
+    #AI
+    ollama
     # GUI Toolkit
     webkitgtk
 

@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: defactor
+# key: defactor
+# --
+(defparameter +$1+ (actor-of *system* :name "$1"
+                                                :receive
+                                                (lambda (msg)
+                                                  $0)))
