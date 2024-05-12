@@ -41,9 +41,9 @@ conky.config = {
 
 	--Graphical
 
-	border_inner_margin = 5, 					-- margin between border and text
-	border_outer_margin = 5, 					-- margin between border and edge of window
-	border_width = 0, 							-- border width in pixels
+	border_inner_margin = 2, 					-- margin between border and text
+	border_outer_margin = 2, 					-- margin between border and edge of window
+	border_width = 10, 							-- border width in pixels
 	default_bar_width = 280,					-- default is 0 - full width
 	default_bar_height = 10,					-- default is 6
 	default_gauge_height = 25,					-- default is 25
@@ -52,7 +52,7 @@ conky.config = {
 	default_graph_width = 153,					-- default is 0 - full width
 	default_shade_color = '#000000',			-- default shading colour
 	default_outline_color = '#000000',			-- default outline colour
-	draw_borders = false,						-- draw borders around text
+	draw_borders = true,						-- draw borders around text
 	draw_graph_borders = true,					-- draw borders around graphs
 	draw_shades = false,						-- draw shades
 	draw_outline = false,						-- draw outline
@@ -80,7 +80,7 @@ conky.config = {
 	own_window_argb_value = 150,				    -- real transparency - composite manager required 0-255
 	own_window_argb_visual = true,				-- use ARGB - composite manager required
 	own_window_class = 'Conky',					-- manually set the WM_CLASS name for use with xprop
-	own_window_colour = '#000000',				-- set colour if own_window_transparent no
+	own_window_colour = '#170c32',				-- set colour if own_window_transparent no
 	own_window_hints = 'undecorated,below,above,sticky,skip_taskbar,skip_pager',  -- if own_window true - just hints - own_window_type sets it
 	own_window_transparent = false,				-- if own_window_argb_visual is true sets background opacity 0%
 	own_window_title = 'system_conky',			-- set the name manually  - default conky "hostname"
@@ -89,9 +89,9 @@ conky.config = {
 
 	--Colours
 
-	default_color = '#ff0000',  				-- default color and border color
-	color1 = '#FFFFFF',
-	color2 = '#929292',
+	default_color = '#92406e',  				-- default color and border color
+	color1 = '#f6019d',
+	color2 = '#f3f4f5',
 	color3 = '#cccccc',
 	color4 = '#BDBDBD',
 	color5 = '#CCCCCC',
