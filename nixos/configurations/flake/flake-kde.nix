@@ -1,10 +1,9 @@
 { inputs, config, lib, pkgs, ... }:
 
 {
-  imports = ["flake.nix"];
   system.nixos.tags = ["kde"];
   services = {
-    xorg = {
+    xserver = {
       desktopManager = {
         plasma5 = {
           enable = true;
@@ -14,4 +13,8 @@
   };
 
 
+  xdg.portal = {
+    enable = true;
+    extraPortals = [pkgs.xdg-desktop-portal-kde;];
+  };
 }

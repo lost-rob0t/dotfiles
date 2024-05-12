@@ -1,10 +1,9 @@
 { inputs, config, lib, pkgs, ... }:
 
 {
-  imports = ["flake.nix"];
   system.nixos.tags = ["qtile"];
   services = {
-    xorg = {
+    xserver = {
       windowManager = {
         session = [{
           name = "qtile";

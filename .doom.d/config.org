@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-04-19 Fri 03:15]
+#+LAST_MODIFIED: [2024-05-07 Tue 00:17]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -759,8 +759,8 @@ This section tangles the init file
        ophints           ; highlight the region an operation acts on
        (popup +defaults)   ; tame sudden yet inevitable temporary windows
        ;;tabs              ; a tab bar for Emacs
-       ;;treemacs          ; a project drawer, like neotree but cooler
-       ;;unicode           ; extended unicode support for various languages
+       treemacs          ; a project drawer, like neotree but cooler
+       unicode           ; extended unicode support for various languages
        (vc-gutter +pretty) ; vcs diff in the fringe
        vi-tilde-fringe   ; fringe tildes to mark beyond EOB
        ;;window-select     ; visually switch windows
@@ -898,7 +898,7 @@ This section tangles the init file
 
        :app
        ;;calendar
-       emms
+       ;;emms
        everywhere        ; *leave* Emacs!? You must be joking
        ;;irc               ; how neckbeards socialize
        (rss +org)        ; emacs as an RSS reader
@@ -1146,67 +1146,67 @@ Internally to my head, =C-c C-c= is the same as the org-babel, so it makes since
 *** Dirvish
 a better dired
 #+begin_src emacs-lisp
-(require 'dirvish)
-(dirvish-override-dired-mode)
+;; (require 'dirvish)
+;; (dirvish-override-dired-mode)
 #+end_src
 
 #+begin_src emacs-lisp
-(use-package! dirvish
-  :init
-  (dirvish-override-dired-mode)
-  :custom
-  (dirvish-quick-access-entries        ; It's a custom option, `setq' won't work
-   '(("h" "~/"                          "Home")
-     ("d" "~/Downloads/"                "Downloads")
-     ("s" "/mnt/share"                       "Share Drive")
-     ("t" "~/.local/share/Trash/files/" "TrashCan")))
-  :config
-  (dirvish-peek-mode)                   ; Preview files in minibuffer
-  ;; (dirvish-side-follow-mode) ; similar to `treemacs-follow-mode'
-  (setq dirvish-mode-line-format
-        '(:left (sort symlink) :right (omit yank index)))
-  (setq dirvish-attributes
-        '(vc-state subtree-state all-the-icons collapse git-msg file-time file-size))
-  (setq delete-by-moving-to-trash t)
-  (setq dired-listing-switches
-        "-l --almost-all --human-readable --group-directories-first --no-group")
-  (setq dirvish-preview-dispatchers '(image gif video audio epub archive pdf text))
-  :bind                ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
-  (("C-c f" . dirvish-fd)
-   :map dirvish-mode-map                ; Dirvish inherits `dired-mode-map'
-   ("a"   . dirvish-quick-access)
-   ("f"   . dirvish-file-info-menu)
-   ("y"   . dirvish-yank-menu)
-   ("N"   . dirvish-narrow)
-   ("^"   . dirvish-history-last)
-   ("h"   . dirvish-history-jump)       ; remapped `describe-mode'
-   ("s"   . dirvish-quicksort)          ; remapped `dired-sort-toggle-or-edit'
-   ("v"   . dirvish-vc-menu)            ; remapped `dired-view-file'
-   ("TAB" . dirvish-subtree-toggle)
-   ("M-f" . dirvish-history-go-forward)
-   ("M-b" . dirvish-history-go-backward)
-   ("M-l" . dirvish-ls-switches-menu)
-   ("M-m" . dirvish-mark-menu)
-   ("M-t" . dirvish-layout-toggle)
-   ("M-s" . dirvish-setup-menu)
-   ("M-e" . dirvish-emerge-menu)
-   ("M-j" . dirvish-fd-jump)))
+;; (use-package! dirvish
+;;   :init
+;;   (dirvish-override-dired-mode)
+;;   :custom
+;;   (dirvish-quick-access-entries        ; It's a custom option, `setq' won't work
+;;    '(("h" "~/"                          "Home")
+;;      ("d" "~/Downloads/"                "Downloads")
+;;      ("s" "/mnt/share"                       "Share Drive")
+;;      ("t" "~/.local/share/Trash/files/" "TrashCan")))
+;;   :config
+;;   (dirvish-peek-mode)                   ; Preview files in minibuffer
+;;   ;; (dirvish-side-follow-mode) ; similar to `treemacs-follow-mode'
+;;   (setq dirvish-mode-line-format
+;;         '(:left (sort symlink) :right (omit yank index)))
+;;   (setq dirvish-attributes
+;;         '(vc-state subtree-state all-the-icons collapse git-msg file-time file-size))
+;;   (setq delete-by-moving-to-trash t)
+;;   (setq dired-listing-switches
+;;         "-l --almost-all --human-readable --group-directories-first --no-group")
+;;   (setq dirvish-preview-dispatchers '(image gif video audio epub archive pdf text))
+;;   :bind                ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
+;;   (("C-c f" . dirvish-fd)
+;;    :map dirvish-mode-map                ; Dirvish inherits `dired-mode-map'
+;;    ("a"   . dirvish-quick-access)
+;;    ("f"   . dirvish-file-info-menu)
+;;    ("y"   . dirvish-yank-menu)
+;;    ("N"   . dirvish-narrow)
+;;    ("^"   . dirvish-history-last)
+;;    ("h"   . dirvish-history-jump)       ; remapped `describe-mode'
+;;    ("s"   . dirvish-quicksort)          ; remapped `dired-sort-toggle-or-edit'
+;;    ("v"   . dirvish-vc-menu)            ; remapped `dired-view-file'
+;;    ("TAB" . dirvish-subtree-toggle)
+;;    ("M-f" . dirvish-history-go-forward)
+;;    ("M-b" . dirvish-history-go-backward)
+;;    ("M-l" . dirvish-ls-switches-menu)
+;;    ("M-m" . dirvish-mark-menu)
+;;    ("M-t" . dirvish-layout-toggle)
+;;    ("M-s" . dirvish-setup-menu)
+;;    ("M-e" . dirvish-emerge-menu)
+;;    ("M-j" . dirvish-fd-jump)))
 
 #+end_src
 
 **** Dirvish setup with Tramp[fn:4]
 #+begin_src emacs-lisp
-(use-package tramp
-  :config
-  ;; Enable full-featured Dirvish over TRAMP on certain connections
-  ;; https://www.gnu.org/software/tramp/#Improving-performance-of-asynchronous-remote-processes-1.
-  (add-to-list 'tramp-connection-properties
-               (list (regexp-quote "/ssh:YOUR_HOSTNAME:")
-                     "direct-async-process" t))
-  ;; Tips to speed up connections
-  (setq tramp-verbose 0)
-  (setq tramp-chunksize 2000)
-  (setq tramp-use-ssh-controlmaster-options nil))
+;; (use-package tramp
+;;   :config
+;;   ;; Enable full-featured Dirvish over TRAMP on certain connections
+;;   ;; https://www.gnu.org/software/tramp/#Improving-performance-of-asynchronous-remote-processes-1.
+;;   (add-to-list 'tramp-connection-properties
+;;                (list (regexp-quote "/ssh:YOUR_HOSTNAME:")
+;;                      "direct-async-process" t))
+;;   ;; Tips to speed up connections
+;;   (setq tramp-verbose 0)
+;;   (setq tramp-chunksize 2000)
+;;   (setq tramp-use-ssh-controlmaster-options nil))
 #+end_src
 ** Atomic Chrome/Firefox
 Edit text areas in your web browser within emacs!
@@ -1719,3 +1719,4 @@ Spawn a new window
 [fn:3] https://github.com/jwiegley/alert/issues/91
 [fn:2] https://www.reddit.com/r/emacs/comments/k3iter/comment/ge4pn9w/?utm_source=share&utm_medium=web2x&context=3
 [fn:1] https://www.reddit.com/r/emacs/comments/e7h3qw/comment/fa0k4c5
+

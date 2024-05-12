@@ -1,10 +1,9 @@
 { inputs, config, lib, pkgs, ... }:
 
 {
-  imports = ["flake.nix"];
   system.nixos.tags = ["budgie"];
   services = {
-    xorg = {
+    xserver = {
       desktopManager = {
         budgie = {
           enable = true;

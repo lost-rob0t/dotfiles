@@ -16,35 +16,35 @@
       displayManager = {
         sddm.enable = true;
       };
-      desktopManager = {
-        lxqt.enable = false;
-        plasma5 = {
-          enable = true;
-          mobile.enable = false; #maybe for Neptune touchscreen?
-        };
-      };
-      windowManager = {
-        exwm = {
-          enable = true;
-          loadScript = ''
-            (require 'exwm)
-            ;(load (expand-file-name "~/.dotfiles/exwm/exwm.el"))
-          '';
-        };
-        # qtile = {
-        #   enable = true;
-        #   package = inputs.nixpkgs-stable.legacyPackages.x86_64-linux.qtile;
-        # };
-        session = [{
-          name = "qtile";
-          start = ''
-            ${inputs.nixpkgs-stable.legacyPackages.x86_64-linux.qtile}/bin/qtile start -b x11 \
-            --config  /home/unseen/.config/qtile/config.py &
-            waitPID=$!
-          '';
-        }];
+      # desktopManager = {
+      #   lxqt.enable = false;
+      #   plasma5 = {
+      #     enable = true;
+      #     mobile.enable = false; #maybe for Neptune touchscreen?
+      #   };
+      # };
+      # windowManager = {
+      #   exwm = {
+      #     enable = true;
+      #     loadScript = ''
+      #       (require 'exwm)
+      #       ;(load (expand-file-name "~/.dotfiles/exwm/exwm.el"))
+      #     '';
+      #   };
+      #   # qtile = {
+      #   #   enable = true;
+      #   #   package = inputs.nixpkgs-stable.legacyPackages.x86_64-linux.qtile;
+      #   # };
+      #   session = [{
+      #     name = "qtile";
+      #     start = ''
+      #       ${inputs.nixpkgs-stable.legacyPackages.x86_64-linux.qtile}/bin/qtile start -b x11 \
+      #       --config  /home/unseen/.config/qtile/config.py &
+      #       waitPID=$!
+      #     '';
+      #   }];
 
-      };
+      # };
 
       videoDrivers = [ "amdgpu" ];
       layout = "us";
@@ -72,10 +72,6 @@
     ## Power managment buggy gpu :(
     tlp = {
       enable = false;
-    };
-    ## Open snitch
-    opensnitch = {
-      enable = true;
     };
     syncthing = {
       enable = true;
@@ -112,7 +108,7 @@
 
     flatpak = {
       # used for latest nyxt
-      enable = true;
+      enable = false;
     };
     pipewire = {
       enable = true;

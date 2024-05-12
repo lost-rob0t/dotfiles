@@ -36,6 +36,7 @@ in
     # NOTE maybe move to this to desktop
     dunst
     htop
+    jq
     gotop # better htop
     fzf # fuzzy finding
     recoll

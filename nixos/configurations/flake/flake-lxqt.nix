@@ -1,10 +1,9 @@
 { inputs, config, lib, pkgs, ... }:
 
 {
-  imports = ["flake.nix"];
   system.nixos.tags = ["lxqt"];
   services = {
-    xorg = {
+    xserver = {
       desktopManager = {
         lxqt = {
           enable = true;

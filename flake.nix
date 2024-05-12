@@ -69,8 +69,8 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
+            ./nixos/configurations/flake/flake.nix
             ./nixos/configurations/flake/flake-qtile.nix
-            ./nixos/configurations/flake/flake-lxqt.nix
 
           ];
         };

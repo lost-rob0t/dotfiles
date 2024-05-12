@@ -188,7 +188,7 @@ The optional argument NEW-WINDOW is not used."
 
 (org-babel-do-load-languages
  'org-babel-load-languages
- '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t)))
+ '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t)))
 
 (defun edit-src-block (src fn language)
   "Replace SRC org-element's value property with the result of FN.
@@ -632,61 +632,61 @@ strings."
 
 (define-key dired-mode-map (kbd "C-c C-c") 'nsa/dired-exec)
 
-(require 'dirvish)
-(dirvish-override-dired-mode)
+;; (require 'dirvish)
+;; (dirvish-override-dired-mode)
 
-(use-package! dirvish
-  :init
-  (dirvish-override-dired-mode)
-  :custom
-  (dirvish-quick-access-entries        ; It's a custom option, `setq' won't work
-   '(("h" "~/"                          "Home")
-     ("d" "~/Downloads/"                "Downloads")
-     ("s" "/mnt/share"                       "Share Drive")
-     ("t" "~/.local/share/Trash/files/" "TrashCan")))
-  :config
-  (dirvish-peek-mode)                   ; Preview files in minibuffer
-  ;; (dirvish-side-follow-mode) ; similar to `treemacs-follow-mode'
-  (setq dirvish-mode-line-format
-        '(:left (sort symlink) :right (omit yank index)))
-  (setq dirvish-attributes
-        '(vc-state subtree-state all-the-icons collapse git-msg file-time file-size))
-  (setq delete-by-moving-to-trash t)
-  (setq dired-listing-switches
-        "-l --almost-all --human-readable --group-directories-first --no-group")
-  (setq dirvish-preview-dispatchers '(image gif video audio epub archive pdf text))
-  :bind                ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
-  (("C-c f" . dirvish-fd)
-   :map dirvish-mode-map                ; Dirvish inherits `dired-mode-map'
-   ("a"   . dirvish-quick-access)
-   ("f"   . dirvish-file-info-menu)
-   ("y"   . dirvish-yank-menu)
-   ("N"   . dirvish-narrow)
-   ("^"   . dirvish-history-last)
-   ("h"   . dirvish-history-jump)       ; remapped `describe-mode'
-   ("s"   . dirvish-quicksort)          ; remapped `dired-sort-toggle-or-edit'
-   ("v"   . dirvish-vc-menu)            ; remapped `dired-view-file'
-   ("TAB" . dirvish-subtree-toggle)
-   ("M-f" . dirvish-history-go-forward)
-   ("M-b" . dirvish-history-go-backward)
-   ("M-l" . dirvish-ls-switches-menu)
-   ("M-m" . dirvish-mark-menu)
-   ("M-t" . dirvish-layout-toggle)
-   ("M-s" . dirvish-setup-menu)
-   ("M-e" . dirvish-emerge-menu)
-   ("M-j" . dirvish-fd-jump)))
+;; (use-package! dirvish
+;;   :init
+;;   (dirvish-override-dired-mode)
+;;   :custom
+;;   (dirvish-quick-access-entries        ; It's a custom option, `setq' won't work
+;;    '(("h" "~/"                          "Home")
+;;      ("d" "~/Downloads/"                "Downloads")
+;;      ("s" "/mnt/share"                       "Share Drive")
+;;      ("t" "~/.local/share/Trash/files/" "TrashCan")))
+;;   :config
+;;   (dirvish-peek-mode)                   ; Preview files in minibuffer
+;;   ;; (dirvish-side-follow-mode) ; similar to `treemacs-follow-mode'
+;;   (setq dirvish-mode-line-format
+;;         '(:left (sort symlink) :right (omit yank index)))
+;;   (setq dirvish-attributes
+;;         '(vc-state subtree-state all-the-icons collapse git-msg file-time file-size))
+;;   (setq delete-by-moving-to-trash t)
+;;   (setq dired-listing-switches
+;;         "-l --almost-all --human-readable --group-directories-first --no-group")
+;;   (setq dirvish-preview-dispatchers '(image gif video audio epub archive pdf text))
+;;   :bind                ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
+;;   (("C-c f" . dirvish-fd)
+;;    :map dirvish-mode-map                ; Dirvish inherits `dired-mode-map'
+;;    ("a"   . dirvish-quick-access)
+;;    ("f"   . dirvish-file-info-menu)
+;;    ("y"   . dirvish-yank-menu)
+;;    ("N"   . dirvish-narrow)
+;;    ("^"   . dirvish-history-last)
+;;    ("h"   . dirvish-history-jump)       ; remapped `describe-mode'
+;;    ("s"   . dirvish-quicksort)          ; remapped `dired-sort-toggle-or-edit'
+;;    ("v"   . dirvish-vc-menu)            ; remapped `dired-view-file'
+;;    ("TAB" . dirvish-subtree-toggle)
+;;    ("M-f" . dirvish-history-go-forward)
+;;    ("M-b" . dirvish-history-go-backward)
+;;    ("M-l" . dirvish-ls-switches-menu)
+;;    ("M-m" . dirvish-mark-menu)
+;;    ("M-t" . dirvish-layout-toggle)
+;;    ("M-s" . dirvish-setup-menu)
+;;    ("M-e" . dirvish-emerge-menu)
+;;    ("M-j" . dirvish-fd-jump)))
 
-(use-package tramp
-  :config
-  ;; Enable full-featured Dirvish over TRAMP on certain connections
-  ;; https://www.gnu.org/software/tramp/#Improving-performance-of-asynchronous-remote-processes-1.
-  (add-to-list 'tramp-connection-properties
-               (list (regexp-quote "/ssh:YOUR_HOSTNAME:")
-                     "direct-async-process" t))
-  ;; Tips to speed up connections
-  (setq tramp-verbose 0)
-  (setq tramp-chunksize 2000)
-  (setq tramp-use-ssh-controlmaster-options nil))
+;; (use-package tramp
+;;   :config
+;;   ;; Enable full-featured Dirvish over TRAMP on certain connections
+;;   ;; https://www.gnu.org/software/tramp/#Improving-performance-of-asynchronous-remote-processes-1.
+;;   (add-to-list 'tramp-connection-properties
+;;                (list (regexp-quote "/ssh:YOUR_HOSTNAME:")
+;;                      "direct-async-process" t))
+;;   ;; Tips to speed up connections
+;;   (setq tramp-verbose 0)
+;;   (setq tramp-chunksize 2000)
+;;   (setq tramp-use-ssh-controlmaster-options nil))
 
 (setq atomic-chrome-buffer-open-style 'frame)
 
@@ -828,8 +828,6 @@ strings."
   :config (flycheck-package-setup))
 
 (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
-
-(explain-pause-mode t)
 
 ;;(when (memq window-system '(mac ns x))
 ;;  (exec-path-from-shell-initialize))
