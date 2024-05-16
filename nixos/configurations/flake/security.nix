@@ -26,5 +26,9 @@
     opensnitch = {
       enable = false;
 };
-      };
+    };
+
+  security.sudo.extraRules = [
+     { users = [ "unseen"];
+       commands = [ { command = "${pkgs.pmutils}/bin/pm-hibernate"; options = [ "SETENV" "NOPASSWD" ]; } ];}];
 }
