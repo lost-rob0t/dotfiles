@@ -33,11 +33,11 @@ super + w
     brave
 #Conky-toggle
 super + c
-    conky-toggle
+    conky -c ~/.config/qtile/scripts/system-overview
 
 #killall conky
 super + ctrl + c
-    killall conky
+    pkill -9 -f conky
 
 #Htop
 #super + h

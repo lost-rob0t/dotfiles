@@ -32,18 +32,18 @@ conky.config = {
 	alignment = 'middle_right',					-- top-left,top-middle,top-right,bottom-left,bottom-middle,bottom-right,
 												-- middle-left,middle-middle,middle-right,none
 	--Arch Duoscreen
-	--gap_x = -1910,
+	--gap_x = 0,
 	gap_x = 10,									-- pixels between right or left border
 	gap_y = 10,									-- pixels between bottom or left border
 	minimum_height = 200,						-- minimum height of window
 	minimum_width = 280,						-- minimum height of window
-	maximum_width = 280,						-- maximum height of window
+	maximum_width = 380,						-- maximum height of window
 
 	--Graphical
 
 	border_inner_margin = 2, 					-- margin between border and text
 	border_outer_margin = 2, 					-- margin between border and edge of window
-	border_width = 10, 							-- border width in pixels
+	border_width = 2, 							-- border width in pixels
 	default_bar_width = 280,					-- default is 0 - full width
 	default_bar_height = 10,					-- default is 6
 	default_gauge_height = 25,					-- default is 25

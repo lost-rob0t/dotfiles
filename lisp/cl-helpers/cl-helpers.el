@@ -19,12 +19,13 @@
 ;;
 ;;; Code:
 
-(defun nsaspy/rev-sexp-string (sexp)
+(defun nsa/rev-sexp-string (sexp)
   "reverse the sexp and insert car as a string"
-    (when (consp sexp))
-    (let ((symbol (nth 0 sexp)))
-      (list (symbol-name symbol) symbol)))
-(defun nsaspy/rev-sexp-region (begin end)
+  (when (consp sexp))
+  (let ((symbol (nth 0 sexp)))
+    (list (symbol-name symbol) symbol)))
+
+(defun nsa/rev-sexp-region (begin end)
   "reverse the sexp and insert car as a string from the selected region and process each cons cell."
   (interactive "r")
   (when (region-active-p)
