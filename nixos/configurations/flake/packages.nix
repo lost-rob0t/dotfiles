@@ -78,7 +78,7 @@
     aspell
     aspellDicts.en
     cifs-utils
-    pm-utils # sleep/hibernate
+    pmutils # sleep/hibernate
     ## Android
     android-tools
     waydroid
