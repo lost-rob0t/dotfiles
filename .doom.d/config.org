@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-05-07 Tue 00:17]
+#+LAST_MODIFIED: [2024-05-16 Thu 16:49]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -857,7 +857,7 @@ This section tangles the init file
        ;;idris             ; a language you can depend on
        json              ; At least it ain't XML
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
-       ;;javascript        ; all(hope(abandon(ye(who(enter(here))))))
+       (javascript +lsp +tree-sitter)        ; all(hope(abandon(ye(who(enter(here))))))
        ;;julia             ; a better, faster MATLAB
        ;;kotlin            ; a better, slicker Java(Script)
        ;;latex             ; writing papers in Emacs has never been so fun
@@ -887,7 +887,7 @@ This section tangles the init file
        ;;solidity          ; do you need a blockchain? No.
        ;;swift             ; who asked for emoji variables?
        ;;terra             ; Earth and Moon in alignment for performance.
-       web               ; the tubes
+       (web +tree-sitter)               ; the tubes
        yaml              ; JSON, but readable
        ;;zig               ; C, but simpler
 
