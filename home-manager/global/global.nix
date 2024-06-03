@@ -9,6 +9,12 @@ let
     terminal = false;
     mimeTypes = [ "application/x-directory" "inode/directory" ];
   };
+  hibernateDesktop = pkgs.makeDesktopItem {
+    name = "Hibernate";
+    desktopName = "Hibernate";
+    exec = "${pkgs.pmutils}/bin/pm-hibernate";
+    terminal = false;
+  };
 
 in
 
@@ -42,6 +48,8 @@ in
     recoll
     rar
     zip
+    emacsDired # Desktop item
+    hibernateDesktop
   ];
   programs.emacs = {
     enable = true;

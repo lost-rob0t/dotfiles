@@ -104,6 +104,8 @@
     j4-dmenu-desktop
     fetchmail
     variety
+    pavucontrol
+    file
 
 
   ];

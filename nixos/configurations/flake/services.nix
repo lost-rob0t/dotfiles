@@ -116,6 +116,9 @@
         enable = false;
       };
     };
+    cron = {
+      enabled = true;
+    };
   };
   virtualisation = {
     podman = {
@@ -132,8 +135,9 @@
       onBoot = "start";
     };
     waydroid = {
-      enable = true;
+      enable = false;
     };
+
   };
   virtualisation.docker.autoPrune.enable = true;
 }
