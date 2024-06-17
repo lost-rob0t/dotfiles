@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-05-16 Thu 16:49]
+#+LAST_MODIFIED: [2024-06-07 Fri 21:31]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -1236,6 +1236,13 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
 (setq eshell-aliases-file "~/.doom.d/eshell/aliases")
 #+end_src
 
+** Tramp
+#+begin_src emacs-lisp
+(require 'tramp-sh)
+(setq tramp-remote-path
+      (append tramp-remote-path
+        '(tramp-own-remote-path)))
+#+end_src
 
 * Libraries :lib::programming::lisp:
 *** f.el :lisp:

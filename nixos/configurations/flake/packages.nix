@@ -44,7 +44,18 @@
 
     (self: super: {
       mpv = super.mpv.override {
-        scripts = [ self.mpvScripts.mpris ];
+        scripts = [ self.mpvScripts.thumbnail
+                    self.mpvScripts.sponsorblock
+                    self.mpvScripts.mpv-notify-send
+                    self.mpvScripts.videoclip
+                    self.mpvScripts.mpv-webm
+                    self.mpvScripts.memo
+                    self.mpvScripts.modernx
+                    self.mpvScripts.autocrop
+                    self.mpvScripts.quality-menu
+                    self.mpvScripts.mpris
+
+                  ];
       };
     })
 

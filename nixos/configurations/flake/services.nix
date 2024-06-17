@@ -116,8 +116,9 @@
         enable = false;
       };
     };
+    # TODO add scripts here
     cron = {
-      enabled = true;
+      enable = true;
     };
   };
   virtualisation = {
