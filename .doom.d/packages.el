@@ -6,7 +6,6 @@
 (setq load-prefer-newer t)
 
 (require 'package)
-(setq package-check-signature nil) 
 (setq package-enable-at-startup nil)
 (setq package-archives
       ;; Package archives

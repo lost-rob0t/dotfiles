@@ -696,6 +696,16 @@ strings."
 
 (setq eshell-aliases-file "~/.doom.d/eshell/aliases")
 
+(after! eshell
+  (set-company-backend! 'eshell-mode
+            	'(company-files))
+  (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
+
+(require 'tramp-sh)
+(setq tramp-remote-path
+      (append tramp-remote-path
+        '(tramp-own-remote-path)))
+
 (require 'f)
 
 (require 'dash)

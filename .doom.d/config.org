@@ -1236,6 +1236,14 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
 (setq eshell-aliases-file "~/.doom.d/eshell/aliases")
 #+end_src
 
+Ensure Auto complete is running and ensure correct company backend is running
+#+begin_src emacs-lisp
+(after! eshell
+  (set-company-backend! 'eshell-mode
+            	'(company-files))
+  (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
+  
+#+end_src
 ** Tramp
 #+begin_src emacs-lisp
 (require 'tramp-sh)
