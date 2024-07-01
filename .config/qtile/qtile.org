@@ -213,7 +213,7 @@ keys = [
                  desc='Emacsclient Elfeed (RSS)'
                  ),
              Key([], "s",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(eshell)'"),
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(+eshell/here)'"),
                  desc='Emacsclient Eshell'
                  ),
              Key([], "v",
