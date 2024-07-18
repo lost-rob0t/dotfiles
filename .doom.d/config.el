@@ -297,7 +297,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-          ("d" "sunshine wiki dox" plain "* {slug}\n%?"
+          ("x" "sunshine wiki dox" plain "* {slug}\n%?"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("r" "Reading notes" plain "%?"
@@ -696,10 +696,9 @@ strings."
 
 (setq eshell-aliases-file "~/.doom.d/eshell/aliases")
 
-(after! eshell
-  (set-company-backend! 'eshell-mode
-            	'(company-files))
-  (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
+(set-company-backend! 'eshell-mode
+           	'(company-files))
+(add-hook 'eshell-mode-hook #'eshell-cmpl-initialize)
 
 (require 'tramp-sh)
 (setq tramp-remote-path

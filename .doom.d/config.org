@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-06-07 Fri 21:31]
+#+LAST_MODIFIED: [2024-07-01 Mon 08:36]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -444,7 +444,7 @@ Set roam directory
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-          ("d" "sunshine wiki dox" plain "* {slug}\n%?"
+          ("x" "sunshine wiki dox" plain "* {slug}\n%?"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("r" "Reading notes" plain "%?"
@@ -1238,11 +1238,10 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
 
 Ensure Auto complete is running and ensure correct company backend is running
 #+begin_src emacs-lisp
-(after! eshell
-  (set-company-backend! 'eshell-mode
-            	'(company-files))
-  (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
-  
+(set-company-backend! 'eshell-mode
+           	'(company-files))
+(add-hook 'eshell-mode-hook #'eshell-cmpl-initialize)
+
 #+end_src
 ** Tramp
 #+begin_src emacs-lisp
