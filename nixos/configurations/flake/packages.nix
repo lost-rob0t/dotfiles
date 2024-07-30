@@ -125,7 +125,7 @@
     hashcat
     opensnitch-ui
     calyx-vpn
-    gnome.gnome-keyring
+    gnome-keyring
 
     # lxqt
     lxqt.lxqt-policykit
@@ -158,7 +158,7 @@
 
 
   ];
-  hardware.opengl.extraPackages = with pkgs; [
+  hardware.graphics.extraPackages = with pkgs; [
     rocm-opencl-icd
     rocm-opencl-runtime
     amdvlk

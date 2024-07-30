@@ -34,12 +34,17 @@
       bypassWorkqueues = true;
     };
   };
+  boot.initrd.luks.devices = {
+    red_drive = {
+      device = "/dev/disk/by-partuuid/cdf24038-13b9-4053-aaa5-ee92a840db2c";
+      allowDiscards = true; # Used if primary device is a SSD
+      preLVM = true;
+      bypassWorkqueues = true;
+    };
+  };
   boot.loader.systemd-boot.enable = true;
   # Set your time zone.
   time.timeZone = "America/New_York";
-
-  # Enable sound.
-  sound.enable = true;
 
   hardware.pulseaudio.enable = true;
   #hardware.pulseaudio = {
@@ -90,7 +95,7 @@
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
 
   system.stateVersion = "21.11"; # Did you read the comment?
-  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+ # boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
   #systemd.extraConfig = "DefaultLimitNOFILE=8096:524288";
   #
 }

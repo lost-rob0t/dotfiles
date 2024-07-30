@@ -11,12 +11,12 @@
   #disabledModules = [ "services/networking/i2p.nix" "services/networking/tor.nix" ];
   services = {
     ## Xserver config
+    displayManager = {
+        sddm.enable = true;
+    };
     xserver = {
       enable = true;
-      displayManager = {
-        sddm.enable = true;
-      };
-      # desktopManager = {
+            # desktopManager = {
       #   lxqt.enable = false;
       #   plasma5 = {
       #     enable = true;
@@ -47,7 +47,7 @@
       # };
 
       videoDrivers = [ "amdgpu" ];
-      layout = "us";
+      xkb.layout = "us";
     };
 
     # Enable the OpenSSH daemon.
