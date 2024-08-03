@@ -8,7 +8,7 @@ from typing import List  # noqa: F401
 from libqtile import layout, bar, widget, hook
 from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule, KeyChord
 from libqtile.config import ScratchPad, DropDown
-from libqtile.command import lazy
+from libqtile.lazy import lazy
 from libqtile.widget import Spacer
 from libqtile.log_utils import logger
 #import ip
