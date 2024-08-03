@@ -12,7 +12,7 @@
     gimp
     feh
     tlp
-    nyxt
+    # FIXME nyxt
     webkitgtk
     remmina
     freerdp
