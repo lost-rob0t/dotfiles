@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-07-01 Mon 08:36]
+#+LAST_MODIFIED: [2024-08-02 Fri 06:27]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -1359,12 +1359,13 @@ Add nixos-options to company backend
 Update the rev and sha of a fetchgit package
 
 #+begin_src emacs-lisp
-(require 'nix-update)
-(map! :localleader
-      :after nix
-      :map nix-mode-map
-      :prefix ("u" . "update")
-      :desc "Update fetchgit" "g" #'nix-update-fetch)
+;; Disabled: [2024-08-02 Fri] Not sure i ever used it after a few uses.
+;; (require 'nix-update)
+;; (map! :localleader
+;;       :after nix
+;;       :map nix-mode-map
+;;       :prefix ("u" . "update")
+;;       :desc "Update fetchgit" "g" #'nix-update-fetch)
 
 #+end_src
 
