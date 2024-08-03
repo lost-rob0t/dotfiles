@@ -87,7 +87,8 @@
     element-desktop
     thunderbird
     # Misc
-    monero-gui
+	# FIXME Broken package
+    #monero-gui
     hugo
     #AI
     ollama
@@ -96,8 +97,8 @@
 
     # rice
     starship
-    emojione # wttr widget emojis
-    noto-fonts-emoji
+    #emojione # wttr widget emojis
+    #noto-fonts-emoji
     grc # colourize output
     sxhkd
     conky

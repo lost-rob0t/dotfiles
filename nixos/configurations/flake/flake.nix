@@ -26,22 +26,6 @@
     ];
 
   # Boot config
-  boot.initrd.luks.devices = {
-    crypted = {
-      device = "/dev/disk/by-partuuid/e530f416-662e-4e97-a698-63096214c5f9";
-      allowDiscards = true; # Used if primary device is a SSD
-      preLVM = true;
-      bypassWorkqueues = true;
-    };
-  };
-  boot.initrd.luks.devices = {
-    red_drive = {
-      device = "/dev/disk/by-partuuid/cdf24038-13b9-4053-aaa5-ee92a840db2c";
-      allowDiscards = true; # Used if primary device is a SSD
-      preLVM = true;
-      bypassWorkqueues = true;
-    };
-  };
   boot.loader.systemd-boot.enable = true;
   # Set your time zone.
   time.timeZone = "America/New_York";
@@ -60,8 +44,6 @@
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.unseen = {
     isNormalUser = true;
-    subUidRanges = [{ startUid = 100000; count = 65536; }];
-    subGidRanges = [{ startGid = 100000; count = 65536; }];
     extraGroups = [ "wheel" "libvirtd" "adbusers" "docker" "networkmanager" ]; # Enable ‘sudo’ for the user.
   };
 
@@ -77,16 +59,6 @@
 
   # NOTE This will require me to make sure this is always up.
   # If its down will it prevent my system from booting?
-  fileSystems."/mnt/share" = {
-      device = "//10.50.50.81/unseen/";
-      fsType = "cifs";
-      options = let
-        # this line prevents hanging on network split
-        automount_opts = "x-systemd.automount,noauto,x-systemd.idle-timeout=60,x-systemd.device-timeout=5s,x-systemd.mount-timeout=5s,uid=1000,gid=100";
-
-      in ["${automount_opts},credentials=/etc/nixos/smb"];
-  };
-
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave

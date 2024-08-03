@@ -5,58 +5,56 @@
 
 {
   imports =
-    [
-      (modulesPath + "/installer/scan/not-detected.nix")
+    [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usbhid" "usb_storage" "uas" "sd_mod" ];
-  boot.initrd.kernelModules = [ "dm-snapshot" "dm-raid" ];
-  boot.kernelModules = [ "kvm-amd" "amdgpu" "dm-raid" "xpadneo" ];
+  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usb_storage" "usbhid" "sd_mod" ];
+  boot.initrd.kernelModules = [ "dm-snapshot" ];
+  boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
-  boot.extraModprobeConfig = "options kvm_intel nested=1 bluetooth disable_ertm=1";
 
   fileSystems."/" =
-    {
-      device = "/dev/disk/by-uuid/dfced3b1-91f1-445a-ab83-2345f4a45440";
-      fsType = "ext4";
+    { device = "/dev/disk/by-uuid/0b67f502-a60c-415b-8ffe-81549c99a207";
+      fsType = "btrfs";
+      options = ["compress=zstd:1"];
     };
+  fileSystems."/home" =
+    { device = "/dev/disk/by-uuid/1a66e715-70ef-4fc1-8375-5d697f905435";
+      fsType = "btrfs";
+      options = ["compress=zstd:2"];
+    };
+
 
   fileSystems."/boot" =
-    {
-      device = "/dev/disk/by-partuuid/e3b65262-076c-40e5-9686-7c3717a9fc0a";
+    { device = "/dev/disk/by-partuuid/e5abfa14-a752-47ff-8ca6-c146445e6ced";
       fsType = "vfat";
+      options = ["uid=0" "gid=0" "fmask=0077" "dmask=0077" ];
+     
     };
-  swapDevices =
-    [{ device = "/dev/disk/by-uuid/a13703b7-ce75-453f-8d67-474523e051f8"; }];
 
-  hardware = {
-    bluetooth = {
-      package = pkgs.bluez;
-      enable = true;
-      settings = {
-        General = {
-          MultiProfile="multiple";
-        };
 
-        LE = {
-          MinConnectionInterval = 7;
-          MaxConnectionInterval = 9;
-          ConnectionLatency = 0;
-        };
-      };
-    };
-    pulseaudio.extraConfig = "ifexists module-bluetooth-policy.so
-load-module module-bluetooth-policy auto_switch=true
-.endif
-\"load-module module-bluetooth-discover a2dp_config=\"sbc_cmode=dual sbc_min_bp=53 sbc_max_bp=53 sbc_freq=44k";
-    cpu.amd = {
-      updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-    };
-    xpadneo = {
-      enable = true;
-    };
-  };
-  # Needed for flakes
-  nixpkgs.hostPlatform = "x86_64-linux";
 
+  boot.initrd.luks.devices."dm-root" = 
+	{ device = "/dev/disk/by-uuid/552dc146-d779-4831-a648-e7b207780e0b";
+	  preLVM = false;
+	};
+  boot.initrd.luks.devices."dm-home" = {
+	device = "/dev/disk/by-uuid/d2c146aa-ceef-4a10-a6aa-fdb8fb9f85ac";
+	preLVM = false;
+};
+#  boot.initrd.luks.devices."dm-swap".device = "/dev/disk/by-uuid/5b0573d9-2aad-4fbd-8f72-b46831b66f4a";
+
+#  swapDevices =
+#    [ { device = "/dev/disk/by-uuid/7b243470-d8ef-4921-9e6e-22016d684cb2"; }
+#    ];
+
+  # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
+  # (the default) this is the recommended approach. When using systemd-networkd it's
+  # still possible to use this option, but it's recommended to use it in conjunction
+  # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
+  networking.useDHCP = lib.mkDefault true;
+  # networking.interfaces.eno1.useDHCP = lib.mkDefault true;
+
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
