@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 
 function run {
-  if ! pgrep -x $(basename $1 | head -c 15) 1>/dev/null;
-  then
-    $@&
+  if ! pgrep -x $(basename $1 | head -c 15) 1>/dev/null; then
+    $@ &
   fi
 }
 
@@ -27,7 +26,6 @@ if [ $keybLayout = "be" ]; then
   cp $HOME/.config/qtile/config-azerty.py $HOME/.config/qtile/config.py
 fi
 
-
 #Some ways to set your wallpaper besides variety or nitrogen
 #feh --bg-fill /usr/share/backgrounds/archlinux/arch-wallpaper.jpg &
 # feh --bg-fill "/home/unseen/Pictures/wallpaper/10 - B6GTMQL.png" &
@@ -39,21 +37,18 @@ fi
 #start sxhkd to replace Qtile native key-bindings
 run sxhkd -c ~/.config/qtile/sxhkd/sxhkdrc &
 
-# NOTE: this is system dependent
-# TODO create a system to find the screen settings by host name and run it.
-run /home/unseen/.screenlayout/screen.sh
-
+run "$HOME/.dotfiles/.config/qtile/scripts/graphics/$(hostname).sh"
 #starting utility applications at boot time
 run variety &
 run nm-applet &
 #run pamac-tray &
 run xfce4-power-manager &
 numlockx on &
-blueman-applet &
-picom --config $HOME/.config/picom/picom.conf  &
-/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
-/usr/lib/xfce4/notifyd/xfce4-notifyd &
-spice-vdagent &
+run blueman-applet &
+run picom --config $HOME/.config/picom/picom.conf &
+run /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+run /usr/lib/xfce4/notifyd/xfce4-notifyd &
+run spice-vdagent &
 #starting user applications at boot time
 run volumeicon &
 run /home/unseen/.bin/graphics.sh &
