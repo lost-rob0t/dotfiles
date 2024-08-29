@@ -60,7 +60,7 @@
     mindustry
     tlp
     activitywatch
-    nyxt
+    # FIXME nyxt
     webkitgtk
     remmina
     freerdp
