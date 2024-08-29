@@ -49,7 +49,7 @@ in
   };
   ## Power managment buggy gpu :(
   tlp = {
-  enable = true;
+    enable = false;
   };
   ## Open snitch
   #opensnitch = {
