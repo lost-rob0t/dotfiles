@@ -58,7 +58,6 @@
     gimp
     feh
     mindustry
-    tlp
     activitywatch
     # FIXME nyxt
     webkitgtk

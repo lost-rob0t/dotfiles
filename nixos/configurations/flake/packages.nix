@@ -146,7 +146,9 @@
     mimic # TTS
     libvirt
     dmenu
-    inputs.nixpkgs-stable.legacyPackages.x86_64-linux.blueman
+    #inputs.nixpkgs-stable.legacyPackages.x86_64-linux.blueman
+    blueman
+    bluez-tools
     ## Nixos
     nixos-generators
 
@@ -158,11 +160,7 @@
 
 
   ];
-  hardware.graphics.extraPackages = with pkgs; [
-    rocm-opencl-icd
-    rocm-opencl-runtime
-    amdvlk
-  ];
+ 
   ## Some programs need SUID wrappers, can be configured further or are
   ## started in user sessions.
   # programs.mtr.enable = true;

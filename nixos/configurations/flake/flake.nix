@@ -30,7 +30,6 @@
   # Set your time zone.
   time.timeZone = "America/New_York";
 
-  hardware.pulseaudio.enable = true;
   #hardware.pulseaudio = {
   #  enable = false;
   #};
