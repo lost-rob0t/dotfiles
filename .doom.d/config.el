@@ -778,12 +778,13 @@ strings."
 
 ;(add-to-list 'company-backends 'company-nixos-options)
 
-(require 'nix-update)
-(map! :localleader
-      :after nix
-      :map nix-mode-map
-      :prefix ("u" . "update")
-      :desc "Update fetchgit" "g" #'nix-update-fetch)
+;; Disabled: [2024-08-02 Fri] Not sure i ever used it after a few uses.
+;; (require 'nix-update)
+;; (map! :localleader
+;;       :after nix
+;;       :map nix-mode-map
+;;       :prefix ("u" . "update")
+;;       :desc "Update fetchgit" "g" #'nix-update-fetch)
 
 ;; (setq flycheck-command-wrapper-function
 ;;         (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))

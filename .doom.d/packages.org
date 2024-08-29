@@ -194,6 +194,12 @@ Org babel functions for prolog.
 #+begin_src emacs-lisp
 (package! gnuplot)
 #+end_src
+** Magit
+*** Magit Todos
+#+begin_src emacs-lisp
+(package! lsp-pyright :recipe (:type git :host github :repo "alphapapa/magit-todos"))
+#+end_src
+
 * Utils
 ** Hackmode
 Hack banks from emacs
@@ -350,6 +356,13 @@ Personnaly i find in other languages like nim creating a type then marshalling j
 
 #+begin_src emacs-lisp
 (package! org-contrib)
+#+end_src
+** pcre2el
+Required By magit todos.
+pcre2el: convert between PCRE, Emacs and rx regexp syntax
+
+#+begin_src emacs-lisp
+(package! ppcre2el :recipe (:type git :host github :repo "joddie/pcre2el"))
 #+end_src
 
 
