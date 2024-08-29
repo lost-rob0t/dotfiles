@@ -48,12 +48,15 @@ in
     recoll
     rar
     zip
+    nim
+    nimble
+    # Desktop items
     emacsDired # Desktop item
     hibernateDesktop
   ];
+
   programs.emacs = {
     enable = true;
-    package = pkgs.emacs28;
     extraPackages = epkgs: [
       emacsDired # Desktop item
       pkgs.shfmt
@@ -78,7 +81,6 @@ in
       pkgs.pyright
       pkgs.python311
       pkgs.python311Packages.flake8
-      pkgs.emacsPackages.vterm
       # Pwnagotchi.el
       pkgs.hcxtools
       pkgs.hashcat-utils
