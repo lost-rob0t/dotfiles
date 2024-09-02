@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: nix call  package
+# uuid: nix-callPackage
+# key: callPackage
+#
+# --
+
+${1:name of package} = callPackage $2 { }; $0

@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: wdg
+# key: wdg
+# --
+
+when defined(debug):
+     ${1:echo ${2:"debug"}}
+
+$0
