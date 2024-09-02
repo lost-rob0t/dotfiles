@@ -50,7 +50,7 @@
 
 (package! project-tasks :recipe (:type git :host github :repo "TxGVNN/project-tasks"))
 
-(package! org-ai)
+(package! gptel)
 
 ;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
 

@@ -253,11 +253,18 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   "Tangle a list of org documents."
   (mapcar 'org-babel-tangle-file config-list))
 
-(defun doom-config-sync ()
-  "Tangle your dotfiles and run doom sync"
+(defun nsa/config-sync ()
+  "Tangle your dotfiles and run doom sync, also stages all modifed files in the dotfiles repo."
   (interactive)
   (tangle-orgs org-configs-list)
-  (doom/reload))
+  (doom/reload)
+  (magit-stage-modified nil)
+  (magit))
+  
+
+(defun doom-config-sync ()
+  "Alias for 'nsa/config/sync'"
+  (nsa/config-sync))
 
 (require 'org-download)
 
@@ -308,14 +315,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))))
-  (setq org-roam-dailies-capture-templates
-   '(("d" "default" entry "* %?"
-      :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
-     ("n" "news" entry "* %? :news:"
-         :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
-     ("j" "journal" entry "* %<%I:%M %p>%? :personal:"
-        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n")))))
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
+  ;; (setq org-roam-dailies-capture-templates
+  ;;  '(("d" "default" entry "* %?"
+  ;;     :target (file+head "%<%Y-%m-%d>.org" "#+title: %U\n"))
+  ;;    ("n" "news" entry "* %? :news:"
+  ;;        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+  ;;    ("j" "journal" entry "* %<%I:%M %p>%? :personal:"
+  ;;       :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))))
 
 (defun url2org (begin end)
   "Download a webpage from selected url and convert to org."
@@ -704,6 +711,15 @@ strings."
 (setq tramp-remote-path
       (append tramp-remote-path
         '(tramp-own-remote-path)))
+
+(use-package! gptel
+  :config
+  (setq gptel-model "Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF")
+  (setq gptel-backend (gptel-make-openai "Ollama Uncensored"
+                        :stream t
+                        :protocol "http"
+                        :host "localhost:1234"
+                        :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))))
 
 (require 'f)
 
