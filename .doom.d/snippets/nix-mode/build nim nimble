@@ -1,10 +1,8 @@
 # -*- mode: snippet -*-
-# name: build nim nimble
-# uuid: build-nim-nimble
-# key: build-nimble
-# condition: t
+# name: fetchNimble
+# uuid: nix-fetch-nimble
+# key: fetchNimble
 # --
-{ lib, fetchNimble }:
 
 fetchNimble {
   pname = "${1:package name}";

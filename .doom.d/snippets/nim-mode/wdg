@@ -1,7 +1,0 @@
-# -*- mode: snippet -*-
-# name: wdg
-# key: wdg
-# --
-
-when defined(debug):
-     $0

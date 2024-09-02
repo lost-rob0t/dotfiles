@@ -1,8 +1,0 @@
-# -*- mode: snippet -*-
-# name: nix call nim package
-# uuid: nix-call-nim
-# key: nimx
-# condition: t
-# --
-
-${1:name of package} = callPackage ../development/nim-packages/$1 { }; $0

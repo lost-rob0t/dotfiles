@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: ipython block
-# key: py
+# key: <py
 # --
 #+BEGIN_SRC python :session ${1:one} :results output replace
 $0
