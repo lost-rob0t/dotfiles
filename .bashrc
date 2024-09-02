@@ -85,6 +85,9 @@ fi
 
 bind -m emacs-standard -x '"\C-r": __fzf_history__'
 
+source ~/.dotfiles/.bash.d/fzf-bash-cmpl.sh
+bind -x '"\t": fzf_bash_completion'
+
 function init_platform () {
 # create the .platform file i use
 if [ ! -f "$HOME/.platform" ]; then

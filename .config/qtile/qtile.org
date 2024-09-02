@@ -31,6 +31,8 @@ def readIpFile(file_path= os.path.expanduser("~/.local/share/ip")):
 thermalTag="Tctl"
 #+END_SRC
 
+
+
 *** Initial setup
 Here is where i define some global values and modifier keys.
 

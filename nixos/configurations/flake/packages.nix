@@ -87,7 +87,8 @@
     hunspellDicts.en_US
     xclip
     aspell
-    aspellDicts.en
+    (aspellWithDicts
+        (dicts: with dicts; [ en en-computers en-science  ]))
     cifs-utils
     pmutils # sleep/hibernate
     ## Android
@@ -96,6 +97,7 @@
     ## Games
     lutris
     steam-run-native
+    winePackages.stagingFull
     wineWowPackages.staging
     winetricks
     faudio

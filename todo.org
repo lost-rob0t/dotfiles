@@ -12,6 +12,10 @@ https://github.com/zweifisch/ob-http
 [[file:~/.dotfiles/.direnv]]
 ** TODO Configure diered as the default file manager
 
+web jailbrowsers esp chromium will not respect XDG, and even firefox for file uploads
+
+Otherwise done with
+
 [[file:~/.dotfiles/.direnv]]
 ** NO Make this callable from dired
 
@@ -40,3 +44,17 @@ https://github.com/rnkn/olivetti
 ** TODO A "install package from projectile project"
 you can run spc p & to run a async command, why not something to run nimble or pip or quicklisp?
 it just needs to run at the project root?
+
+
+
+
+* Config Maintence <2024-08-29 Thu>
+**  [#A] Ispell Busted again
+Starting new Ispell process aspell with en dictionary...done
+ispell-init-process: Error: The file "/home/unseen/.nix-profile/lib/aspell/en" can not be opened for reading.
+WARNING: Unable to enter Nroff mode: Unknown mode: "nroff".
+e
+
+
+Company-Ispell: ispell-lookup-words: No plain word-list found at systemdefault locations.  Customize ‘ispell-alternate-dictionary’ to set yours.
+** [#A] Org Roam Capture Tug of war
