@@ -6,14 +6,14 @@
 This is a literate configuration of my .bashrc
 ** Setup
 Source any global definitions
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 #+end_src
 
 Setup my path
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]
 then
     PATH="$HOME/.local/bin:$HOME/bin:$PATH"
@@ -23,7 +23,7 @@ export PATH
 #+end_src
 
 Load any extra configuration.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 if [ ! -d ~/.bashrc.d ]; then
 	for rc in ~/.bashrc.d/*; do
 		if [ -f "$rc" ]; then
@@ -35,23 +35,23 @@ fi
 #+end_src
 
 Setting up colors
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 export TERM="xterm-256color"                      # getting proper colors
 #+end_src
 
 *** History File
 Append to the history, dont overwrite.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 shopt -s histappend
 #+end_src
 
 Save multi line commands as a single line
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 shopt -s cmdhist # save multi-line commands in history as single line
 #+end_src
 
 I Like having a large bashrc history, sometimes theres a command I really want but will get buried under the others.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 export HISTFILESIZE=
 export HISTSIZE=
 HISTCONTROL="ignoreboth"
@@ -59,15 +59,15 @@ HISTCONTROL="ignoreboth"
 
 
 Set the format of the time.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 HISTTIMEFORMAT="[%Y-%m-%d %H:%M:%S] "
 #+end_src
 Ignore  cd, ls, fg, bg
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 export HISTIGNORE=fg:bg:ls:cd
 #+end_src
 **** FZF History
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 __fzfcmd() {
   [[ -n "${TMUX_PANE-}" ]] && { [[ "${FZF_TMUX:-0}" != 0 ]] || [[ -n "${FZF_TMUX_OPTS-}" ]]; } &&
     echo "fzf-tmux ${FZF_TMUX_OPTS:--d${FZF_TMUX_HEIGHT:-40%}} -- " || echo "fzf"
@@ -123,12 +123,21 @@ fi
 #+end_src
 
 Bind the fzf command to C-r
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 bind -m emacs-standard -x '"\C-r": __fzf_history__'
 #+end_src
+
+*** FZF
+
+
+#+begin_src sh :tangle .bashrc
+source ~/.dotfiles/.bash.d/fzf-bash-cmpl.sh
+bind -x '"\t": fzf_bash_completion'
+#+end_src
+
 *** SHOPT
 Common settings.[fn:3]
-#+begin_src shell
+#+begin_src sh
 shopt -s cdspell # autocorrects cd misspellings
 shopt -s dotglob
 shopt -s checkwinsize # checks term size when bash regains control
@@ -139,7 +148,7 @@ shopt -s checkwinsize # checks term size when bash regains control
 This stuff will be ran on first start
 
 To determin what system it is, i use a file this file holds a name which is used by emacs and other things to apply settings for it.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 function init_platform () {
 # create the .platform file i use
 if [ ! -f "$HOME/.platform" ]; then
@@ -152,7 +161,7 @@ init_platform
 #+end_src
 
 I have certain stuff that needs to know my ip, like wtr and i prefer not doxxing myself in the git source.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias get-ip="curl -s -q ifconfig.me"
 get-ip > "$HOME/.local/share/ip"
 #+end_src
@@ -161,7 +170,7 @@ get-ip > "$HOME/.local/share/ip"
 *** Functions
 
 Extract compresses files[fn:3]
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 ex ()
 {
   if [ -f "$1" ] ; then
@@ -193,7 +202,7 @@ ex ()
 *** Emacs
 
 Set emacs as my editor.[fn:3]
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 export ALTERNATE_EDITOR=""                        # setting for emacsclient
 export EDITOR="emacsclient -t -a ''"              # $EDITOR use Emacs in terminal
 export VISUAL="emacsclient -c -a emacs"           # $VISUAL use Emacs in GUI mode
@@ -201,7 +210,7 @@ export VISUAL="emacsclient -c -a emacs"           # $VISUAL use Emacs in GUI mod
 
 Reinstall Doom emacs
 *warning this will remove your emacs install!
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 function install-doom () {
  if [ -d ~/.emacs.d ]; then
  	echo "Are you sure you want to delete ~/.emacs.d/ directory and install doom emacs? (y/n)"
@@ -215,7 +224,7 @@ function install-doom () {
 #+end_src
 
 Only open new files in a new frame, otherwise open other frame.[fn:2]
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 function emacs-clean () {
 if [ $# -eq 0 ]; then
     emacsclient -c -n
@@ -236,7 +245,7 @@ fi
 This will copy the config, which sort of serves as a Backup I guess.
 It will rebuild your config
 
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 function evolve () {
 read -p "Do you want to rebuild the config? (yes/no) " yn
 
@@ -260,7 +269,7 @@ echo done
 **** Setup nix-env
 For some reason on non nixos system this is needed
 
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 if [ ! -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
     source ~/.nix-profile/etc/profile.d/nix.sh
     export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}
@@ -269,7 +278,7 @@ fi
 
 *** Nim
 init a nimble project then create a git repo and cd to it
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 function nim-init () {
  # Init a nim project and start a git repo
  nimble init $1
@@ -280,34 +289,34 @@ function nim-init () {
 Misc related functions i found or made
 **** Get the top ten used commands [fn:1]
 So much cd and ls
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 function cmdtop () {
     history | awk '{CMD[$2]++;count++;}END { for (a in CMD)print CMD[a] " " CMD[a]/count*100 "% " a;}' | grep -v "./" | column -c3 -s " " -t | sort -nr | nl |  head -n10
 }
 #+end_src
 ** Paths
 Export nimble path for nim.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 export PATH=$PATH:$HOME/.nimble/bin
 #+end_src
 
 Export rust cargo path (nasty wax wound lol)
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 export PATH=$PATH:$HOME/.cargo/bin
 #+end_src
 
 Setup my local bin
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 export PATH=$PATH:$HOME/.bin/
 #+end_src
 
 NPM path
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 export PATH=$PATH:$HOME/.node/bin/
 #+end_src
 
 Go path
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 export GOPATH=$HOME/go
 export PATH=$PATH:$GOPATH/bin
 
@@ -316,35 +325,35 @@ export PATH=$PATH:$GOPATH/bin
 Bash aliases allow you to use a short "alias" for a long command
 
 Expand Aliases
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 shopt -s expand_aliases # expand aliases
 #+end_src
 
 *** Emacs
 Run emacs in debug mode
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias debug-emacs="emacs --debug-init"
 #+end_src
 
 Open emacs
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias em="emacs -nw"
 alias emacs="emacsclient -c -a 'emacs'"
 #+end_src
 *** Nix
 Link home-manager/nix-env to the xgd dirs, without it non nixos systems apps will not be in start bars
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
 #+end_src
 *** Nim
 Generate documentation from the project root.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias nim-doc="nim doc --project --index:on --outdir=docs"
 #+end_src
 
 *** GRC
 this is the shell aliases to use GRC.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 # aliases for grc(1)
 
 # this will execute only if there is a line with
@@ -405,21 +414,21 @@ fi
 *** Misc
 get the weather
 I use [[https://wttr.in]] for my weather
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias wttr="curl wttr.in"
 #+end_src
 
 Run a couchdb docker container
 
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias couchdb="mkdir -p $PWD/.database && sudo chown 1001:1001 $PWD/.database && sudo docker run -d  -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password  -v $PWD/.database:/opt/couchdb/data  -p 0.0.0.0:5984:5984 ibmcom/couchdb3" && echo $PWD/.database >> $HOME/.config/couchdb-databases
 #+end_src
 
 Alias to delete all temp couchdb databases
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias couchdb-gc="grep -e '\.database$' ~/.config/couchdb-databases | xargs -I {} sudo rm -rf {} && rm -f ~/.config/couchdb-databases && touch ~/.config/couchdb-databases"
 #+end_src
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 function couchdb-rm-db() {
   selected_file=$(cat ~/.config/couchdb-databases | sort -u | fzf)
   if [ -n "$selected_file" ]; then
@@ -430,56 +439,56 @@ function couchdb-rm-db() {
 #+end_src
 Send a notification whenever a command is done.
 It defaults to using dunstify.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alert_cmd=$(which "dunstify" || which "notify-send")
 alias alert='$alert_cmd --urgency=medium -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
 #+end_src
 
 
 Paste to ix.io
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias paste="curl -F 'f:1=<-' ix.io"
 alias ix.io="curl -F 'f:1=<-' ix.io"
 #+end_src
 
 Go to my hackmode directory.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias hackmode="cd $HOME/Documents/hackmode"
 #+end_src
 
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias starintel="cd ~/Documents/Projects/starintel"
 #+end_src
 
 Reload Bash
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias reload-bash="source $HOME/.bashrc"
 #+end_src
 
 Get the current time in unix-epoch
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias unix="date +%s"
 #+end_src
 
 init node-directory
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias npm-init-dir="mkdir -p ~/.node"
 alias npm-install="npm install --prefix ~/.node -g"
 #+END_SRC
 
 SSH forwarding proxy for ai
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias ai-proxy="ssh -N -L 7860:127.0.0.1:7860 unseen@10.50.50.18"
 #+end_src
 
 Rsync new music to music server
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 alias sync-music="rsync --progress -av ~/Music/Music-Sorted/ proxmox:/mnt/Music && ssh proxmox python3 /mnt/sort.py /mnt/Music"
 #+end_src
 
 ** hackmode
 
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 export HACKMODE_OP=$(cat ~/.local/share/hackmode/current-op | head -n 1)
 export HACKMODE_PATH=$(cat ~/.local/share/hackmode/op-path | head -n 1)
 export HACKMODE_BASE_DIR="/home/$USER/Documents/hackmode/"
@@ -554,14 +563,14 @@ alias cdhm="cd $HACKMODE_PATH"
 ** Fancy Shell and Dumb Shell
 Incase  dumb terminal, You need to make sure its a basic PS1 so tramp's regex and detect the shell login.
 Anything fancy can go into this function.
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 function fancy-shell () {
     eval "$(direnv hook bash)"
     eval "$(starship init bash)"
 }
 #+end_src
 Heres the dumb shell catcher
-#+begin_src shell :tangle .bashrc
+#+begin_src sh :tangle .bashrc
 case $TERM in
     xterm-256color)
         fancy-shell;;
