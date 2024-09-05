@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-09-05 Thu 02:20]
+#+LAST_MODIFIED: [2024-09-05 Thu 05:58]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -11,7 +11,9 @@
 This is my personal doom emacs config, you can find package related stuff in packages.org [[./packages.org][packages.org]]
 yasnippets are in snippets
 
-
+#+begin_src emacs-lisp
+(setq user-mail-address "nsaspy@airmail.cc")
+#+end_src
 
 * init.el
 This section tangles the init file
@@ -1286,12 +1288,27 @@ Some common substitions
 
 #+begin_src emacs-lisp
 (add-to-list 'skeletor-global-substitutions
-             (cons "__HOME__" (getenv "HOME")))
+             (cons "__HOME__" (getenv "home")))
+
+(add-to-list 'skeletor-global-substitutions
+             (cons "__USER__" user-login-name))
+
+(add-to-list 'skeletor-global-substitutions
+             (cons "__EMAIL__" user-mail-address))
+
 
 (add-to-list 'skeletor-global-substitutions
              (cons "__COPYRIGHT__" (lambda () (format "nsaspy %s" (format-time-string "%c")))))
 (add-to-list 'skeletor-global-substitutions
              (cons "__TIME__" (lambda () (format-time-string "%c"))))
+#+end_src
+
+Create a custom substitution for project descriptions:
+
+#+begin_src emacs-lisp
+(add-to-list 'skeletor-global-substitutions
+             (cons "__DESCRIPTION__"
+                   (lambda () (read-string "Enter description: "))))
 #+end_src
 
 *** Project Templates

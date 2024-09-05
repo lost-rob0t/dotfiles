@@ -1,3 +1,5 @@
+(setq user-mail-address "nsaspy@airmail.cc")
+
 (dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
   (load file))
 
@@ -725,12 +727,23 @@ strings."
 (setq skeletor-user-directory "~/.dotfiles/Templates/")
 
 (add-to-list 'skeletor-global-substitutions
-             (cons "__HOME__" (getenv "HOME")))
+             (cons "__HOME__" (getenv "home")))
+
+(add-to-list 'skeletor-global-substitutions
+             (cons "__USER__" user-login-name))
+
+(add-to-list 'skeletor-global-substitutions
+             (cons "__EMAIL__" user-mail-address))
+
 
 (add-to-list 'skeletor-global-substitutions
              (cons "__COPYRIGHT__" (lambda () (format "nsaspy %s" (format-time-string "%c")))))
 (add-to-list 'skeletor-global-substitutions
              (cons "__TIME__" (lambda () (format-time-string "%c"))))
+
+(add-to-list 'skeletor-global-substitutions
+             (cons "__DESCRIPTION__"
+                   (lambda () (read-string "Enter description: "))))
 
 (defun nsa/init-git-project (dir)
   (let ((default-directory dir))

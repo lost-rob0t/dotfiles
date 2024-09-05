@@ -1,3 +1,18 @@
 #+title: Readme
 
- Copyright (c) __YEAR__ __USER-NAME__.
+* __PROJECT-NAME__
+
+** Summary
+__DESCRIPTION__
+
+** Install
+
+#+Name: build
+#+begin_src shell :async :results output replace
+make build;
+#+end_src
+
+
+
+
+ Copyright (c) __YEAR__ __USER__.

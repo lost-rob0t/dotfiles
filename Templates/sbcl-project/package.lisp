@@ -1,3 +1,3 @@
-(uiop:define-package   :__PROJECT_NAME__
+(uiop:define-package   :__PROJECT-NAME__
   (:use       :cl)
-  (:documentation "__PROJECT_DESCRIPTION__"))
+  (:documentation "__PROJECT-DESCRIPTION__"))
