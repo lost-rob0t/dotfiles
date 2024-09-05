@@ -283,6 +283,10 @@ Get weather from the government
 
 
 #+end_src
+** skeletor.el
+#+begin_src emacs-lisp
+(package! skeletor)
+#+end_src
 * Lib packages
 ** plz
 plz is an HTTP library for Emacs. It uses curl as a backend, which avoids some of the issues with using Emacs’s built-in url library.

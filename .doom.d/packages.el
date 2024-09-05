@@ -101,6 +101,8 @@
 
 (package! yasnippet-snippets)
 
+(package! skeletor)
+
 (package! plz :recipe (:type git :host github :repo "alphapapa/plz.el"))
 
 (package! ts :recipe (:type git :host github :repo "alphapapa/ts.el"))
