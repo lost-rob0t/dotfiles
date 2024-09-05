@@ -158,7 +158,7 @@ force_xinerama = false
 Mouse actions, left click opens them. Middle to open the context menu, right close all.
 #+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
 mouse_left_click = do_action, close_current, open_url
-mouse_middle_click = close_current, context
+mouse_middle_click = do_action
 mouse_right_click = close_all
 #+end_src
 
