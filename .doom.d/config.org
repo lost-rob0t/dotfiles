@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-08-29 Thu 06:33]
+#+LAST_MODIFIED: [2024-09-05 Thu 02:20]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -1274,7 +1274,37 @@ Ensure Auto complete is running and ensure correct company backend is running
                         :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))))
 
 #+end_src
+** Skeletor
+Skeletor is a project template package.
 
+#+begin_src emacs-lisp
+(require 'skeletor)
+(setq skeletor-user-directory "~/.dotfiles/Templates/")
+#+end_src
+
+Some common substitions
+
+#+begin_src emacs-lisp
+(add-to-list 'skeletor-global-substitutions
+             (cons "__HOME__" (getenv "HOME")))
+
+(add-to-list 'skeletor-global-substitutions
+             (cons "__COPYRIGHT__" (lambda () (format "nsaspy %s" (format-time-string "%c")))))
+(add-to-list 'skeletor-global-substitutions
+             (cons "__TIME__" (lambda () (format-time-string "%c"))))
+#+end_src
+
+*** Project Templates
+**** SBCL
+#+begin_src emacs-lisp
+(defun nsa/init-git-project (dir)
+  (let ((default-directory dir))
+    (envrc-allow)))
+
+(skeletor-define-template "sbcl-project" :title "Common Lisp (SBCL)"
+                          :after-creation (lambda (dir)
+                                            (nsa/init-git-project dir)))
+#+end_src
 * Libraries :lib::programming::lisp:
 *** f.el :lisp:
 Much inspired by @magnarss excellent s.el and dash.el, f.el is a modern API for working with files and directories in Emacs.

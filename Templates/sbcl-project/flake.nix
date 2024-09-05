@@ -1,5 +1,5 @@
 {
-  description = "project desc";
+  description = "__PROJECT_DESCRIPTION__";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs";

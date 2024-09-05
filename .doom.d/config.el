@@ -721,6 +721,25 @@ strings."
                         :host "localhost:1234"
                         :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))))
 
+(require 'skeletor)
+(setq skeletor-user-directory "~/.dotfiles/Templates/")
+
+(add-to-list 'skeletor-global-substitutions
+             (cons "__HOME__" (getenv "HOME")))
+
+(add-to-list 'skeletor-global-substitutions
+             (cons "__COPYRIGHT__" (lambda () (format "nsaspy %s" (format-time-string "%c")))))
+(add-to-list 'skeletor-global-substitutions
+             (cons "__TIME__" (lambda () (format-time-string "%c"))))
+
+(defun nsa/init-git-project (dir)
+  (let ((default-directory dir))
+    (envrc-allow)))
+
+(skeletor-define-template "sbcl-project" :title "Common Lisp (SBCL)"
+                          :after-creation (lambda (dir)
+                                            (nsa/init-git-project dir)))
+
 (require 'f)
 
 (require 'dash)
