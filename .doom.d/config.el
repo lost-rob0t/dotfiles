@@ -727,7 +727,7 @@ strings."
 (setq skeletor-user-directory "~/.dotfiles/Templates/")
 
 (add-to-list 'skeletor-global-substitutions
-             (cons "__HOME__" (getenv "home")))
+             (cons "__HOME__" (getenv "HOME")))
 
 (add-to-list 'skeletor-global-substitutions
              (cons "__USER__" user-login-name))
@@ -740,6 +740,9 @@ strings."
              (cons "__COPYRIGHT__" (lambda () (format "nsaspy %s" (format-time-string "%c")))))
 (add-to-list 'skeletor-global-substitutions
              (cons "__TIME__" (lambda () (format-time-string "%c"))))
+
+(add-to-list 'skeletor-global-substitutions
+             (cons "__BIN-NAME__" (lambda () (format-time-string "%c"))))
 
 (add-to-list 'skeletor-global-substitutions
              (cons "__DESCRIPTION__"
