@@ -27,7 +27,7 @@
     cloc
 
     sbcl
-
+    j4-dmenu-desktop
     #hackerman
     webanalyze
     wafw00f
