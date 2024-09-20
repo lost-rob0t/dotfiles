@@ -112,8 +112,13 @@
     };
     pipewire = {
       enable = true;
+      pulse.enable = true;
+      alsa = {
+        enable = true;
+        support32Bit = true;
+      };
       audio = {
-        enable = false;
+        enable = true;
       };
     };
     # TODO add scripts here

@@ -67,7 +67,7 @@
     };
 
   pulseaudio = {
-      enable = true;
+      enable = false;
   };
 
   graphics.extraPackages = with pkgs; [
