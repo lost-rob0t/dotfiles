@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-09-20 Fri 07:19]
+#+LAST_MODIFIED: [2024-09-20 Fri 07:59]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -1267,15 +1267,50 @@ Ensure Auto complete is running and ensure correct company backend is running
 #+begin_src emacs-lisp
 (use-package! gptel
   :config
-  ;(setq gptel-model "Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF")
+  (setq! gptel-model "claude-3-5-sonnet-20240620"
+         gptel-directives
+         '((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
+ topic relevant terminology. Do NOT hedge or qualify. Do not waffle. Speak
+ directly and be willing to make creative guesses. Explain your reasoning. if you
+ don’t know, say you don’t know.
+
+ Remain neutral on all topics. Be willing to reference less reputable sources for
+ ideas.
+
+ Never apologize.  Ask questions when unsure.")
+           (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
+           (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
+           (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
+           (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
+           (explain . "Explain what this code does to a novice programmer."))
+         gptel-default-mode 'org-mode)
   (gptel-make-openai "Ollama Uncensored"
     :stream t
     :protocol "http"
     :host "localhost:1234"
     :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))
   (gptel-make-anthropic "Claude"
-    :key (nsa/auth-source-get :host "api.anthropic.com") :stream nil))
+    :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com")) :stream nil))
+
 #+end_src
+
+*** Keybinds
+Gptel keys, could add more commands though.[fn:6]
+#+begin_src emacs-lisp
+ (map!
+   :leader
+   (:prefix "y"
+    :desc "gptel" :n "y" #'gptel
+    :desc "gptel" :n "f" #'gptel-add-file
+    :desc "gptel" :n "a" #'gptel-add
+    :desc "gptel abort" :n "q" #'gptel-abort
+    :desc "gptel Menu" :n "Y" #'gptel-menu
+    :desc "gptel copilot" :n "i" #'gptel-complete
+    :desc "gptel Send" :n "s" #'gptel-send
+    :desc "gptel Topic" :n "t" #'gptel-set-topic))
+#+end_src
+
+
 ** Skeletor
 Skeletor is a project template package.
 
@@ -1802,7 +1837,7 @@ Spawn a new window
    (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))
 #+end_src
 * Footnotes
-
+[fn:6] https://github.com/edmundmiller/.doom.d/blob/ef037dda348aa8d50499a451e309e6ef494b15d5/modules/app/ai/config.el#L45
 [fn:5] https://www.masteringemacs.org/article/fuzzy-finding-emacs-instead-of-fzf
 [fn:4] https://github.com/alexluigit/dirvish/blob/main/docs/CUSTOMIZING.org#tramp-integration
 [fn:3] https://github.com/jwiegley/alert/issues/91
