@@ -717,6 +717,7 @@ strings."
 (use-package! gptel
   :config
   (setq! gptel-model "claude-3-5-sonnet-20240620"
+         gptel-backend (gptel-make-anthropic "Claude" :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com")) :stream nil)
          gptel-directives
          '((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
  topic relevant terminology. Do NOT hedge or qualify. Do not waffle. Speak
@@ -738,8 +739,7 @@ strings."
     :protocol "http"
     :host "localhost:1234"
     :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))
-  (gptel-make-anthropic "Claude"
-    :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com")) :stream nil))
+  )
 
  (map!
    :leader
