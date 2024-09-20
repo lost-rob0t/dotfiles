@@ -189,8 +189,9 @@ strings."
   (interactive "MEnter Shell Command: ")
   (async-shell-command  (format "%s && dunstify \"%s\" \"Finished!\" " cmd (car  (split-string cmd))) buffer error-buffer))
 
-
-
+(defun nsa/auth-source-get (&rest keys)
+  "Fetch KEYS from auth-source"
+  (funcall (plist-get (car (apply #'auth-source-search keys)) :secret)))
 
 
 (provide 'saved)

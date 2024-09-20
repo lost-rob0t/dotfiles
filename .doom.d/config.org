@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-09-05 Thu 17:25]
+#+LAST_MODIFIED: [2024-09-20 Fri 07:19]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -1264,17 +1264,17 @@ Ensure Auto complete is running and ensure correct company backend is running
         '(tramp-own-remote-path)))
 #+end_src
 ** GPTEL
-
 #+begin_src emacs-lisp
 (use-package! gptel
   :config
-  (setq gptel-model "Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF")
-  (setq gptel-backend (gptel-make-openai "Ollama Uncensored"
-                        :stream t
-                        :protocol "http"
-                        :host "localhost:1234"
-                        :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))))
-
+  ;(setq gptel-model "Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF")
+  (gptel-make-openai "Ollama Uncensored"
+    :stream t
+    :protocol "http"
+    :host "localhost:1234"
+    :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))
+  (gptel-make-anthropic "Claude"
+    :key (nsa/auth-source-get :host "api.anthropic.com") :stream nil))
 #+end_src
 ** Skeletor
 Skeletor is a project template package.

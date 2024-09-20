@@ -716,12 +716,14 @@ strings."
 
 (use-package! gptel
   :config
-  (setq gptel-model "Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF")
-  (setq gptel-backend (gptel-make-openai "Ollama Uncensored"
-                        :stream t
-                        :protocol "http"
-                        :host "localhost:1234"
-                        :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))))
+  ;(setq gptel-model "Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF")
+  (gptel-make-openai "Ollama Uncensored"
+    :stream t
+    :protocol "http"
+    :host "localhost:1234"
+    :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))
+  (gptel-make-anthropic "Claude"
+    :key (nsa/auth-source-get :host "api.anthropic.com") :stream nil))
 
 (require 'skeletor)
 (setq skeletor-user-directory "~/.dotfiles/Templates/")
