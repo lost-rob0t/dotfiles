@@ -8,10 +8,10 @@
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usb_storage" "usbhid" "sd_mod" ];
+  boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usb_storage" "usbhid" "sd_mod" "rtl8812au" ];
   boot.initrd.kernelModules = [ "dm-snapshot" ];
   boot.kernelModules = [ "kvm-amd" ];
-  boot.extraModulePackages = [ ];
+  boot.extraModulePackages = with config.boot.kernelPackages; [ rtl8812au ];
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/0b67f502-a60c-415b-8ffe-81549c99a207";
@@ -42,11 +42,9 @@
 	device = "/dev/disk/by-uuid/d2c146aa-ceef-4a10-a6aa-fdb8fb9f85ac";
 	preLVM = false;
 };
-#  boot.initrd.luks.devices."dm-swap".device = "/dev/disk/by-uuid/5b0573d9-2aad-4fbd-8f72-b46831b66f4a";
+boot.initrd.luks.devices."dm-swap".device = "/dev/disk/by-uuid/5b0573d9-2aad-4fbd-8f72-b46831b66f4a";
 
-#  swapDevices =
-#    [ { device = "/dev/disk/by-uuid/7b243470-d8ef-4921-9e6e-22016d684cb2"; }
-#    ];
+#swapDevices = [ { device = "/dev/disk/by-uuid/7b243470-d8ef-4921-9e6e-22016d684cb2"; }];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
   # (the default) this is the recommended approach. When using systemd-networkd it's
@@ -65,10 +63,6 @@
       powerOnBoot = true;
 
     };
-
-  pulseaudio = {
-      enable = false;
-  };
 
   graphics.extraPackages = with pkgs; [
     rocm-opencl-icd

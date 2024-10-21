@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-09-20 Fri 08:04]
+#+LAST_MODIFIED: [2024-10-21 Mon 13:05]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -68,7 +68,7 @@ This section tangles the init file
        ;;tabs              ; a tab bar for Emacs
        treemacs          ; a project drawer, like neotree but cooler
        unicode           ; extended unicode support for various languages
-       ;(vc-gutter +pretty) ; vcs diff in the fringe
+       (vc-gutter +pretty) ; vcs diff in the fringe
        vi-tilde-fringe   ; fringe tildes to mark beyond EOB
        ;;window-select     ; visually switch windows
        workspaces        ; tab emulation, persistence & separate workspaces
@@ -1382,70 +1382,6 @@ The long lost Emacs string manipulation library.
 * Programming
 
 This section would not fit well, therefor it is in its own.
-** Codeium AI power completions
-<2023-11-07 Tue> I might remove this if i never use it.
-#+begin_src emacs-lisp
-;; (use-package codeium                    ;
-;;     ;; if you use straight
-;;     ;; :straight '(:type git :host github :repo "Exafunction/codeium.el")
-;;     ;; otherwise, make sure that the codeium.el file is on load-path
-
-;;     :init
-;;     ;; use globally
-;;     ;(add-to-list 'completion-at-point-functions #'codeium-completion-at-point)
-;;     ;; or on a hook
-;;     (add-hook 'python-mode-hook
-;;          (lambda ()
-;;              (setq-local completion-at-point-functions '(codeium-completion-at-point))))
-
-;;     ;; if you want multiple completion backends, use cape (https://github.com/minad/cape):
-;;     ;; (add-hook 'python-mode-hook
-;;     ;;     (lambda ()
-;;     ;;         (setq-local completion-at-point-functions
-;;     ;;             (list (cape-super-capf #'codeium-completion-at-point #'lsp-completion-at-point)))))
-;;     ;; an async company-backend is coming soon!
-
-;;     ;; codeium-completion-at-point is autoloaded, but you can
-;;     ;; optionally set a timer, which might speed up things as the
-;;     ;; codeium local language server takes ~0.2s to start up
-;;     ;; (add-hook 'emacs-startup-hook
-;;     ;;  (lambda () (run-with-timer 0.1 nil #'codeium-init)))
-
-;;     ;; :defer t ;; lazy loading, if you want
-;;     :config
-;;     (setq use-dialog-box nil) ;; do not use popup boxes
-
-;;     ;; if you don't want to use customize to save the api-key
-;;     ;; (setq codeium/metadata/api_key "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
-
-;;     ;; get codeium status in the modeline
-;;     (setq codeium-mode-line-enable
-;;         (lambda (api) (not (memq api '(CancelRequest Heartbeat AcceptCompletion)))))
-;;     (add-to-list 'mode-line-format '(:eval (car-safe codeium-mode-line)) t)
-;;     ;; alternatively for a more extensive mode-line
-;;     ;; (add-to-list 'mode-line-format '(-50 "" codeium-mode-line) t)
-
-;;     ;; use M-x codeium-diagnose to see apis/fields that would be sent to the local language server
-;;     (setq codeium-api-enabled
-;;         (lambda (api)
-;;             (memq api '(GetCompletions Heartbeat CancelRequest GetAuthToken RegisterUser auth-redirect AcceptCompletion))))
-;;     ;; you can also set a config for a single buffer like this:
-;;     ;; (add-hook 'python-mode-hook
-;;     ;;     (lambda ()
-;;     ;;         (setq-local codeium/editor_options/tab_size 4)))
-
-;;     ;; You can overwrite all the codeium configs!
-;;     ;; for example, we recommend limiting the string sent to codeium for better performance
-;;     (defun my-codeium/document/text ()
-;;         (buffer-substring-no-properties (max (- (point) 3000) (point-min)) (min (+ (point) 1000) (point-max))))
-;;     ;; if you change the text, you should also change the cursor_offset
-;;     ;; warning: this is measured by UTF-8 encoded bytes
-;;     (defun my-codeium/document/cursor_offset ()
-;;         (codeium-utf8-byte-length
-;;             (buffer-substring-no-properties (max (- (point) 3000) (point-min)) (point))))
-;;     (setq codeium/document/text 'my-codeium/document/text)
-;;     (setq codeium/document/cursor_offset 'my-codeium/document/cursor_offset))
-#+end_src
 ** Python
 
 Set the exec path for pyright
@@ -1485,11 +1421,6 @@ Update the rev and sha of a fetchgit package
 ;;         (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
 #+end_src
 ** Nim
-FlyCheck nim
-Does this even do anything?
-#+begin_src emacs-lisp
-;(require 'flycheck-nim)
-#+end_src
 
 hook lsp to nim lsp
 [[https://gist.github.com/cyraxjoe/9001fcc5d2de0669d7e0d27f7a49ee90][source]], [[https://www.reddit.com/r/nim/comments/dr0ph0/setting_up_nimlsp_in_emacs/][reddit comment]].

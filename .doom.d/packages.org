@@ -154,15 +154,18 @@ A GNU Emacs library which uses direnv to set environment variables on a per-buff
 ***** Nim Mode
 Doom's Version is way too old.
 #+begin_src emacs-lisp
-(unpin! nim-mode)
-(unpin! nim-mode :pin "1338e5b0d5e111ad932efb77d3cad680cc3b86c9")
+;(unpin! nim-mode)
+;(unpin! nim-mode :pin "1338e5b0d5e111ad932efb77d3cad680cc3b86c9")
 #+end_src
 ***** flycheck-nim
 Flycheck-nim is a syntax checker definition for flycheck which supports the Nim programming language using the nim compiler as the backend.
 #+begin_src emacs-lisp
 ;;(package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
 #+end_src
-
+***** ob-nim
+#+begin_src emacs-lisp
+(package! ob-nim :recipe (:type git :host github :repo "Lompik/ob-nim"))
+#+end_src
 **** gForth
 major mode for gforth
 <2023-11-07 Tue> Not removing this, just not using it for now.

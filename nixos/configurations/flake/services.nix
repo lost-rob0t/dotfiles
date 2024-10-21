@@ -82,28 +82,11 @@
     gvfs = {
       enable = true;
     };
-    radicale = {
-      enable = false;
-      settings = {
-        server.hosts = [ "0.0.0.0:5232" ];
-        auth = {
-          type = "htpasswd";
-          htpasswd_filename = "/admin/htpasswd/radical_httppassword";
-          # hash function used for passwords. May be `plain` if you don't want to hash the passwords
-          htpasswd_encryption = "bcrypt";
-        };
-      };
-    };
     geoclue2 = {
       enable = true;
     };
     fstrim = {
       enable = true;
-    };
-
-    mastodon = {
-      enable = false;
-      webPort = "8090";
     };
 
     flatpak = {
@@ -122,8 +105,9 @@
       };
     };
     # TODO add scripts here
-    cron = {
+    sunshine = {
       enable = true;
+
     };
   };
   virtualisation = {

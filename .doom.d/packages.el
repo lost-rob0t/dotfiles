@@ -58,10 +58,12 @@
 
 (package! protobuf-mode)
 
-(unpin! nim-mode)
-(unpin! nim-mode :pin "1338e5b0d5e111ad932efb77d3cad680cc3b86c9")
+;(unpin! nim-mode)
+;(unpin! nim-mode :pin "1338e5b0d5e111ad932efb77d3cad680cc3b86c9")
 
 ;;(package! flycheck-nim :recipe (:type git :host github :repo "ALSchwalm/flycheck-nim"))
+
+(package! ob-nim :recipe (:type git :host github :repo "Lompik/ob-nim"))
 
 ;(package! gforth.el :recipe (:type git :host github :repo "smtlaissezfaire/gforth.el"))
 
