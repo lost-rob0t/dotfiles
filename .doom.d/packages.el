@@ -105,6 +105,8 @@
 
 (package! skeletor)
 
+(package! bui)
+
 (package! plz :recipe (:type git :host github :repo "alphapapa/plz.el"))
 
 (package! ts :recipe (:type git :host github :repo "alphapapa/ts.el"))
@@ -119,19 +121,15 @@
 
 (package! emacs-async :recipe (:type git :host github :repo "jwiegley/emacs-async"))
 
-(package! triples :recipe (:type git :host github :repo "ahyatt/triples"))
-
 (package! emacsql :recipe (:type git :host github :repo "magit/emacsql"))
-
-(package! msgpack.el :recipe (:type git :host github :repo "xuchunyang/msgpack.el"))
-
-(package! emacs-kv :recipe (:type git :host github :repo "nicferrier/emacs-kv"))
 
 (package! jeison)
 
 (package! org-contrib)
 
 (package! ppcre2el :recipe (:type git :host github :repo "joddie/pcre2el"))
+
+(package! asoc :recipe (:type git :host github :repo "troyp/asoc.el"))
 
 (package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
 
