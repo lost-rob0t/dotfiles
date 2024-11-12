@@ -1,1 +1,0 @@
-/home/unseen/.dotfiles/.config/qtile/scripts/anon.sh
