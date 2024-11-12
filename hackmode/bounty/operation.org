@@ -1,0 +1,2 @@
+#+title: Operation
+* TODO New hackmode template

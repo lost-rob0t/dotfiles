@@ -1,0 +1,11 @@
+#+title: Tasks
+
+* Init
+
+#+Name: Create a Git repo for this project
+#+begin_src sh :results output replace
+git init .
+#+end_src
+
+
+* TODO Combine my old templates....
