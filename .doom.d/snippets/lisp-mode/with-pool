@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: with-pool
+# key: with-pool
+# contributor: nsaspy
+# --
+
+(anypool:with-connection (${1:*pool*} ${2:client}) $0)

@@ -1,0 +1,44 @@
+#    -*- mode: org -*-
+
+
+Archived entries from file /home/unseen/.dotfiles/.doom.d/packages.org
+
+
+* Message pack
+:PROPERTIES:
+:ARCHIVE_TIME: 2024-11-10 Sun 11:19
+:ARCHIVE_FILE: ~/.dotfiles/.doom.d/packages.org
+:ARCHIVE_OLPATH: Lib packages
+:ARCHIVE_CATEGORY: packages
+:END:
+msgpack.el is an Emacs Lisp library for reading and writing MessagePack.
+#+begin_src emacs-lisp
+;(package! msgpack.el :recipe (:type git :host github :repo "xuchunyang/msgpack.el"))
+#+end_src
+
+* emacs-kv
+:PROPERTIES:
+:ARCHIVE_TIME: 2024-11-10 Sun 11:25
+:ARCHIVE_FILE: ~/.dotfiles/.doom.d/packages.org
+:ARCHIVE_OLPATH: Lib packages
+:ARCHIVE_CATEGORY: packages
+:END:
+A collection of tools for dealing with key/value data structures such as plists, alists and hash-tables.
+Required by emacs-db
+#+begin_src emacs-lisp
+(package! emacs-kv :recipe (:type git :host github :repo "nicferrier/emacs-kv"))
+#+end_src
+
+* triples
+:PROPERTIES:
+:ARCHIVE_TIME: 2024-11-10 Sun 11:28
+:ARCHIVE_FILE: ~/.dotfiles/.doom.d/packages.org
+:ARCHIVE_OLPATH: Lib packages
+:ARCHIVE_CATEGORY: packages
+:END:
+db module based on sqlite
+
+Testing it out for hackmode, might remove later
+#+begin_src emacs-lisp
+(package! triples :recipe (:type git :host github :repo "ahyatt/triples"))
+#+end_src
