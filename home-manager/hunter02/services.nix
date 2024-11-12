@@ -2,9 +2,6 @@
 
 {
   services = {
-    pantalaimon = {
-      enable = false;
-    };
     emacs = {
       enable = true;
     };
