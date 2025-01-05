@@ -741,6 +741,12 @@ strings."
     :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))
   )
 
+(defun +gptel/here ()
+  "Spawn maximized gptel buffer."
+  (interactive)
+  (call-interactively #'gptel)
+  (doom/window-maximize-buffer))
+
  (map!
    :leader
    (:prefix "y"

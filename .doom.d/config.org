@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-10-21 Mon 16:59]
+#+LAST_MODIFIED: [2024-11-25 Mon 12:56]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -76,7 +76,7 @@ This section tangles the init file
 
        :editor
        (evil +everywhere); come to the dark side, we have cookies
-       file-templates    ; auto-snippets for empty files
+       ;file-templates    ; auto-snippets for empty files
        fold              ; (nigh) universal code folding
        (format +onsave)  ; automated prettiness
        ;;god               ; run Emacs commands without modifier keys
@@ -1293,7 +1293,15 @@ Ensure Auto complete is running and ensure correct company backend is running
   )
 
 #+end_src
-
+*** Commans
+Spawn a maximized window.
+#+begin_src emacs-lisp
+(defun +gptel/here ()
+  "Spawn maximized gptel buffer."
+  (interactive)
+  (call-interactively #'gptel)
+  (doom/window-maximize-buffer))
+#+end_src
 *** Keybinds
 Gptel keys, could add more commands though.[fn:6]
 #+begin_src emacs-lisp
