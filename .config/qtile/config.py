@@ -171,6 +171,10 @@ keys = [
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(lish-vterm)'"),
                  desc='Emacsclient Vterm'
                  ),
+             Key([], "y",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(+gptel/here)'"),
+                 desc='Emacsclient Vterm'
+                 ),
          ])
  ]
 
