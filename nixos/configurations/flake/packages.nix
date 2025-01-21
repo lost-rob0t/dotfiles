@@ -101,7 +101,6 @@
     wineWowPackages.staging
     winetricks
     faudio
-    xboxdrv
     qjoypad
     sunshine
     ##(winetricks.override { wine = wineWowPackages.staging; })

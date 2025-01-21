@@ -72,7 +72,6 @@
     wineWowPackages.staging
     winetricks
     faudio
-    xboxdrv
     qjoypad
     ##(winetricks.override { wine = wineWowPackages.staging; })
 

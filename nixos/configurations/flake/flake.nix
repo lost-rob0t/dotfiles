@@ -6,7 +6,7 @@
 
 {
   nix = {
-    package = pkgs.nixFlakes; # or versioned attributes like nix_2_7
+    package = pkgs.nixVersions.stable; # or versioned attributes like nix_2_7
     extraOptions = ''
       experimental-features = nix-command flakes
     '';
@@ -22,7 +22,7 @@
       ./services.nix
       ./networking.nix
       ./security.nix
-      ./misc.nix
+      #./misc.nix
     ];
 
   # Boot config

@@ -376,6 +376,16 @@ function list-hackmode-settings () {
 
 alias cdhm="cd $HACKMODE_PATH"
 
+export XDG_CACHE_HOME="$HOME/.cache"
+export XDG_CONFIG_HOME="$HOME/.config"
+export XDG_DATA_HOME="$HOME/.local/share"
+export ANSIBLE_HOME="${XDG_CONFIG_HOME}/ansible"
+export ANSIBLE_CONFIG="${XDG_CONFIG_HOME}/ansible.cfg"
+export ANSIBLE_GALAXY_CACHE_DIR="${XDG_CACHE_HOME}/ansible/galaxy_cache"
+export RECOLL_CONFDIR="$XDG_CONFIG_HOME/recoll"
+export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
+export _JAVA_OPTIONS=-Djava.util.prefs.userRoot="$XDG_CONFIG_HOME"/java
+
 function fancy-shell () {
     eval "$(direnv hook bash)"
     eval "$(starship init bash)"

@@ -1,9 +1,9 @@
-{ config, lib, pkgs, ... }:
+# { config, lib, pkgs, ... }:
 
-{
-  fonts = {
-    packages = with pkgs; [
-      nerdfonts
-    ];
-  };
-}
+# {
+#   fonts = {
+#     packages = with pkgs; [
+#       nerdfonts.
+#     ];
+#   };
+# }
