@@ -600,6 +600,8 @@ esac
 
 #+end_src
 * Footnotes
+
+[fn:4] https://wiki.archlinux.org/title/XDG_Base_Directory
 [fn:3] https://gitlab.com/dwt1/dotfiles/-/blob/master/.bashrc?ref_type=heads
 
 [fn:2] https://taingram.org/blog/emacs-client.html
