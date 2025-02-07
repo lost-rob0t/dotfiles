@@ -13,21 +13,17 @@
 
     # Emacs Overlay
     emacs-overlay.url = "github:nix-community/emacs-overlay";
-
-
-    # TODO: Add any other flake you might need
     hardware.url = "github:nixos/nixos-hardware";
-
     # For games
     mousetrap.url = "github:lost-rob0t/Mousetrap";
     # Shameless plug: looking for a way to nixify your themes and make
     # everything match nicely? Try nix-colors!
     # nix-colors.url = "github:misterio77/nix-colors";
     nix-pre-commit.url = "github:jmgilman/nix-pre-commit";
-    nimble.url = "github:lost-rob0t/flake-nimble";
+    #nimble.url = "github:lost-rob0t/flake-nimble";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, nimble, ... }@inputs:
+  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, ... }@inputs:
     let
       inherit (self) outputs;
       forAllSystems = nixpkgs.lib.genAttrs [
@@ -135,32 +131,29 @@
           pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
-            # > Our main home-manager configuration file <
-            ./home-manager/desktop/home.nix
+            ./home-manager/systems/desktop/home.nix
+            # TODO Import all the stuff HERE
           ];
         };
         "unseen@phone" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
-            # > Our main home-manager configuration file <
-            ./home-manager/phone/home.nix
+            ./home-manager/systems/phone/home.nix
           ];
         };
         "unseen@hunter02" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
-            # > Our main home-manager configuration file <
-            ./home-manager/hunter02/home.nix
+            ./home-manager/systems/systems/hunter02/home.nix
           ];
         };
         "unseen@fenrir" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
-            # > Our main home-manager configuration file <
-            ./home-manager/fenrir/home.nix
+            ./home-manager/systems/fenrir/home.nix
           ];
         };
       };
