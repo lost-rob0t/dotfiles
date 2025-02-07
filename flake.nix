@@ -131,8 +131,8 @@
           pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
-            ./home-manager/systems/desktop/home.nix
-            ./home-manager/global/global.nix
+            ./nix/home-manager/systems/desktop/home.nix
+            ./nix/home-manager/global/global.nix
             # TODO Import all the stuff HERE
           ];
         };
@@ -140,21 +140,21 @@
           pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
-            ./home-manager/systems/phone/home.nix
+            ./nix/home-manager/systems/phone/home.nix
           ];
         };
         "unseen@hunter02" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
-            ./home-manager/systems/systems/hunter02/home.nix
+            ./nix/home-manager/systems/systems/hunter02/home.nix
           ];
         };
         "unseen@fenrir" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
-            ./home-manager/systems/fenrir/home.nix
+            ./nix/home-manager/systems/fenrir/home.nix
           ];
         };
       };
