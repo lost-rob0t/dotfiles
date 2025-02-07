@@ -79,15 +79,6 @@
 
           ];
         };
-        flake-kde = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs outputs; };
-          modules = [
-            # > Our main nixos configuration file <
-            ./nix/nixos-systems/flake/flake.nix
-            ./nix/nixos-systems/flake/flake-kde.nix
-
-          ];
-        };
         flake-budgie = nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs outputs; };
           modules = [
@@ -97,15 +88,7 @@
 
           ];
         };
-        flake-lxqt = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs outputs; };
-          modules = [
-            # > Our main nixos configuration file <
-            ./nix/nixos-systems/flake/flake.nix
-            ./nix/nixos-systems/flake/flake-lxqt.nix
 
-          ];
-        };
       };
       # Standalone home-manager configuration entrypoint
       # Available through 'home-manager --flake .#your-username@your-hostname'
