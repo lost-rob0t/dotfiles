@@ -65,8 +65,8 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
-            ./nixos/configurations/flake/flake.nix
-            ./nixos/configurations/flake/flake-qtile.nix
+            ./nix/nixos-systems/flake/flake.nix
+            ./nix/nixos-systems/flake/flake-qtile.nix
 
           ];
         };
@@ -74,8 +74,8 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
-            ./nixos/configurations/flake/flake.nix
-            ./nixos/configurations/flake/flake-qtile.nix
+            ./nix/nixos-systems/flake/flake.nix
+            ./nix/nixos-systems/flake/flake-qtile.nix
 
           ];
         };
@@ -83,8 +83,8 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
-            ./nixos/configurations/flake/flake.nix
-            ./nixos/configurations/flake/flake-kde.nix
+            ./nix/nixos-systems/flake/flake.nix
+            ./nix/nixos-systems/flake/flake-kde.nix
 
           ];
         };
@@ -92,8 +92,8 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
-            ./nixos/configurations/flake/flake.nix
-            ./nixos/configurations/flake/flake-budgie.nix
+            ./nix/nixos-systems/flake/flake.nix
+            ./nix/nixos-systems/flake/flake-budgie.nix
 
           ];
         };
@@ -101,8 +101,8 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
-            ./nixos/configurations/flake/flake.nix
-            ./nixos/configurations/flake/flake-lxqt.nix
+            ./nix/nixos-systems/flake/flake.nix
+            ./nix/nixos-systems/flake/flake-lxqt.nix
 
           ];
         };
@@ -110,7 +110,7 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
-            ./nixos/configurations/fenrir/fenrir.nix
+            ./nix/nixos-systems/fenrir/fenrir.nix
             nixos-hardware.nixosModules.common-gpu-intel-disable
           ];
         };
@@ -118,7 +118,7 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             # > Our main nixos configuration file <
-            ./nixos/configurations/kiosk-top/kiosk-top.nix
+            ./nix/nixos-systems/kiosk-top/kiosk-top.nix
             nixos-hardware.nixosModules.common-gpu-intel-disable
           ];
         };
@@ -132,6 +132,7 @@
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
             ./home-manager/systems/desktop/home.nix
+            ./home-manager/global/global.nix
             # TODO Import all the stuff HERE
           ];
         };

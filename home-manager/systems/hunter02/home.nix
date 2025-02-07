@@ -4,6 +4,7 @@
   imports = [
     ../global/global.nix
     ./programs.nix
+    ./services.nix
   ];
 
   nixpkgs = {
@@ -16,9 +17,9 @@
     };
   };
   home = {
-    username = "unseen";
-    homeDirectory = "/home/unseen";
-    stateVersion = "23.11";
+  username = "unseen";
+  homeDirectory = "/home/unseen";
+  stateVersion = "22.05";
   };
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage
@@ -31,5 +32,5 @@
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
-
+  fonts.fontconfig.enable = true;
 }

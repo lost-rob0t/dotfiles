@@ -21,7 +21,7 @@
     sbcl
     erlang
     pre-commit
-    swiProlog
+    swi-prolog
     gnuplot
     ansible
     graphviz
@@ -59,7 +59,6 @@
     mindustry
     activitywatch
     # FIXME nyxt
-    webkitgtk
     remmina
     freerdp
     sqlitebrowser
@@ -69,7 +68,7 @@
     virt-viewer
     bookworm
     libsForQt5.kdeconnect-kde
-    inputs.nixpkgs-stable.legacyPackages.x86_64-linux.ntfy # send notifications
+    ntfy
 
     # Security
     hcxtools
@@ -131,9 +130,9 @@
         pkgs.mediainfo #audio previews
         pkgs.mpv # for bongo
         pkgs.pyright
-        pkgs.python310
+        pkgs.python313
         pkgs.pylint
-        pkgs.python310Packages.flake8
+        pkgs.python313Packages.flake8
         pkgs.mu # Email for mu4e
         pkgs.isync
         pkgs.fetchmail
