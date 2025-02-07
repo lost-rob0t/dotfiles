@@ -5,7 +5,7 @@
 ;; Author:  <nsaspy@airmail.cc>
 ;; Maintainer:  <nsaspy@airmail.cc>
 ;; Created: July 02, 2023
-;; Modified: July 02, 2023
+;; Modified: January 24, 2025
 ;; Version: 0.3.0
 ;; Keywords: music yt-dlp youtube
 ;; Homepage: https://github.com/lost-rob0t/yt-dlp
@@ -123,6 +123,29 @@
     (dolist (duplicate duplicates)
       (delete-file duplicate))
     (message "Removed %d duplicate song titles." (length duplicates))))
+
+
+(defun nsa/dl-album* ()
+  "Download a artist, but sort songs by metadata."
+  (interactive)
+  (let* (
+         (link (read-string "Url: " (current-kill 0)))
+         (genre (downcase (completing-read "genre: " nsa/genres nil nil)))
+         (output-dir (read-directory-name "Enter Output Dir: " nsa/music-dir))
+
+         (output-string (concat output-dir "%(artist,uploader|NA)s" "/%(album,playist|NA)s/%(track,title|NA)s.%(ext)s"))
+
+         (format-string (shell-quote-argument output-string))
+
+         (cmd (read-shell-command "cmd: " (format "yt-dlp --embed-metadata --audio-quality 0 -x --audio-format %s --embed-thumbnail --output %s %s "
+                                                  nsa/music-format format-string link))))
+
+    (nsa/music-append-link link genre)
+    (if (not (f-dir? output-dir))
+        (f-mkdir-full-path output-dir))
+    (nsa/async-shell-command-alert cmd "*yt-dlp*" "*yt-dlp*")))
+
+
 
 
 (provide 'yt-dlp)

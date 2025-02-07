@@ -38,6 +38,8 @@
 (add-to-list 'display-buffer-alist
   (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
 
+(setq org-src-tab-acts-natively nil)
+
 (defvar browse-url-brave-program "brave")
 (defvar browse-url-brave-arguments nil)
 

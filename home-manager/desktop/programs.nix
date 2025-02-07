@@ -51,7 +51,6 @@
     virtiofsd
 
     # Productivity
-    nerdfonts
     w3m
     cht-sh
     kleopatra

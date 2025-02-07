@@ -25,7 +25,7 @@
           pkgs.brave
           pkgs.firefox
           pkgs.emacs
-          pkgs.nerdfonts
+          #pkgs.nerdfonts
           pkgs.conky
           pkgs.emojione # wttr widget emojis
           pkgs.noto-fonts-emoji

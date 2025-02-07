@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2024-11-25 Mon 12:56]
+#+LAST_MODIFIED: [2025-02-06 Thu 22:06]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -288,6 +288,11 @@ Setting nerdfonts
 (add-to-list 'display-buffer-alist
   (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
 #+end_src
+** Stop stealing my point org mode![fn:7]
+#+begin_src emacs-lisp
+(setq org-src-tab-acts-natively nil)
+#+end_src
+
 * System config
 Here you will find desktop/system settings
 ** Brave Setup
@@ -1776,6 +1781,8 @@ Spawn a new window
    (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))
 #+end_src
 * Footnotes
+
+[fn:7] https://stackoverflow.com/a/74247928 [[https://archive.is/wip/kVJE6][archive.today]]  [[https://web.archive.org/web/20250207030422/https://stackoverflow.com/questions/71545357/cursor-disappears-after-completion-in-emacs/74247928#74247928][wayback machine]]
 [fn:6] https://github.com/edmundmiller/.doom.d/blob/ef037dda348aa8d50499a451e309e6ef494b15d5/modules/app/ai/config.el#L45
 [fn:5] https://www.masteringemacs.org/article/fuzzy-finding-emacs-instead-of-fzf
 [fn:4] https://github.com/alexluigit/dirvish/blob/main/docs/CUSTOMIZING.org#tramp-integration
