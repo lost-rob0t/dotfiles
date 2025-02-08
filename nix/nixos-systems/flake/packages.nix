@@ -94,21 +94,10 @@
     ## Android
     android-tools
     waydroid
-    ## Games
-    lutris
-    steam-run-native
-    winePackages.stagingFull
-    wineWowPackages.staging
-    winetricks
-    faudio
-    qjoypad
-    sunshine
-    ##(winetricks.override { wine = wineWowPackages.staging; })
-
     ## Programming
     pipenv
     direnv
-    python310
+    python313
     pyright
     pylint
     python310Packages.flake8
@@ -157,8 +146,6 @@
     spice-vdagent
 
     # Ricing related.
-    xsettingsd
-
 
   ];
 

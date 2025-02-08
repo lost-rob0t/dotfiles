@@ -2,7 +2,7 @@
 {
 
   imports = [
-    ./programs.nix
+    ../../mods/default.nix
   ];
 
   nixpkgs = {
@@ -14,6 +14,11 @@
       allowUnfreePredicate = (_: true);
     };
   };
+
+  emacs.enable = true;
+  security.enable = true;
+  desktop.enable = true;
+  rice.fonts.enable = true;
   home = {
     username = "unseen";
     homeDirectory = "/home/unseen";

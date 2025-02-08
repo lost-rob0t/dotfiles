@@ -21,6 +21,7 @@ in
 {
   imports = [
     ./services.nix
+    ../../mods/default.nix
   ];
   programs.git = {
     enable = true;

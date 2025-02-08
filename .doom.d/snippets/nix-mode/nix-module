@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: nix-module
+# key: nix-module
+# --
+
+\{ lib, pkgs, config, ... \}: \{
+  options = with lib; \{ $0 \};
+  config = with lib; \{\};
+
+\}

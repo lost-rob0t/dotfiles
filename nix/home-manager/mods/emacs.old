@@ -1,0 +1,61 @@
+{ lib, config, pkgs, ... }:
+
+with lib;
+
+let
+  cfg = home.nsaspy.emacs;
+
+
+in {
+  home.nsaspy.emacs.enable = mkEnableOption "Enable Emacs config";
+  config = mkIf cfg.enable {
+    home.file.".doom.d" = {
+        source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.dotfiles/.doom.d";
+        recursive = true;
+
+    };
+    programs.gpg.enable = true;
+    programs.emacs = {
+      enable = true;
+      extraPackages = epkgs: [
+        emacsDired # Desktop item
+        pkgs.shfmt
+        epkgs.khoj
+        epkgs.vterm
+        epkgs.direnv
+        epkgs.lsp-pyright
+        epkgs.pylint
+        epkgs.w3m
+        epkgs.pandoc
+        pkgs.nodePackages.bash-language-server
+        pkgs.roswell
+        epkgs.xclip
+        pkgs.aspell
+        pkgs.aspellDicts.en
+        pkgs.libnotify # for alert.el
+        pkgs.xdotool # for emacs everywhere
+        pkgs.ffmpegthumbnailer # Video thumbnails
+        pkgs.imagemagick #photo thumbnails
+        pkgs.mediainfo #audio previews
+        pkgs.mpv # for bongo
+        pkgs.pyright
+        # TODO we need a single source of truth for python versions!
+        pkgs.python311
+        pkgs.python311Packages.flake8
+        # Pwnagotchi.el
+        pkgs.hcxtools
+        pkgs.hashcat-utils
+        pkgs.hashcat
+        # Notifications
+        pkgs.libnotify
+        pkgs.coreutils
+        pkgs.zip
+        pkgs.rar
+        pkgs.ripgrep
+        pkgs.bash
+        pkgs.nodePackages_latest.graphql-language-service-cli
+        pkgs.recoll
+    ];
+    };
+  };
+}
