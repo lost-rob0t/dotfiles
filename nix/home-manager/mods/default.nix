@@ -6,7 +6,10 @@
     ./fonts.nix
     ./emacs.nix
     ./security.nix
-    #./pentesting.nix
-    #./font.nix
+    ./nim.nix
+    ./lisp.nix
+    ./python.nix
+    ./media.nix
+    ./pentesting.nix
   ];
 }

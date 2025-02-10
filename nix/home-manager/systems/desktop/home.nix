@@ -2,7 +2,8 @@
 {
 
   imports = [
-    ../../mods/default.nix
+    ./../../mods/default.nix
+    ./programs.nix
   ];
 
   nixpkgs = {
@@ -15,10 +16,29 @@
     };
   };
 
-  emacs.enable = true;
+  
+
+  emacs = {
+    enable = true;
+    # I mostly use magit hence configured in the ./nixos/mods/emacs.nix module
+    gitUser = "N545PY";
+    gitEmail = "nsaspy@fedora.email";
+    extraPackages = [];
+  };
   security.enable = true;
-  desktop.enable = true;
-  rice.fonts.enable = true;
+  desktop = {
+    # Enable Common sense apps
+    enable = true;
+    media.enable = true;
+    # Setup nerd fonts by default, set desktop.fonts
+    fonts.enable = true;
+  };
+
+  dev = {
+    nim.enable = true;
+    lisp.enable = true;
+    python.enable = true;
+  };
   home = {
     username = "unseen";
     homeDirectory = "/home/unseen";

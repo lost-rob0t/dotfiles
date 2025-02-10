@@ -14,24 +14,7 @@
         };
       };
     })
-    (self: super: {
-      qtile = super.qtile.unwrapped.override (old: {
-        propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ (with self.python3Packages; [
-          requests
-          pika
-          pkgs.sxhkd
-          pkgs.j4-dmenu-desktop
-          pkgs.dmenu
-          pkgs.brave
-          pkgs.firefox
-          pkgs.emacs
-          #pkgs.nerdfonts
-          pkgs.conky
-          pkgs.emojione # wttr widget emojis
-          pkgs.noto-fonts-emoji
-        ]);
-      });
-    })
+
 
     (self: super: {
       sbcl = super.sbcl.unwrapped.override (old: {
@@ -42,22 +25,6 @@
       });
     })
 
-    (self: super: {
-      mpv = super.mpv.override {
-        scripts = [ self.mpvScripts.thumbnail
-                    self.mpvScripts.sponsorblock
-                    self.mpvScripts.mpv-notify-send
-                    self.mpvScripts.videoclip
-                    self.mpvScripts.mpv-webm
-                    self.mpvScripts.memo
-                    self.mpvScripts.modernx
-                    self.mpvScripts.autocrop
-                    self.mpvScripts.quality-menu
-                    self.mpvScripts.mpris
-
-                  ];
-      };
-    })
 
   ];
   # nixpkgs.config.packageOverrides = pkgs: {
@@ -67,30 +34,15 @@
   # };
   environment.systemPackages = with pkgs; [
     # Utils
-    wget
-    bash
-    curl
-    git
     stow
     gcc
     clang
     cmake
-    ripgrep
-    htop
     atop
-    unzip
-    bash
-    zsh
-    p7zip
-    coreutils
     pandoc #emacs
     hunspellDicts.en_US
     xclip
-    aspell
-    (aspellWithDicts
-        (dicts: with dicts; [ en en-computers en-science  ]))
-    cifs-utils
-    pmutils # sleep/hibernate
+        cifs-utils
     ## Android
     android-tools
     waydroid
@@ -105,7 +57,6 @@
     nimlsp
     podman-compose
     sqlite
-    (python3.withPackages (ps: with ps; [ requests ]))
 
     ## Security
     tor-browser-bundle-bin
@@ -137,9 +88,7 @@
     libvirt
     dmenu
     #inputs.nixpkgs-stable.legacyPackages.x86_64-linux.blueman
-    blueman
-    bluez-tools
-    ## Nixos
+        ## Nixos
     nixos-generators
 
     ## Needed for spice aka virt-man
@@ -171,9 +120,10 @@
   programs.steam = {
     enable = true;
     remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
-    dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
   };
   programs.kdeconnect = {
     enable = true;
   };
+ programs.nix-ld.enable = true;
+
 }

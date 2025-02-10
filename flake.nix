@@ -64,30 +64,28 @@
         flake = nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs outputs; };
           modules = [
-            # > Our main nixos configuration file <
+            ./nix/nixos/mods/default.nix
             ./nix/nixos-systems/flake/flake.nix
-            ./nix/nixos-systems/flake/flake-qtile.nix
-
           ];
         };
-        flake-qtile = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs outputs; };
-          modules = [
-            # > Our main nixos configuration file <
-            ./nix/nixos-systems/flake/flake.nix
-            ./nix/nixos-systems/flake/flake-qtile.nix
+        # flake-qtile = nixpkgs.lib.nixosSystem {
+        #   specialArgs = { inherit inputs outputs; };
+        #   modules = [
+        #     # > Our main nixos configuration file <
+        #     ./nix/nixos/systems/flake/flake.nix
+        #     ./nix/nixos/systems/flake/flake-qtile.nix
 
-          ];
-        };
-        flake-budgie = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs outputs; };
-          modules = [
-            # > Our main nixos configuration file <
-            ./nix/nixos-systems/flake/flake.nix
-            ./nix/nixos-systems/flake/flake-budgie.nix
+        #   ];
+        # };
+        # flake-budgie = nixpkgs.lib.nixosSystem {
+        #   specialArgs = { inherit inputs outputs; };
+        #   modules = [
+        #     # > Our main nixos configuration file <
+        #     ./nix/nixos/systems/flake/flake.nix
+        #     ./nix/nixos/systems/flake/flake-budgie.nix
 
-          ];
-        };
+        #   ];
+        # };
 
       };
       # Standalone home-manager configuration entrypoint
@@ -98,7 +96,7 @@
           extraSpecialArgs = { inherit inputs outputs; };
           modules = [
             ./nix/home-manager/systems/desktop/home.nix
-            ./nix/home-manager/global/global.nix
+            #./nix/home-manager/global/global.nix
             # TODO Import all the stuff HERE
           ];
         };

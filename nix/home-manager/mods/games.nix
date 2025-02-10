@@ -1,4 +1,4 @@
-{ lib, pkgs, config, ... }: {
+{ lib, pkgs, inputs, config, ... }: {
   options = with lib; {
     gaming =
       {
@@ -19,7 +19,7 @@
       faudio
       qjoypad
       sunshine
-
+      inputs.mousetrap.defaultPackage.x86_64-linux
     ];
   };
 
