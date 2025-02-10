@@ -8,7 +8,9 @@
       default = true;
     };
       package = mkOption {
-        type =
+        type = types.package;
+        default = pkgs.emacs;
+        description = "Which emacs package to use?";
       };
     gitUser = mkOption {
       type = types.string;
@@ -60,7 +62,7 @@
     programs.emacs = {
       enable = true;
       package = config.emacs.package;
-      extraPackages = epkgs: ([
+      extraPackages = epkgs: [
         pkgs.shfmt
         epkgs.khoj
         epkgs.vterm
@@ -100,9 +102,7 @@
         pkgs.yt-dlp
 
         ## ensure emacs gets the fonts!
-      ] ++ (config.desktop.fonts.fontsList or [])
-        ++ (config.emacs.extraPackages or [])
-      );};
+      ];};
 
     xdg = mkIf config.emacs.diredXDG.enable {
       mimeApps = {
