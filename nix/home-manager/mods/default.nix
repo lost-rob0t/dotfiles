@@ -8,7 +8,7 @@
     ./security.nix
     ./nim.nix
     ./lisp.nix
-    ./python.nix
+    #./python.nix
     ./media.nix
     ./pentesting.nix
   ];
