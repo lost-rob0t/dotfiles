@@ -68,8 +68,6 @@
     virt-viewer
     bookworm
     libsForQt5.kdeconnect-kde
-    ntfy
-
     # Security
     hcxtools
     hashcat-utils
