@@ -32,13 +32,15 @@
     media.enable = true;
     # Setup nerd fonts by default, set desktop.fonts
     fonts.enable = true;
-  };
 
-  dev = {
-    nim.enable = true;
-    lisp.enable = true;
-    python.enable = true;
+    # TODO Allow module to pass specific folders/paths, for example my ebook dir
+    sync.enable = true;
   };
+    dev = {
+      nim.enable = true;
+      common-lisp.enable = true;
+      # TODO finish python.enable = true;
+    };
   home = {
     username = "unseen";
     homeDirectory = "/home/unseen";

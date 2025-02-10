@@ -9,6 +9,7 @@
     ./nim.nix
     ./lisp.nix
     #./python.nix
+    ./syncthing.nix
     ./media.nix
     ./pentesting.nix
   ];
