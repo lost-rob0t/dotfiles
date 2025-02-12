@@ -8,7 +8,7 @@
         session = [{
           name = "qtile";
           start = ''
-            ${pkgs.python312Packages.qtile}/bin/qtile start -b x11 \
+            ${pkgs.python3Packages.qtile}/bin/qtile start -b x11 \
             --config  /home/unseen/.config/qtile/config.py &
             waitPID=$!
           '';

@@ -19,26 +19,16 @@
     vim
     direnv
     sbcl
-    erlang
     pre-commit
     swi-prolog
     gnuplot
     ansible
     graphviz
     # Multimedia
-    vlc
-    simplescreenrecorder
     obs-studio
-    gimp
-    feh
     kdenlive
-    mpv
     qbittorrent
-    yt-dlp
-    sonixd # self hosted music streaming
     picard
-    # Games
-    inputs.mousetrap.defaultPackage.x86_64-linux
     # System Tools
     gparted
     filezilla
@@ -51,6 +41,7 @@
     virtiofsd
 
     # Productivity
+    recoll
     w3m
     cht-sh
     kleopatra
@@ -64,18 +55,12 @@
     sqlitebrowser
     tdesktop
     rpi-imager
-    kdenlive
     virt-viewer
     bookworm
     libsForQt5.kdeconnect-kde
     # Security
-    hcxtools
-    hashcat-utils
-    hashcat
 
-    # Web Browsers
-    brave
-    firefox
+
     # Communication
     #vesktop
     discord
@@ -88,57 +73,18 @@
     #AI
     ollama
     # GUI Toolkit
-    webkitgtk
 
-    # rice
-    starship
     #emojione # wttr widget emojis
     #noto-fonts-emoji
-    grc # colourize output
+    # TODO make a nixos module for qtile?
+    # Can we do qtile without nixos module?
     sxhkd
     conky
     j4-dmenu-desktop
     fetchmail
     variety
-    pavucontrol
     file
 
 
   ];
-  programs = {
-    gpg = {
-      enable = true;
-    };
-    emacs = {
-      enable = true;
-      extraPackages = epkgs: [
-        epkgs.vterm
-        epkgs.direnv
-        epkgs.lsp-pyright
-        epkgs.pylint
-        epkgs.w3m
-        epkgs.pandoc
-        pkgs.nodePackages.bash-language-server
-        pkgs.roswell
-        epkgs.xclip
-        pkgs.libnotify # for alert.el
-        pkgs.xdotool # for emacs everywhere
-        pkgs.ffmpegthumbnailer # Video thumbnails
-        pkgs.imagemagick #photo thumbnails
-        pkgs.mediainfo #audio previews
-        pkgs.mpv # for bongo
-        pkgs.pyright
-        pkgs.python313
-        pkgs.pylint
-        pkgs.python313Packages.flake8
-        pkgs.mu # Email for mu4e
-        pkgs.isync
-        pkgs.fetchmail
-
-        epkgs.gnuplot
-        pkgs.gnuplot
-        pkgs.graphviz
-      ];
-    };
-  };
 }

@@ -1,15 +1,16 @@
 [global_config]
   enabled_plugins = ActivityWatch, InactivityWatch, LaunchpadBugURLHandler, LaunchpadCodeURLHandler, APTURLHandler
+  ask_before_closing = always
 [keybindings]
 [profiles]
   [[default]]
     allow_bold = False
+    icon_bell = False
     background_darkness = 0.09
     font = Hack Nerd Font Mono 12
     show_titlebar = False
     scrollbar_position = hidden
     scrollback_infinite = True
-    use_system_font = False
 [layouts]
   [[default]]
     [[[window0]]]

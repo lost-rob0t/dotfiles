@@ -77,7 +77,7 @@
 
 (package! lsp-pyright :recipe (:type git :host github :repo "alphapapa/magit-todos"))
 
-(package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode"))
+;(package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode" :branch "lost-rob0t-patch-1"))
 
 (package! webpaste :recipe (:type git :host github :repo "etu/webpaste.el"))
 
@@ -145,7 +145,7 @@
 
 (package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
 
-(package! ks-mode :recipe (:type git :host github :repo "jarpy/ks-mode"))
+;(package! ks-mode :recipe (:type git :host github :repo "jarpy/ks-mode"))
 
 ;(package! flyspell-lazy :disable t)
 

@@ -95,8 +95,8 @@ Groups are basically workspaces and how you have multiple "windows" per screen
 Define the groups
 #+begin_src python :tangle ./config.py
 group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
-group_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
-#group_labels = ["", "", "", "", "", "", "", "", "", "",]
+#group_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
+group_labels = ["", "", "", "", "", "", "", "", "", "",]
 group_layouts = ["max", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
 #+end_src
 

@@ -1,0 +1,44 @@
+{ lib, pkgs, config, ... }: {
+  options = with lib; {
+    desktop = {
+      media =  {
+        enable = mkOption  {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable default media programs.";
+    };
+        mpv = {
+          pkg = mkOption {
+            type = types.package;
+            default = super.mpv.override {
+              scripts = [ self.mpvScripts.thumbnail
+                          self.mpvScripts.sponsorblock
+                          self.mpvScripts.mpv-notify-send
+                          self.mpvScripts.videoclip
+                          self.mpvScripts.mpv-webm
+                          self.mpvScripts.memo
+                          self.mpvScripts.modernx
+                          self.mpvScripts.autocrop
+                          self.mpvScripts.quality-menu
+                          self.mpvScripts.mpris
+
+                  ];
+          };
+        };
+      };
+
+      };};};
+  config = with lib; mkIf config.desktop.media.enable {
+    home.packages = with pkgs; [
+    vlc
+    config.desktop.media.mpv.pkg
+    simplescreenrecorder
+    feh
+    mpv
+    gimp
+    sonixd # self hosted music streaming
+
+    ];
+  };
+
+}

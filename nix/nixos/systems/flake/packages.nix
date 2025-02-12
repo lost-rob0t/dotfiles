@@ -25,7 +25,7 @@
           pkgs.brave
           pkgs.firefox
           pkgs.emacs
-          #pkgs.nerdfonts
+          pkgs.nerdfonts
           pkgs.conky
           pkgs.emojione # wttr widget emojis
           pkgs.noto-fonts-emoji
@@ -108,10 +108,10 @@
     ## Programming
     pipenv
     direnv
-    python310
+    python3
     pyright
     pylint
-    python310Packages.flake8
+    python3Packages.flake8
     nim-unwrapped-2
     nimlsp
     podman-compose
@@ -147,7 +147,6 @@
     mimic # TTS
     libvirt
     dmenu
-    #inputs.nixpkgs-stable.legacyPackages.x86_64-linux.blueman
     blueman
     bluez-tools
     ## Nixos

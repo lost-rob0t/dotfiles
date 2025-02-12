@@ -892,10 +892,7 @@ strings."
 
 (global-activity-watch-mode)
 
-(require 'ks)
-
-    (setq mastodon-instance-url "https://pleroma.nobodyhasthe.biz"
-          mastodon-active-user "nott")
+;(require 'ks)
 
 (with-system "flake"
              (require 'elcord)
@@ -940,45 +937,45 @@ strings."
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
 
-(require 'hackmode) ;load it
-(setq hackmode-dir "~/Documents/hackmode") ;set the path to the directory where you working dirs will be stored
-(setq hackmode-templates "~/.dotfiles/hackmode") ; Path to directory holding templates
-(setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode-tools/")) ;; this is the path to the directory where tools can be placed in that will be loaded into your $PATH.
+;(require 'hackmode) ;load it
+;(setq hackmode-dir "~/Documents/hackmode") ;set the path to the directory where you working dirs will be stored
+;(setq hackmode-templates "~/.dotfiles/hackmode") ; Path to directory holding templates
+;(setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode-tools/")) ;; this is the path to the directory where tools can be placed in that will be loaded into your $PATH.
 
-(setq hackmode-checklists '(("Program overview" . "/home/unseen/Documents/Notes/org/roam/hacking/20231107093523-bug_bounty_methods.org") ("Url" . "/home/unseen/Templates/hackmode/url.org") ("Account Takeover" . "/home/unseen/Templates/hackmode/account-take-over.org")))
+;(setq hackmode-checklists '(("Program overview" . "/home/unseen/Documents/Notes/org/roam/hacking/20231107093523-bug_bounty_methods.org") ("Url" . "/home/unseen/Templates/hackmode/url.org") ("Account Takeover" . "/home/unseen/Templates/hackmode/account-take-over.org")))
 
-(after! hackmode
-(defun hackmode-capture ()
-  "Capture data!"
-  (interactive)
-  (let ((org-capture-templates (list
+;; (after! hackmode
+;; (defun hackmode-capture ()
+;;   "Capture data!"
+;;   (interactive)
+;;   (let ((org-capture-templates (list
 
 
-                                (list "t" "Tech" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Tech")
-                                      "* %t
-                                        :PROPERTIES:
-                                        :endpoint:
-                                        :notes:
-                                        :tech:
-                                        :tags:
-                                        :END:")
-                                (list "b" "Bug" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Bugs")
-                                      "* %t
-                                        :PROPERTIES:
-                                        :endpoint:
-                                        :notes:
-                                        :type:
-                                        :score:
-                                        :END:")
-                                (list "i" "Interesting enpoint" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Interesting Endpoints")
-                                      "* %t
-                                        :PROPERTIES:
-                                        :endpoint:
-                                        :notes:
-                                        :tags:
-                                        :END:")))
-        (org-directory (hackmode-get-operation-path hackmode-operation)))
-    (call-interactively #'org-capture))))
+;;                                 (list "t" "Tech" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Tech")
+;;                                       "* %t
+;;                                         :PROPERTIES:
+;;                                         :endpoint:
+;;                                         :notes:
+;;                                         :tech:
+;;                                         :tags:
+;;                                         :END:")
+;;                                 (list "b" "Bug" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Bugs")
+;;                                       "* %t
+;;                                         :PROPERTIES:
+;;                                         :endpoint:
+;;                                         :notes:
+;;                                         :type:
+;;                                         :score:
+;;                                         :END:")
+;;                                 (list "i" "Interesting enpoint" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Interesting Endpoints")
+;;                                       "* %t
+;;                                         :PROPERTIES:
+;;                                         :endpoint:
+;;                                         :notes:
+;;                                         :tags:
+;;                                         :END:")))
+;;         (org-directory (hackmode-get-operation-path hackmode-operation)))
+;;     (call-interactively #'org-capture))))
 
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")
