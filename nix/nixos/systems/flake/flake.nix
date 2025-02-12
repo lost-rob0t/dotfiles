@@ -5,6 +5,14 @@
 { config, pkgs, ... }:
 
 {
+  nix = {
+    package = pkgs.nixFlakes; # or versioned attributes like nix_2_7
+    extraOptions = ''
+      experimental-features = nix-command flakes
+    '';
+  };
+  nixpkgs.config.allowUnfree = true;
+
 
   imports =
     [
@@ -14,13 +22,20 @@
       ./services.nix
       ./networking.nix
       ./security.nix
-      #./misc.nix
+      ./misc.nix
     ];
 
   # Boot config
   boot.loader.systemd-boot.enable = true;
   # Set your time zone.
   time.timeZone = "America/New_York";
+
+  #hardware.pulseaudio = {
+  #  enable = false;
+  #};
+  # hardware.pipewire = {
+  #  enable = true;
+  #};
 
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;

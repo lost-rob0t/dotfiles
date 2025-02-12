@@ -66,11 +66,19 @@
       enable = true;
     };
 
+    blueman = {
+      enable = true;
+    };
     ## Power managment buggy gpu :(
     tlp = {
       enable = false;
     };
-
+    syncthing = {
+      enable = true;
+      user = "unseen";
+      dataDir = "/home/unseen/Documents"; # Default folder for new synced folders
+      configDir = "/home/unseen/Documents/.config/syncthing"; # Folder for Syncthing's settings and keys
+    };
     gvfs = {
       enable = true;
     };

@@ -65,7 +65,9 @@
           specialArgs = { inherit inputs outputs; };
           modules = [
             ./nix/nixos/mods/default.nix
-            ./nix/nixos-systems/flake/flake.nix
+            ./nix/nixos/systems/flake/flake.nix
+            ./nix/nixos/systems/flake/flake-qtile.nix
+            ./nix/nixos/systems/flake/flake-budgie.nix
           ];
         };
         # flake-qtile = nixpkgs.lib.nixosSystem {
