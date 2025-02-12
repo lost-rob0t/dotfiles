@@ -101,7 +101,6 @@
     wineWowPackages.staging
     winetricks
     faudio
-    xboxdrv
     qjoypad
     sunshine
     ##(winetricks.override { wine = wineWowPackages.staging; })
@@ -109,10 +108,10 @@
     ## Programming
     pipenv
     direnv
-    python310
+    python3
     pyright
     pylint
-    python310Packages.flake8
+    python3Packages.flake8
     nim-unwrapped-2
     nimlsp
     podman-compose
