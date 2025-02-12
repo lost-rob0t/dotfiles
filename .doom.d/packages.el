@@ -77,7 +77,7 @@
 
 (package! lsp-pyright :recipe (:type git :host github :repo "alphapapa/magit-todos"))
 
-;(package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode" :branch "lost-rob0t-patch-1"))
+(package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode"))
 
 (package! webpaste :recipe (:type git :host github :repo "etu/webpaste.el"))
 

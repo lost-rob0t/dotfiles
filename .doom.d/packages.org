@@ -211,7 +211,7 @@ Org babel functions for prolog.
 Hack banks from emacs
 jk, package full of utilities for pentesting
 #+begin_src emacs-lisp
-;(package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode" :branch "lost-rob0t-patch-1"))
+(package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode"))
 #+end_src
 ** webpaste.el
 paste your buffer to a pastebin like service.
