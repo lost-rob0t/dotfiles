@@ -1,52 +1,52 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
+# this really doesnt work in nyxt yet
+#let
+#  nyxt = pkgs.nyxt.overrideAttrs (oldAttrs: {
+#    postFixup = ''
+#      wrapProgram $out/bin/nyxt \
+#        --set-default WEBKIT_FORCE_SANDBOX 0
+#    '';
+#  });
+#  in
+#
 {
+
   home.packages = with pkgs; [
-    sonixd
-    vlc
+    # Development
+    gitRepo
+    sqlitebrowser
+    vim
+    direnv
+    pre-commit
+    gnuplot
+    ansible
+    graphviz
+    # Multimedia
+    # System Tools
+    gparted
     filezilla
-    #nerdfonts
+    terminator
+    remmina
+    freerdp
+
+    # Productivity
     w3m
     cht-sh
     kleopatra
     gimp
     feh
-    tlp
     # FIXME nyxt
-    webkitgtk
     remmina
     freerdp
     sqlitebrowser
-    ark
-    direnv
-    starship
-    rlwrap
-    tor-browser-bundle-bin
-    brave
-    firefox
-    cloc
-
-    sbcl
+    tdesktop
+    # Misc
+    sxhkd
+    conky
     j4-dmenu-desktop
-    #hackerman
-    webanalyze
-    wafw00f
-    go-dork
-    nikto
-    cloudhunter
-    whatweb
-    wpscan
-    naabu
-
-    nodePackages.uglify-js
-    # Graphql related stuff
-    altair
-    inql
-    graphw00f
+    fetchmail
+    variety
+    file
   ];
-  programs = {
-    gpg = {
-      enable = true;
-    };
-  };
 }

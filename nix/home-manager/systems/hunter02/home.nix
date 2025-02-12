@@ -2,9 +2,8 @@
 {
 
   imports = [
-    ../global/global.nix
+    ./../../mods/default.nix
     ./programs.nix
-    ./services.nix
   ];
 
   nixpkgs = {
@@ -16,10 +15,37 @@
       allowUnfreePredicate = (_: true);
     };
   };
+
+  
+
+  emacs = {
+    enable = true;
+    # I mostly use magit hence configured in the ./nixos/mods/emacs.nix module
+    gitUser = "N545PY";
+    gitEmail = "nsaspy@fedora.email";
+    extraPackages = [];
+  };
+  pentesting.enable = true;
+  security.enable = true;
+  desktop = {
+    # Enable Common sense apps
+    enable = true;
+    media.enable = false;
+    # Setup nerd fonts by default, set desktop.fonts
+    fonts.enable = true;
+
+    # TODO Allow module to pass specific folders/paths, for example my ebook dir
+    sync.enable = true;
+  };
+    dev = {
+      nim.enable = true;
+      common-lisp.enable = true;
+      # TODO finish python.enable = true;
+    };
   home = {
-  username = "unseen";
-  homeDirectory = "/home/unseen";
-  stateVersion = "22.05";
+    username = "unseen";
+    homeDirectory = "/home/unseen";
+    stateVersion = "23.11";
   };
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage
@@ -32,5 +58,5 @@
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
-  fonts.fontconfig.enable = true;
+
 }
