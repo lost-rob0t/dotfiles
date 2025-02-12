@@ -937,7 +937,7 @@ strings."
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
 
-(use-package! 'hackmode
+(use-package! hackmode
   :config
 
   (setq hackmode-dir "~/Documents/hackmode") ;set the path to the directory where you working dirs will be stored
