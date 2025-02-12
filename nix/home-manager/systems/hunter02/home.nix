@@ -25,7 +25,10 @@
     gitEmail = "nsaspy@fedora.email";
     extraPackages = [];
   };
-  pentesting.enable = true;
+  pentesting  = {
+    enable = true;
+    cracking.enable = false; # use flake for gpu
+  };
   security.enable = true;
   desktop = {
     # Enable Common sense apps
