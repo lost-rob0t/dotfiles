@@ -95,14 +95,9 @@
         pkgs.bash
         pkgs.nodePackages_latest.graphql-language-service-cli
         pkgs.recoll
-        pkgs.aspell
-      (pkgs.aspellWithDicts
-        (dicts: with dicts; [ en en-computers en-science  ]))
-
         pkgs.yt-dlp
-
-        ## ensure emacs gets the fonts!
-      ];};
+        (pkgs.aspellWithDicts
+          (dicts: with dicts; [ en en-computers en-science]))];};
 
     xdg = mkIf config.emacs.diredXDG.enable {
       mimeApps = {

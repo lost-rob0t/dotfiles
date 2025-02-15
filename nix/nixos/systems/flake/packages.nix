@@ -84,9 +84,7 @@
     p7zip
     coreutils
     pandoc #emacs
-    hunspellDicts.en_US
     xclip
-    aspell
     (aspellWithDicts
         (dicts: with dicts; [ en en-computers en-science  ]))
     cifs-utils

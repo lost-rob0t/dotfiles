@@ -12,7 +12,6 @@
     };
    programs.baseUtils.enable = true;
    system.enviroment.packages = [
-     aspell
     (aspellWithDicts
         (dicts: with dicts; [ en en-computers en-science  ]))
 
