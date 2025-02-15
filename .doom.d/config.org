@@ -1,7 +1,7 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
 #+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2025-02-12 Wed 13:28]
+#+LAST_MODIFIED: [2025-02-14 Fri 20:08]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -103,8 +103,8 @@ This section tangles the init file
 
        :checkers
        syntax              ; tasing you for every semicolon you forget
-       ;(spell +flyspell) ; tasing you for misspelling mispelling
-       ;grammar           ; tasing grammar mistake every you make
+       (spell +flyspell) ; tasing you for misspelling mispelling
+       grammar           ; tasing grammar mistake every you make
 
        :tools
        ;ansible
@@ -219,9 +219,9 @@ This section tangles the init file
 
 
 * Multi Platform config
-Stuff to determin os and apply settings to fit that system
+Stuff to determinate os and apply settings to fit that system
 
-See [[file:~/.dotfiles/lisp/nixos-helpers/system.el][system.el]] for how I determin my system
+See [[file:~/.dotfiles/lisp/nixos-helpers/system.el][system.el]] for how I determinate my system.
 
 Load my Personal elisp
 #+begin_src emacs-lisp
@@ -1583,18 +1583,19 @@ I only use it on the desktop so only load it there.
              (elcord-mode))
 #+end_src
 ** Spell check
+NOTE: <2025-02-14 Fri> These conflicted with flyspell mode. This is being kept for historical.
 Make sure its using aspell
 #+begin_src emacs-lisp
-(setq ispell-program-name "aspell")
+;(setq ispell-program-name "aspell")
 #+end_src
 Set dictionary
 #+begin_src emacs-lisp
-(setq ispell-dictionary "en")
+;(setq ispell-dictionary "en")
 #+end_src
 
 Set personal dictionary
 #+begin_src emacs-lisp
- (setq ispell-personal-dictionary "~/.aspell.en_us.pws")
+;(setq ispell-personal-dictionary "~/.aspell.en_us.pws")
 #+end_src
 
 Spell fu setup

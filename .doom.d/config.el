@@ -898,11 +898,11 @@ strings."
              (require 'elcord)
              (elcord-mode))
 
-(setq ispell-program-name "aspell")
+;(setq ispell-program-name "aspell")
 
-(setq ispell-dictionary "en")
+;(setq ispell-dictionary "en")
 
- (setq ispell-personal-dictionary "~/.aspell.en_us.pws")
+;(setq ispell-personal-dictionary "~/.aspell.en_us.pws")
 
 (add-hook 'spell-fu-mode-hook
   (lambda ()
