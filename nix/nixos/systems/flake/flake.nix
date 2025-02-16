@@ -35,6 +35,7 @@
 
   environment.variables.DICPATH = "/run/current-system/sw/share/hunspell:/run/current-system/sw/share/hyphen";
   system.autoUpgrade = {
+    flake = "github:lost-rob0t/dotfiles";
     enable = true;
     dates = "weekly";
   };
