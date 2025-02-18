@@ -96,6 +96,10 @@
         pkgs.nodePackages_latest.graphql-language-service-cli
         pkgs.recoll
         pkgs.yt-dlp
+        # For emacs everywhere which seemly only works on xorg rn
+        pkgs.xorg.xwininfo
+        pkgs.xdotool
+        pkgs.fd
         (pkgs.aspellWithDicts
           (dicts: with dicts; [ en en-computers en-science]))];};
 
