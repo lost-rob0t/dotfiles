@@ -13,6 +13,7 @@
 {
 
   home.packages = with pkgs; [
+    nyxt
     # Development
     gitRepo
     sqlitebrowser
