@@ -1,7 +1,5 @@
 #+title: Doom Emacs configuration
 #+author: nsaspy
-#+CREATED: [2021-01-01 Fri 00:00]
-#+LAST_MODIFIED: [2025-02-18 Tue 12:42]
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: overview
 #+disable_spellchecker: t
@@ -452,7 +450,7 @@ Track a org file by adding it to the agenda folder
       (make-symbolic-link current-file "~/Documents/Notes/org/agenda/")
       (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$")))))
 
-(map! :after org
+(map! :after 'org
       :localleader
       :map org-mode-map
       :desc "Add file to Org agenda" "w" #'track-org-file)
