@@ -99,7 +99,6 @@ fi
 init_platform
 
 alias get-ip="curl -s -q ifconfig.me"
-get-ip > "$HOME/.local/share/ip"
 
 ex ()
 {
@@ -131,15 +130,31 @@ export ALTERNATE_EDITOR=""                        # setting for emacsclient
 export EDITOR="emacsclient -t -a ''"              # $EDITOR use Emacs in terminal
 export VISUAL="emacsclient -c -a emacs"           # $VISUAL use Emacs in GUI mode
 
-function install-doom () {
- if [ -d ~/.emacs.d ]; then
- 	echo "Are you sure you want to delete ~/.emacs.d/ directory and install doom emacs? (y/n)"
-    read -p "$* [y/n]: " yn
-    case $yn in
-        [Yy]*) rm -rvf ~/.emacs.d &&  git clone --depth 1 https://github.com/doomemacs/doomemacs.git ~/.emacs.d/ &&  ~/.emacs.d/bin/doom install;;
-        [Nn]*) echo "Aborted";;
-    esac
- fi
+function install_doom() {
+    local doom_dir="$HOME/.config/emacs"
+    if [ -d "$doom_dir" ]; then
+        read -p "Are you sure you want to delete $doom_dir directory and install doom emacs? (y/n): " yn
+        case $yn in
+            [Yy]*)
+                echo "Removing existing installation..."
+                rm -rvf "$doom_dir"
+                ;;
+            [Nn]*)
+                echo "Installation aborted"
+                return 1
+                ;;
+            *)
+                echo "Invalid response. Installation aborted"
+                return 1
+                ;;
+        esac
+    fi
+    if git clone --depth 1 https://github.com/doomemacs/doomemacs.git "$doom_dir"; then
+       yes | "$doom_dir/bin/doom" install
+    else
+        echo "Failed to clone Doom Emacs repository"
+        return 1
+    fi
 }
 
 function emacs-clean () {
@@ -209,6 +224,7 @@ alias debug-emacs="emacs --debug-init"
 
 alias em="emacs -nw"
 alias emacs="emacsclient -c -a 'emacs'"
+alias emacs-debug="$(which emacs) --debug-init"
 
 alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
 
