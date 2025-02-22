@@ -93,7 +93,6 @@
         pkgs.rar
         pkgs.ripgrep
         pkgs.bash
-        pkgs.nodePackages_latest.graphql-language-service-cli
         pkgs.recoll
         pkgs.yt-dlp
         # For emacs everywhere which seemly only works on xorg rn

@@ -1,3 +1,0 @@
-#+title: Readme
-
-This  contains global settings for programs i use across other devices
