@@ -1,0 +1,58 @@
+#+title: Tasks
+
+
+* Updates
+#+Name: Update system
+#+begin_src shell :async :results output replace :dir /sudo::/
+nix flake update
+home-manager switch --flake .#unseen@flake
+nixos-rebuild switch --flake .#flake
+#+end_src
+
+* (Ma)Git AI sir
+#+begin_src emacs-lisp
+(defun ai/current-stage-full-explain ()
+  "Return a full summary of the staged changes.
+This function runs 'git diff --cached' to capture staged changes,
+builds a prompt for GPTel, then waits synchronously (with a timeout)
+for the GPTel response and returns it as a string."
+  (interactive)
+  (let* ((diff (shell-command-to-string "git diff --cached"))
+         (result nil)
+         (timeout 10)  ; timeout in seconds
+         (elapsed 0))
+    (if (string-empty-p diff)
+        "No staged changes to explain."
+      (let ((prompt (concat "Keep it simple: summarize the staged changes for a git stash keep it under 50 chars. If there is NO staged changes say No staged changes to explain.\n\n" diff)))
+        (gptel-request prompt
+                       :callback (lambda (response _info)
+                                   (setq result response)))
+        ;; Wait for result or timeout
+        (while (and (not result) (< elapsed timeout))
+          (accept-process-output nil 0.1)
+          (setq elapsed (+ elapsed 0.1)))
+        (if result
+            result
+          )))))
+
+(defun ai/git-stash ()
+  "Stash the current working tree and index (tracked changes) using an AI-generated message.
+If no AI summary is produced (or if there are no staged changes), fall back to the default stash behavior."
+  (interactive)
+  (let ((summary (ai/current-stage-full-explain)))
+    (if (or (not summary)
+            (string= summary "No staged changes to explain."))
+        (progn
+          (alert "Emacs AI git stash message generation timed out. Using regular stash."
+                :severity 'critical
+                :title "Emacs-AI"
+                :persistent t)
+          (magit-run-git "stash" "push"))
+      (magit-run-git "stash" "push" "-m" summary)
+      (alert "Emacs AI  stashed your changes." :title "Emacs AI"))))
+
+
+#+end_src
+
+#+RESULTS:
+: ai/stash-worktree-index
