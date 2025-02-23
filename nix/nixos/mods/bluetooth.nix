@@ -28,7 +28,7 @@
       blueman.enable = true;
     };
     hardware.bluetooth = {
-      pkg = config.desktopEnv.bluetooth.pkg;
+      package = config.desktopEnv.bluetooth.pkg;
       network = config.desktopEnv.bluetooth.network;
       settings = config.desktopEnv.bluetooth.settings;
     };
