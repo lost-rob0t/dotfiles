@@ -328,7 +328,7 @@ Define a open in brave function
 
 #+begin_src emacs-lisp
 (setq
- browse-url-browser-function
+ browse-url-handlers
  '(
   ("wikipedia\\.org" . eww-browse-url)
   ("github" . browse-url-brave)
@@ -1296,7 +1296,7 @@ Ensure Auto complete is running and ensure correct company backend is running
   )
 
 #+end_src
-*** Commans
+*** Commands
 Spawn a maximized window.
 #+begin_src emacs-lisp
 (defun +gptel/here ()

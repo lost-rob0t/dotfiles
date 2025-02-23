@@ -60,7 +60,7 @@ The optional argument NEW-WINDOW is not used."
 	    (list url)))))
 
 (setq
- browse-url-browser-function
+ browse-url-handlers
  '(
   ("wikipedia\\.org" . eww-browse-url)
   ("github" . browse-url-brave)
@@ -151,7 +151,7 @@ The optional argument NEW-WINDOW is not used."
       (make-symbolic-link current-file "~/Documents/Notes/org/agenda/")
       (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$")))))
 
-(map! :after org
+(map! :after 'org
       :localleader
       :map org-mode-map
       :desc "Add file to Org agenda" "w" #'track-org-file)
