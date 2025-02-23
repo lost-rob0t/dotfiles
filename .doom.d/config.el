@@ -718,7 +718,7 @@ strings."
 
 (use-package! gptel
   :config
-  (setq! gptel-model "claude-3-5-sonnet-20240620"
+  (setq! gptel-model 'claude-3-5-sonnet-20241022
          gptel-backend (gptel-make-anthropic "Claude" :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com")) :stream nil)
          gptel-directives
          '((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
@@ -736,12 +736,6 @@ strings."
            (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
            (explain . "Explain what this code does to a novice programmer."))
          gptel-default-mode 'org-mode)
-  (gptel-make-openai "Ollama Uncensored"
-    :stream t
-    :protocol "http"
-    :host "localhost:1234"
-    :models '("Orenguteng/Llama-3-8B-Lexi-Uncensored-GGUF"))
-  )
 
 (defun +gptel/here ()
   "Spawn maximized gptel buffer."
