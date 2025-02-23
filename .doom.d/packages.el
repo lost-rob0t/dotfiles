@@ -141,7 +141,7 @@
 
 ;(package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 
-(package! golden :recipe (:host "git.sr.ht" :repo "~wklew/golden"))
+;(package! golden :recipe (:host "git.sr.ht" :repo "~wklew/golden"))
 
 (package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
 
