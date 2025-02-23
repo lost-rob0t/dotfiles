@@ -5,7 +5,7 @@
     };};
   config = lib.mkIf config.programs.baseUtils.enable {
 
-    enviroment.systemPackages = with pkgs; [
+    environment.systemPackages = with pkgs; [
       wget
       gnupg
       curl
