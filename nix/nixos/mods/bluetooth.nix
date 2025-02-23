@@ -32,7 +32,7 @@
       network = config.desktopEnv.bluetooth.network;
       settings = config.desktopEnv.bluetooth.settings;
     };
-  enviroment.systemPackages =  [
+  environment.systemPackages = with pkgs; [
       blueman
       bluez-tools ];
   };
