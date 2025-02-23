@@ -11,12 +11,8 @@
   #disabledModules = [ "services/networking/i2p.nix" "services/networking/tor.nix" ];
   services = {
     ## Xserver config
-    displayManager = {
-        sddm.enable = true;
-    };
     xserver = {
-      enable = true;
-            # desktopManager = {
+      # desktopManager = {
       #   lxqt.enable = false;
       #   plasma5 = {
       #     enable = true;
@@ -74,7 +70,7 @@
       enable = false;
     };
     syncthing = {
-      enable = true;
+      enable = false;
       user = "unseen";
       dataDir = "/home/unseen/Documents"; # Default folder for new synced folders
       configDir = "/home/unseen/Documents/.config/syncthing"; # Folder for Syncthing's settings and keys
@@ -99,9 +95,6 @@
       alsa = {
         enable = true;
         support32Bit = true;
-      };
-      audio = {
-        enable = true;
       };
     };
     # TODO add scripts here

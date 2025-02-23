@@ -16,7 +16,6 @@
       ./security.nix
       ./misc.nix
       ./desktop.nix
-      ../../mods/desktop.nix
     ];
 
   # Boot config

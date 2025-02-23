@@ -29,9 +29,7 @@
     };
   };
 
-  # Enable sound
-  sound.enable = true;
-  hardware.pulseaudio.enable = true;
+  # Audio Configuration is managed in services.nix
 
   # Enable Bluetooth
   hardware.bluetooth.enable = true;
