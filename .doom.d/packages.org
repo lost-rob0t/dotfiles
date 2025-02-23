@@ -95,8 +95,6 @@ Distraction free writing.
 #+begin_src emacs-lisp
 (package! writeroom-mode)
 #+end_src
-
-
 ** ob-ffuf
 #+begin_src emacs-lisp
 (package! ob-ffuf :recipe (:type git :host github :repo "daniel-ts/ob-ffuf"))
@@ -126,10 +124,9 @@ Sysadmin/hackmode checklists with orgmode
 #+end_src
 
 * AI
-AI Slop lol
-Fun to check in every now and then lol.
 ** gptel
 Interact with LLM from orgmode
+GPTEL now supports agent like workflows via tools
 #+begin_src emacs-lisp
 (package! gptel)
 
@@ -148,8 +145,9 @@ A GNU Emacs library which uses direnv to set environment variables on a per-buff
 #+end_src
 
 ** protobufs
+
 #+begin_src emacs-lisp
-(package! protobuf-mode)
+;(package! protobuf-mode)
 #+end_src
 ** Langauges
 **** Nim lang
@@ -203,7 +201,7 @@ Org babel functions for prolog.
 ** Magit
 *** Magit Todos
 #+begin_src emacs-lisp
-(package! lsp-pyright :recipe (:type git :host github :repo "alphapapa/magit-todos"))
+(package! magit-todos :recipe (:type git :host github :repo "alphapapa/magit-todos"))
 #+end_src
 
 * Utils
@@ -403,7 +401,7 @@ When working with many windows at the same time, each window has a size that is 
 golden-ratio helps on this issue by resizing automatically the windows you are working on to the size specified in the "Golden Ratio". The window that has the main focus will have the perfect size for editing, while the ones that are not being actively edited will be re-sized to a smaller size that doesn't get in the way, but at the same time will be readable enough to know it's content.
 
 #+begin_src emacs-lisp
-(package! golden-ratio.el :recipe (:host github :repo "roman/golden-ratio.el"))
+(package! golden :recipe (:host "git.sr.ht" :repo "~wklew/golden"))
 #+end_src
 ** dirvish
 a better dired

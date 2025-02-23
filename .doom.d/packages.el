@@ -56,7 +56,7 @@
 
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 
-(package! protobuf-mode)
+;(package! protobuf-mode)
 
 ;(unpin! nim-mode)
 ;(unpin! nim-mode :pin "1338e5b0d5e111ad932efb77d3cad680cc3b86c9")
@@ -75,7 +75,7 @@
 
 (package! gnuplot)
 
-(package! lsp-pyright :recipe (:type git :host github :repo "alphapapa/magit-todos"))
+(package! magit-todos :recipe (:type git :host github :repo "alphapapa/magit-todos"))
 
 (package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode"))
 
@@ -141,7 +141,7 @@
 
 ;(package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
 
-(package! golden-ratio.el :recipe (:host github :repo "roman/golden-ratio.el"))
+(package! golden :recipe (:host "git.sr.ht" :repo "~wklew/golden"))
 
 (package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
 
