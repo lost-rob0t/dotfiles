@@ -16,7 +16,7 @@
   };
 
   config = lib.mkIf config.desktopEnv.fonts.enable {
-    enviroment.systemPackages = (config.desktopEnv.fonts.fontsList or [  ]);
+    environment.systemPackages = (config.desktopEnv.fonts.fontsList or [  ]);
     fonts.fontconfig.enable = true;
   };
 }
