@@ -1,0 +1,196 @@
+(require 'gptel)
+(require 'cl-lib)
+(defvar agent-tools nil
+  "Default provided tools.")
+
+(setf agent-tools nil)
+(defmacro define-agent-tool (name function args description)
+  "Define and push a new agent tool to `agent-tools`."
+  `(push (gptel-make-tool
+          :function ,function
+          :name ,name
+          :args ,args
+          :description ,description)
+         agent-tools))
+
+(defun agent--file-exists (filename)
+  "Check if FILENAME exists and return JSON boolean string.
+Handles path expansion including ~/ for home directory."
+  (if (file-exists-p (expand-file-name filename))
+      "true"
+    "false"))
+
+(defun agent--read-file (filename)
+  "Read contents of FILENAME and return as string.
+Handles path expansion including ~/ for home directory."
+  (if (file-exists-p (expand-file-name filename))
+      (with-temp-buffer
+        (insert-file-contents (expand-file-name filename))
+        (buffer-string))
+    (error "File not found: %s" filename)))
+
+(define-agent-tool
+ "file_exists"
+ #'agent--file-exists
+ '((:name "filename"
+    :type string
+    :description "Path to file to check for existence"))
+ "Check if a file exists. Returns 'true' if the file exists, 'false' otherwise.
+If the tool result fails, try correcting the spelling or casing.")
+
+(define-agent-tool
+ "read_file"
+ #'agent--read-file
+ '((:name "filename"
+    :type string
+    :description "Path to file to read. Can use '~/' for home directory expansion."))
+ "Read and return the contents of a file as a string.
+Before using this tool:
+1. ALWAYS check if the file exists first using the file_exists tool.
+2. If file_exists returns false, try correcting the path/spelling.
+3. Only attempt to read after confirming existence.
+4. Once you read it, only read it again if the user indicates it changed or you modified it.
+Returns the file contents as a string or throws an error if the file is not found.")
+
+(defun agent--write-file (filename content &optional concat)
+  "Write CONTENT to FILENAME with optional merging.
+- If file exists and MERGE is non-nil, append or merge content.
+- If file doesn't exist, create and write the content.
+- Handles path expansion including ~/ for home directory.
+Returns a JSON-compatible success message."
+  (let* ((expanded-filename (expand-file-name filename))
+         (existing-content (when (file-exists-p expanded-filename)
+                             (with-temp-buffer
+                               (insert-file-contents expanded-filename)
+                               (buffer-string)))))
+    (with-temp-file expanded-filename
+      (insert (if (and concat existing-content)
+                  (concat existing-content "\n" content)
+                content)))
+    "File written successfully"))
+
+(define-agent-tool
+ "write_file"
+ #'agent--write-file
+ '((:name "filename"
+    :type string
+    :description "Path to file to write. Can use '~/' for home directory expansion.")
+   (:name "content"
+    :type string
+    :description "Content to write to the file.")
+   (:name "concat"
+    :type boolean
+    :description "Optional. If true and file exists, append content to existing file.
+If false or not provided, overwrite the existing file. MAKE SURE IF YOU USE THIS YOUR CONTENT MATCHES THE OLD CHECKED CONTENT"))
+ "Write content to a file with optional merging.
+Key behaviors:
+1. ALWAYS check file existence before writing
+2. Supports creating new files
+3. Optional concat
+4. Handles path expansion
+5. Provides clear success feedback
+
+Example use cases:
+- Create a new log file
+- Append to an existing configuration
+- Save project notes
+- Update tracking files
+
+Recommended workflow:
+1. Use file_exists to check file status
+2. If the user has stated to be safe first use file_backup
+3. Decide merge strategy (merge, do not use concat) (concat: read the file first (just once) and then concat)
+4. Call write_file with appropriate parameters")
+
+
+
+(defun agent--file-backup (filename)
+  "Create a comprehensive backup of FILENAME.
+- Copies file to filename.bak
+- Handles non-existent files gracefully
+- Provides verbose backup tracking"
+  (when (file-exists-p filename)
+    (copy-file filename (concat filename ".bak") t)
+    (format "Backup created: %s.bak" filename)))
+
+(define-agent-tool
+ "file_backup"
+ #'agent--file-backup
+ '((:name "filename"
+    :type string
+    :description "Path to file to backup. Must be an existing file."))
+ "Create a safe backup of a file by copying it to a .bak extension.
+
+Key Safety Features:
+- Preserves original file integrity
+- Creates timestamped backup copy
+- Supports full path and ~ home directory expansion
+- Prevents accidental data loss during modifications
+
+Recommended Workflow:
+1. Use file_exists to verify source file
+2. Call file_backup before critical modifications
+3. Maintain a version history of important files
+
+Use Cases:
+- Protecting configuration files
+- Versioning documents
+- Preparing for risky file transformations
+
+Backup Strategy:
+- Simple .bak extension (filename.bak)
+- Overwrites previous backup
+- No limit on backup generations (user-managed)
+
+Safety Tip: Always verify backup before destructive operations.")
+
+
+(define-agent-tool
+ "list_files"
+ (lambda (path)
+   (let* ((dir (if (or (null path) (string= path ""))
+                   default-directory
+                 (expand-file-name path))))
+     (if (file-directory-p dir)
+         (directory-files dir nil "^[^.].*")
+       (error "Not a valid directory: %s" dir))))
+ '((:name "path"
+    :type string
+    :description "Directory path to list files from. Supports:
+- Absolute paths (e.g., '/home/user/documents')
+- Relative paths (e.g., './projects', '../downloads')
+- Home directory expansion with '~/' (e.g., '~/Documents')
+- Handles both existing and potentially non-existent directories
+- Resolves symbolic links and canonical paths
+- Respects user's file system permissions
+Optional trailing slash is accepted.
+Defaults to current working directory if not specified."))
+ "List files in the specified directory.
+Returns a list of file names, excluding '.' and '..'.")
+
+(define-agent-tool
+ "list_files_recursive"
+ (lambda (path)
+   (let* ((dir (if (or (null path) (string= path ""))
+                   default-directory
+                 (expand-file-name path))))
+     (if (file-directory-p dir)
+         (directory-files-recursively dir "^[^.].*")
+       (error "Not a valid directory: %s" dir))))
+ '((:name "path"
+    :type string
+    :description "Directory path to recursively list files from. Supports:
+- Absolute paths (e.g., '/home/user/documents')
+- Relative paths (e.g., './projects', '../downloads')
+- Home directory expansion with '~/' (e.g., '~/Documents')
+- Handles both existing and potentially non-existent directories
+- Resolves symbolic links and canonical paths
+- Respects user's file system permissions
+Optional trailing slash is accepted.
+Defaults to current working directory if not specified."))
+ "Recursively list files in the specified directory.
+Returns a list of file names, excluding '.' and '..'.")
+
+(setf gptel-tools nil)
+(setq gptel-tools (cl-remove-duplicates agent-tools))
+(provide 'agent)
