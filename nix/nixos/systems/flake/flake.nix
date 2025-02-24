@@ -26,10 +26,16 @@
   # services.xserver.libinput.enable = true;
 
   # Define a user account. Don't forget to set a password with 'passwd'.
-  users.users.unseen = {
-    isNormalUser = true;
-    extraGroups = [ "wheel" "libvirtd" "adbusers" "docker" "networkmanager" ]; # Enable 'sudo' for the user.
+  users.users = {
+    unseen = {
+      isNormalUser = true;
+      extraGroups = [ "wheel" "libvirtd" "adbusers" "docker" "networkmanager" ]; # Enable 'sudo' for the user.
   };
+    # ollama = {
+    #   isSystemUser = true;
+    #   home = "/home/ollama";
+    # };
+};
 
   # Desktop configuration
   desktop = {

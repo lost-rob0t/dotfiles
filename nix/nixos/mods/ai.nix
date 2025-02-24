@@ -1,206 +1,206 @@
-{config, lib, pkgs, ...}:
+# {config, lib, pkgs, ...}:
 
-with lib;
+# with lib;
 
-let
-  cfg = config.services.ai;
-in {
-  options.services.ai = {
-    enable = mkEnableOption "AI services and tools";
+# let
+#   cfg = config.services.ai;
+# in {
+#   options.services.ai = {
+#     enable = mkEnableOption "AI services and tools";
 
-    gpuAcceleration = {
-      enable = mkEnableOption "Enable GPU acceleration for AI workloads";
-      
-      cuda = {
-        enable = mkOption {
-          type = types.bool;
-          default = config.services.ai.gpuAcceleration.enable;
-          description = "Enable CUDA support";
-        };
-      };
-      
-      rocm = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Enable ROCm support for AMD GPUs";
-        };
-      };
-    };
+#     gpuAcceleration = {
+#       enable = mkEnableOption "Enable GPU acceleration for AI workloads";
 
-    ollama = {
-      enable = mkOption {
-        type = types.bool;
-        default = config.services.ai.enable;
-        description = "Whether to enable Ollama service";
-      };
+#       cuda = {
+#         enable = mkOption {
+#           type = types.bool;
+#           default = config.services.ai.gpuAcceleration.enable;
+#           description = "Enable CUDA support";
+#         };
+#       };
 
-      port = mkOption {
-        type = types.port;
-        default = 11434;
-        description = "Port for Ollama to listen on";
-      };
+#       rocm = {
+#         enable = mkOption {
+#           type = types.bool;
+#           default = false;
+#           description = "Enable ROCm support for AMD GPUs";
+#         };
+#       };
+#     };
 
-      homeDir = mkOption {
-        type = types.str;
-        default = "/home/ollama";
-        description = "Home directory for Ollama user and data";
-      };
+#     ollama = {
+#       enable = mkOption {
+#         type = types.bool;
+#         default = config.services.ai.enable;
+#         description = "Whether to enable Ollama service";
+#       };
 
-      models = mkOption {
-        type = types.listOf types.str;
-        default = ["llama2" "codellama" "mistral"];
-        description = "List of models to pre-download";
-      };
-    };
+#       port = mkOption {
+#         type = types.port;
+#         default = 11434;
+#         description = "Port for Ollama to listen on";
+#       };
 
-    openWebui = {
-      enable = mkOption {
-        type = types.bool;
-        default = config.services.ai.enable;
-        description = "Whether to enable Open WebUI";
-      };
+#       homeDir = mkOption {
+#         type = types.str;
+#         default = "/home/ollama";
+#         description = "Home directory for Ollama user and data";
+#       };
 
-      port = mkOption {
-        type = types.port;
-        default = 3000;
-        description = "Port for Open WebUI to listen on";
-      };
-    };
+#       models = mkOption {
+#         type = types.listOf types.str;
+#         default = ["llama2" "codellama" "mistral"];
+#         description = "List of models to pre-download";
+#       };
+#     };
 
-    tools = {
-      enable = mkOption {
-        type = types.bool;
-        default = config.services.ai.enable;
-        description = "Whether to install AI development tools";
-      };
+#     openWebui = {
+#       enable = mkOption {
+#         type = types.bool;
+#         default = config.services.ai.enable;
+#         description = "Whether to enable Open WebUI";
+#       };
 
-      python = {
-        enable = mkOption {
-          type = types.bool;
-          default = config.services.ai.tools.enable;
-          description = "Install Python AI/ML tools";
-        };
-        
-        packages = mkOption {
-          type = types.listOf types.package;
-          default = with pkgs.python3Packages; [
-            torch
-            tensorflow
-            transformers
-            numpy
-            pandas
-            scikit-learn
-            jupyter
-          ];
-          description = "Python packages for AI development";
-        };
-      };
-    };
-  };
+#       port = mkOption {
+#         type = types.port;
+#         default = 3000;
+#         description = "Port for Open WebUI to listen on";
+#       };
+#     };
 
-  config = mkMerge [
-    (mkIf cfg.enable {
-      users.users.ollama = {
-        isSystemUser = true;
-        group = "ollama";
-        home = cfg.ollama.homeDir;
-        createHome = true;
-        description = "Ollama service user";
-      };
+#     tools = {
+#       enable = mkOption {
+#         type = types.bool;
+#         default = config.services.ai.enable;
+#         description = "Whether to install AI development tools";
+#       };
 
-      users.groups.ollama = {};
+#       python = {
+#         enable = mkOption {
+#           type = types.bool;
+#           default = config.services.ai.tools.enable;
+#           description = "Install Python AI/ML tools";
+#         };
 
-      # System optimizations for AI workloads
-      boot.kernel.sysctl = {
-        "vm.max_map_count" = 1048576;
-        "vm.swappiness" = 1;
-      };
+#         packages = mkOption {
+#           type = types.listOf types.package;
+#           default = with pkgs.python3Packages; [
+#             torch
+#             tensorflow
+#             transformers
+#             numpy
+#             pandas
+#             scikit-learn
+#             jupyter
+#           ];
+#           description = "Python packages for AI development";
+#         };
+#       };
+#     };
+#   };
 
-      environment.systemPackages = with pkgs; [
-        ollama
-        open-webui
-      ] ++ (optionals cfg.tools.enable [
-        python3
-        git-lfs
-        cmake
-        gcc
-      ]);
-    })
+#   config = mkMerge [
+#     (mkIf cfg.enable {
+#       users.users.ollama = {
+#         isSystemUser = true;
+#         group = "ollama";
+#         home = cfg.ollama.homeDir;
+#         createHome = true;
+#         description = "Ollama service user";
+#       };
 
-    (mkIf cfg.gpuAcceleration.enable {
-      hardware.opengl = {
-        enable = true;
-        driSupport = true;
-        driSupport32Bit = true;
-      };
-    })
+#       users.groups.ollama = {};
 
-    (mkIf cfg.gpuAcceleration.cuda.enable {
-      hardware.nvidia = {
-        package = config.boot.kernelPackages.nvidiaPackages.stable;
-        modesetting.enable = true;
-      };
-    })
+#       # System optimizations for AI workloads
+#       boot.kernel.sysctl = {
+#         "vm.max_map_count" = 1048576;
+#         "vm.swappiness" = 1;
+#       };
 
-    (mkIf cfg.ollama.enable {
-      services.ollama = {
-        enable = true;
-        port = cfg.ollama.port;
-        user = "ollama";
-        group = "ollama";
-        home = cfg.ollama.homeDir;
-      };
+#       environment.systemPackages = with pkgs; [
+#         ollama
+#         open-webui
+#       ] ++ (optionals cfg.tools.enable [
+#         python3
+#         git-lfs
+#         cmake
+#         gcc
+#       ]);
+#     })
 
-      systemd.services.ollama-models = {
-        description = "Pre-download Ollama models";
-        after = ["ollama.service"];
-        wantedBy = ["multi-user.target"];
-        script = with pkgs; ''
-          ${lib.concatMapStrings (model: ''
-            ${ollama}/bin/ollama pull ${model}
-          '') cfg.ollama.models}
-        '';
-        serviceConfig = {
-          Type = "oneshot";
-          User = "ollama";
-          Group = "ollama";
-        };
-      };
-    })
+#     (mkIf cfg.gpuAcceleration.enable {
+#       hardware.opengl = {
+#         enable = true;
+#         driSupport = true;
+#         driSupport32Bit = true;
+#       };
+#     })
 
-    (mkIf cfg.openWebui.enable {
-      systemd.services.open-webui = {
-        description = "Open WebUI for Ollama";
-        wantedBy = ["multi-user.target"];
-        after = ["network.target" "ollama.service"];
-        requires = ["ollama.service"];
+#     (mkIf cfg.gpuAcceleration.cuda.enable {
+#       hardware.nvidia = {
+#         package = config.boot.kernelPackages.nvidiaPackages.stable;
+#         modesetting.enable = true;
+#       };
+#     })
 
-        serviceConfig = {
-          ExecStart = "${pkgs.open-webui}/bin/open-webui";
-          Environment = [
-            "OLLAMA_API_BASE_URL=http://localhost:${toString cfg.ollama.port}"
-            "PORT=${toString cfg.openWebui.port}"
-          ];
-          Restart = "always";
-          User = "ollama";
-          Group = "ollama";
-          WorkingDirectory = cfg.ollama.homeDir;
-        };
-      };
-    })
+#     (mkIf cfg.ollama.enable {
+#       services.ollama = {
+#         enable = true;
+#         port = cfg.ollama.port;
+#         user = "ollama";
+#         group = "ollama";
+#         home = cfg.ollama.homeDir;
+#       };
 
-    (mkIf cfg.tools.python.enable {
-      environment.systemPackages = cfg.tools.python.packages;
-    })
+#       systemd.services.ollama-models = {
+#         description = "Pre-download Ollama models";
+#         after = ["ollama.service"];
+#         wantedBy = ["multi-user.target"];
+#         script = with pkgs; ''
+#           ${lib.concatMapStrings (model: ''
+#             ${ollama}/bin/ollama pull ${model}
+#           '') cfg.ollama.models}
+#         '';
+#         serviceConfig = {
+#           Type = "oneshot";
+#           User = "ollama";
+#           Group = "ollama";
+#         };
+#       };
+#     })
 
-    (mkIf cfg.enable {
-      networking.firewall = {
-        allowedTCPPorts = [
-          cfg.ollama.port
-          cfg.openWebui.port
-        ];
-      };
-    })
-  ];
-}
+#     (mkIf cfg.openWebui.enable {
+#       systemd.services.open-webui = {
+#         description = "Open WebUI for Ollama";
+#         wantedBy = ["multi-user.target"];
+#         after = ["network.target" "ollama.service"];
+#         requires = ["ollama.service"];
+
+#         serviceConfig = {
+#           ExecStart = "${pkgs.open-webui}/bin/open-webui";
+#           Environment = [
+#             "OLLAMA_API_BASE_URL=http://localhost:${toString cfg.ollama.port}"
+#             "PORT=${toString cfg.openWebui.port}"
+#           ];
+#           Restart = "always";
+#           User = "ollama";
+#           Group = "ollama";
+#           WorkingDirectory = cfg.ollama.homeDir;
+#         };
+#       };
+#     })
+
+#     (mkIf cfg.tools.python.enable {
+#       environment.systemPackages = cfg.tools.python.packages;
+#     })
+
+#     (mkIf cfg.enable {
+#       networking.firewall = {
+#         allowedTCPPorts = [
+#           cfg.ollama.port
+#           cfg.openWebui.port
+#         ];
+#       };
+#     })
+#   ];
+# }
