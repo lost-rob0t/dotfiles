@@ -102,6 +102,7 @@
       enable = true;
 
     };
+    cifsMount.enable = true;
   };
   virtualisation = {
     podman = {

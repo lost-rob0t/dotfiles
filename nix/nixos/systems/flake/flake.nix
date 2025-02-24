@@ -1,11 +1,11 @@
 # Edit this configuration file to define what should be installed on
 # your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
+# and in the NixOS manual (accessible by running 'nixos-help').
 
 { config, pkgs, ... }:
 
 {
- nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.allowUnfree = true;
   imports =
     [
       # Include the results of the hardware scan.
@@ -15,7 +15,6 @@
       ./networking.nix
       ./security.nix
       ./misc.nix
-      ./desktop.nix
     ];
 
   # Boot config
@@ -26,31 +25,49 @@
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
+  # Define a user account. Don't forget to set a password with 'passwd'.
   users.users.unseen = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "libvirtd" "adbusers" "docker" "networkmanager" ]; # Enable ‘sudo’ for the user.
+    extraGroups = [ "wheel" "libvirtd" "adbusers" "docker" "networkmanager" ]; # Enable 'sudo' for the user.
   };
 
+  # Desktop configuration
+  desktop = {
+    enable = true;
+    sessionType = "x11";
+    bluetooth.enable = true;
+    fonts.enable = true;
+    qtile = {
+      enable = true;
+      extraPackages = with pkgs; [
+        rofi
+        dunst
+        libnotify
+        picom
+        feh
+        networkmanagerapplet
+        volumeicon
+      ];
+    };
+  };
 
+  # X11 Configuration
+  services.xserver = {
+    enable = true;
+    layout = "us";
+    xkbVariant = "";
+    
+    displayManager = {
+      lightdm.enable = true;
+      defaultSession = "none+qtile";
+    };
+  };
+
+  # Bluetooth Configuration
+  hardware.bluetooth.enable = true;
+  services.blueman.enable = true;
 
   environment.variables.DICPATH = "/run/current-system/sw/share/hunspell:/run/current-system/sw/share/hyphen";
-  system.autoUpgrade = {
-    enable = true;
-    dates = "weekly";
-  };
-
-  # NOTE This will require me to make sure this is always up.
-  # If its down will it prevent my system from booting?
-  # This value determines the NixOS release from which the default
-  # settings for stateful data, like file locations and database versions
-  # on your system were taken. It‘s perfectly fine and recommended to leave
-  # this value at the release version of the first install of this system.
-  # Before changing this value read the documentation for this option
-  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
 
   system.stateVersion = "21.11"; # Did you read the comment?
- # boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
-  #systemd.extraConfig = "DefaultLimitNOFILE=8096:524288";
-  #
 }

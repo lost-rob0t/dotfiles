@@ -1,15 +1,15 @@
 # This file collects all modules for easier import in the flake
 { pkgs, config, ... }: {
   imports = [
+    ./ai.nix
     ./base.nix
     ./bluetooth.nix
-    ./smb.nix
     ./desktop.nix
-    ./ai.nix
     ./display.nix
     ./fonts.nix
     ./self-hosted.nix
-  ];
+    ./smb.nix
+ ];
 
   config = {
     nix = {

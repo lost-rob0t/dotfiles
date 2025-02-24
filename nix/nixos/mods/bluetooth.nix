@@ -1,40 +1,40 @@
 { lib, pkgs, config, ... }: {
   options = with lib; {
-    desktopEnv = {
+    desktop = {
       bluetooth = {
-        enable = mkEnableOption "Enable bluetooth and start blueman services ensuring bluze";
         settings = mkOption {
-          type = types.attr;
+          type = types.attrs;
           default = {};
           description = "Extra Config to pass to /etc/bluetooth/main.conf";
         };
         network = mkOption {
-          type = types.attr;
+          type = types.attrs;
           default = {};
           description = "Extra Config to pass to /etc/bluetooth/network.conf";
         };
-        pkg = mkOption {
+        package = mkOption {
           type = types.package;
           default = pkgs.bluez;
           description = "Bluetooth software stack for bluetooth.";
         };
       };
     };
-
   };
-  config = with lib; mkIf config.desktopEnv.bluetooth.enable {
 
-    services = {
-      blueman.enable = true;
-    };
+  config = with lib; mkIf config.desktop.bluetooth.enable {
     hardware.bluetooth = {
-      package = config.desktopEnv.bluetooth.pkg;
-      network = config.desktopEnv.bluetooth.network;
-      settings = config.desktopEnv.bluetooth.settings;
+      enable = true;
+      powerOnBoot = mkDefault true;
+      package = config.desktop.bluetooth.package;
+      settings = config.desktop.bluetooth.settings;
+      network = config.desktop.bluetooth.network;
     };
-  environment.systemPackages = with pkgs; [
-      blueman
-      bluez-tools ];
-  };
 
+    services.blueman.enable = true;
+
+    environment.systemPackages = with pkgs; [
+      blueman
+      bluez-tools
+    ];
+  };
 }

@@ -9,6 +9,11 @@
         default = "storage.lost.system";
         description = "The CIFS server IP address or hostname";
       };
+      users = lib.mkOption {
+        type = with lib.types; listOf str;
+        default = [];
+        description = "List of users to create mounts for";
+      };
     };
   };
 
@@ -28,9 +33,13 @@
           ];
         };
       }
-      (lib.concatMapAttrs (userName: user: {
-          "${user.home}/mnt/share" = {
-            device = "//${config.services.cifsMount.server}/";
+      (lib.listToAttrs (map (userName: 
+        let
+          user = config.users.users.${userName};
+        in {
+          name = "${user.home}/share";
+          value = {
+            device = "//${config.services.cifsMount.server}/${user}";
             fsType = "cifs";
             options = let
               automountOpts = "x-systemd.automount,noauto,x-systemd.idle-timeout=60,x-systemd.device-timeout=5s,x-systemd.mount-timeout=5s";
@@ -41,7 +50,7 @@
               "gid=${toString user.gid}"
             ];
           };
-        }) config.users.users)
+        }) config.services.cifsMount.users))
     ];
   };
 }

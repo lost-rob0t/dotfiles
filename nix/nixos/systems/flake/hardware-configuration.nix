@@ -57,17 +57,10 @@
 
   hardware = {
     cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-    bluetooth = {
-      enable = true;
-      package = pkgs.bluez;
-      powerOnBoot = true;
-
-    };
-
-  graphics.extraPackages = with pkgs; [
-    #rocm-opencl-icd
-    #rocm-opencl-runtime
-    amdvlk
-  ];
+    graphics.extraPackages = with pkgs; [
+      #rocm-opencl-icd
+      #rocm-opencl-runtime
+      amdvlk
+    ];
   };
 }
