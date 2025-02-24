@@ -19,6 +19,7 @@
       git
       ripgrep
       htop
+      fd # Why does Doom look in /run/current-ssytem ? its even in the path god dammit
     ];
 
   };

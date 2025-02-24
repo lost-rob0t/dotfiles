@@ -102,7 +102,8 @@
       enable = true;
 
     };
-    cifsMount.enable = true;
+
+    # FIXME cifsMount.enable = true;
      ollama = {
        enable = true;
        user = "ollama";
