@@ -1,6 +1,6 @@
 [global_config]
   enabled_plugins = ActivityWatch, InactivityWatch, LaunchpadBugURLHandler, LaunchpadCodeURLHandler, APTURLHandler
-  ask_before_closing = always
+  ask_before_closing = never
 [keybindings]
 [profiles]
   [[default]]
