@@ -735,7 +735,7 @@ strings."
            (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
            (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
            (explain . "Explain what this code does to a novice programmer."))
-         gptel-default-mode 'org-mode)
+         gptel-default-mode 'org-mode))
 
 (defun +gptel/here ()
   "Spawn maximized gptel buffer."
