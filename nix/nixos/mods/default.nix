@@ -7,7 +7,6 @@
     ./display.nix
     ./fonts.nix
     ./self-hosted.nix
-    ./smb.nix
  ];
 
   config = {

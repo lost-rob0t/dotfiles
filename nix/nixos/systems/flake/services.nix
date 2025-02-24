@@ -103,7 +103,7 @@
 
     };
 
-    # FIXME cifsMount.enable = true;
+
      ollama = {
        enable = true;
        user = "ollama";

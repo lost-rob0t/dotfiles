@@ -32,11 +32,13 @@
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
   ####HOSTS#####
-  #### TODO Create a "global" config for all configurations to import
+  # TODO implement self-hosted.nix module....
   networking.extraHosts =
     ''
-      10.50.50.5 search.goyim.fre
-      10.50.50.25 lost-git.local
+    10.50.50.201 storage.lost.system
+    10.50.50.5 dns.lost.system
+    10.50.50.30 vpn.lost.system
+
     '';
   networking.useDHCP = false;
   networking.interfaces.eno1.useDHCP = true;

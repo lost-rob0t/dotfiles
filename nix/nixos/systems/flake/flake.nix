@@ -31,15 +31,12 @@
       isNormalUser = true;
       extraGroups = [ "wheel" "libvirtd" "adbusers" "docker" "networkmanager" ]; # Enable 'sudo' for the user.
   };
-    # ollama = {
-    #   isSystemUser = true;
-    #   home = "/home/ollama";
-    # };
 };
 
   # Desktop configuration
   desktop = {
     enable = true;
+    # TODO desktop module should enable xserver too
     sessionType = "x11";
     bluetooth.enable = true;
     fonts.enable = true;
@@ -68,6 +65,34 @@
       defaultSession = "none+qtile";
     };
   };
+
+   fileSystems = {
+      "/home/unseen/share" = {
+          device = "//storage.lost.system/unseen";
+          fsType = "cifs";
+          options = [
+            "x-systemd.automount"
+            "noauto"
+            "x-systemd.idle-timeout=60"
+            "x-systemd.device-timeout=5s"
+            "x-systemd.mount-timeout=5s"
+            "credentials=/home/unseen/.config/smb-creds"
+          ];
+        };
+
+        "/share" = {
+          device = "//storage.lost.system/";
+          fsType = "cifs";
+          options = [
+            "x-systemd.automount"
+            "noauto"
+            "x-systemd.idle-timeout=60"
+            "x-systemd.device-timeout=5s"
+            "x-systemd.mount-timeout=5s"
+            "credentials=/etc/nixos/smb-secrets"
+          ];
+        };
+      };
 
   # Bluetooth Configuration
   hardware.bluetooth.enable = true;
