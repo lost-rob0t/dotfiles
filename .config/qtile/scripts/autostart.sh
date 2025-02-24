@@ -45,7 +45,7 @@ run nm-applet &
 run xfce4-power-manager &
 numlockx on &
 run blueman-applet &
-run picom --config $HOME/.config/picom/picom.conf &
+run picom &
 run /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
 run /usr/lib/xfce4/notifyd/xfce4-notifyd &
 run spice-vdagent &
