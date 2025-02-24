@@ -103,6 +103,16 @@
 
     };
     cifsMount.enable = true;
+     ollama = {
+       enable = true;
+       user = "ollama";
+       acceleration = "rocm";
+       openFirewall = true;
+       host = "0.0.0.0";
+     };
+    open-webui = {
+      enable = true;
+    };
   };
   virtualisation = {
     podman = {
