@@ -22,10 +22,12 @@
     item = "nofile";
     value = "80192";
   }];
+  security.polkit.enable = true;
+  security.rtkit.enable = true;
   services = {
     opensnitch = {
-      enable = false;
-};
+      enable = true;
+    };
     };
 
   security.sudo.extraRules = [

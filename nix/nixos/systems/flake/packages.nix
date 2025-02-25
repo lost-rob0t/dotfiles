@@ -155,18 +155,20 @@
 
     # Ricing related.
     xsettingsd
-
-
+    pinentry-qt
+    fd
   ];
 
   ## Some programs need SUID wrappers, can be configured further or are
   ## started in user sessions.
   # programs.mtr.enable = true;
 
-  programs.gnupg.agent = {
-    enable = true;
-    enableSSHSupport = true;
-  };
+  programs.gnupg = {
+    agent = {
+      enable = true;
+      enableSSHSupport = true;
+      pinentryPackage = pkgs.pinentry-qt;
+  };};
   programs.adb.enable = true;
   programs.nm-applet.enable = true;
 
