@@ -529,33 +529,32 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (setq! projectile-project-search-path
         '(("~/Documents/Projects" . 1))))
 
-(require 'notifications)
+(after! elfeed
+  (use-package! elfeed-org
+    :config (setq! rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
+  (elfeed-org)
+  (add-hook 'elfeed-search-mode-hook 'turn-off-evil-mode)
+  (add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode)
+)
 
-(require 'elfeed-org)
+(use-package! webpaste
+  :config
 
-(elfeed-org)
-
-(setq rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org"))
-
-(add-hook 'elfeed-search-mode-hook 'turn-off-evil-mode)
-(add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode)
-
-(require 'webpaste)
-
-(setq webpaste-paste-confirmation t)
-
-(setq webpaste-provider-priority '("ix.io" "dpaste.org"
+  (setq!
+   webpaste-provider-priority '("ix.io" "dpaste.org"
                                    "dpaste.com" "clbin.com"
                                    "0x0.st" "bpa.st"
-                                   "paste.rs"))
+                                   "paste.rs")
+   webpaste-paste-confirmation t))
 
 (map! :leader
+      :after webpaste
       (:prefix-map ("n" . "notes")
                    (:prefix ("p" . "webpaste")
                     :desc "paste region to a paste service" "r" #'webpaste-paste-region
                     :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
 
-(require 'pcap-mode)
+;(require 'pcap-mode)
 
 ;; (with-eval-after-load 'org
 ;;   (require 'inherit-org)
@@ -571,54 +570,58 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;     (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
 ;;     (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
 
-(eval-after-load "w3m-form"
-  '(progn
-     (define-minor-mode dme:w3m-textarea-mode
-       "Minor mode used when editing w3m textareas."
-       nil " dme:w3m-textarea" w3m-form-input-textarea-keymap)
-     (defun dme:w3m-textarea-hook ()
-                                        ; protect the form local variables from being killed by `text-mode'
-       (mapcar (lambda (v)
-		 (if (string-match "^w3m-form-input-textarea.*"
-				   (symbol-name (car v)))
-		     (put (car v) 'permanent-local t)))
-	       (buffer-local-variables))
-       (text-mode)
-       (dme:w3m-textarea-mode))
-     (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
+;; (eval-after-load "w3m-form"
+;;   '(progn
+;;      (define-minor-mode dme:w3m-textarea-mode
+;;        "Minor mode used when editing w3m textareas."
+;;        nil " dme:w3m-textarea" w3m-form-input-textarea-keymap)
+;;      (defun dme:w3m-textarea-hook ()
+;;                                         ; protect the form local variables from being killed by `text-mode'
+;;        (mapcar (lambda (v)
+;; 		 (if (string-match "^w3m-form-input-textarea.*"
+;; 				   (symbol-name (car v)))
+;; 		     (put (car v) 'permanent-local t)))
+;; 	       (buffer-local-variables))
+;;        (text-mode)
+;;        (dme:w3m-textarea-mode))
+;;      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
 
-(defun vterm--rename-buffer-as-title (title)
-  (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
-    (cd-absolute dir)
-    (rename-buffer (format "term %s" title))))
-(add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+(after! vterm
+  (defun vterm--rename-buffer-as-title (title)
+    (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
+      (cd-absolute dir)
+      (rename-buffer (format "term %s" title))))
+  (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title))
 
-(defun nsa/tmux-vterm (arg)
-  "Start a new tmux session or switch to one in vterm."
-  (interactive "sSession: ")
+(after! vterm
+  (defun nsa/tmux-vterm (arg)
+    "Start a new tmux session or switch to one in vterm."
+    (interactive "sSession: ")
 
-  (let ((buffer-name (format "*tmux-%s*" arg)))
+    (let ((buffer-name (format "*tmux-%s*" arg)))
 
-    (unless (get-buffer buffer-name)
-      (with-current-buffer (get-buffer-create buffer-name)
-        (vterm-mode)
-        (vterm-send-string (format  "tmux new -s %s || tmux a -s %s" arg arg))
-        (vterm-send-return)))
-    (switch-to-buffer buffer-name)))
+      (unless (get-buffer buffer-name)
+        (with-current-buffer (get-buffer-create buffer-name)
+          (vterm-mode)
+          (vterm-send-string (format  "tmux new -s %s || tmux a -s %s" arg arg))
+          (vterm-send-return)))
+      (switch-to-buffer buffer-name))))
 
-(defun nsa/dired-exec ()
-  "Run the script under point in Dired mode, prompting for arguments."
-  (interactive)
-  (let* ((script (dired-get-filename))
-         (arguments (read-string "Arguments: "))
-         (command (format "sh -c '%s %s'" script arguments)))
-    (if (not (file-executable-p script))
-        (message "The script '%s' is not executable." script)
-      (let ((default-directory (file-name-directory script)))
-        (nsa/async-shell-command-alert command (format "*%s*" (f-base script)))))))
+(after! dired
+  (defun nsa/dired-exec ()
+    "Run the script under point in Dired mode, prompting for arguments."
+    (interactive)
+    (let* ((script (dired-get-filename))
+           (arguments (read-string "Arguments: "))
+           (command (format "sh -c '%s %s'" script arguments)))
+      (if (not (file-executable-p script))
+          (message "The script '%s' is not executable." script)
+        (let ((default-directory (file-name-directory script)))
+          (nsa/async-shell-command-alert command (format "*%s*" (f-base script))))))))
 
-
-(define-key dired-mode-map (kbd "C-c C-c") 'nsa/dired-exec)
+(use-package! dired
+  :config
+  (define-key dired-mode-map (kbd "C-c C-c") 'nsa/dired-exec))
 
 ;; (require 'dirvish)
 ;; (dirvish-override-dired-mode)
@@ -676,22 +679,27 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;   (setq tramp-chunksize 2000)
 ;;   (setq tramp-use-ssh-controlmaster-options nil))
 
-(setq atomic-chrome-buffer-open-style 'frame)
+(use-package! atomic-chrome
+  :config
+  (setq! atomic-chrome-buffer-open-style 'frame))
 
-(add-hook 'after-init-hook #'atomic-chrome-start-server)
+(after! atomic-chrome
+  (add-hook 'after-init-hook #'atomic-chrome-start-server))
 
 (bind-key "M-&" #'nsa/async-shell-command-alert)
 
-(setq eshell-aliases-file "~/.doom.d/eshell/aliases")
-
-(set-company-backend! 'eshell-mode
+(use-package! eshell
+  :config
+  (setq! eshell-aliases-file "~/.doom.d/eshell/aliases")
+  (set-company-backend! 'eshell-mode
   '(company-files))
-(add-hook 'eshell-mode-hook #'eshell-cmpl-initialize)
+  (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
 
-(require 'tramp-sh)
-(setq tramp-remote-path
-      (append tramp-remote-path
-              '(tramp-own-remote-path)))
+(use-package! tramp-sh
+  :config
+  (setq tramp-remote-path
+        (append tramp-remote-path
+                '(tramp-own-remote-path))))
 
 (use-package! gptel
   :config
@@ -765,44 +773,42 @@ strings."
          :urgency (if urgency (symbol-name urgency) "normal")))
     (alert-message-notify info)))
 
-(require 'skeletor)
-(setq skeletor-user-directory "~/.dotfiles/Templates/")
-
-(add-to-list 'skeletor-global-substitutions
-             (cons "__HOME__" (getenv "HOME")))
-
-(add-to-list 'skeletor-global-substitutions
-             (cons "__USER__" user-login-name))
-
-(add-to-list 'skeletor-global-substitutions
-             (cons "__EMAIL__" user-mail-address))
+(use-package! skeletor
+  :config
+  (setq! skeletor-user-directory "~/Templates/")
 
 
-(add-to-list 'skeletor-global-substitutions
-             (cons "__COPYRIGHT__" (lambda () (format "nsaspy %s" (format-time-string "%c")))))
-(add-to-list 'skeletor-global-substitutions
-             (cons "__TIME__" (lambda () (format-time-string "%c"))))
+  (add-to-list 'skeletor-global-substitutions
+               (cons "__HOME__" (getenv "HOME")))
 
-(add-to-list 'skeletor-global-substitutions
-             (cons "__BIN-NAME__" (lambda () (format-time-string "%c"))))
+  (add-to-list 'skeletor-global-substitutions
+               (cons "__USER__" user-login-name))
 
-(add-to-list 'skeletor-global-substitutions
-             (cons "__DESCRIPTION__"
-                   (lambda () (read-string "Enter description: "))))
+  (add-to-list 'skeletor-global-substitutions
+               (cons "__EMAIL__" user-mail-address))
 
-(defun nsa/init-git-project (dir)
-  (let ((default-directory dir))
-    (envrc-allow)))
 
-(skeletor-define-template "sbcl-project" :title "Common Lisp (SBCL)"
+  (add-to-list 'skeletor-global-substitutions
+               (cons "__COPYRIGHT__" (lambda () (format "nsaspy %s" (format-time-string "%c")))))
+  (add-to-list 'skeletor-global-substitutions
+               (cons "__TIME__" (lambda () (format-time-string "%c"))))
+
+  (add-to-list 'skeletor-global-substitutions
+               (cons "__BIN-NAME__" (lambda () (format-time-string "%c"))))
+
+  (add-to-list 'skeletor-global-substitutions
+               (cons "__DESCRIPTION__"
+                     (lambda () (read-string "Enter description: "))))
+  (skeletor-define-template "sbcl-project" :title "Common Lisp (SBCL)"
                           :after-creation (lambda (dir)
                                             (nsa/init-git-project dir)))
+  )
 
-(require 'f)
+(use-package! f)
 
-(require 'dash)
+(use-package! dash)
 
-(require 's)
+(use-package! s)
 
 (setq lsp-package-path (executable-find "pyright"))
 
