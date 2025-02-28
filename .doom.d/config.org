@@ -6,13 +6,12 @@
 #+begin_src emacs-lisp;; -*- lexical-binding: t -*-
 #+end_src
 * About
-This is my personal doom emacs config, you can find package related stuff in packages.org [[./packages.org][packages.org]]
+This is my personal doom emacs config, you can find package related stuff in packages.org [[file:./packages.org][packages.org]]
 yasnippets are in snippets
 
 #+begin_src emacs-lisp
 (setq user-mail-address "nsaspy@airmail.cc")
 #+end_src
-
 * init.el
 This section tangles the init file
 #+begin_src emacs-lisp :tangle ./init.el
@@ -74,12 +73,12 @@ This section tangles the init file
 
        :editor
        (evil +everywhere); come to the dark side, we have cookies
-       ;file-templates    ; auto-snippets for empty files
+                                        ;file-templates    ; auto-snippets for empty files
        fold              ; (nigh) universal code folding
        (format +onsave)  ; automated prettiness
        ;;god               ; run Emacs commands without modifier keys
        lispy             ; vim for lisp, for people who don't like vim
-       ;multiple-cursors  ; editing in many places at once
+                                        ;multiple-cursors  ; editing in many places at once
        ;;objed             ; text object editing for the innocent
        parinfer          ; turn lisp into python, sort of
        ;;rotate-text       ; cycle region at point between text candidates
@@ -105,15 +104,15 @@ This section tangles the init file
        grammar           ; tasing grammar mistake every you make
 
        :tools
-       ;ansible
+                                        ;ansible
        ;;biblio            ; Writes a PhD for you (citation needed)
        debugger          ; FIXME stepping through code, to help you add bugs
        direnv
-       ;docker
+                                        ;docker
        editorconfig      ; let someone else argue about tabs vs spaces
        ;;ein               ; tame Jupyter notebooks with emacs
        (eval +overlay)     ; run code, run (also, repls)
-       ;gist              ; interacting with github gists
+                                        ;gist              ; interacting with github gists
        lookup              ; navigate your code and its documentation
        lsp               ; M-x vscode
        (magit +forge)             ; a git porcelain for Emacs
@@ -122,14 +121,14 @@ This section tangles the init file
        pdf               ; pdf enhancements
        ;;prodigy           ; FIXME managing external services & code builders
        rgb               ; creating color strings
-       ;taskrunner        ; taskrunner for all your projects
-       ;terraform         ; infrastructure as code
-       ;tmux              ; an API for interacting with tmux
-       ;tree-sitter       ; syntax and parsing, sitting in a tree...
+                                        ;taskrunner        ; taskrunner for all your projects
+                                        ;terraform         ; infrastructure as code
+                                        ;tmux              ; an API for interacting with tmux
+                                        ;tree-sitter       ; syntax and parsing, sitting in a tree...
        upload            ; map local to remote projects via ssh/ftp
 
        :os
-       ;(:if IS-MAC macos)  ; improve compatibility with macOS
+                                        ;(:if IS-MAC macos)  ; improve compatibility with macOS
        tty               ; improve the terminal Emacs experience
 
        :lang
@@ -156,9 +155,9 @@ This section tangles the init file
        ;;fstar             ; (dependent) types and (monadic) effects and Z3
        ;;gdscript          ; the language you waited for
        ;;(go +lsp)         ; the hipster dialect
-       ;(graphql +lsp)    ; Give queries a REST
+                                        ;(graphql +lsp)    ; Give queries a REST
        ;;(haskell +lsp)    ; a language that's lazier than I am
-       ;hy                ; readability of scheme w/ speed of python
+                                        ;hy                ; readability of scheme w/ speed of python
        ;;idris             ; a language you can depend on
        json              ; At least it ain't XML
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
@@ -179,7 +178,7 @@ This section tangles the init file
        ;;purescript        ; javascript, but functional
        python            ; beautiful is better than ugly
        ;;qt                ; the 'cutest' gui framework ever
-       ;racket            ; a DSL for DSLs
+                                        ;racket            ; a DSL for DSLs
        ;;raku              ; the artist formerly known as perl6
        ;;rest              ; Emacs as a REST client
        ;;rst               ; ReST in peace
@@ -193,12 +192,12 @@ This section tangles the init file
        ;;swift             ; who asked for emoji variables?
        ;;terra             ; Earth and Moon in alignment for performance.
        (web)               ; the tubes
-       ;yaml              ; JSON, but readable
+                                        ;yaml              ; JSON, but readable
        ;;zig               ; C, but simpler
 
        :email
        ;;(mu4e +org +gmail)
-       ;notmuch
+                                        ;notmuch
        ;;(wanderlust +gmail)
 
        :app
@@ -212,10 +211,7 @@ This section tangles the init file
        :config
        ;;literate
        (default +bindings +smartparens))
-
 #+end_src
-
-
 * Multi Platform config
 Stuff to determinate os and apply settings to fit that system
 
@@ -251,7 +247,6 @@ I like to use my laptop outside, dark-themes looks bad outside.
   (if (ignore-errors (load-theme theme :no-confirm))
       (mapcar #'disable-theme (remove theme custom-enabled-themes))
     (message "Unable to find theme file for ‘%s’" theme)))
-
 #+end_src
 
 Map this theme toggle to SPC t T
@@ -259,7 +254,6 @@ Map this theme toggle to SPC t T
 (map! :leader
       (:prefix-map ("t" . "toggle")
        :desc "Cycle The Theme" "T" #'ivan/cycle-theme))
-
 #+end_src
 ** Line numbers
 #+begin_src emacs-lisp
@@ -274,23 +268,22 @@ I have also noticed that it is prob required on my laptop running a Intel N3060.
 ** Fonts
 Setting nerdfonts
 #+begin_src emacs-lisp
-;(setq
-; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
-; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
-; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
-; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
+                                        ;(setq
+                                        ; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+                                        ; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
+                                        ; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+                                        ; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
 #+end_src
 *** DONE Fix the wrong fonts
 ** Hide async shell commands
 #+begin_src emacs-lisp
 (add-to-list 'display-buffer-alist
-  (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
+             (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
 #+end_src
 ** Stop stealing my point org mode![fn:7]
 #+begin_src emacs-lisp
 (setq org-src-tab-acts-natively nil)
 #+end_src
-
 * System config
 Here you will find desktop/system settings
 ** Brave Setup
@@ -316,10 +309,7 @@ The optional argument NEW-WINDOW is not used."
 	   (append
 	    browse-url-brave-arguments
 	    (list url)))))
-
 #+end_src
-
-
 ** Default Browser
 My default Browser is brave, for one reason the emailess sync
 If you want to bitch about it, consider some rope
@@ -330,10 +320,9 @@ Define a open in brave function
 (setq
  browse-url-handlers
  '(
-  ("wikipedia\\.org" . eww-browse-url)
-  ("github" . browse-url-brave)
-  ("." . browse-url-brave)
-  ))
+   ("wikipedia\\.org" . eww-browse-url)
+   ("github" . browse-url-brave)
+   ("." . browse-url-brave)))
 #+end_src
 ** Libvirt
 Manage virtual machines from emacs
@@ -373,7 +362,7 @@ Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][sourc
       (goto-char (point-max))
       (or (bolp) (insert "\n"))
       (insert "* " hd "\n")))
-    (end-of-line))
+  (end-of-line))
 #+end_src
 **** Org Capture Templates
 Here i override the capture templates, some intergrating into org roam
@@ -415,19 +404,13 @@ Here i override the capture templates, some intergrating into org roam
                                ("ai" "LLM/AI Injection (Bypasses)" entry
                                 (file+headline "~/Documents/Notes/org/ai-prompts.org" "Injections")
                                 "* %U %?\n%i\n%a" :prepend t)))
-
-
-
-
-
-
 #+end_src
 *** Org Agenda
 Find all TODOS recursively [[https://stackoverflow.com/a/41969519][source]].
 #+begin_src emacs-lisp
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
-;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
-;  (add-to-list org-agenda-files file))
+                                        ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
+                                        ;  (add-to-list org-agenda-files file))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -470,9 +453,6 @@ I prefer being able to have different views within org agenda, so i can see what
       :desc "switch to month view"
       "o a y" #'org-agenda-year-view)
 #+end_src
-
-
-
 **** Org super agenda
 #+begin_src emacs-lisp
 (setq org-super-agenda-groups
@@ -485,7 +465,6 @@ I prefer being able to have different views within org agenda, so i can see what
         (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
         (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading")))
 #+end_src
-
 *** Babel
 Tangle a file
 #+begin_src emacs-lisp
@@ -515,7 +494,6 @@ Add languages to org babel
  'org-babel-load-languages
  '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t)))
 #+end_src
-
 **** Better Formating in org-babel
 Adapted from [[https://www.reddit.com/r/emacs/comments/9tp79o/comment/e90g7km/?utm_source=share&utm_medium=web2x&context=3][here]].
 #+begin_src emacs-lisp
@@ -559,8 +537,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :prefix ("b" . "org-babel-fomats")
       :desc "format src" "f" #'format-elisp-src-blocks)
 #+end_src
-
-
 *** Org Tempo templates
 I experiment with different languages, org babel makes things easy.
 #+begin_src emacs-lisp
@@ -580,7 +556,6 @@ I experiment with different languages, org babel makes things easy.
   (add-to-list 'org-structure-template-alist '("cl" . "src lisp"))
   (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
 #+end_src
-
 *** Org config sync
 Create a function to tangle and sync doom at the same time
 #+begin_src emacs-lisp
@@ -598,13 +573,11 @@ Create a function to tangle and sync doom at the same time
   (doom/reload)
   (magit-stage-modified nil)
   (magit))
-  
+
 
 (defun doom-config-sync ()
   "Alias for 'nsa/config/sync'"
   (nsa/config-sync))
-
-
 #+end_src
 *** org-download
 This extension facilitates moving images from point A to point B.
@@ -626,8 +599,6 @@ Configure keybinds. this will be under `SPC m a `
       :desc "paste image" "p" #'org-download-clipboard
       :desc "insert image from url" "i" #'org-download-yank)
 #+end_src
-
-
 *** Org Roam
 A Personal wiki
 
@@ -673,16 +644,14 @@ Set roam directory
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
-  ;; (setq org-roam-dailies-capture-templates
-  ;;  '(("d" "default" entry "* %?"
-  ;;     :target (file+head "%<%Y-%m-%d>.org" "#+title: %U\n"))
-  ;;    ("n" "news" entry "* %? :news:"
-  ;;        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
-  ;;    ("j" "journal" entry "* %<%I:%M %p>%? :personal:"
-  ;;       :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))))
-  
+;; (setq org-roam-dailies-capture-templates
+;;  '(("d" "default" entry "* %?"
+;;     :target (file+head "%<%Y-%m-%d>.org" "#+title: %U\n"))
+;;    ("n" "news" entry "* %? :news:"
+;;        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+;;    ("j" "journal" entry "* %<%I:%M %p>%? :personal:"
+;;       :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))))
 #+end_src
-
 *** Misc org roam
 url2org function for importing info from the web
 
@@ -713,7 +682,6 @@ Eyes off my doccuments
 #+begin_src emacs-lisp
 (setq epa-file-select-keys "235327FBDEFB3719")
 #+end_src
-
 *** Org Present
 Create presentations with org mode
 
@@ -770,19 +738,17 @@ Go sub to him if you havent hes worth your time.
   (org-remove-inline-images)
   (org-present-read-write)
   (org-present-show-cursor))
-  ;; Stop centering the document
+;; Stop centering the document
 
 
 ;; Turn on variable pitch fonts in Org Mode buffers
-;(add-hook! 'org-mode variable-pitch-mode)
+                                        ;(add-hook! 'org-mode variable-pitch-mode)
 
 ;; Register hooks with org-present
 (add-hook 'org-present-mode-hook 'my/org-present-start)
 (add-hook 'org-present-mode-quit-hook 'my/org-present-end)
 (add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
 #+end_src
-
-
 *** TODO Org Idea box
 Keep my ideas separated from my todos and give me a random idea from the file
 #+begin_src emacs-lisp
@@ -795,115 +761,118 @@ Keep my ideas separated from my todos and give me a random idea from the file
 ;;     (insert-file-contents nsa/ideas-file)
 ;;     (org-element-cache-map #'identity)
 ;;     (let ((elements (org-map-entries #'identity "TODO=\"IDEA\""))) elements)))
-
 #+end_src
 *** Org alerts
+
+#+begin_src emacs-lisp
+(after! org
+  (after! alert
+    (use-package! org-alert
+      :config
+      (setq! org-alert-interval 300
+             org-alert-notify-cutoff 10
+             org-alert-notify-after-event-cutoff 25)))
+  (after! org-alert
+    (org-alert-enable)
+    (org-alert-check)))
+#+end_src
+
 Configure Org alerts to use alert.el
 #+begin_src emacs-lisp
-(require 'org-alert)
-(use-package! org-timed-alerts
-  :config
-  (setq org-timed-alerts-alert-function #'alert-libnotify-notify)
-  (setq org-timed-alerts-tag-exclusions nil)
-  (setq org-timed-alerts-default-alert-props nil)
-  (setq org-timed-alerts-warning-times '(-10 -5))
-  (setq org-timed-alerts-agenda-hook-p t)
-  (setq org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline")
-  (setq org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
-                                          "it is now %current-time\n "
-                                          "*THIS IS YOUR %warning-time MINUTE WARNING*"))
-  (add-hook! 'org-mode-hook #'org-timed-alerts-mode))
+(after! org
+  (after! alert
+    (use-package! org-timed-alerts
+      :config
+      (setq org-timed-alerts-alert-function #'alert-libnotify-notify
+             org-timed-alerts-tag-exclusions nil
+             org-timed-alerts-default-alert-props nil
+             org-timed-alerts-warning-times '(-10 -5)
+             org-timed-alerts-agenda-hook-p t
+             org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline"
+             org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
+                                                    "it is now %current-time\n "
+                                                    "*THIS IS YOUR %warning-time MINUTE WARNING*")))
+    (after! org-timed-alerts
+      (add-hook! 'org-mode-hook #'org-timed-alerts-mode))))
 #+end_src
 
-Set up alert intervals
-#+begin_src emacs-lisp
-(setq org-alert-interval 300
-      org-alert-notify-cutoff 10
-      org-alert-notify-after-event-cutoff 10)
-#+end_src
-Add hook to run after org-mode runs
-
-#+begin_src emacs-lisp
-(org-alert-enable)
-(org-alert-check)
-#+end_src
 *** Modern Org
-Enable it globally
-#+begin_src emacs-lisp
-(with-eval-after-load 'org (global-org-modern-mode))
-#+end_src
-
 Config, mostly defaults since it looks good enough.
 #+begin_src emacs-lisp
-(setq
- ;; Edit settings
- org-auto-align-tags nil
- org-tags-column 0
- org-catch-invisible-edits 'show-and-error
- org-special-ctrl-a/e t
- org-insert-heading-respect-content t
+(after! org
+  (use-package! org-modern
+    :config
+    (setq!
+     ;; Edit settings
+     org-auto-align-tags nil
+     org-tags-column 0
+     org-catch-invisible-edits 'show-and-error
+     org-special-ctrl-a/e t
+     org-insert-heading-respect-content t
 
- ;; Org styling, hide markup etc.
- org-hide-emphasis-markers t
- org-pretty-entities t
- org-ellipsis "…"
+     ;; Org styling, hide markup etc.
+     org-hide-emphasis-markers t
+     org-pretty-entities t
+     org-ellipsis "…"
 
- ;; Agenda styling
- org-agenda-tags-column 0
- org-agenda-block-separator ?─
- org-agenda-time-grid
- '((daily today require-timed)
-   (800 1000 1200 1400 1600 1800 2000)
-   " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
- org-agenda-current-time-string
- "◀── now ─────────────────────────────────────────────────")
+     ;; Agenda styling
+     org-agenda-tags-column 0
+     org-agenda-block-separator ?─
+     org-agenda-time-grid
+     '((daily today require-timed)
+       (800 1000 1200 1400 1600 1800 2000)
+       " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
+     org-agenda-current-time-string
+     "◀── now ─────────────────────────────────────────────────"))
+   (global-org-modern-mode))
 #+end_src
 *** Misc related functions for org mode
-****  Time Stamp updater
+**** Time Stamp updater
 #+begin_src emacs-lisp
-(defun update-timestamps (directory)
-  "Update timestamps in all org files in DIRECTORY."
-  (interactive "DDirectory: ")
-  (let ((files (directory-files-recursively directory "\\.org$")))
-    (dolist (file files)
-      (with-current-buffer (find-file-noselect file)
-        (save-excursion
-          (goto-char (point-min))
-          (time-stamp))))))
+(after! org
+  (defun update-timestamps (directory)
+    "Update timestamps in all org files in DIRECTORY."
+    (interactive "DDirectory: ")
+    (let ((files (directory-files-recursively directory "\\.org$")))
+      (dolist (file files)
+        (with-current-buffer (find-file-noselect file)
+          (save-excursion
+            (goto-char (point-min))
+            (time-stamp))))))
 
-(defun update-timestamps-in-directory (directory)
-  "Update timestamps in all org files in DIRECTORY."
-  (let ((files (directory-files-recursively directory "\\.org$")))
-    (dolist (file files)
-      (with-current-buffer (find-file-noselect file)
-        (save-excursion
-          (goto-char (point-min))
-          (time-stamp))))))
-
+  (defun update-timestamps-in-directory (directory)
+    "Update timestamps in all org files in DIRECTORY."
+    (let ((files (directory-files-recursively directory "\\.org$")))
+      (dolist (file files)
+        (with-current-buffer (find-file-noselect file)
+          (save-excursion
+            (goto-char (point-min))
+            (time-stamp)))))))
 #+end_src
-
 * Package Config
 ** Magit
 *** magit-clone
 Function to use the current clipboard as path to clone[fn:2]
 #+begin_src emacs-lisp
-(defun ar/git-clone-clipboard-url ()
-  "Clone git URL in clipboard asynchronously and open in dired when finished."
-  (interactive)
-  (require 'cl-lib)
-  (let ((url (current-kill 0))
-        (download-dir (read-directory-name "Path to git clone: " default-directory))
-        (magit-clone-set-remote.pushDefault t))
-    (magit-clone-internal url download-dir '())))
+(after! magit
+  (defun ar/git-clone-clipboard-url ()
+    "Clone git URL in clipboard asynchronously and open in dired when finished."
+    (interactive)
+    (require 'cl-lib)
+    (let ((url (current-kill 0))
+          (download-dir (read-directory-name "Path to git clone: " default-directory))
+          (magit-clone-set-remote.pushDefault t))
+      (magit-clone-internal url download-dir '()))))
 #+end_src
 *** Keys
 Override magit-clone
 
 #+begin_src emacs-lisp
 (map! :leader
+      :after magit
       :map 'magit-mode-map
       (:prefix-map ("g" . "git")
-      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
+       :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
 #+end_src
 
 Set keybinds for pushing to remote
@@ -911,6 +880,7 @@ Pushes the current branch to the remote
 (eg: local master > remote master)
 #+begin_src emacs-lisp
 (map! :leader
+      :after magit
       :desc "Push Current branch to remote branch"
       "g p P" #'magit-push-current-to-pushremote)
 #+end_src
@@ -918,6 +888,7 @@ Pushes the current branch to the remote
 Same as above but for pulling from remote
 #+begin_src emacs-lisp
 (map! :leader
+      :after magit
       :desc "Pull current branch from remote"
       "g p p" #'magit-pull-from-pushremote)
 #+end_src
@@ -925,54 +896,39 @@ Same as above but for pulling from remote
 Create a new tag
 #+begin_src emacs-lisp
 (map! :leader
+      :after magit
       :map 'magit-mode-map
       (:prefix-map ("g" . "git")
-       (:prefix ("c" . "create")
-      :desc "Create new git tag" "t" #'magit-tag-create)))
-
+                   (:prefix ("c" . "create")
+                    :desc "Create new git tag" "t" #'magit-tag-create)))
 #+end_src
 *** Magit Todos
 Show todos!
 #+begin_src emacs-lisp
-(require 'magit-todos)
+(after! magit
+  (use-package! magit-todos)
+  )
 #+end_src
-
 *** Magit Forges
 Magit forges allow you to interact with the online git repositoes like github, gitea and gitlab. They are named "forges".
 #+begin_src emacs-lisp
-(after! 'magit
-  (require 'forge))
+(after! magit
+  (use-package! forge))
 #+end_src
 ** Projectile
 Setting the path to find projects
 I store my stuff in ~/Documents/Projects
 #+begin_src emacs-lisp
-(setq projectile-project-search-path
-      '(("~/Documents/Projects" . 1)))
+(use-package! projectile
+  :config
+  (setq! projectile-project-search-path
+        '(("~/Documents/Projects" . 1))))
 #+end_src
-
-** Deft
-Deft is used for notes. here im setting the default directory
-#+begin_src emacs-lisp
-(setq deft-extenstions '("txt", "org", "md"))
-(setq deft-directory "~/Documents/Notes")
-#+end_src
-
-Deft is not recursive by defualt (it will not go into sub directories)
-#+begin_src emacs-lisp
-(setq deft-recursive t)
-#+end_src
-Tell deft to use the filename as the Title of the note
-#+begin_src emacs-lisp
-(setq deft-use-filename-as-title t)
-#+end_src
-
 ** Notifications
 *** Emacs built in notifications
 #+begin_src emacs-lisp
 (require 'notifications)
 #+end_src
-
 ** RSS (Elfeed)
 #+begin_src emacs-lisp
 (require 'elfeed-org)
@@ -993,8 +949,6 @@ Disable evil for elfeed.
 (add-hook 'elfeed-search-mode-hook 'turn-off-evil-mode)
 (add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode)
 #+end_src
-
-
 ** Web-paste
 Web-paste allows you to paste text to pastebin like web services
 #+begin_src emacs-lisp
@@ -1018,18 +972,16 @@ Setting Key binds
 #+begin_src emacs-lisp
 (map! :leader
       (:prefix-map ("n" . "notes")
-       (:prefix ("p" . "webpaste")
-        :desc "paste region to a paste service" "r" #'webpaste-paste-region
-        :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
+                   (:prefix ("p" . "webpaste")
+                    :desc "paste region to a paste service" "r" #'webpaste-paste-region
+                    :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
 #+end_src
-
 ** Pcap mode
 You can view a pcap file with tshark
 
 #+begin_src emacs-lisp
 (require 'pcap-mode)
 #+end_src
-
 ** inherit org
 inherit-org: Inherit org faces to non-org buffers.
 #+begin_src emacs-lisp
@@ -1048,7 +1000,6 @@ inherit-org: Inherit org faces to non-org buffers.
 ;;     (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
 ;;     (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
 #+end_src
-
 ** W3M
 
 fix text area
@@ -1080,12 +1031,11 @@ set the window title
     (rename-buffer (format "term %s" title))))
 (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
 #+end_src
-
 *** Tmux
 #+begin_src emacs-lisp
 (defun nsa/tmux-vterm (arg)
   "Start a new tmux session or switch to one in vterm."
-      (interactive "sSession: ")
+  (interactive "sSession: ")
 
   (let ((buffer-name (format "*tmux-%s*" arg)))
 
@@ -1164,9 +1114,7 @@ a better dired
 ;;    ("M-s" . dirvish-setup-menu)
 ;;    ("M-e" . dirvish-emerge-menu)
 ;;    ("M-j" . dirvish-fd-jump)))
-
 #+end_src
-
 **** Dirvish setup with Tramp[fn:4]
 #+begin_src emacs-lisp
 ;; (use-package tramp
@@ -1199,7 +1147,6 @@ Here I bind it to a key.
 #+begin_src emacs-lisp
 (bind-key "M-&" #'nsa/async-shell-command-alert)
 #+end_src
-
 ** Eshell
 Eshell is a emacs lisp based shell, which is powerful. After vterm broke on my nixos dotfiles i have now fully commited to eshell.
 If i cant run it in eshell i have a terminal dropdown for it.
@@ -1212,16 +1159,15 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
 Ensure Auto complete is running and ensure correct company backend is running
 #+begin_src emacs-lisp
 (set-company-backend! 'eshell-mode
-           	'(company-files))
+  '(company-files))
 (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize)
-
 #+end_src
 ** Tramp
 #+begin_src emacs-lisp
 (require 'tramp-sh)
 (setq tramp-remote-path
       (append tramp-remote-path
-        '(tramp-own-remote-path)))
+              '(tramp-own-remote-path)))
 #+end_src
 ** GPTEL
 #+begin_src emacs-lisp
@@ -1259,19 +1205,18 @@ Spawn a maximized window.
 *** Keybinds
 Gptel keys, could add more commands though.[fn:6]
 #+begin_src emacs-lisp
- (map!
-   :leader
-   (:prefix "y"
-    :desc "gptel" :n "y" #'gptel
-    :desc "gptel" :n "f" #'gptel-add-file
-    :desc "gptel" :n "a" #'gptel-add
-    :desc "gptel abort" :n "q" #'gptel-abort
-    :desc "gptel Menu" :n "Y" #'gptel-menu
-    :desc "gptel copilot" :n "i" #'gptel-complete
-    :desc "gptel Send" :n "s" #'gptel-send
-    :desc "gptel Topic" :n "t" #'gptel-set-topic))
+(map!
+ :leader
+ (:prefix "y"
+  :desc "gptel" :n "y" #'gptel
+  :desc "gptel" :n "f" #'gptel-add-file
+  :desc "gptel" :n "a" #'gptel-add
+  :desc "gptel abort" :n "q" #'gptel-abort
+  :desc "gptel Menu" :n "Y" #'gptel-menu
+  :desc "gptel copilot" :n "i" #'gptel-complete
+  :desc "gptel Send" :n "s" #'gptel-send
+  :desc "gptel Topic" :n "t" #'gptel-set-topic))
 #+end_src
-
 ** Alert
 Send Alerts from emacs
 
@@ -1314,7 +1259,6 @@ strings."
          :urgency (if urgency (symbol-name urgency) "normal")))
     (alert-message-notify info)))
 #+end_src
-
 ** Skeletor
 Skeletor is a project template package.
 
@@ -1352,7 +1296,6 @@ Create a custom substitution for project descriptions:
              (cons "__DESCRIPTION__"
                    (lambda () (read-string "Enter description: "))))
 #+end_src
-
 *** Project Templates
 **** SBCL
 #+begin_src emacs-lisp
@@ -1381,8 +1324,6 @@ The long lost Emacs string manipulation library.
 #+begin_src emacs-lisp
 (require 's)
 #+end_src
-
-
 * Programming
 
 This section would not fit well, therefor it is in its own.
@@ -1397,12 +1338,11 @@ Make life easy!
 #+begin_src emacs-lisp
 (envrc-global-mode)
 #+end_src
-
 ** Nix
 Nix is a language that allows for reproducible declarative systems/packages.
 Add nixos-options to company backend
 #+begin_src emacs-lisp
-;(add-to-list 'company-backends 'company-nixos-options)
+                                        ;(add-to-list 'company-backends 'company-nixos-options)
 #+end_src
 
 Update the rev and sha of a fetchgit package
@@ -1415,7 +1355,6 @@ Update the rev and sha of a fetchgit package
 ;;       :map nix-mode-map
 ;;       :prefix ("u" . "update")
 ;;       :desc "Update fetchgit" "g" #'nix-update-fetch)
-
 #+end_src
 
 #+begin_src emacs-lisp
@@ -1429,16 +1368,14 @@ Update the rev and sha of a fetchgit package
 hook lsp to nim lsp
 [[https://gist.github.com/cyraxjoe/9001fcc5d2de0669d7e0d27f7a49ee90][source]], [[https://www.reddit.com/r/nim/comments/dr0ph0/setting_up_nimlsp_in_emacs/][reddit comment]].
 #+begin_src emacs-lisp
-;(require 'lsp-mode)
-;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
-;(lsp-register-client
-; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
-;                  :major-modes '(nim-mode)
-;                  :server-id 'nimlsp))
-;(add-hook 'nim-mode-hook #'lsp)
+                                        ;(require 'lsp-mode)
+                                        ;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
+                                        ;(lsp-register-client
+                                        ; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
+                                        ;                  :major-modes '(nim-mode)
+                                        ;                  :server-id 'nimlsp))
+                                        ;(add-hook 'nim-mode-hook #'lsp)
 #+end_src
-
-
 ** Forth
 Load forth mode
 #+begin_src emacs-lisp
@@ -1451,8 +1388,6 @@ Evil smartparens is a minor mode which makes evil play nice with smartparens.
 (add-hook 'emacs-lisp-mode-hook #'evil-smartparens-mode)
 (add-hook 'common-lisp-mode #'evil-smartparens-mode)
 #+end_src
-
-
 *** Templates
 Template for [[https://gitlab.common-lisp.net/asdf/asdf][ASDF]] system def.
 #+begin_src emacs-lisp
@@ -1482,18 +1417,17 @@ Defstar is a type declaration macro for common lisp
 (put 'lambda*   'doc-string-elt 2)
 
 (defvar *lisp-special-forms*
-(regexp-opt '("defvar*"
-              "defconstant*"
-              "defparameter*"
-              "defgeneric*"
-              "defmethod*"
-              "lambda*"
-              "flet*"
-              "labels*") 'words))
+  (regexp-opt '("defvar*"
+                "defconstant*"
+                "defparameter*"
+                "defgeneric*"
+                "defmethod*"
+                "lambda*"
+                "flet*"
+                "labels*") 'words))
 (font-lock-add-keywords 'lisp-mode
-  `((,*lisp-special-forms* . font-lock-keyword-face)))
+                        `((,*lisp-special-forms* . font-lock-keyword-face)))
 #+end_src
-
 ** Flycheck
 Check for errors!
 
@@ -1502,7 +1436,6 @@ Check for errors!
   :after flycheck
   :config (flycheck-package-setup))
 #+end_src
-
 ** Dumb Jump
 When/If i leave doom ill need to configure it.
 A Jump to definition package. [[https://github.com/jacktasia/dumb-jump][Github]].
@@ -1511,7 +1444,6 @@ Enable the xref back-end.
 #+begin_src emacs-lisp
 (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
 #+end_src
-
 * Misc
 ** Environment
 
@@ -1523,12 +1455,12 @@ Sets PATH
 ** Url proxy
 I use i2p and having elfeed use a proxy would be nice
 #+begin_src emacs-lisp
-;(setq url-proxy-services
-;   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
-;     ("http" . "127.0.0.1:4444")
-;     ("https" . "127.0.0.1:4444")
-;))
-;(setq elfeed-use-curl nil)
+                                        ;(setq url-proxy-services
+                                        ;   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
+                                        ;     ("http" . "127.0.0.1:4444")
+                                        ;     ("https" . "127.0.0.1:4444")
+                                        ;))
+                                        ;(setq elfeed-use-curl nil)
 #+end_src
 ** Cheat-sh
 #+begin_src emacs-lisp
@@ -1540,29 +1472,24 @@ I use i2p and having elfeed use a proxy would be nice
                   alist)))
 
 (add-to-list 'display-buffer-alist
-  (cons "*cheat.sh*" (cons #'open-popup-on-side-or-below nil)))
+             (cons "*cheat.sh*" (cons #'open-popup-on-side-or-below nil)))
 (map! :leader
       :prefix ("s" . "search")
       :desc "cheat sheat" "c" #'cheat-sh)
 #+end_src
-
-
 ** Bookmarks
 #+begin_src emacs-lisp
 (setq bookmark-file "~/Documents/Emacs/bookmarks")
 #+end_src
-
 ** Activity Watch
 #+begin_src emacs-lisp
 (global-activity-watch-mode)
 #+end_src
-
 ** Games
 Stuff that i use for games are here.
-
 *** Kerbal Space Program
 #+begin_src emacs-lisp
-;(require 'ks)
+                                        ;(require 'ks)
 #+end_src
 ** Social Media
 *** Discord rich presence
@@ -1577,26 +1504,26 @@ I only use it on the desktop so only load it there.
 NOTE: <2025-02-14 Fri> These conflicted with flyspell mode. This is being kept for historical.
 Make sure its using aspell
 #+begin_src emacs-lisp
-;(setq ispell-program-name "aspell")
+                                        ;(setq ispell-program-name "aspell")
 #+end_src
 Set dictionary
 #+begin_src emacs-lisp
-;(setq ispell-dictionary "en")
+                                        ;(setq ispell-dictionary "en")
 #+end_src
 
 Set personal dictionary
 #+begin_src emacs-lisp
-;(setq ispell-personal-dictionary "~/.aspell.en_us.pws")
+                                        ;(setq ispell-personal-dictionary "~/.aspell.en_us.pws")
 #+end_src
 
 Spell fu setup
 
 #+begin_src emacs-lisp
 (add-hook 'spell-fu-mode-hook
-  (lambda ()
-    (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en"))
-    (spell-fu-dictionary-add
-      (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
+          (lambda ()
+            (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en"))
+            (spell-fu-dictionary-add
+             (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
 #+end_src
 ** Midnight mode
 Clean up emacs overnight
@@ -1619,7 +1546,6 @@ Make sure it is loaded
 #+begin_src emacs-lisp
 (add-hook 'after-init-hook #'midnight-mode)
 #+end_src
-
 ** Multi media
 *** Elfeed-tube
 #+begin_src emacs-lisp
@@ -1646,62 +1572,6 @@ Tell auth info to put authsource in my dotfiles
       auth-source-cache-expiry 1360)
 #+end_src
 
-** Hackmode
-
-Pentest utils from emacs
-This also makes for a good example config
-
-#+begin_src emacs-lisp
-(use-package! hackmode
-  :config
-
-  (setq hackmode-dir "~/Documents/hackmode") ;set the path to the directory where you working dirs will be stored
-  (setq hackmode-templates "~/.dotfiles/hackmode") ; Path to directory holding templates
-  (setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode-tools/"))) ;; this is the path to the directory where tools can be placed in that will be loaded into your $PATH.
-#+end_src
-
-Hackmode Checklists
-#+begin_src emacs-lisp
-;(setq hackmode-checklists '(("Program overview" . "/home/unseen/Documents/Notes/org/roam/hacking/20231107093523-bug_bounty_methods.org") ("Url" . "/home/unseen/Templates/hackmode/url.org") ("Account Takeover" . "/home/unseen/Templates/hackmode/account-take-over.org")))
-#+end_src
-
-**** TODO Merge with hackmode
-Temp addon to hackmode
-#+begin_src emacs-lisp
-;; (after! hackmode
-;; (defun hackmode-capture ()
-;;   "Capture data!"
-;;   (interactive)
-;;   (let ((org-capture-templates (list
-
-
-;;                                 (list "t" "Tech" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Tech")
-;;                                       "* %t
-;;                                         :PROPERTIES:
-;;                                         :endpoint:
-;;                                         :notes:
-;;                                         :tech:
-;;                                         :tags:
-;;                                         :END:")
-;;                                 (list "b" "Bug" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Bugs")
-;;                                       "* %t
-;;                                         :PROPERTIES:
-;;                                         :endpoint:
-;;                                         :notes:
-;;                                         :type:
-;;                                         :score:
-;;                                         :END:")
-;;                                 (list "i" "Interesting enpoint" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Interesting Endpoints")
-;;                                       "* %t
-;;                                         :PROPERTIES:
-;;                                         :endpoint:
-;;                                         :notes:
-;;                                         :tags:
-;;                                         :END:")))
-;;         (org-directory (hackmode-get-operation-path hackmode-operation)))
-;;     (call-interactively #'org-capture))))
-
-#+end_src
 * Personal Lisp packages
 ** Ppackage
 Simple utility to create local lisp code
@@ -1715,7 +1585,6 @@ A simple wraper for yt-dlp a youtube-dl fork that still works.
 #+begin_src emacs-lisp
 (setq nsa/music-dir "~/Music/Music-inbox")
 #+end_src
-
 * System Wide
 ** Project Tasks
 This is a simple way of running tasks for a project.
@@ -1726,7 +1595,7 @@ Simply put a tasks.org file in the project root and make sure the src block has 
 ** Exwm
 Only load when its actually exwm
 #+begin_src emacs-lisp
-;(require 'persp-mode)
+                                        ;(require 'persp-mode)
 #+end_src
 ** EZF fzf but emacs
 I really like fzf but i also want the options to use emacs when I can.[fn:5]
@@ -1758,15 +1627,13 @@ If COMPLETING-FN is nil default to `ezf-default'."
                     candidate)))
                candidates
                " ")))
-
 #+end_src
-
 * Macros
 ** Frame macros
 Spawn a new window
 #+begin_src emacs-lisp
 (fset 'nsa/spawn-window
-   (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))
+      (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))
 #+end_src
 * Footnotes
 
@@ -1777,4 +1644,3 @@ Spawn a new window
 [fn:3] https://github.com/jwiegley/alert/issues/91
 [fn:2] https://www.reddit.com/r/emacs/comments/k3iter/comment/ge4pn9w/?utm_source=share&utm_medium=web2x&context=3
 [fn:1] https://www.reddit.com/r/emacs/comments/e7h3qw/comment/fa0k4c5
-

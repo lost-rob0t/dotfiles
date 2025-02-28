@@ -29,14 +29,14 @@
 
 (setq frame-resize-pixelwise t)
 
-;(setq
-; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
-; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
-; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
-; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
+                                        ;(setq
+                                        ; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+                                        ; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
+                                        ; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+                                        ; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
 
 (add-to-list 'display-buffer-alist
-  (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
+             (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
 
 (setq org-src-tab-acts-natively nil)
 
@@ -62,10 +62,9 @@ The optional argument NEW-WINDOW is not used."
 (setq
  browse-url-handlers
  '(
-  ("wikipedia\\.org" . eww-browse-url)
-  ("github" . browse-url-brave)
-  ("." . browse-url-brave)
-  ))
+   ("wikipedia\\.org" . eww-browse-url)
+   ("github" . browse-url-brave)
+   ("." . browse-url-brave)))
 
 (require 'libvirt)
 
@@ -91,7 +90,7 @@ The optional argument NEW-WINDOW is not used."
       (goto-char (point-max))
       (or (bolp) (insert "\n"))
       (insert "* " hd "\n")))
-    (end-of-line))
+  (end-of-line))
 
 ;; TODO Fix the mm template
 (setq  org-capture-templates '(("m" "Personal Meditations")
@@ -132,8 +131,8 @@ The optional argument NEW-WINDOW is not used."
                                 "* %U %?\n%i\n%a" :prepend t)))
 
 (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
-;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
-;  (add-to-list org-agenda-files file))
+                                        ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
+                                        ;  (add-to-list org-agenda-files file))
 
 (defun org-agenda-update-files ()
   "Update the org-agenda-files"
@@ -264,7 +263,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (doom/reload)
   (magit-stage-modified nil)
   (magit))
-  
+
 
 (defun doom-config-sync ()
   "Alias for 'nsa/config/sync'"
@@ -320,13 +319,13 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
-  ;; (setq org-roam-dailies-capture-templates
-  ;;  '(("d" "default" entry "* %?"
-  ;;     :target (file+head "%<%Y-%m-%d>.org" "#+title: %U\n"))
-  ;;    ("n" "news" entry "* %? :news:"
-  ;;        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
-  ;;    ("j" "journal" entry "* %<%I:%M %p>%? :personal:"
-  ;;       :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))))
+;; (setq org-roam-dailies-capture-templates
+;;  '(("d" "default" entry "* %?"
+;;     :target (file+head "%<%Y-%m-%d>.org" "#+title: %U\n"))
+;;    ("n" "news" entry "* %? :news:"
+;;        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
+;;    ("j" "journal" entry "* %<%I:%M %p>%? :personal:"
+;;       :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))))
 
 (defun url2org (begin end)
   "Download a webpage from selected url and convert to org."
@@ -390,11 +389,11 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (org-remove-inline-images)
   (org-present-read-write)
   (org-present-show-cursor))
-  ;; Stop centering the document
+;; Stop centering the document
 
 
 ;; Turn on variable pitch fonts in Org Mode buffers
-;(add-hook! 'org-mode variable-pitch-mode)
+                                        ;(add-hook! 'org-mode variable-pitch-mode)
 
 ;; Register hooks with org-present
 (add-hook 'org-present-mode-hook 'my/org-present-start)
@@ -411,146 +410,124 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;     (org-element-cache-map #'identity)
 ;;     (let ((elements (org-map-entries #'identity "TODO=\"IDEA\""))) elements)))
 
-(require 'alert)
-(setq alert-default-style 'libnotify)
-(setq alert-libnotify-command "dunstify")
+(after! org
+  (after! alert
+    (use-package! org-alert
+      :config
+      (setq! org-alert-interval 300
+             org-alert-notify-cutoff 10
+             org-alert-notify-after-event-cutoff 25)))
+  (after! org-alert
+    (org-alert-enable)
+    (org-alert-check)))
 
-(defun alert-libnotify-notify (info)
-  "Send INFO using notifications-notify.
-Handles :ICON, :CATEGORY, :SEVERITY, :PERSISTENT, :NEVER-PERSIST, :TITLE
-and :MESSAGE keywords from the INFO plist.  :CATEGORY can be
-passed as a single symbol, a string or a list of symbols or
-strings."
-  (if (fboundp #'notifications-notify)
-      (let ((category (plist-get info :category))
-            (urgency (cdr (assq (plist-get info :severity) alert-libnotify-priorities))))
-        (notifications-notify
-         :title (alert-encode-string (plist-get info :title))
-         :body (alert-encode-string (plist-get info :message))
-         :app-icon (or (plist-get info :icon) alert-default-icon)
-         :category (cond ((symbolp category)
-                          (symbol-name category))
-                         ((stringp category) category)
-                         ((listp category)
-                          (mapconcat (if (symbolp (car category))
-                                         #'symbol-name
-                                       #'identity)
-                                     category ",")))
-         :timeout (* 1000 ; notify-send takes msecs
-                     (if (and (plist-get info :persistent)
-                              (not (plist-get info :never-persist)))
-                         0 ; 0 indicates persistence
-                       alert-fade-time))
-         :urgency (if urgency (symbol-name urgency) "normal")))
-    (alert-message-notify info)))
+(after! org
+  (after! alert
+    (use-package! org-timed-alerts
+      :config
+      (setq org-timed-alerts-alert-function #'alert-libnotify-notify
+             org-timed-alerts-tag-exclusions nil
+             org-timed-alerts-default-alert-props nil
+             org-timed-alerts-warning-times '(-10 -5)
+             org-timed-alerts-agenda-hook-p t
+             org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline"
+             org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
+                                                    "it is now %current-time\n "
+                                                    "*THIS IS YOUR %warning-time MINUTE WARNING*")))
+    (after! org-timed-alerts
+      (add-hook! 'org-mode-hook #'org-timed-alerts-mode))))
 
-(require 'org-alert)
-(use-package! org-timed-alerts
-  :config
-  (setq org-timed-alerts-alert-function #'alert-libnotify-notify)
-  (setq org-timed-alerts-tag-exclusions nil)
-  (setq org-timed-alerts-default-alert-props nil)
-  (setq org-timed-alerts-warning-times '(-10 -5))
-  (setq org-timed-alerts-agenda-hook-p t)
-  (setq org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline")
-  (setq org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
-                                          "it is now %current-time\n "
-                                          "*THIS IS YOUR %warning-time MINUTE WARNING*"))
-  (add-hook! 'org-mode-hook #'org-timed-alerts-mode))
+(after! org
+  (use-package! org-modern
+    :config
+    (setq!
+     ;; Edit settings
+     org-auto-align-tags nil
+     org-tags-column 0
+     org-catch-invisible-edits 'show-and-error
+     org-special-ctrl-a/e t
+     org-insert-heading-respect-content t
 
-(setq org-alert-interval 300
-      org-alert-notify-cutoff 10
-      org-alert-notify-after-event-cutoff 10)
+     ;; Org styling, hide markup etc.
+     org-hide-emphasis-markers t
+     org-pretty-entities t
+     org-ellipsis "…"
 
-(org-alert-enable)
-(org-alert-check)
+     ;; Agenda styling
+     org-agenda-tags-column 0
+     org-agenda-block-separator ?─
+     org-agenda-time-grid
+     '((daily today require-timed)
+       (800 1000 1200 1400 1600 1800 2000)
+       " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
+     org-agenda-current-time-string
+     "◀── now ─────────────────────────────────────────────────"))
+   (global-org-modern-mode))
 
-(with-eval-after-load 'org (global-org-modern-mode))
+(after! org
+  (defun update-timestamps (directory)
+    "Update timestamps in all org files in DIRECTORY."
+    (interactive "DDirectory: ")
+    (let ((files (directory-files-recursively directory "\\.org$")))
+      (dolist (file files)
+        (with-current-buffer (find-file-noselect file)
+          (save-excursion
+            (goto-char (point-min))
+            (time-stamp))))))
 
-(setq
- ;; Edit settings
- org-auto-align-tags nil
- org-tags-column 0
- org-catch-invisible-edits 'show-and-error
- org-special-ctrl-a/e t
- org-insert-heading-respect-content t
+  (defun update-timestamps-in-directory (directory)
+    "Update timestamps in all org files in DIRECTORY."
+    (let ((files (directory-files-recursively directory "\\.org$")))
+      (dolist (file files)
+        (with-current-buffer (find-file-noselect file)
+          (save-excursion
+            (goto-char (point-min))
+            (time-stamp)))))))
 
- ;; Org styling, hide markup etc.
- org-hide-emphasis-markers t
- org-pretty-entities t
- org-ellipsis "…"
-
- ;; Agenda styling
- org-agenda-tags-column 0
- org-agenda-block-separator ?─
- org-agenda-time-grid
- '((daily today require-timed)
-   (800 1000 1200 1400 1600 1800 2000)
-   " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
- org-agenda-current-time-string
- "◀── now ─────────────────────────────────────────────────")
-
-(defun update-timestamps (directory)
-  "Update timestamps in all org files in DIRECTORY."
-  (interactive "DDirectory: ")
-  (let ((files (directory-files-recursively directory "\\.org$")))
-    (dolist (file files)
-      (with-current-buffer (find-file-noselect file)
-        (save-excursion
-          (goto-char (point-min))
-          (time-stamp))))))
-
-(defun update-timestamps-in-directory (directory)
-  "Update timestamps in all org files in DIRECTORY."
-  (let ((files (directory-files-recursively directory "\\.org$")))
-    (dolist (file files)
-      (with-current-buffer (find-file-noselect file)
-        (save-excursion
-          (goto-char (point-min))
-          (time-stamp))))))
-
-(defun ar/git-clone-clipboard-url ()
-  "Clone git URL in clipboard asynchronously and open in dired when finished."
-  (interactive)
-  (require 'cl-lib)
-  (let ((url (current-kill 0))
-        (download-dir (read-directory-name "Path to git clone: " default-directory))
-        (magit-clone-set-remote.pushDefault t))
-    (magit-clone-internal url download-dir '())))
+(after! magit
+  (defun ar/git-clone-clipboard-url ()
+    "Clone git URL in clipboard asynchronously and open in dired when finished."
+    (interactive)
+    (require 'cl-lib)
+    (let ((url (current-kill 0))
+          (download-dir (read-directory-name "Path to git clone: " default-directory))
+          (magit-clone-set-remote.pushDefault t))
+      (magit-clone-internal url download-dir '()))))
 
 (map! :leader
+      :after magit
       :map 'magit-mode-map
       (:prefix-map ("g" . "git")
-      :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
+       :desc "Clone a Repo" "R" #'ar/git-clone-clipboard-url))
 
 (map! :leader
+      :after magit
       :desc "Push Current branch to remote branch"
       "g p P" #'magit-push-current-to-pushremote)
 
 (map! :leader
+      :after magit
       :desc "Pull current branch from remote"
       "g p p" #'magit-pull-from-pushremote)
 
 (map! :leader
+      :after magit
       :map 'magit-mode-map
       (:prefix-map ("g" . "git")
-       (:prefix ("c" . "create")
-      :desc "Create new git tag" "t" #'magit-tag-create)))
+                   (:prefix ("c" . "create")
+                    :desc "Create new git tag" "t" #'magit-tag-create)))
 
-(require 'magit-todos)
+(after! magit
+  (use-package! magit-todos)
+  )
 
-(after! 'magit
-  (require 'forge))
+(after! magit
+  (use-package! forge))
 
-(setq projectile-project-search-path
-      '(("~/Documents/Projects" . 1)))
-
-(setq deft-extenstions '("txt", "org", "md"))
-(setq deft-directory "~/Documents/Notes")
-
-(setq deft-recursive t)
-
-(setq deft-use-filename-as-title t)
+(use-package! projectile
+  :config
+  (setq! projectile-project-search-path
+        '(("~/Documents/Projects" . 1))))
 
 (require 'notifications)
 
@@ -574,9 +551,9 @@ strings."
 
 (map! :leader
       (:prefix-map ("n" . "notes")
-       (:prefix ("p" . "webpaste")
-        :desc "paste region to a paste service" "r" #'webpaste-paste-region
-        :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
+                   (:prefix ("p" . "webpaste")
+                    :desc "paste region to a paste service" "r" #'webpaste-paste-region
+                    :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
 
 (require 'pcap-mode)
 
@@ -618,7 +595,7 @@ strings."
 
 (defun nsa/tmux-vterm (arg)
   "Start a new tmux session or switch to one in vterm."
-      (interactive "sSession: ")
+  (interactive "sSession: ")
 
   (let ((buffer-name (format "*tmux-%s*" arg)))
 
@@ -708,13 +685,13 @@ strings."
 (setq eshell-aliases-file "~/.doom.d/eshell/aliases")
 
 (set-company-backend! 'eshell-mode
-           	'(company-files))
+  '(company-files))
 (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize)
 
 (require 'tramp-sh)
 (setq tramp-remote-path
       (append tramp-remote-path
-        '(tramp-own-remote-path)))
+              '(tramp-own-remote-path)))
 
 (use-package! gptel
   :config
@@ -743,17 +720,50 @@ strings."
   (call-interactively #'gptel)
   (doom/window-maximize-buffer))
 
- (map!
-   :leader
-   (:prefix "y"
-    :desc "gptel" :n "y" #'gptel
-    :desc "gptel" :n "f" #'gptel-add-file
-    :desc "gptel" :n "a" #'gptel-add
-    :desc "gptel abort" :n "q" #'gptel-abort
-    :desc "gptel Menu" :n "Y" #'gptel-menu
-    :desc "gptel copilot" :n "i" #'gptel-complete
-    :desc "gptel Send" :n "s" #'gptel-send
-    :desc "gptel Topic" :n "t" #'gptel-set-topic))
+(map!
+ :leader
+ (:prefix "y"
+  :desc "gptel" :n "y" #'gptel
+  :desc "gptel" :n "f" #'gptel-add-file
+  :desc "gptel" :n "a" #'gptel-add
+  :desc "gptel abort" :n "q" #'gptel-abort
+  :desc "gptel Menu" :n "Y" #'gptel-menu
+  :desc "gptel copilot" :n "i" #'gptel-complete
+  :desc "gptel Send" :n "s" #'gptel-send
+  :desc "gptel Topic" :n "t" #'gptel-set-topic))
+
+(require 'alert)
+(setq alert-default-style 'libnotify)
+(setq alert-libnotify-command "dunstify")
+
+(defun alert-libnotify-notify (info)
+  "Send INFO using notifications-notify.
+Handles :ICON, :CATEGORY, :SEVERITY, :PERSISTENT, :NEVER-PERSIST, :TITLE
+and :MESSAGE keywords from the INFO plist.  :CATEGORY can be
+passed as a single symbol, a string or a list of symbols or
+strings."
+  (if (fboundp #'notifications-notify)
+      (let ((category (plist-get info :category))
+            (urgency (cdr (assq (plist-get info :severity) alert-libnotify-priorities))))
+        (notifications-notify
+         :title (alert-encode-string (plist-get info :title))
+         :body (alert-encode-string (plist-get info :message))
+         :app-icon (or (plist-get info :icon) alert-default-icon)
+         :category (cond ((symbolp category)
+                          (symbol-name category))
+                         ((stringp category) category)
+                         ((listp category)
+                          (mapconcat (if (symbolp (car category))
+                                         #'symbol-name
+                                       #'identity)
+                                     category ",")))
+         :timeout (* 1000 ; notify-send takes msecs
+                     (if (and (plist-get info :persistent)
+                              (not (plist-get info :never-persist)))
+                         0 ; 0 indicates persistence
+                       alert-fade-time))
+         :urgency (if urgency (symbol-name urgency) "normal")))
+    (alert-message-notify info)))
 
 (require 'skeletor)
 (setq skeletor-user-directory "~/.dotfiles/Templates/")
@@ -798,7 +808,7 @@ strings."
 
 (envrc-global-mode)
 
-;(add-to-list 'company-backends 'company-nixos-options)
+                                        ;(add-to-list 'company-backends 'company-nixos-options)
 
 ;; Disabled: [2024-08-02 Fri] Not sure i ever used it after a few uses.
 ;; (require 'nix-update)
@@ -813,13 +823,13 @@ strings."
 ;;       flycheck-executable-find
 ;;         (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
 
-;(require 'lsp-mode)
-;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
-;(lsp-register-client
-; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
-;                  :major-modes '(nim-mode)
-;                  :server-id 'nimlsp))
-;(add-hook 'nim-mode-hook #'lsp)
+                                        ;(require 'lsp-mode)
+                                        ;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
+                                        ;(lsp-register-client
+                                        ; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
+                                        ;                  :major-modes '(nim-mode)
+                                        ;                  :server-id 'nimlsp))
+                                        ;(add-hook 'nim-mode-hook #'lsp)
 
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 
@@ -842,16 +852,16 @@ strings."
 (put 'lambda*   'doc-string-elt 2)
 
 (defvar *lisp-special-forms*
-(regexp-opt '("defvar*"
-              "defconstant*"
-              "defparameter*"
-              "defgeneric*"
-              "defmethod*"
-              "lambda*"
-              "flet*"
-              "labels*") 'words))
+  (regexp-opt '("defvar*"
+                "defconstant*"
+                "defparameter*"
+                "defgeneric*"
+                "defmethod*"
+                "lambda*"
+                "flet*"
+                "labels*") 'words))
 (font-lock-add-keywords 'lisp-mode
-  `((,*lisp-special-forms* . font-lock-keyword-face)))
+                        `((,*lisp-special-forms* . font-lock-keyword-face)))
 
 (use-package! flycheck-package
   :after flycheck
@@ -862,12 +872,12 @@ strings."
 ;;(when (memq window-system '(mac ns x))
 ;;  (exec-path-from-shell-initialize))
 
-;(setq url-proxy-services
-;   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
-;     ("http" . "127.0.0.1:4444")
-;     ("https" . "127.0.0.1:4444")
-;))
-;(setq elfeed-use-curl nil)
+                                        ;(setq url-proxy-services
+                                        ;   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
+                                        ;     ("http" . "127.0.0.1:4444")
+                                        ;     ("https" . "127.0.0.1:4444")
+                                        ;))
+                                        ;(setq elfeed-use-curl nil)
 
 (defun open-popup-on-side-or-below (buffer &optional alist)
   (+popup-display-buffer-stacked-side-window-fn
@@ -877,7 +887,7 @@ strings."
                   alist)))
 
 (add-to-list 'display-buffer-alist
-  (cons "*cheat.sh*" (cons #'open-popup-on-side-or-below nil)))
+             (cons "*cheat.sh*" (cons #'open-popup-on-side-or-below nil)))
 (map! :leader
       :prefix ("s" . "search")
       :desc "cheat sheat" "c" #'cheat-sh)
@@ -886,23 +896,23 @@ strings."
 
 (global-activity-watch-mode)
 
-;(require 'ks)
+                                        ;(require 'ks)
 
 (with-system "flake"
              (require 'elcord)
              (elcord-mode))
 
-;(setq ispell-program-name "aspell")
+                                        ;(setq ispell-program-name "aspell")
 
-;(setq ispell-dictionary "en")
+                                        ;(setq ispell-dictionary "en")
 
-;(setq ispell-personal-dictionary "~/.aspell.en_us.pws")
+                                        ;(setq ispell-personal-dictionary "~/.aspell.en_us.pws")
 
 (add-hook 'spell-fu-mode-hook
-  (lambda ()
-    (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en"))
-    (spell-fu-dictionary-add
-      (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
+          (lambda ()
+            (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en"))
+            (spell-fu-dictionary-add
+             (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
 
 (require 'midnight)
 
@@ -931,48 +941,6 @@ strings."
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
 
-(use-package! hackmode
-  :config
-
-  (setq hackmode-dir "~/Documents/hackmode") ;set the path to the directory where you working dirs will be stored
-  (setq hackmode-templates "~/.dotfiles/hackmode") ; Path to directory holding templates
-  (setq hackmode-tools-dir (f-join hackmode-dir "~/Documents/hackmode-tools/"))) ;; this is the path to the directory where tools can be placed in that will be loaded into your $PATH.
-
-;(setq hackmode-checklists '(("Program overview" . "/home/unseen/Documents/Notes/org/roam/hacking/20231107093523-bug_bounty_methods.org") ("Url" . "/home/unseen/Templates/hackmode/url.org") ("Account Takeover" . "/home/unseen/Templates/hackmode/account-take-over.org")))
-
-;; (after! hackmode
-;; (defun hackmode-capture ()
-;;   "Capture data!"
-;;   (interactive)
-;;   (let ((org-capture-templates (list
-
-
-;;                                 (list "t" "Tech" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Tech")
-;;                                       "* %t
-;;                                         :PROPERTIES:
-;;                                         :endpoint:
-;;                                         :notes:
-;;                                         :tech:
-;;                                         :tags:
-;;                                         :END:")
-;;                                 (list "b" "Bug" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Bugs")
-;;                                       "* %t
-;;                                         :PROPERTIES:
-;;                                         :endpoint:
-;;                                         :notes:
-;;                                         :type:
-;;                                         :score:
-;;                                         :END:")
-;;                                 (list "i" "Interesting enpoint" 'entry (list 'file+headline (f-join (hackmode-get-operation-path hackmode-operation) "findings.org") "Interesting Endpoints")
-;;                                       "* %t
-;;                                         :PROPERTIES:
-;;                                         :endpoint:
-;;                                         :notes:
-;;                                         :tags:
-;;                                         :END:")))
-;;         (org-directory (hackmode-get-operation-path hackmode-operation)))
-;;     (call-interactively #'org-capture))))
-
 (setq ppackage-template "~/.dotfiles/lisp/template")
 (setq ppackage-path "~/.dotfiles/lisp")
 
@@ -980,7 +948,7 @@ strings."
 
 (require 'project-tasks)
 
-;(require 'persp-mode)
+                                        ;(require 'persp-mode)
 
 (defun ezf-default (filename)
   "EZF completion with your default completion system."
@@ -1011,4 +979,4 @@ If COMPLETING-FN is nil default to `ezf-default'."
                " ")))
 
 (fset 'nsa/spawn-window
-   (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))
+      (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))

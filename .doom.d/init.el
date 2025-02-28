@@ -56,12 +56,12 @@
 
        :editor
        (evil +everywhere); come to the dark side, we have cookies
-       ;file-templates    ; auto-snippets for empty files
+                                        ;file-templates    ; auto-snippets for empty files
        fold              ; (nigh) universal code folding
        (format +onsave)  ; automated prettiness
        ;;god               ; run Emacs commands without modifier keys
        lispy             ; vim for lisp, for people who don't like vim
-       ;multiple-cursors  ; editing in many places at once
+                                        ;multiple-cursors  ; editing in many places at once
        ;;objed             ; text object editing for the innocent
        parinfer          ; turn lisp into python, sort of
        ;;rotate-text       ; cycle region at point between text candidates
@@ -87,15 +87,15 @@
        grammar           ; tasing grammar mistake every you make
 
        :tools
-       ;ansible
+                                        ;ansible
        ;;biblio            ; Writes a PhD for you (citation needed)
        debugger          ; FIXME stepping through code, to help you add bugs
        direnv
-       ;docker
+                                        ;docker
        editorconfig      ; let someone else argue about tabs vs spaces
        ;;ein               ; tame Jupyter notebooks with emacs
        (eval +overlay)     ; run code, run (also, repls)
-       ;gist              ; interacting with github gists
+                                        ;gist              ; interacting with github gists
        lookup              ; navigate your code and its documentation
        lsp               ; M-x vscode
        (magit +forge)             ; a git porcelain for Emacs
@@ -104,14 +104,14 @@
        pdf               ; pdf enhancements
        ;;prodigy           ; FIXME managing external services & code builders
        rgb               ; creating color strings
-       ;taskrunner        ; taskrunner for all your projects
-       ;terraform         ; infrastructure as code
-       ;tmux              ; an API for interacting with tmux
-       ;tree-sitter       ; syntax and parsing, sitting in a tree...
+                                        ;taskrunner        ; taskrunner for all your projects
+                                        ;terraform         ; infrastructure as code
+                                        ;tmux              ; an API for interacting with tmux
+                                        ;tree-sitter       ; syntax and parsing, sitting in a tree...
        upload            ; map local to remote projects via ssh/ftp
 
        :os
-       ;(:if IS-MAC macos)  ; improve compatibility with macOS
+                                        ;(:if IS-MAC macos)  ; improve compatibility with macOS
        tty               ; improve the terminal Emacs experience
 
        :lang
@@ -138,9 +138,9 @@
        ;;fstar             ; (dependent) types and (monadic) effects and Z3
        ;;gdscript          ; the language you waited for
        ;;(go +lsp)         ; the hipster dialect
-       ;(graphql +lsp)    ; Give queries a REST
+                                        ;(graphql +lsp)    ; Give queries a REST
        ;;(haskell +lsp)    ; a language that's lazier than I am
-       ;hy                ; readability of scheme w/ speed of python
+                                        ;hy                ; readability of scheme w/ speed of python
        ;;idris             ; a language you can depend on
        json              ; At least it ain't XML
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
@@ -161,7 +161,7 @@
        ;;purescript        ; javascript, but functional
        python            ; beautiful is better than ugly
        ;;qt                ; the 'cutest' gui framework ever
-       ;racket            ; a DSL for DSLs
+                                        ;racket            ; a DSL for DSLs
        ;;raku              ; the artist formerly known as perl6
        ;;rest              ; Emacs as a REST client
        ;;rst               ; ReST in peace
@@ -175,12 +175,12 @@
        ;;swift             ; who asked for emoji variables?
        ;;terra             ; Earth and Moon in alignment for performance.
        (web)               ; the tubes
-       ;yaml              ; JSON, but readable
+                                        ;yaml              ; JSON, but readable
        ;;zig               ; C, but simpler
 
        :email
        ;;(mu4e +org +gmail)
-       ;notmuch
+                                        ;notmuch
        ;;(wanderlust +gmail)
 
        :app
