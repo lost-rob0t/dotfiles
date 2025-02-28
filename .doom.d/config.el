@@ -167,15 +167,16 @@ The optional argument NEW-WINDOW is not used."
       :desc "switch to month view"
       "o a y" #'org-agenda-year-view)
 
-(setq org-super-agenda-groups
-      '(
-        (:and (:todo "IDEA" :name "Starintel Idea" :tag ("starintel" "sit")) :name "Starintel ideas")
-        (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")) :name "Star intel Bugs")
-        (:and (:todo "TODO" :name "Starintel" :tag ("starintel")) :name "Star Intel")
-        (:and (:todo "TODO" :name "Personal" :tag ("personal")) :name "Personal")
-        (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "Habits")
-        (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
-        (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading")))
+(use-package org-super-agenda
+  :config
+  (setq! org-super-agenda-groups
+         '(
+           (:and (:todo "TODO" :name "Personal" :tag ("personal")) :name "Personal")
+           (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "Habits")
+           (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
+           (:and (:todo "TODO" :name "Jobs" :tag ("job" "shift" "contract")) :name "Job")
+           (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading")))
+)
 
 (map! :leader
       :desc "Tangle a file"
@@ -916,11 +917,11 @@ strings."
 
                                         ;(setq ispell-personal-dictionary "~/.aspell.en_us.pws")
 
-(add-hook 'spell-fu-mode-hook
-          (lambda ()
-            (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en"))
-            (spell-fu-dictionary-add
-             (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
+;; (add-hook 'spell-fu-mode-hook
+;;           (lambda ()
+;;             (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en"))
+;;             (spell-fu-dictionary-add
+;;              (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
 
 (require 'midnight)
 

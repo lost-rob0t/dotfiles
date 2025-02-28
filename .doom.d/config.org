@@ -100,7 +100,7 @@ This section tangles the init file
 
        :checkers
        syntax              ; tasing you for every semicolon you forget
-       (spell +flyspell) ; tasing you for misspelling mispelling
+       (spell) ; tasing you for misspelling mispelling
        grammar           ; tasing grammar mistake every you make
 
        :tools
@@ -455,15 +455,16 @@ I prefer being able to have different views within org agenda, so i can see what
 #+end_src
 **** Org super agenda
 #+begin_src emacs-lisp
-(setq org-super-agenda-groups
-      '(
-        (:and (:todo "IDEA" :name "Starintel Idea" :tag ("starintel" "sit")) :name "Starintel ideas")
-        (:and (:todo "TODO" :name "Starintel Bugs" :tag ("starintel-bug" "sib")) :name "Star intel Bugs")
-        (:and (:todo "TODO" :name "Starintel" :tag ("starintel")) :name "Star Intel")
-        (:and (:todo "TODO" :name "Personal" :tag ("personal")) :name "Personal")
-        (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "Habits")
-        (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
-        (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading")))
+(use-package org-super-agenda
+  :config
+  (setq! org-super-agenda-groups
+         '(
+           (:and (:todo "TODO" :name "Personal" :tag ("personal")) :name "Personal")
+           (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "Habits")
+           (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
+           (:and (:todo "TODO" :name "Jobs" :tag ("job" "shift" "contract")) :name "Job")
+           (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading")))
+)
 #+end_src
 *** Babel
 Tangle a file
@@ -1476,31 +1477,6 @@ I only use it on the desktop so only load it there.
 (with-system "flake"
              (require 'elcord)
              (elcord-mode))
-#+end_src
-** Spell check
-NOTE: <2025-02-14 Fri> These conflicted with flyspell mode. This is being kept for historical.
-Make sure its using aspell
-#+begin_src emacs-lisp
-                                        ;(setq ispell-program-name "aspell")
-#+end_src
-Set dictionary
-#+begin_src emacs-lisp
-                                        ;(setq ispell-dictionary "en")
-#+end_src
-
-Set personal dictionary
-#+begin_src emacs-lisp
-                                        ;(setq ispell-personal-dictionary "~/.aspell.en_us.pws")
-#+end_src
-
-Spell fu setup
-
-#+begin_src emacs-lisp
-(add-hook 'spell-fu-mode-hook
-          (lambda ()
-            (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en"))
-            (spell-fu-dictionary-add
-             (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
 #+end_src
 ** Midnight mode
 Clean up emacs overnight
