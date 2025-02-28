@@ -10,6 +10,7 @@ nixos-rebuild switch --flake .#flake
 #+end_src
 
 * (Ma)Git AI sir
+#+Name: ai/git-stash
 #+begin_src emacs-lisp
 (defun ai/current-stage-full-explain ()
   "Return a full summary of the staged changes.
@@ -51,7 +52,7 @@ If no AI summary is produced (or if there are no staged changes), fall back to t
       (magit-run-git "stash" "push" "-m" summary)
       (alert "Emacs AI  stashed your changes." :title "Emacs AI"))))
 
-
+(ai/git-stash)
 #+end_src
 
 #+RESULTS:
