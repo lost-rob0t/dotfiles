@@ -105,11 +105,7 @@
 
 (package! skeletor)
 
-(package! bui)
-
 (package! plz :recipe (:type git :host github :repo "alphapapa/plz.el"))
-
-(package! ts :recipe (:type git :host github :repo "alphapapa/ts.el"))
 
 (package! dash :recipe (:type git :host github :repo "magnars/dash.el"))
 
@@ -121,9 +117,7 @@
 
 (package! emacs-async :recipe (:type git :host github :repo "jwiegley/emacs-async"))
 
-(package! emacsql :recipe (:type git :host github :repo "magit/emacsql"))
-
-(package! jeison)
+;(package! jeison)
 
 (package! org-contrib)
 

@@ -291,22 +291,12 @@ Get weather from the government
 (package! skeletor)
 #+end_src
 * Lib packages
-** Buffer UI
-Library for creating buffers
-#+begin_src emacs-lisp
-(package! bui)
-#+end_src
 ** plz
 plz is an HTTP library for Emacs. It uses curl as a backend, which avoids some of the issues with using Emacs’s built-in url library.
 #+begin_src emacs-lisp
 (package! plz :recipe (:type git :host github :repo "alphapapa/plz.el"))
 #+end_src
-** ts
-ts is a date and time library for Emacs. It aims to be more convenient than patterns like (string-to-number (format-time-string "%Y")) by providing easy accessors, like (ts-year (ts-now)).
 
-#+begin_src emacs-lisp
-(package! ts :recipe (:type git :host github :repo "alphapapa/ts.el"))
-#+end_src
 ** dash
 A modern list API for Emacs. No 'cl required.
 #+begin_src emacs-lisp
@@ -333,18 +323,12 @@ Looks likes its already in doom emacs...
 #+begin_src emacs-lisp
 (package! emacs-async :recipe (:type git :host github :repo "jwiegley/emacs-async"))
 #+end_src
-** emacsql
-A high-level Emacs Lisp RDBMS front-end
-#+begin_src emacs-lisp
-(package! emacsql :recipe (:type git :host github :repo "magit/emacsql"))
-#+end_src
 
 ** jeison
-*** TODO Do any of my scripts use this?
 Pasring json in a declraritive manner
 Personnaly i find in other languages like nim creating a type then marshalling json into it is the best way to deal with json IMO
 #+begin_src emacs-lisp
-(package! jeison)
+;(package! jeison)
 #+end_src
 ** org-contrib
 
