@@ -1,0 +1,13 @@
+# -*- mode: snippet -*-
+# name: gptel-make-tool
+# key: gptel-make-tool
+# --
+(gptel-make-tool
+ :name "${1:tool_name}"
+ :function #'`(completing-read "Function: " (mapcar #'symbol-name (apropos-internal "agent--.*" 'functionp)))`
+ :category "${2:category}"
+ :include ${3:t}
+ :args '((${4::name "${5:arg-name}"
+          :type ${6:string}
+          :description "${7:arg description}"}))
+ :description "${8:Tool description}")$0$0
