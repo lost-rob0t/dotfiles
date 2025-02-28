@@ -154,7 +154,7 @@ function init_platform () {
 if [ ! -f "$HOME/.platform" ]; then
     echo "no .platform file please enter platform name"
     read platform
-    echo $platform > $HOME/.platform
+    echo "$platform" > "$HOME/.platform"
 fi
 }
 init_platform
@@ -238,51 +238,7 @@ function install_doom() {
 }
 #+end_src
 
-#+RESULTS:
-
-Only open new files in a new frame, otherwise open other frame.[fn:2]
-#+begin_src sh :tangle .bashrc
-function emacs-clean () {
-if [ $# -eq 0 ]; then
-    emacsclient -c -n
-    exit
-fi
-
-emacsclient -e "(frames-on-display-list \"$DISPLAY\")" &>/dev/null
-
-if [ $? -eq 0 ]; then
-    emacsclient -n "$*"
-else
-    emacsclient -c -n "$*"
-fi
-}
-#+end_src
 *** Nixos
-**** Update configuration
-This will copy the config, which sort of serves as a Backup I guess.
-It will rebuild your config
-
-#+begin_src sh :tangle .bashrc
-function evolve () {
-read -p "Do you want to rebuild the config? (yes/no) " yn
-
-case $yn in
-    yes ) echo ok, we will proceed;;
-    no ) echo exiting...;
-         exit;;
-    * ) echo invalid response;
-        exit 1;;
-esac
-sudo cp -rv $HOME/nixos/* /etc/nixos/
-sudo sed  -i "s|<config>|$1/$1.nix|" /etc/nixos/configuration.nix
-if [ "$2" = "" ];then
-    sudo nixos-rebuild switch
-else
-nixos-rebuild "$@"
-fi
-echo done
-}
-#+end_src
 **** Setup nix-env
 For some reason on non nixos system this is needed
 
@@ -314,30 +270,37 @@ function cmdtop () {
 ** Paths
 Export nimble path for nim.
 #+begin_src sh :tangle .bashrc
-export PATH=$PATH:$HOME/.nimble/bin
+export PATH="$PATH:$HOME/.nimble/bin"
 #+end_src
 
 Export rust cargo path (nasty wax wound lol)
 #+begin_src sh :tangle .bashrc
-export PATH=$PATH:$HOME/.cargo/bin
+export PATH="$PATH:$HOME/.cargo/bin"
 #+end_src
 
 Setup my local bin
 #+begin_src sh :tangle .bashrc
-export PATH=$PATH:$HOME/.bin/
+export PATH="$PATH:$HOME/.bin/"
 #+end_src
 
 NPM path
 #+begin_src sh :tangle .bashrc
-export PATH=$PATH:$HOME/.node/bin/
+export PATH="$PATH:$HOME/.node/bin/"
 #+end_src
 
 Go path
 #+begin_src sh :tangle .bashrc
-export GOPATH=$HOME/go
-export PATH=$PATH:$GOPATH/bin
-
+export GOPATH="$HOME/go"
+export PATH="$PATH:$GOPATH/bin"
 #+end_src
+Doom emacs doom script
+
+#+begin_src sh :tangle .bashrc
+export PATH="$PATH:$HOME/.config/emacs/bin/"
+export PATH="$PATH:$HOME/.emacs.d/bin/" #For older installs
+#+end_src
+
+
 ** Aliases
 Bash aliases allow you to use a short "alias" for a long command
 
@@ -347,11 +310,6 @@ shopt -s expand_aliases # expand aliases
 #+end_src
 
 *** Emacs
-Run emacs in debug mode
-#+begin_src sh :tangle .bashrc
-alias debug-emacs="emacs --debug-init"
-#+end_src
-
 Open emacs
 #+begin_src sh :tangle .bashrc
 alias em="emacs -nw"

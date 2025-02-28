@@ -93,7 +93,7 @@ function init_platform () {
 if [ ! -f "$HOME/.platform" ]; then
     echo "no .platform file please enter platform name"
     read platform
-    echo $platform > $HOME/.platform
+    echo "$platform" > "$HOME/.platform"
 fi
 }
 init_platform
@@ -157,41 +157,6 @@ function install_doom() {
     fi
 }
 
-function emacs-clean () {
-if [ $# -eq 0 ]; then
-    emacsclient -c -n
-    exit
-fi
-
-emacsclient -e "(frames-on-display-list \"$DISPLAY\")" &>/dev/null
-
-if [ $? -eq 0 ]; then
-    emacsclient -n "$*"
-else
-    emacsclient -c -n "$*"
-fi
-}
-
-function evolve () {
-read -p "Do you want to rebuild the config? (yes/no) " yn
-
-case $yn in
-    yes ) echo ok, we will proceed;;
-    no ) echo exiting...;
-         exit;;
-    * ) echo invalid response;
-        exit 1;;
-esac
-sudo cp -rv $HOME/nixos/* /etc/nixos/
-sudo sed  -i "s|<config>|$1/$1.nix|" /etc/nixos/configuration.nix
-if [ "$2" = "" ];then
-    sudo nixos-rebuild switch
-else
-nixos-rebuild "$@"
-fi
-echo done
-}
-
 if [ ! -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
     source ~/.nix-profile/etc/profile.d/nix.sh
     export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}
@@ -207,20 +172,21 @@ function cmdtop () {
     history | awk '{CMD[$2]++;count++;}END { for (a in CMD)print CMD[a] " " CMD[a]/count*100 "% " a;}' | grep -v "./" | column -c3 -s " " -t | sort -nr | nl |  head -n10
 }
 
-export PATH=$PATH:$HOME/.nimble/bin
+export PATH="$PATH:$HOME/.nimble/bin"
 
-export PATH=$PATH:$HOME/.cargo/bin
+export PATH="$PATH:$HOME/.cargo/bin"
 
-export PATH=$PATH:$HOME/.bin/
+export PATH="$PATH:$HOME/.bin/"
 
-export PATH=$PATH:$HOME/.node/bin/
+export PATH="$PATH:$HOME/.node/bin/"
 
-export GOPATH=$HOME/go
-export PATH=$PATH:$GOPATH/bin
+export GOPATH="$HOME/go"
+export PATH="$PATH:$GOPATH/bin"
+
+export PATH="$PATH:$HOME/.config/emacs/bin/"
+export PATH="$PATH:$HOME/.emacs.d/bin/" #For older installs
 
 shopt -s expand_aliases # expand aliases
-
-alias debug-emacs="emacs --debug-init"
 
 alias em="emacs -nw"
 alias emacs="emacsclient -c -a 'emacs'"
