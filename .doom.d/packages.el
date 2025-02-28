@@ -131,10 +131,6 @@
 
 (package! asoc :recipe (:type git :host github :repo "troyp/asoc.el"))
 
-(package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
-
-(package! mastodon)
-
 (package! elcord :recipe (:type git :host github :repo "Mstrodl/elcord"))
 
 (package! elfeed-tube)

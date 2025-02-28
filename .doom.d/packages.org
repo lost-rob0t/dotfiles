@@ -366,17 +366,6 @@ pcre2el: convert between PCRE, Emacs and rx regexp syntax
 
 
 * Messaging And media
-** ement
-a matrix client for emacs
-#+begin_src emacs-lisp
-(package! ement :recipe (:type git :host github :repo "alphapapa/ement.el"))
-#+end_src
-** mastodon
-Emacs client for mastodon/pleroma
-#+begin_src emacs-lisp
-(package! mastodon)
-#+end_src
-
 ** Cuckord
 I only use it for normal fren stuff
 
