@@ -58,7 +58,7 @@
         };
       };
     };
-    programs.gpg.enable = true;
+    #programs.gpg.enable = true;
     programs.emacs = {
       enable = true;
       package = config.emacs.package;

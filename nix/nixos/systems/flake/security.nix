@@ -24,11 +24,11 @@
   }];
   security.polkit.enable = true;
   security.rtkit.enable = true;
-  services = {
-    opensnitch = {
-      enable = true;
-    };
-    };
+  # services = {
+  #   opensnitch = {
+  #     enable = true;
+  #   };
+  #   };
 
   security.sudo.extraRules = [
      { users = [ "unseen"];
