@@ -797,49 +797,6 @@ Keep my ideas separated from my todos and give me a random idea from the file
 ;;     (let ((elements (org-map-entries #'identity "TODO=\"IDEA\""))) elements)))
 
 #+end_src
-*** alert
-Send Alerts from emacs
-
-You must set the command, it is nil be default
-I use dunst as my notification system, here is a config to set that up
-#+begin_src emacs-lisp
-(require 'alert)
-(setq alert-default-style 'libnotify)
-(setq alert-libnotify-command "dunstify")
-#+end_src
-
-This is needed for it to work at all....[fn:3]
-#+begin_src emacs-lisp
-(defun alert-libnotify-notify (info)
-  "Send INFO using notifications-notify.
-Handles :ICON, :CATEGORY, :SEVERITY, :PERSISTENT, :NEVER-PERSIST, :TITLE
-and :MESSAGE keywords from the INFO plist.  :CATEGORY can be
-passed as a single symbol, a string or a list of symbols or
-strings."
-  (if (fboundp #'notifications-notify)
-      (let ((category (plist-get info :category))
-            (urgency (cdr (assq (plist-get info :severity) alert-libnotify-priorities))))
-        (notifications-notify
-         :title (alert-encode-string (plist-get info :title))
-         :body (alert-encode-string (plist-get info :message))
-         :app-icon (or (plist-get info :icon) alert-default-icon)
-         :category (cond ((symbolp category)
-                          (symbol-name category))
-                         ((stringp category) category)
-                         ((listp category)
-                          (mapconcat (if (symbolp (car category))
-                                         #'symbol-name
-                                       #'identity)
-                                     category ",")))
-         :timeout (* 1000 ; notify-send takes msecs
-                     (if (and (plist-get info :persistent)
-                              (not (plist-get info :never-persist)))
-                         0 ; 0 indicates persistence
-                       alert-fade-time))
-         :urgency (if urgency (symbol-name urgency) "normal")))
-    (alert-message-notify info)))
-#+end_src
-
 *** Org alerts
 Configure Org alerts to use alert.el
 #+begin_src emacs-lisp
@@ -1315,6 +1272,48 @@ Gptel keys, could add more commands though.[fn:6]
     :desc "gptel Topic" :n "t" #'gptel-set-topic))
 #+end_src
 
+** Alert
+Send Alerts from emacs
+
+You must set the command, it is nil be default
+I use dunst as my notification system, here is a config to set that up
+#+begin_src emacs-lisp
+(require 'alert)
+(setq alert-default-style 'libnotify)
+(setq alert-libnotify-command "dunstify")
+#+end_src
+
+This is needed for it to work at all....[fn:3]
+#+begin_src emacs-lisp
+(defun alert-libnotify-notify (info)
+  "Send INFO using notifications-notify.
+Handles :ICON, :CATEGORY, :SEVERITY, :PERSISTENT, :NEVER-PERSIST, :TITLE
+and :MESSAGE keywords from the INFO plist.  :CATEGORY can be
+passed as a single symbol, a string or a list of symbols or
+strings."
+  (if (fboundp #'notifications-notify)
+      (let ((category (plist-get info :category))
+            (urgency (cdr (assq (plist-get info :severity) alert-libnotify-priorities))))
+        (notifications-notify
+         :title (alert-encode-string (plist-get info :title))
+         :body (alert-encode-string (plist-get info :message))
+         :app-icon (or (plist-get info :icon) alert-default-icon)
+         :category (cond ((symbolp category)
+                          (symbol-name category))
+                         ((stringp category) category)
+                         ((listp category)
+                          (mapconcat (if (symbolp (car category))
+                                         #'symbol-name
+                                       #'identity)
+                                     category ",")))
+         :timeout (* 1000 ; notify-send takes msecs
+                     (if (and (plist-get info :persistent)
+                              (not (plist-get info :never-persist)))
+                         0 ; 0 indicates persistence
+                       alert-fade-time))
+         :urgency (if urgency (symbol-name urgency) "normal")))
+    (alert-message-notify info)))
+#+end_src
 
 ** Skeletor
 Skeletor is a project template package.
