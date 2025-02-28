@@ -531,11 +531,13 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (after! elfeed
   (use-package! elfeed-org
-    :config (setq! rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
+    :config
+    (setq!
+        elfeed-db-directory "~/Documents/Emacs/elfeed/db"
+        rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
   (elfeed-org)
   (add-hook 'elfeed-search-mode-hook 'turn-off-evil-mode)
-  (add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode)
-)
+  (add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode))
 
 (use-package! webpaste
   :config
@@ -952,7 +954,7 @@ strings."
 
 (setq nsa/music-dir "~/Music/Music-inbox")
 
-(require 'project-tasks)
+(use-package! project-tasks)
 
                                         ;(require 'persp-mode)
 

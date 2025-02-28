@@ -925,14 +925,18 @@ I store my stuff in ~/Documents/Projects
         '(("~/Documents/Projects" . 1))))
 #+end_src
 ** RSS (Elfeed)
+
 #+begin_src emacs-lisp
 (after! elfeed
   (use-package! elfeed-org
-    :config (setq! rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
+    :config
+    (setq!
+        elfeed-db-directory "~/Documents/Emacs/elfeed/db"
+        rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
   (elfeed-org)
   (add-hook 'elfeed-search-mode-hook 'turn-off-evil-mode)
-  (add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode)
-)
+  (add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode))
+
 #+end_src
 
 ** Web-paste
