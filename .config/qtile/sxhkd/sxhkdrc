@@ -26,7 +26,7 @@ super + F3
 #super + e
 #    emacsclient --create-frame --alternate-editor=""
 super + z
-    emacsclient --eval "(emacs-everywhere)"
+    ~/.config/emacs/bin/doom +everywhere
 
 #Browser
 super + w
@@ -182,8 +182,8 @@ alt + shift + u
 #################################################################
 
 #Scrot
-bindsym Print       exec flameshot full -p "~/Pictures/screenshots"
-bindsym Shift+Print exec flameshot gui -p "~/Pictures/screenshots"
+alt + Print       exec flameshot full -p "~/Pictures/screenshots"
+alt + shift + Print exec flameshot gui -p "~/Pictures/screenshots"
 
 #screeenshooter
 ctrl + Print
