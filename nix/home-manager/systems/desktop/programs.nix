@@ -27,7 +27,7 @@
     graphviz
     # Multimedia
     obs-studio
-    kdenlive
+    kdePackages.kdenlive
     qbittorrent
     picard
     # System Tools
@@ -37,7 +37,6 @@
     remmina
     freerdp
     rpi-imager
-    ark
     virt-manager
     virtiofsd
 
@@ -45,7 +44,7 @@
     recoll
     w3m
     cht-sh
-    kleopatra
+    kdePackages.kleopatra
     gimp
     feh
     mindustry
@@ -58,7 +57,7 @@
     rpi-imager
     virt-viewer
     bookworm
-    libsForQt5.kdeconnect-kde
+    kdePackages.kdeconnect-kde
     # Security
 
 
@@ -85,7 +84,7 @@
     fetchmail
     variety
     file
-
+    yt-dlp # For Emacs
 
   ];
 }

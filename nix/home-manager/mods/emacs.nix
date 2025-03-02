@@ -94,7 +94,6 @@
         pkgs.ripgrep
         pkgs.bash
         pkgs.recoll
-        pkgs.yt-dlp
         # For emacs everywhere which seemly only works on xorg rn
         pkgs.xorg.xwininfo
         pkgs.xdotool

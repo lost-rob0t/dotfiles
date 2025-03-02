@@ -135,7 +135,7 @@
     jdk11
     # Rice
     # kdePackages.breeze-icons is the QT6 version
-    libsForQt5.breeze-icons
+    kdePackages.breeze-icons
     lxqt.lxqt-qtplugin
     ly #login manager
     xorg.xinit
