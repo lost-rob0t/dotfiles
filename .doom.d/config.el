@@ -698,11 +698,11 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   '(company-files))
   (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
 
-(use-package! tramp-sh
-  :config
-  (setq tramp-remote-path
-        (append tramp-remote-path
-                '(tramp-own-remote-path))))
+;; (use-package! tramp-sh
+;;   :config
+;;   (setq tramp-remote-path
+;;         (append tramp-remote-path
+;;                 '(tramp-own-remote-path))))
 
 (use-package! gptel
   :config
@@ -910,18 +910,6 @@ strings."
 (with-system "flake"
              (require 'elcord)
              (elcord-mode))
-
-                                        ;(setq ispell-program-name "aspell")
-
-                                        ;(setq ispell-dictionary "en")
-
-                                        ;(setq ispell-personal-dictionary "~/.aspell.en_us.pws")
-
-;; (add-hook 'spell-fu-mode-hook
-;;           (lambda ()
-;;             (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en"))
-;;             (spell-fu-dictionary-add
-;;              (spell-fu-get-personal-dictionary "en-personal" "~/.aspell.en_us.pws"))))
 
 (require 'midnight)
 
