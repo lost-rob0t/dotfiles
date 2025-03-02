@@ -76,6 +76,7 @@
             "x-systemd.idle-timeout=60"
             "x-systemd.device-timeout=5s"
             "x-systemd.mount-timeout=5s"
+           "uid=1000"
             "credentials=/home/unseen/.config/smb-creds"
           ];
         };
