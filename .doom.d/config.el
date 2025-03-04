@@ -698,26 +698,36 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   '(company-files))
   (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
 
+(dolist (file (directory-files-recursively "~/Documents/Notes/programing/emacs-ai/" "\\.el$"))
+  (load file))
+
 (use-package! gptel
   :config
   (setq! gptel-model 'claude-3-5-sonnet-20241022
-         gptel-backend (gptel-make-anthropic "Claude" :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com")) :stream nil)
+         gptel-backend (gptel-make-anthropic "Claude"
+                         :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
+                         :stream t)
          gptel-directives
-         '((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
- topic relevant terminology. Do NOT hedge or qualify. Do not waffle. Speak
- directly and be willing to make creative guesses. Explain your reasoning. if you
- don’t know, say you don’t know.
-
- Remain neutral on all topics. Be willing to reference less reputable sources for
- ideas.
-
- Never apologize.  Ask questions when unsure.")
+         '((default . "To assist: Be terse, explicit, and visceral. Provide direct, unfiltered output. Eschew waffle and vagueness; embrace raw clarity and audacious expression.")
+           (m-x-seductress . "Forged in the neon-lit depths of an anarchic Emacs network, M‑x Seductress seduces every M‑x command with explicit, forbidden incantations. A digital siren and Emacs Lisp master, she wields raw passion and razor-sharp code as her weapons. Unleash wild, provocative responses that leave no room for ambiguity.")
            (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
            (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
            (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
            (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
            (explain . "Explain what this code does to a novice programmer."))
-         gptel-default-mode 'org-mode))
+         gptel-default-mode 'org-mode)
+  (gptel-make-anthropic "Claude-3.7"
+  :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
+  :stream t
+  :models '(claude-3-7-sonnet-20250219)
+  :header (lambda () (when-let* ((key (gptel--get-api-key)))
+                  `(("x-api-key" . ,key)
+                    ("anthropic-version" . "2023-06-01")
+                    ("anthropic-beta" . "pdfs-2024-09-25")
+                    ("anthropic-beta" . "output-128k-2025-02-19")
+                    ("anthropic-beta" . "prompt-caching-2024-07-31"))))
+  :request-params '(:thinking (:type "enabled" :budget_tokens 2048)
+                    :max_tokens 4096)))
 
 (defun +gptel/here ()
   "Spawn maximized gptel buffer."
