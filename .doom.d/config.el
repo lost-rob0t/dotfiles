@@ -947,7 +947,11 @@ strings."
 
 (setq nsa/music-dir "~/Music/Music-inbox")
 
-(use-package! project-tasks)
+(use-package! project-tasks
+  :config
+  (map! :leader
+        (:prefix-map ("p" . "projects")
+                    :desc "Run Project Task" "r" #'project-tasks)))
 
                                         ;(require 'persp-mode)
 

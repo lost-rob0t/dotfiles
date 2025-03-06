@@ -108,7 +108,7 @@ This section tangles the init file
        ;;biblio            ; Writes a PhD for you (citation needed)
        debugger          ; FIXME stepping through code, to help you add bugs
        direnv
-                                        ;docker
+       docker                                 ;docker
        editorconfig      ; let someone else argue about tabs vs spaces
        ;;ein               ; tame Jupyter notebooks with emacs
        (eval +overlay)     ; run code, run (also, repls)
@@ -233,7 +233,7 @@ I like to use my laptop outside, dark-themes looks bad outside.
 [[https://emacs.stackexchange.com/a/26981][Source]].
 #+begin_src emacs-lisp :tangle yes
 (setq ivan/themes '(doom-gruvbox-light doom-outrun-electric))
-(setq ivan/themes-index 0)
+(setq ivan/themes-index 1)
 
 (defun ivan/cycle-theme ()
   (interactive)
@@ -1547,7 +1547,11 @@ A simple wraper for yt-dlp a youtube-dl fork that still works.
 This is a simple way of running tasks for a project.
 Simply put a tasks.org file in the project root and make sure the src block has a NAME.
 #+begin_src emacs-lisp
-(use-package! project-tasks)
+(use-package! project-tasks
+  :config
+  (map! :leader
+        (:prefix-map ("p" . "projects")
+                    :desc "Run Project Task" "r" #'project-tasks)))
 #+end_src
 ** Exwm
 Only load when its actually exwm
