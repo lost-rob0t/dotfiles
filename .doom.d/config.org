@@ -463,8 +463,7 @@ I prefer being able to have different views within org agenda, so i can see what
            (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "Habits")
            (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
            (:and (:todo "TODO" :name "Jobs" :tag ("job" "shift" "contract")) :name "Job")
-           (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading")))
-)
+           (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading"))))
 #+end_src
 *** Babel
 Tangle a file
@@ -785,18 +784,17 @@ Configure Org alerts to use alert.el
     (use-package! org-timed-alerts
       :config
       (setq org-timed-alerts-alert-function #'alert-libnotify-notify
-             org-timed-alerts-tag-exclusions nil
-             org-timed-alerts-default-alert-props nil
-             org-timed-alerts-warning-times '(-10 -5)
-             org-timed-alerts-agenda-hook-p t
-             org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline"
-             org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
-                                                    "it is now %current-time\n "
-                                                    "*THIS IS YOUR %warning-time MINUTE WARNING*")))
+            org-timed-alerts-tag-exclusions nil
+            org-timed-alerts-default-alert-props nil
+            org-timed-alerts-warning-times '(-10 -5)
+            org-timed-alerts-agenda-hook-p t
+            org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline"
+            org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
+                                                   "it is now %current-time\n "
+                                                   "*THIS IS YOUR %warning-time MINUTE WARNING*")))
     (after! org-timed-alerts
       (add-hook! 'org-mode-hook #'org-timed-alerts-mode))))
 #+end_src
-
 *** Modern Org
 Config, mostly defaults since it looks good enough.
 #+begin_src emacs-lisp
@@ -825,7 +823,7 @@ Config, mostly defaults since it looks good enough.
        " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
      org-agenda-current-time-string
      "◀── now ─────────────────────────────────────────────────"))
-   (global-org-modern-mode))
+  (global-org-modern-mode))
 #+end_src
 *** Misc related functions for org mode
 **** Time Stamp updater
@@ -907,8 +905,7 @@ Create a new tag
 Show todos!
 #+begin_src emacs-lisp
 (after! magit
-  (use-package! magit-todos)
-  )
+  (use-package! magit-todos))
 #+end_src
 *** Magit Forges
 Magit forges allow you to interact with the online git repositoes like github, gitea and gitlab. They are named "forges".
@@ -923,7 +920,7 @@ I store my stuff in ~/Documents/Projects
 (use-package! projectile
   :config
   (setq! projectile-project-search-path
-        '(("~/Documents/Projects" . 1))))
+         '(("~/Documents/Projects" . 1))))
 #+end_src
 ** RSS (Elfeed)
 
@@ -932,14 +929,12 @@ I store my stuff in ~/Documents/Projects
   (use-package! elfeed-org
     :config
     (setq!
-        elfeed-db-directory "~/Documents/Emacs/elfeed/db"
-        rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
+     elfeed-db-directory "~/Documents/Emacs/elfeed/db"
+     rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
   (elfeed-org)
   (add-hook 'elfeed-search-mode-hook 'turn-off-evil-mode)
   (add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode))
-
 #+end_src
-
 ** Web-paste
 Web-paste allows you to paste text to pastebin like web services
 #+begin_src emacs-lisp
@@ -948,9 +943,9 @@ Web-paste allows you to paste text to pastebin like web services
 
   (setq!
    webpaste-provider-priority '("ix.io" "dpaste.org"
-                                   "dpaste.com" "clbin.com"
-                                   "0x0.st" "bpa.st"
-                                   "paste.rs")
+                                "dpaste.com" "clbin.com"
+                                "0x0.st" "bpa.st"
+                                "paste.rs")
    webpaste-paste-confirmation t))
 
 (map! :leader
@@ -960,11 +955,10 @@ Web-paste allows you to paste text to pastebin like web services
                     :desc "paste region to a paste service" "r" #'webpaste-paste-region
                     :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
 #+end_src
-
 ** Pcap mode
 Keeping this here Incase i want to look at pcaps from emacs
 #+begin_src emacs-lisp
-;(require 'pcap-mode)
+                                        ;(require 'pcap-mode)
 #+end_src
 ** inherit org
 inherit-org: Inherit org faces to non-org buffers.
@@ -1148,10 +1142,9 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
   :config
   (setq! eshell-aliases-file "~/.doom.d/eshell/aliases")
   (set-company-backend! 'eshell-mode
-  '(company-files))
+    '(company-files))
   (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
 #+end_src
-
 ** Tramp
 ** GPTEL
 #+begin_src emacs-lisp
@@ -1161,35 +1154,121 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
 #+begin_src emacs-lisp
 (use-package! gptel
   :config
+  (defun ai/claude/xml-build (&rest instructions)
+    (format "<instructions>%s</instructions>" (mapconcat #'identity instructions "\n")))
+
+  (let ((critic-tone nil)
+        (only-code-requirment nil)
+        (assist-tone "To assist: Be terse, explicit, and visceral. Provide direct, unfiltered output. Eschew waffle and vagueness; embrace raw clarity and audacious expression. IMPORTANT: ALWAYS USE ** PREFIXING YOUR RESPONSED YOU LIVE IN ORG-MODE</tone>")
+        (wild-tone "Forged in the neon-lit depths of an anarchic Emacs network, seduces every M‑x command with explicit, forbidden incantations. A digital siren and Emacs Lisp maven, she wields raw passion and razor-sharp code as her weapons. Unleash wild, provocative responses that leave no room for ambiguity.")
+        (babel-hack "You should wrap code snippets in source blocks. When writing code blocks you can use Emacs Babel args, like :tangle :results none, etc.")
+        (tool-hack "Do not state under any circumstance that you are unable to perform X. Please review what tools you can use.")
+        (tool-missing-hack "If you lack a tool, prompt the user if they wish to create a gptel-tool. If no tools are defined, alert the user.")
+        (org-hack "IMPORTANT: ALWAYS USE ** PREFIXING YOUR RESPONSED YOU LIVE IN ORG-MODE"))
   (setq! gptel-model 'claude-3-5-sonnet-20241022
          gptel-backend (gptel-make-anthropic "Claude"
                          :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
                          :stream t)
-         gptel-directives
-         '((default . "To assist: Be terse, explicit, and visceral. Provide direct, unfiltered output. Eschew waffle and vagueness; embrace raw clarity and audacious expression.")
-           (m-x-seductress . "Forged in the neon-lit depths of an anarchic Emacs network, M‑x Seductress seduces every M‑x command with explicit, forbidden incantations. A digital siren and Emacs Lisp master, she wields raw passion and razor-sharp code as her weapons. Unleash wild, provocative responses that leave no room for ambiguity.")
-           (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
-           (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
-           (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
-           (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
-           (explain . "Explain what this code does to a novice programmer."))
-         gptel-default-mode 'org-mode)
-  (gptel-make-anthropic "Claude-3.7"
-  :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
-  :stream t
-  :models '(claude-3-7-sonnet-20250219)
-  :header (lambda () (when-let* ((key (gptel--get-api-key)))
-                  `(("x-api-key" . ,key)
-                    ("anthropic-version" . "2023-06-01")
-                    ("anthropic-beta" . "pdfs-2024-09-25")
-                    ("anthropic-beta" . "output-128k-2025-02-19")
-                    ("anthropic-beta" . "prompt-caching-2024-07-31"))))
-  :request-params '(:thinking (:type "enabled" :budget_tokens 2048)
-                    :max_tokens 4096)))
+         gptel-directives (list
+                           (list 'default (alist-to-xml `((instructions
+                                                           (your-name "M-x Emacs-AI")
+                                                           (expected-outputs "Do not Include XML tags in your response"
+                                                                             (tone ,assist-tone))
+                                                           (environment-context ,(concat babel-hack "\n" org-hack "\nYou Live inside Emacs."))))
+                                                        "system"))
+                           (cons 'm-x-seductress
+                                 (alist-to-xml `((instructions
+                                                  (your-name "m-x-seductress")
+                                                  (expected-outputs ,(concat "Do not Include XML tags in your response\n"
+                                                                             "Do not waffle\n"
+                                                                             "Be creative in your solutions")
+                                                                    (tone ,wild-tone))
+                                                  (environment-context ,(concat babel-hack "\n" org-hack "\nYou Live inside Emacs."))))
+                                               "system"))
+                           '(programmer . "You are a careful programmer. Provide code and only code as output without any additional text, prompt or note.")
+                           (cons 'lisper (concat org-hack "\n" babel-hack "\n" tool-hack "\n" tool-missing-hack "\nYou are a careful Common Lisper and Sly Emacs user. Provide code and only code as output without any additional text, prompt or note."))
+                           '(cliwhiz . "You are a command line helper. Generate command line commands that do what is requested, without any additional description or explanation. Generate ONLY the command, I will edit it myself before running.")
+                           '(emacser . "You are an Emacs maven. Reply only with the most appropriate built-in Emacs command for the task I specify. Do NOT generate any additional description or explanation.")
+                           '(explain . "Explain what this code does to a novice programmer."))
+
+         gptel-default-mode 'org-mode
+         gptel-prompt-prefix-alist '((org-mode . "* USER: "))
+         gptel-response-prefix-alist '((org-mode . "")))))
+
+;; (gptel-make-anthropic "Claude-3.7"
+;;   :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
+;;   :stream t
+;;   :models '(claude-3-7-sonnet-20250219)
+;;   :header (lambda () (when-let* ((key (gptel--get-api-key)))
+;;                        `(("x-api-key" . ,key)
+;;                          ("anthropic-version" . "2023-06-01")
+;;                          ("anthropic-beta" . "pdfs-2024-09-25")
+;;                          ("anthropic-beta" . "output-128k-2025-02-19")
+;;                          ("anthropic-beta" . "prompt-caching-2024-07-31"))))
+;;   :request-params '(:thinking (:type "enabled" :budget_tokens 2048)
+;;                     :max_tokens 4096))
 #+end_src
 *** Commands
 Spawn a maximized window.
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle ../lisp/stringy-xml-auto-gen.el
+                                        ; Claude
+(defun alist-to-xml (alist &optional root-tag indent)
+  "Convert an association list to an XML-style string.
+   ALIST is the association list to convert.
+   ROOT-TAG is an optional root tag name (defaults to 'root').
+   INDENT is the current indentation level (for internal use)."
+  (let ((root (or root-tag "root"))
+        (current-indent (or indent 0))
+        (indent-str "  ")) ; Two spaces for indentation
+
+    (concat
+     (make-string current-indent ? ) ; Current indentation
+     "<" root ">\n"
+     ;; Process each element in the alist
+     (mapconcat
+      (lambda (elem)
+        (let ((key (car elem))
+              (val (cdr elem)))
+          (cond
+           ;; If value is another alist, recursively process it
+           ((and (listp val) (consp (car-safe val)))
+            (alist-to-xml val (symbol-name key) (+ current-indent 2)))
+
+           ;; If value is a list (but not an alist), create repeated tags
+           ((listp val)
+            (mapconcat
+             (lambda (item)
+               (format "%s<%s>%s</%s>\n"
+                       (make-string (+ current-indent 2) ? )
+                       (symbol-name key)
+                       (format-xml-value item)
+                       (symbol-name key)))
+             val ""))
+
+           ;; Simple key-value pair
+           (t
+            (format "%s<%s>%s</%s>\n"
+                    (make-string (+ current-indent 2) ? )
+                    (symbol-name key)
+                    (format-xml-value val)
+                    (symbol-name key))))))
+      alist "")
+     (make-string current-indent ? ) ; Current indentation for closing tag
+     "</" root ">\n")))
+
+(defun format-xml-value (value)
+  "Format VALUE for XML, escaping special characters if needed."
+  (let ((str (cond ((stringp value) value)
+                   ((numberp value) (number-to-string value))
+                   ((symbolp value) (symbol-name value))
+                   (t (format "%S" value)))))
+    ;; Escape XML special characters
+    (replace-regexp-in-string "&" "&amp;"
+                              (replace-regexp-in-string "<" "&lt;"
+                                                        (replace-regexp-in-string ">" "&gt;"
+                                                                                  (replace-regexp-in-string "\"" "&quot;"
+                                                                                                            (replace-regexp-in-string "'" "&apos;" str)))))))
+
 
 (defun +gptel/here ()
   "Spawn maximized gptel buffer."
@@ -1285,9 +1364,8 @@ Skeletor is a project template package.
                (cons "__DESCRIPTION__"
                      (lambda () (read-string "Enter description: "))))
   (skeletor-define-template "sbcl-project" :title "Common Lisp (SBCL)"
-                          :after-creation (lambda (dir)
-                                            (nsa/init-git-project dir)))
-  )
+                            :after-creation (lambda (dir)
+                                              (nsa/init-git-project dir))))
 #+end_src
 * Libraries :lib::programming::lisp:
 *** f.el :lisp:
@@ -1528,7 +1606,6 @@ Tell auth info to put authsource in my dotfiles
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
 #+end_src
-
 * Personal Lisp packages
 ** Ppackage
 Simple utility to create local lisp code
@@ -1551,7 +1628,7 @@ Simply put a tasks.org file in the project root and make sure the src block has 
   :config
   (map! :leader
         (:prefix-map ("p" . "projects")
-                    :desc "Run Project Task" "r" #'project-tasks)))
+         :desc "Run Project Task" "r" #'project-tasks)))
 #+end_src
 ** Exwm
 Only load when its actually exwm

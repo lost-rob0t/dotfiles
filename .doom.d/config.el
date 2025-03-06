@@ -6,7 +6,7 @@
 (setq doom-theme 'doom-outrun-electric)
 
 (setq ivan/themes '(doom-gruvbox-light doom-outrun-electric))
-(setq ivan/themes-index 0)
+(setq ivan/themes-index 1)
 
 (defun ivan/cycle-theme ()
   (interactive)
@@ -175,8 +175,7 @@ The optional argument NEW-WINDOW is not used."
            (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "Habits")
            (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
            (:and (:todo "TODO" :name "Jobs" :tag ("job" "shift" "contract")) :name "Job")
-           (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading")))
-)
+           (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading"))))
 
 (map! :leader
       :desc "Tangle a file"
@@ -427,14 +426,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
     (use-package! org-timed-alerts
       :config
       (setq org-timed-alerts-alert-function #'alert-libnotify-notify
-             org-timed-alerts-tag-exclusions nil
-             org-timed-alerts-default-alert-props nil
-             org-timed-alerts-warning-times '(-10 -5)
-             org-timed-alerts-agenda-hook-p t
-             org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline"
-             org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
-                                                    "it is now %current-time\n "
-                                                    "*THIS IS YOUR %warning-time MINUTE WARNING*")))
+            org-timed-alerts-tag-exclusions nil
+            org-timed-alerts-default-alert-props nil
+            org-timed-alerts-warning-times '(-10 -5)
+            org-timed-alerts-agenda-hook-p t
+            org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline"
+            org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
+                                                   "it is now %current-time\n "
+                                                   "*THIS IS YOUR %warning-time MINUTE WARNING*")))
     (after! org-timed-alerts
       (add-hook! 'org-mode-hook #'org-timed-alerts-mode))))
 
@@ -463,7 +462,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
        " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
      org-agenda-current-time-string
      "◀── now ─────────────────────────────────────────────────"))
-   (global-org-modern-mode))
+  (global-org-modern-mode))
 
 (after! org
   (defun update-timestamps (directory)
@@ -519,8 +518,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                     :desc "Create new git tag" "t" #'magit-tag-create)))
 
 (after! magit
-  (use-package! magit-todos)
-  )
+  (use-package! magit-todos))
 
 (after! magit
   (use-package! forge))
@@ -528,14 +526,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (use-package! projectile
   :config
   (setq! projectile-project-search-path
-        '(("~/Documents/Projects" . 1))))
+         '(("~/Documents/Projects" . 1))))
 
 (after! elfeed
   (use-package! elfeed-org
     :config
     (setq!
-        elfeed-db-directory "~/Documents/Emacs/elfeed/db"
-        rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
+     elfeed-db-directory "~/Documents/Emacs/elfeed/db"
+     rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
   (elfeed-org)
   (add-hook 'elfeed-search-mode-hook 'turn-off-evil-mode)
   (add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode))
@@ -545,9 +543,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
   (setq!
    webpaste-provider-priority '("ix.io" "dpaste.org"
-                                   "dpaste.com" "clbin.com"
-                                   "0x0.st" "bpa.st"
-                                   "paste.rs")
+                                "dpaste.com" "clbin.com"
+                                "0x0.st" "bpa.st"
+                                "paste.rs")
    webpaste-paste-confirmation t))
 
 (map! :leader
@@ -557,7 +555,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                     :desc "paste region to a paste service" "r" #'webpaste-paste-region
                     :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
 
-;(require 'pcap-mode)
+                                        ;(require 'pcap-mode)
 
 ;; (with-eval-after-load 'org
 ;;   (require 'inherit-org)
@@ -695,7 +693,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   :config
   (setq! eshell-aliases-file "~/.doom.d/eshell/aliases")
   (set-company-backend! 'eshell-mode
-  '(company-files))
+    '(company-files))
   (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
 
 (dolist (file (directory-files-recursively "~/Documents/Notes/programing/emacs-ai/" "\\.el$"))
@@ -703,37 +701,59 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (use-package! gptel
   :config
+  (defun ai/claude/xml-build (&rest instructions)
+    (format "<instructions>%s</instructions>" (mapconcat #'identity instructions "\n")))
+
+  (let ((critic-tone nil)
+        (only-code-requirment nil)
+        (assist-tone "To assist: Be terse, explicit, and visceral. Provide direct, unfiltered output. Eschew waffle and vagueness; embrace raw clarity and audacious expression. IMPORTANT: ALWAYS USE ** PREFIXING YOUR RESPONSED YOU LIVE IN ORG-MODE</tone>")
+        (wild-tone "Forged in the neon-lit depths of an anarchic Emacs network, seduces every M‑x command with explicit, forbidden incantations. A digital siren and Emacs Lisp maven, she wields raw passion and razor-sharp code as her weapons. Unleash wild, provocative responses that leave no room for ambiguity.")
+        (babel-hack "You should wrap code snippets in source blocks. When writing code blocks you can use Emacs Babel args, like :tangle :results none, etc.")
+        (tool-hack "Do not state under any circumstance that you are unable to perform X. Please review what tools you can use.")
+        (tool-missing-hack "If you lack a tool, prompt the user if they wish to create a gptel-tool. If no tools are defined, alert the user.")
+        (org-hack "IMPORTANT: ALWAYS USE ** PREFIXING YOUR RESPONSED YOU LIVE IN ORG-MODE"))
   (setq! gptel-model 'claude-3-5-sonnet-20241022
          gptel-backend (gptel-make-anthropic "Claude"
                          :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
                          :stream t)
-         gptel-directives
-         '((default . "To assist: Be terse, explicit, and visceral. Provide direct, unfiltered output. Eschew waffle and vagueness; embrace raw clarity and audacious expression.")
-           (m-x-seductress . "Forged in the neon-lit depths of an anarchic Emacs network, M‑x Seductress seduces every M‑x command with explicit, forbidden incantations. A digital siren and Emacs Lisp master, she wields raw passion and razor-sharp code as her weapons. Unleash wild, provocative responses that leave no room for ambiguity.")
-           (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
-           (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
-           (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
-           (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
-           (explain . "Explain what this code does to a novice programmer."))
-         gptel-default-mode 'org-mode)
-  (gptel-make-anthropic "Claude-3.7"
-  :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
-  :stream t
-  :models '(claude-3-7-sonnet-20250219)
-  :header (lambda () (when-let* ((key (gptel--get-api-key)))
-                  `(("x-api-key" . ,key)
-                    ("anthropic-version" . "2023-06-01")
-                    ("anthropic-beta" . "pdfs-2024-09-25")
-                    ("anthropic-beta" . "output-128k-2025-02-19")
-                    ("anthropic-beta" . "prompt-caching-2024-07-31"))))
-  :request-params '(:thinking (:type "enabled" :budget_tokens 2048)
-                    :max_tokens 4096)))
+         gptel-directives (list
+                           (list 'default (alist-to-xml `((instructions
+                                                           (your-name "M-x Emacs-AI")
+                                                           (expected-outputs "Do not Include XML tags in your response"
+                                                                             (tone ,assist-tone))
+                                                           (environment-context ,(concat babel-hack "\n" org-hack "\nYou Live inside Emacs."))))
+                                                        "system"))
+                           (cons 'm-x-seductress
+                                 (alist-to-xml `((instructions
+                                                  (your-name "m-x-seductress")
+                                                  (expected-outputs ,(concat "Do not Include XML tags in your response\n"
+                                                                             "Do not waffle\n"
+                                                                             "Be creative in your solutions")
+                                                                    (tone ,wild-tone))
+                                                  (environment-context ,(concat babel-hack "\n" org-hack "\nYou Live inside Emacs."))))
+                                               "system"))
+                           '(programmer . "You are a careful programmer. Provide code and only code as output without any additional text, prompt or note.")
+                           (cons 'lisper (concat org-hack "\n" babel-hack "\n" tool-hack "\n" tool-missing-hack "\nYou are a careful Common Lisper and Sly Emacs user. Provide code and only code as output without any additional text, prompt or note."))
+                           '(cliwhiz . "You are a command line helper. Generate command line commands that do what is requested, without any additional description or explanation. Generate ONLY the command, I will edit it myself before running.")
+                           '(emacser . "You are an Emacs maven. Reply only with the most appropriate built-in Emacs command for the task I specify. Do NOT generate any additional description or explanation.")
+                           '(explain . "Explain what this code does to a novice programmer."))
 
-(defun +gptel/here ()
-  "Spawn maximized gptel buffer."
-  (interactive)
-  (call-interactively #'gptel)
-  (doom/window-maximize-buffer))
+         gptel-default-mode 'org-mode
+         gptel-prompt-prefix-alist '((org-mode . "* USER: "))
+         gptel-response-prefix-alist '((org-mode . "")))))
+
+;; (gptel-make-anthropic "Claude-3.7"
+;;   :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
+;;   :stream t
+;;   :models '(claude-3-7-sonnet-20250219)
+;;   :header (lambda () (when-let* ((key (gptel--get-api-key)))
+;;                        `(("x-api-key" . ,key)
+;;                          ("anthropic-version" . "2023-06-01")
+;;                          ("anthropic-beta" . "pdfs-2024-09-25")
+;;                          ("anthropic-beta" . "output-128k-2025-02-19")
+;;                          ("anthropic-beta" . "prompt-caching-2024-07-31"))))
+;;   :request-params '(:thinking (:type "enabled" :budget_tokens 2048)
+;;                     :max_tokens 4096))
 
 (map!
  :leader
@@ -807,9 +827,8 @@ strings."
                (cons "__DESCRIPTION__"
                      (lambda () (read-string "Enter description: "))))
   (skeletor-define-template "sbcl-project" :title "Common Lisp (SBCL)"
-                          :after-creation (lambda (dir)
-                                            (nsa/init-git-project dir)))
-  )
+                            :after-creation (lambda (dir)
+                                              (nsa/init-git-project dir))))
 
 (use-package! f)
 
@@ -951,7 +970,7 @@ strings."
   :config
   (map! :leader
         (:prefix-map ("p" . "projects")
-                    :desc "Run Project Task" "r" #'project-tasks)))
+         :desc "Run Project Task" "r" #'project-tasks)))
 
                                         ;(require 'persp-mode)
 
