@@ -28,4 +28,17 @@
 (pushnew (merge-pathnames "/run/current-system/sw/lib/" (user-homedir-pathname))
          cffi:*foreign-library-directories*)
 
+(defun pkg-config-add-lib (libname)
+  (let ((process (sb-ext:run-program "/usr/bin/env"
+                                     (list "pkg-config" libname "--libs-only-L")
+                                     :input t :output :stream :wait t)))
+    (let ((stream (sb-ext:process-output process)))
+      (loop for line = (read-line stream nil nil)
+            while line do
+              (pushnew (pathname (concatenate 'string (subseq line 2) "/"))
+                       cffi:*foreign-library-directories*))
+      (sb-ext:process-close process))))
+(pkg-config-add-lib "libssl")
+(pkg-config-add-lib "libcrypto")
+
 (ql:quickload :literate-lisp)

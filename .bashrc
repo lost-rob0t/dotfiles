@@ -162,6 +162,8 @@ if [ ! -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
     export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}
 fi
 
+PKG_CONFIG_PATH="$HOME/.nix-profile/lib/pkgconfig:$HOME/.nix-profile/lib64/pkgconfig:$HOME/.nix-profile/share/pkgconfig;"
+
 function nim-init () {
  # Init a nim project and start a git repo
  nimble init $1

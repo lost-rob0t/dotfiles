@@ -6,11 +6,12 @@
   networking.firewall.enable = false;
   networking.firewall.allowedTCPPorts = [
     22 #ssh
-    5984 #couchdb
+    5984 #couchdb devel
+    5672 # rabbitmq devel
     8384 #syncthing
     22000 # syncthing
     5332 # caldev
-    3128
+    5000 # for development
     15029
     5900 # spice
     47989 # moonlight

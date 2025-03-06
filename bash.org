@@ -248,7 +248,11 @@ if [ ! -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
     export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}
 fi
 #+end_src
-
+**** Setup pkg-config
+This is needed for sbcl
+#+begin_src sh :tangle .bashrc
+PKG_CONFIG_PATH="$HOME/.nix-profile/lib/pkgconfig:$HOME/.nix-profile/lib64/pkgconfig:$HOME/.nix-profile/share/pkgconfig;"
+#+end_src
 *** Nim
 init a nimble project then create a git repo and cd to it
 #+begin_src sh :tangle .bashrc
@@ -575,6 +579,7 @@ case $TERM in
 esac
 
 #+end_src
+
 * Footnotes
 
 [fn:4] https://wiki.archlinux.org/title/XDG_Base_Directory
