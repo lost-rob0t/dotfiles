@@ -307,13 +307,10 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-          ("x" "sunshine wiki dox" plain "* {slug}\n%?"
-           :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
+        ("a" "" plain "* {slug}\n%?"
+           :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("r" "Reading notes" plain "%?"
-           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-          ("v" "Video notes" plain "%?"
            :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("p" "Programming" plain "%?"
@@ -969,8 +966,7 @@ strings."
 (use-package! project-tasks
   :config
   (map! :leader
-        (:prefix-map ("p" . "projects")
-         :desc "Run Project Task" "r" #'project-tasks)))
+        :desc "Run Project Task" "p r" #'project-tasks))
 
                                         ;(require 'persp-mode)
 
