@@ -59,7 +59,7 @@
       enable = false;
     };
     i2p = {
-      enable = true;
+      enable = false;
     };
 
     blueman = {
