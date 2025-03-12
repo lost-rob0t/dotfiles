@@ -172,6 +172,10 @@ keys = [
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(lish-vterm)'"),
                  desc='Emacsclient Vterm'
                  ),
+             Key([], "p",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(addmacs)'"),
+                 desc='Emacsclient Vterm'
+                 ),
              Key([], "y",
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(+gptel/here)'"),
                  desc='Emacsclient Vterm'
@@ -388,13 +392,14 @@ def init_widgets_list():
     prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
     widgets_list = [
         widget.GroupBox(font="3270 Nerd Font",
-                        fontsize = 25,
-                        margin_y = 1,
-                        margin_x = 1,
+                        visible_groups=["1","2","3","4","5","6","7","8", "9", "0"],
+                        fontsize = 18,
+                        margin_y = 2,
+                        margin_x = 2,
                         padding_y = -6,
                         padding_x = 6,
                         borderwidth = 0,
-                        disable_drag = True,
+                        disable_drag = False,
                         active = colors[9],
                         inactive = colors[5],
                         rounded = True,
@@ -411,7 +416,7 @@ def init_widgets_list():
             background = colors[1]
         ),
         widget.CurrentLayout(
-            font = "Noto Sans Bold",
+            font = "Hack  Bold",
             foreground = colors[5],
             background = colors[1]
         ),
@@ -421,13 +426,13 @@ def init_widgets_list():
             foreground = colors[2],
             background = colors[1]
         ),
-        widget.WindowName(font="Noto Sans",
+        widget.WindowName(font="Hack ",
                           fontsize = 12,
                           foreground = colors[5],
                           background = colors[1],
                           ),
         # widget.Net(
-        #          font="Noto Sans",
+        #          font="Hack ",
         #          fontsize=12,
         #          interface="enp0s31f6",
         #          foreground=colors[2],
@@ -506,7 +511,7 @@ def init_widgets_list():
         #          background = colors[1]
         #          ),
         # widget.Battery(
-        #          font="Noto Sans",
+        #          font="Hack ",
         #          update_interval = 10,
         #          fontsize = 12,
         #          foreground = colors[5],
@@ -552,7 +557,7 @@ def init_widgets_list():
         #          fontsize=16
         #          ),
         widget.Memory(
-            font="Noto Sans",
+            font="Hack ",
             format = 'Mem:{MemUsed: 0.2f}G',
             update_interval = 1,
             fontsize = 12,
@@ -678,3 +683,12 @@ floating_layout = layout.Floating(float_rules=[
     Match(title="Sonixd")
 
 ],  fullscreen_border_width = 0, border_width = 0)
+
+
+
+#groups.append(Group("project", layouts=[AddmacsLayout(margin=5)], matches=[Match(wm_class=re.compile(r"^(Emacs)$"))]))
+#@hook.subscribe.client_new
+#def assign_app_group(client):
+#    if isinstance(client.window.get_wm_class(), tuple):
+#        if any(x in client.name for x in ["Right Now", "In Progress", "Task Pile"]):
+#            client.togroup("project")
