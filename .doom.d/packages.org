@@ -11,7 +11,7 @@
 ;;; Package management
 
 ;; Please don't load outdated byte code
-(setq load-prefer-newer t)
+;(setq load-prefer-newer t)
 
 (require 'package)
 (setq package-enable-at-startup nil)
@@ -25,7 +25,7 @@
 ;; Bootstrap `use-package'
 (unless (package-installed-p 'use-package) (package-refresh-contents) (package-install 'use-package))
 
-(eval-when-compile (require 'use-package))
+;(eval-when-compile (require 'use-package))
 #+end_src
 * About
 This org document contains all the packages that i install into emacs. I thought about merging it into config.org but thats just going to make a big mess. I will split it into sections and catogries of packages.

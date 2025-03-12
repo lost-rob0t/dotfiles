@@ -3,7 +3,7 @@
 ;;; Package management
 
 ;; Please don't load outdated byte code
-(setq load-prefer-newer t)
+;(setq load-prefer-newer t)
 
 (require 'package)
 (setq package-enable-at-startup nil)
@@ -17,7 +17,7 @@
 ;; Bootstrap `use-package'
 (unless (package-installed-p 'use-package) (package-refresh-contents) (package-install 'use-package))
 
-(eval-when-compile (require 'use-package))
+;(eval-when-compile (require 'use-package))
 
 (unpin! org-roam)
 (package! org-roam-ui)
