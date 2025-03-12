@@ -6,30 +6,17 @@
   networking.firewall.enable = false;
   networking.firewall.allowedTCPPorts = [
     22 #ssh
-    5984 #couchdb devel
-    5672 # rabbitmq devel
     8384 #syncthing
     22000 # syncthing
-    5332 # caldev
-    5000 # for development
-    15029
     5900 # spice
-    47989 # moonlight
-    47984 # moonlight
-    48010 # moonlight
-
+    { from = 1714; to = 1764; } # Kde connect
   ];
   networking.firewall.allowedUDPPorts = [
     22000 #syncthing
     21027 #syncthing
-    15029
     5900 # spice
-    48010 #moonlight
-    47998 # moonlight
-    47999 #moonlight
-    47800 #moonlight
+   { from = 1714; to = 1764; } # Kde connect
   ];
-  networking.firewall.extraCommands = ''iptables -t raw -A OUTPUT -p udp -m udp --dport 137 -j CT --helper netbios-ns'';
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
   ####HOSTS#####
@@ -41,6 +28,10 @@
     10.50.50.30 vpn.lost.system
 
     '';
+  networking.firewall.extraCommands = ''
+   iptables -I INPUT 1 -s 172.18.0.0/12 -p tcp -d 172.17.0.1 -j ACCEPT
+   iptables -I INPUT 2 -s 172.18.0.0/12 -p udp -d 172.17.0.1 -j ACCEPT
+  '';
   networking.useDHCP = false;
   networking.interfaces.eno1.useDHCP = true;
   networking.hostName = "flake"; # Define your hostname.
