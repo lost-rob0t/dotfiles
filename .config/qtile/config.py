@@ -11,7 +11,7 @@ from libqtile.config import ScratchPad, DropDown
 from libqtile.lazy import lazy
 from libqtile.widget import Spacer
 from libqtile.log_utils import logger
-from layouts.addmacs import AddmacsLayout
+#from layouts.addmacs import AddmacsLayout
 #import ip
 def readIpFile(file_path= os.path.expanduser("~/.local/share/ip")):
     with open(file_path, "r") as file:
