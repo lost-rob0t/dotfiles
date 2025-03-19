@@ -33,10 +33,10 @@
     # Productivity
     w3m
     cht-sh
-    kleopatra
+    # TODO Add some of this stuff to a modulekleopatra
     gimp
     feh
-    # FIXME nyxt
+    nyxt
     remmina
     freerdp
     sqlitebrowser
