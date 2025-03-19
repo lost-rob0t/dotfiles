@@ -693,9 +693,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
     '(company-files))
   (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
 
-(dolist (file (directory-files-recursively "~/Documents/Notes/programing/emacs-ai/" "\\.el$"))
-  (load file))
-
 (use-package! gptel
   :config
   (defun ai/claude/xml-build (&rest instructions)

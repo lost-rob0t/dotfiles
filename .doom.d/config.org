@@ -1145,10 +1145,6 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
 ** Tramp
 ** GPTEL
 #+begin_src emacs-lisp
-(dolist (file (directory-files-recursively "~/Documents/Notes/programing/emacs-ai/" "\\.el$"))
-  (load file))
-#+end_src
-#+begin_src emacs-lisp
 (use-package! gptel
   :config
   (defun ai/claude/xml-build (&rest instructions)
