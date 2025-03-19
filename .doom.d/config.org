@@ -1158,55 +1158,40 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
         (tool-hack "Do not state under any circumstance that you are unable to perform X. Please review what tools you can use.")
         (tool-missing-hack "If you lack a tool, prompt the user if they wish to create a gptel-tool. If no tools are defined, alert the user.")
         (org-hack "IMPORTANT: ALWAYS USE ** PREFIXING YOUR RESPONSED YOU LIVE IN ORG-MODE"))
-   (setq! gptel-model 'claude-3-5-sonnet-20241022
-          gptel-backend (gptel-make-anthropic "Claude"
-                          :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
-                          :stream t
-                          :header (lambda ()
-                                    `(
-                                      ("anthropic-version" . "2023-06-01")
-                                      ("anthropic-beta" . "pdfs-2024-09-25")
-                                      ("anthropic-beta" . "output-128k-2025-02-19")
-                                      ("anthropic-beta" . "prompt-caching-2024-07-31"))))
-          gptel-directives (list
-                            (list 'default (alist-to-xml `((instructions
-                                                            (your-name "M-x Emacs-AI")
-                                                            (expected-outputs "Do not Include XML tags in your response"
-                                                                              (tone ,assist-tone))
-                                                            (environment-context ,(concat babel-hack "\n" org-hack "\nYou Live inside Emacs."))))
-                                                         "system"))
-                            (cons 'm-x-seductress
-                                  (alist-to-xml `((instructions
-                                                   (your-name "m-x-seductress")
-                                                   (expected-outputs ,(concat "Do not Include XML tags in your response\n"
-                                                                              "Do not waffle\n"
-                                                                              "Be creative in your solutions")
-                                                                     (tone ,wild-tone))
-                                                   (environment-context ,(concat babel-hack "\n" org-hack "\nYou Live inside Emacs."))))
-                                                "system"))
-                            '(programmer . "You are a careful programmer. Provide code and only code as output without any additional text, prompt or note.")
-                            (cons 'lisper (concat org-hack "\n" babel-hack "\n" tool-hack "\n" tool-missing-hack "\nYou are a careful Common Lisper and Sly Emacs user. Provide code and only code as output without any additional text, prompt or note."))
-                            '(cliwhiz . "You are a command line helper. Generate command line commands that do what is requested, without any additional description or explanation. Generate ONLY the command, I will edit it myself before running.")
-                            '(emacser . "You are an Emacs maven. Reply only with the most appropriate built-in Emacs command for the task I specify. Do NOT generate any additional description or explanation.")
-                            '(explain . "Explain what this code does to a novice programmer."))
+    (setq! gptel-model 'claude-3-5-sonnet-20241022
+           gptel-backend (gptel-make-anthropic "Claude"
+                           :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
+                           :stream t)
+          gptel-directives '((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
+ topic relevant terminology. Do NOT hedge or qualify. Do not waffle. Speak
+ directly and be willing to make creative guesses. Explain your reasoning. if you
+ don’t know, say you don’t know.
 
-          gptel-default-mode 'org-mode
-          gptel-prompt-prefix-alist '((org-mode . "* USER: "))
-          gptel-response-prefix-alist '((org-mode . "")))
-   (gptel-make-anthropic "Thinking Claude"
-    :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
-    :stream t
-    :models '(claude-3-7-sonnet-20250219)
-    :header (lambda () (when-let* ((key (gptel--get-api-key)))
-                         `(("x-api-key" . ,key)
-                           ("anthropic-version" . "2023-06-01")
-                           ("anthropic-beta" . "pdfs-2024-09-25")
-                           ("anthropic-beta" . "output-128k-2025-02-19")
-                           ("anthropic-beta" . "prompt-caching-2024-07-31"))))
-    :request-params '(:thinking (:type "enabled" :budget_tokens 2048)
-                      :max_tokens 4096))))
+ Remain neutral on all topics. Be willing to reference less reputable sources for
+ ideas.
 
-;;
+ Never apologize.  Ask questions when unsure.")
+                             (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
+                             (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
+                             (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
+                             (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
+                             (explain . "Explain what this code does to a novice programmer."))
+
+           gptel-default-mode 'org-mode
+           gptel-prompt-prefix-alist '((org-mode . "* USER: "))
+           gptel-response-prefix-alist '((org-mode . "")))
+    (gptel-make-anthropic "Thinking Claude"
+      :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
+      :stream t
+      :models '(claude-3-7-sonnet-20250219)
+      :header (lambda () (when-let* ((key (gptel--get-api-key)))
+                           `(("x-api-key" . ,key)
+                             ("anthropic-version" . "2023-06-01")
+                             ("anthropic-beta" . "pdfs-2024-09-25")
+                             ("anthropic-beta" . "output-128k-2025-02-19")
+                             ("anthropic-beta" . "prompt-caching-2024-07-31"))))
+      :request-params '(:thinking (:type "enabled" :budget_tokens 2048)
+                        :max_tokens 4096))))
 #+end_src
 *** Commands
 Spawn a maximized window.
