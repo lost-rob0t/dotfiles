@@ -307,7 +307,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-        ("a" "" plain "* {slug}\n%?"
+        ("a" "ai" plain "* {slug}\n%?"
            :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("r" "Reading notes" plain "%?"
