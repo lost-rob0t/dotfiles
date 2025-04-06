@@ -283,9 +283,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (setq org-roam-directory "~/Documents/Notes/org/roam")
 
-;;  Tahnk you, this comment fixed my old config!
-;;  https://www.reddit.com/r/DoomEmacs/comments/sk8558/comment/hxxp7l0/?utm_source=share&utm_medium=web2x&context=3
-
 (after! org-roam
   :ensure t
   :init
@@ -307,7 +304,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-        ("a" "ai" plain "* {slug}\n%?"
+          ("a" "ai" plain "* {slug}\n%?"
            :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("r" "Reading notes" plain "%?"
@@ -316,13 +313,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
-;; (setq org-roam-dailies-capture-templates
-;;  '(("d" "default" entry "* %?"
-;;     :target (file+head "%<%Y-%m-%d>.org" "#+title: %U\n"))
-;;    ("n" "news" entry "* %? :news:"
-;;        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
-;;    ("j" "journal" entry "* %<%I:%M %p>%? :personal:"
-;;       :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))))
 
 (defun url2org (begin end)
   "Download a webpage from selected url and convert to org."
@@ -986,6 +976,12 @@ If COMPLETING-FN is nil default to `ezf-default'."
                     candidate)))
                candidates
                " ")))
+
+(after! org
+(defun nsa/org-publish-to-html (plist filename pub-dir)
+  (when (publishp filename)
+      (org-html-publish-to-html plist filename pub-dir)))
+)
 
 (fset 'nsa/spawn-window
       (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))

@@ -608,9 +608,6 @@ Set roam directory
 #+end_src
 
 #+begin_src emacs-lisp
-;;  Tahnk you, this comment fixed my old config!
-;;  https://www.reddit.com/r/DoomEmacs/comments/sk8558/comment/hxxp7l0/?utm_source=share&utm_medium=web2x&context=3
-
 (after! org-roam
   :ensure t
   :init
@@ -632,7 +629,7 @@ Set roam directory
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-        ("a" "ai" plain "* {slug}\n%?"
+          ("a" "ai" plain "* {slug}\n%?"
            :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("r" "Reading notes" plain "%?"
@@ -641,13 +638,7 @@ Set roam directory
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
-;; (setq org-roam-dailies-capture-templates
-;;  '(("d" "default" entry "* %?"
-;;     :target (file+head "%<%Y-%m-%d>.org" "#+title: %U\n"))
-;;    ("n" "news" entry "* %? :news:"
-;;        :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))
-;;    ("j" "journal" entry "* %<%I:%M %p>%? :personal:"
-;;       :target (file+head "%<%Y-%m-%d>.org" "#+title: %<%Y-%m-%d>\n"))))
+
 #+end_src
 *** Misc org roam
 url2org function for importing info from the web
@@ -1445,8 +1436,6 @@ Package Def snippet
 #+end_src
 *** LispyVille Keybinds
 #+begin_src emacs-lisp
-
-
 (map! :after 'lispyville
       :map 'lispyville-mode-map
       "C-w" #'lispyville-move-up)
@@ -1649,6 +1638,14 @@ If COMPLETING-FN is nil default to `ezf-default'."
                     candidate)))
                candidates
                " ")))
+#+end_src
+** Wiki Publish
+#+begin_src emacs-lisp
+(after! org
+(defun nsa/org-publish-to-html (plist filename pub-dir)
+  (when (publishp filename)
+      (org-html-publish-to-html plist filename pub-dir)))
+)
 #+end_src
 * Macros
 ** Frame macros
