@@ -1536,24 +1536,38 @@ I only use it on the desktop so only load it there.
 #+end_src
 ** Midnight mode
 Clean up emacs overnight
-require it
-#+begin_src emacs-lisp
-(require 'midnight)
-#+end_src
 Set the time to 7 am local
-#+begin_src emacs-lisp
-(midnight-delay-set 'midnight-delay "07:00am")
-#+end_src
-
 Ensure a desktop notification is made indicating that the buffers will be cleared as a result of midnight mode being ran.
+*** Clean Buffers List config
 #+begin_src emacs-lisp
-(add-hook 'midnight-hook #'(lambda ()
+(use-package! midnight
+  :config
+  (add-hook! 'after-init-hook #'midnight-mode)
+  (add-hook! 'midnight-hook #'(lambda ()
                              (alert "Midnight mode is running.\nEmacs is fresh and clean again!")))
-#+end_src
+  (midnight-delay-set 'midnight-delay "07:00am")
 
-Make sure it is loaded
-#+begin_src emacs-lisp
-(add-hook 'after-init-hook #'midnight-mode)
+  (setq! clean-buffer-list-kill-predicate
+         (lambda (buffer)
+           (let ((proc (get-buffer-process buffer)))
+             (and
+              (not (buffer-modified-p buffer))  ; Don't kill modified buffers
+              (not (buffer-local-value 'server-buffer-clients buffer))
+              (not (and proc (process-live-p proc)))))))
+
+  (setq!
+   clean-buffer-list-kill-never-regexps
+   (list
+   ;; REPLs and terminals
+    "\\*\\(?:sly\\|ielm\\).*\\*"
+    "\\*vterm.*\\*")
+
+   clean-buffer-list-kill-regexps
+   (list
+
+    ;; Dired buffers (but not if they have unsaved changes)
+    "^[^*].*/$"
+    )))
 #+end_src
 ** Multi media
 *** Elfeed-tube

@@ -910,14 +910,34 @@ strings."
              (require 'elcord)
              (elcord-mode))
 
-(require 'midnight)
-
-(midnight-delay-set 'midnight-delay "07:00am")
-
-(add-hook 'midnight-hook #'(lambda ()
+(use-package! midnight
+  :config
+  (add-hook! 'after-init-hook #'midnight-mode)
+  (add-hook! 'midnight-hook #'(lambda ()
                              (alert "Midnight mode is running.\nEmacs is fresh and clean again!")))
+  (midnight-delay-set 'midnight-delay "07:00am")
 
-(add-hook 'after-init-hook #'midnight-mode)
+  (setq! clean-buffer-list-kill-predicate
+         (lambda (buffer)
+           (let ((proc (get-buffer-process buffer)))
+             (and
+              (not (buffer-modified-p buffer))  ; Don't kill modified buffers
+              (not (buffer-local-value 'server-buffer-clients buffer))
+              (not (and proc (process-live-p proc)))))))
+
+  (setq!
+   clean-buffer-list-kill-never-regexps
+   (list
+   ;; REPLs and terminals
+    "\\*\\(?:sly\\|ielm\\).*\\*"
+    "\\*vterm.*\\*")
+
+   clean-buffer-list-kill-regexps
+   (list
+
+    ;; Dired buffers (but not if they have unsaved changes)
+    "^[^*].*/$"
+    )))
 
 (use-package! elfeed-tube
   :ensure t ;; or :straight t
