@@ -286,20 +286,7 @@ def assign_app_group(client):
      d[group_names[0]] = ["Navigator", "Firefox", "Vivaldi-stable", "Vivaldi-snapshot", "Chromium", "Google-chrome", "Brave", "Brave-browser",
                "navigator", "firefox", "vivaldi-stable", "vivaldi-snapshot", "chromium", "google-chrome", "brave", "brave-browser", ]
      d[group_names[1]] = [ "emacs", "codium" ]
-     d[group_names[2]] = ["Inkscape", "Nomacs", "Ristretto", "Nitrogen", "Feh",
-                          "inkscape", "nomacs", "ristretto", "nitrogen", "feh", "gimp", "krita" ]
-     d[group_names[3]] = ["zap" ]
-     #d[group_names[4]] = ["Meld", "meld", "org.gnome.meld" "org.gnome.Meld" ]
-     d[group_names[5]] = ["Vlc","vlc", "Mpv", "mpv", "Minecraft", "War Thuder" ]
-     #d[group_names[6]] = ["VirtualBox Manager", "VirtualBox Machine", "Vmplayer",
-     #          "virtualbox manager", "virtualbox machine", "vmplayer", ]
-     d[group_names[7]] = ["Thunar", "Nemo", "Caja", "Nautilus", "org.gnome.Nautilus", "Pcmanfm", "Pcmanfm-qt",
-               "thunar", "nemo", "caja", "nautilus", "org.gnome.nautilus", "pcmanfm", "pcmanfm-qt", ]
-     d[group_names[8]] = ["Evolution", "Geary", "Mail", "Thunderbird",
-               "evolution", "geary", "mail", "thunderbird" ]
-     #d[group_names[9]] = ["Spotify", "Pragha", "Clementine", "Deadbeef", "Audacious",
-     #          "spotify", "pragha", "clementine", "deadbeef", "audacious" ]
-     #     ######################################################################################
+     d[group_names[2]] = ["org-zaproxy-zap-ZAP" ]
      wm_class = client.window.get_wm_class()[0]
 
      for i in range(len(d)):
