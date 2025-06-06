@@ -11,7 +11,6 @@ from libqtile.config import ScratchPad, DropDown
 from libqtile.lazy import lazy
 from libqtile.widget import Spacer
 from libqtile.log_utils import logger
-#from layouts.addmacs import AddmacsLayout
 #import ip
 def readIpFile(file_path= os.path.expanduser("~/.local/share/ip")):
     with open(file_path, "r") as file:
@@ -58,7 +57,7 @@ def start_always():
 group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
 #group_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
 group_labels = ["", "", "", "", "", "", "", "", "", "",]
-group_layouts = ["max", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
+group_layouts = ["max", "stacked", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
 
 for i in range(len(group_names)):
     groups.append(
@@ -289,7 +288,7 @@ def assign_app_group(client):
      d[group_names[1]] = [ "emacs", "codium" ]
      d[group_names[2]] = ["Inkscape", "Nomacs", "Ristretto", "Nitrogen", "Feh",
                           "inkscape", "nomacs", "ristretto", "nitrogen", "feh", "gimp", "krita" ]
-     d[group_names[3]] = ["virt-manager", "Virtual Machine Manager" ]
+     d[group_names[3]] = ["zap" ]
      #d[group_names[4]] = ["Meld", "meld", "org.gnome.meld" "org.gnome.Meld" ]
      d[group_names[5]] = ["Vlc","vlc", "Mpv", "mpv", "Minecraft", "War Thuder" ]
      #d[group_names[6]] = ["VirtualBox Manager", "VirtualBox Machine", "Vmplayer",
@@ -301,7 +300,7 @@ def assign_app_group(client):
      #d[group_names[9]] = ["Spotify", "Pragha", "Clementine", "Deadbeef", "Audacious",
      #          "spotify", "pragha", "clementine", "deadbeef", "audacious" ]
      #     ######################################################################################
-     m_class = client.window.get_wm_class()[0]
+     wm_class = client.window.get_wm_class()[0]
 
      for i in range(len(d)):
          if wm_class in list(d.values())[i]:
@@ -449,45 +448,7 @@ def init_widgets_list():
                   foreground = colors[2],
                   background = colors[1]
                   ),
-        widget.Mpris2(background=colors[1],
-                      foreground=colors[6],
-                      scroll_fixed_width=True,
-                      poll_interval=1,
-                      width=100,
-                      padding=10,
-                      size=60,
-                      linewidth = 60,
-                      max_chars=60
-                      ),
-        widget.Wttr(
-            format =  '%f %C',
-            location={f'@{myIp}': 'Home'},
-            units = "u",
-            update_interval = 300,
-        ),
-        widget.Sep(
-            linewidth = 1,
-            padding = 5,
-            foreground = colors[2],
-            background = colors[1]
-        ),
-        ## do not activate in Virtualbox - will break qtile
-        ## NOTE is this really the case for libvirt? lol
-        widget.ThermalSensor(
-            foreground = colors[5],
-            foreground_alert = colors[6],
-            background = colors[1],
-            metric = True,
-            padding = 3,
-            threshold = 70,
-            tag_sensor=thermalTag
-        ),
-        widget.Sep(
-            linewidth = 1,
-            padding = 10,
-            foreground = colors[2],
-            background = colors[1]
-        ),
+
         # # battery option 1  ArcoLinux Horizontal icons do not forget to import arcobattery at the top
         # widget.Sep(
         #          linewidth = 1,
@@ -548,6 +509,16 @@ def init_widgets_list():
             foreground = colors[2],
             background = colors[1]
         ),
+        #widget.NetworkGraph(
+        #    border_color = colors[2],
+        #    fill_color = colors[4],
+        #    graph_color = colors[4],
+        #    background=colors[1],
+        #    border_width = 1,
+        #    line_width = 1,
+        #    core = "all",
+        #    type = "box"
+        #),
         # widget.TextBox(
         #          font="FontAwesome",
         #          text="  ",
@@ -556,14 +527,12 @@ def init_widgets_list():
         #          padding = 0,
         #          fontsize=16
         #          ),
-        widget.Memory(
+        widget.MemoryGraph(
             font="Hack ",
-            format = 'Mem:{MemUsed: 0.2f}G',
             update_interval = 1,
             fontsize = 12,
-            foreground = colors[6],
+            foreground = colors[2],
             background = colors[1],
-            measure_mem = "G",
         ),
         widget.Sep(
             linewidth = 1,
@@ -683,12 +652,3 @@ floating_layout = layout.Floating(float_rules=[
     Match(title="Sonixd")
 
 ],  fullscreen_border_width = 0, border_width = 0)
-
-
-
-#groups.append(Group("project", layouts=[AddmacsLayout(margin=5)], matches=[Match(wm_class=re.compile(r"^(Emacs)$"))]))
-#@hook.subscribe.client_new
-#def assign_app_group(client):
-#    if isinstance(client.window.get_wm_class(), tuple):
-#        if any(x in client.name for x in ["Right Now", "In Progress", "Task Pile"]):
-#            client.togroup("project")
