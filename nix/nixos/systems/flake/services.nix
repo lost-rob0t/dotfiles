@@ -46,7 +46,12 @@
       xkb.layout = "us";
     };
 
+    # Remote stuff
     # Enable the OpenSSH daemon.
+    xrdp = {
+      enable = true;
+
+    };
     openssh = {
       enable = true;
       #startWhenNeeded = true;
