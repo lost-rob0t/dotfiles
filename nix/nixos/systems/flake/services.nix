@@ -69,12 +69,7 @@
     tlp = {
       enable = false;
     };
-    syncthing = {
-      enable = false;
-      user = "unseen";
-      dataDir = "/home/unseen/Documents"; # Default folder for new synced folders
-      configDir = "/home/unseen/Documents/.config/syncthing"; # Folder for Syncthing's settings and keys
-    };
+
     gvfs = {
       enable = true;
     };
@@ -85,10 +80,7 @@
       enable = true;
     };
 
-    flatpak = {
-      # used for latest nyxt
-      enable = false;
-    };
+
     pipewire = {
       enable = true;
       pulse.enable = true;
@@ -111,9 +103,7 @@
        openFirewall = true;
        host = "0.0.0.0";
      };
-    open-webui = {
-      enable = true;
-    };
+
   };
   virtualisation = {
     podman = {
