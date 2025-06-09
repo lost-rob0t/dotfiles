@@ -51,8 +51,11 @@ run /usr/lib/xfce4/notifyd/xfce4-notifyd &
 run spice-vdagent &
 #starting user applications at boot time
 run volumeicon &
-run /home/unseen/.bin/graphics.sh &
+run /home/unseen/.graphics.sh &
 run brave &
 run bash /home/unseen/.dotfiles/.config/qtile/scripts/pinger.sh $HOME/.config/hosts &
 run kdeconnect-indicator &
 run aw-qt &
+run emacs &
+run zap &
+run brave &

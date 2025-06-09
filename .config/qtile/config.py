@@ -30,19 +30,34 @@ wmname = "LG3D"
 groups = []
 
 def init_colors():
-    return [["#170c32", "#170c32"], # color 0
-            ["#202146", "#202146"], # color 1
-            ["#92406e", "#92406e"], # color 2
-            ["#fba922", "#fba922"], # color 3
-            ["#2de2e6", "#2de2e6"], # color 4
-            ["#f3f4f5", "#f3f4f5"], # color 5
-            ["#f6019d", "#f6019d"], # color 6
-            ["#62FF00", "#62FF00"], # color 7
-            ["#dd546e", "#dd546e"], # color 8
-            ["#9700cc", "#9700cc"]] # color 9
-
+    return [["#0B1311", "#0B1311"], # color 0 (dark background)
+            ["#133227", "#133227"], # color 1 (lighter background)
+            ["#00FF41", "#00FF41"], # color 2 (bright matrix green)
+            ["#2FD43E", "#2FD43E"], # color 3 (softer green)
+            ["#50C878", "#50C878"], # color 4 (emerald)
+            ["#D5FFD5", "#D5FFD5"], # color 5 (light green text)
+            ["#0CFF00", "#0CFF00"], # color 6 (neon green)
+            ["#39FF14", "#39FF14"], # color 7 (bright accent)
+            ["#00DD00", "#00DD00"], # color 8 (medium green)
+            ["#008F11", "#008F11"]] # color 9 (dark matrix green)
 
 colors = init_colors()
+
+
+# def init_colors():
+#     return [["#170c32", "#170c32"], # color 0
+#             ["#202146", "#202146"], # color 1
+#             ["#92406e", "#92406e"], # color 2
+#             ["#fba922", "#fba922"], # color 3
+#             ["#2de2e6", "#2de2e6"], # color 4
+#             ["#f3f4f5", "#f3f4f5"], # color 5
+#             ["#f6019d", "#f6019d"], # color 6
+#             ["#62FF00", "#62FF00"], # color 7
+#             ["#dd546e", "#dd546e"], # color 8
+#             ["#9700cc", "#9700cc"]] # color 9
+
+
+# colors = init_colors()
 
 @hook.subscribe.startup_once
 def start_once():
@@ -293,7 +308,7 @@ def assign_app_group(client):
          if wm_class in list(d.values())[i]:
              group = list(d.keys())[i]
              client.togroup(group)
-             client.group.cmd_toscreen(toggle=True)
+             client.group.cmd_toscreen(toggle=False)
 
 
 main = None
@@ -382,9 +397,9 @@ def init_widgets_list():
                         fontsize = 18,
                         margin_y = 2,
                         margin_x = 2,
-                        padding_y = -6,
-                        padding_x = 6,
-                        borderwidth = 0,
+                        #padding_y = -6,
+                        #padding_x = 6,
+                        #borderwidth = 0,
                         disable_drag = False,
                         active = colors[9],
                         inactive = colors[5],
@@ -417,17 +432,19 @@ def init_widgets_list():
                           foreground = colors[5],
                           background = colors[1],
                           ),
-        # widget.Net(
-        #          font="Hack ",
-        #          fontsize=12,
-        #          interface="enp0s31f6",
-        #          foreground=colors[2],
-        #          background=colors[1],
-        #          padding = 0,
-        #          ),
+        widget.CheckUpdates(
+            distro='Arch_yay',
+            display_format='{updates} ',
+            colour_no_update="#39ff14",
+            colour_have_updates="#ff0000",
+            update_interval=30,
+            linewidth = 20,
+        ),
 
-        widget.Pomodoro(foreground = colors[2],
+
+        widget.Pomodoro(foreground = colors[5],
             background = colors[1],
+            padding = 10,
             ),
         widget.Sep(
                   linewidth = 1,
@@ -435,37 +452,6 @@ def init_widgets_list():
                   foreground = colors[2],
                   background = colors[1]
                   ),
-
-        # # battery option 1  ArcoLinux Horizontal icons do not forget to import arcobattery at the top
-        # widget.Sep(
-        #          linewidth = 1,
-        #          padding = 10,
-        #          foreground = colors[2],
-        #          background = colors[1]
-        #          ),
-        # arcobattery.BatteryIcon(
-        #          padding=0,
-        #          scale=0.7,
-        #          y_poss=2,
-        #          theme_path=home + "/.config/qtile/icons/battery_icons_horiz",
-        #          update_interval = 5,
-        #          background = colors[1]
-        #          ),
-        # # battery option 2  from Qtile
-        # widget.Sep(
-        #          linewidth = 1,
-        #          padding = 10,
-        #          foreground = colors[2],
-        #          background = colors[1]
-        #          ),
-        # widget.Battery(
-        #          font="Hack ",
-        #          update_interval = 10,
-        #          fontsize = 12,
-        #          foreground = colors[5],
-        #          background = colors[1],
-	    #          ),
-
 
         widget.Net(
             forground = colors[6],
@@ -496,24 +482,6 @@ def init_widgets_list():
             foreground = colors[2],
             background = colors[1]
         ),
-        #widget.NetworkGraph(
-        #    border_color = colors[2],
-        #    fill_color = colors[4],
-        #    graph_color = colors[4],
-        #    background=colors[1],
-        #    border_width = 1,
-        #    line_width = 1,
-        #    core = "all",
-        #    type = "box"
-        #),
-        # widget.TextBox(
-        #          font="FontAwesome",
-        #          text="  ",
-        #          foreground=colors[4],
-        #          background=colors[1],
-        #          padding = 0,
-        #          fontsize=16
-        #          ),
         widget.MemoryGraph(
             font="Hack ",
             update_interval = 1,
@@ -527,20 +495,12 @@ def init_widgets_list():
             foreground = colors[2],
             background = colors[1]
         ),
-        #widget.CheckUpdates(
-        #         distro='Arch_yay',
-        #         display_format=' {updates}',
-        #         colour_no_update="#39ff14",
-        #         colour_have_updates="#ff0000",
-        #         update_interval=30,
-        #         ),
-
         widget.TextBox(
             font="FontAwesome",
             text="  ",
             foreground=colors[3],
             background=colors[1],
-            padding = 0,
+            padding = 2,
             fontsize=16
         ),
         widget.Clock(
@@ -556,7 +516,7 @@ def init_widgets_list():
                   background = colors[1]
                   ),
         widget.Volume(
-            #emoji="󱄠",
+            emoji="󱄠",
             foreground = colors[2],
             background = colors[1],
             volume_up_command = "amixer set Master 10%+",
@@ -601,12 +561,6 @@ mouse = [
          start=lazy.window.get_size())
 ]
 
-@hook.subscribe.client_new
-def set_floating(window):
-    if (window.window.get_wm_transient_for()
-            or window.window.get_wm_type() in floating_types):
-        window.floating = True
-
 floating_layout = layout.Floating(float_rules=[
     # Run the utility of `xprop` to see the wm class and name of an X client.
     *layout.Floating.default_float_rules,
@@ -639,3 +593,9 @@ floating_layout = layout.Floating(float_rules=[
     Match(title="Sonixd")
 
 ],  fullscreen_border_width = 0, border_width = 0)
+
+@hook.subscribe.client_new
+def set_floating(window):
+    if (window.window.get_wm_transient_for()
+            or window.window.get_wm_type() in floating_layout):
+        window.floating = True
