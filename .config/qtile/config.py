@@ -29,35 +29,35 @@ myTerm = "terminator"
 wmname = "LG3D"
 groups = []
 
-def init_colors():
-    return [["#0B1311", "#0B1311"], # color 0 (dark background)
-            ["#133227", "#133227"], # color 1 (lighter background)
-            ["#00FF41", "#00FF41"], # color 2 (bright matrix green)
-            ["#2FD43E", "#2FD43E"], # color 3 (softer green)
-            ["#50C878", "#50C878"], # color 4 (emerald)
-            ["#D5FFD5", "#D5FFD5"], # color 5 (light green text)
-            ["#0CFF00", "#0CFF00"], # color 6 (neon green)
-            ["#39FF14", "#39FF14"], # color 7 (bright accent)
-            ["#00DD00", "#00DD00"], # color 8 (medium green)
-            ["#008F11", "#008F11"]] # color 9 (dark matrix green)
-
-colors = init_colors()
-
-
 # def init_colors():
-#     return [["#170c32", "#170c32"], # color 0
-#             ["#202146", "#202146"], # color 1
-#             ["#92406e", "#92406e"], # color 2
-#             ["#fba922", "#fba922"], # color 3
-#             ["#2de2e6", "#2de2e6"], # color 4
-#             ["#f3f4f5", "#f3f4f5"], # color 5
-#             ["#f6019d", "#f6019d"], # color 6
-#             ["#62FF00", "#62FF00"], # color 7
-#             ["#dd546e", "#dd546e"], # color 8
-#             ["#9700cc", "#9700cc"]] # color 9
-
+#     return [["#0B1311", "#0B1311"], # color 0 (dark background)
+#             ["#133227", "#133227"], # color 1 (lighter background)
+#             ["#00FF41", "#00FF41"], # color 2 (bright matrix green)
+#             ["#2FD43E", "#2FD43E"], # color 3 (softer green)
+#             ["#50C878", "#50C878"], # color 4 (emerald)
+#             ["#D5FFD5", "#D5FFD5"], # color 5 (light green text)
+#             ["#0CFF00", "#0CFF00"], # color 6 (neon green)
+#             ["#39FF14", "#39FF14"], # color 7 (bright accent)
+#             ["#00DD00", "#00DD00"], # color 8 (medium green)
+#             ["#008F11", "#008F11"]] # color 9 (dark matrix green)
 
 # colors = init_colors()
+
+
+def init_colors():
+    return [["#170c32", "#170c32"], # color 0
+            ["#202146", "#202146"], # color 1
+            ["#92406e", "#92406e"], # color 2
+            ["#fba922", "#fba922"], # color 3
+            ["#2de2e6", "#2de2e6"], # color 4
+            ["#f3f4f5", "#f3f4f5"], # color 5
+            ["#f6019d", "#f6019d"], # color 6
+            ["#62FF00", "#62FF00"], # color 7
+            ["#dd546e", "#dd546e"], # color 8
+            ["#9700cc", "#9700cc"]] # color 9
+
+
+colors = init_colors()
 
 @hook.subscribe.startup_once
 def start_once():
@@ -72,7 +72,7 @@ def start_always():
 group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
 #group_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
 group_labels = ["", "", "", "", "", "", "", "", "", "",]
-group_layouts = ["max", "stacked", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
+group_layouts = ["max", "plasma", "treetab", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
 
 for i in range(len(group_names)):
     groups.append(
@@ -83,6 +83,8 @@ for i in range(len(group_names)):
         ))
 
 keys = [
+
+    Key([mod], "m", lazy.window.toggle_minimize(), desc="Toggle minimize"),
     Key([mod], "f", lazy.window.toggle_fullscreen()),
     Key([mod], "q", lazy.window.kill()),
     Key([mod, "shift"], "q", lazy.window.kill()),
@@ -161,10 +163,6 @@ keys = [
                  lazy.spawn("emacsclient -c -a 'emacs'"),
                  desc='Emacsclient Dashboard'
                  ),
-             Key([], "a",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(emms)' --eval '(emms-play-directory-tree nsaspy/music-dir)'"),
-                 desc='Emacsclient EMMS (music)'
-                 ),
              Key([], "b",
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(ibuffer)'"),
                  desc='Emacsclient Ibuffer'
@@ -173,7 +171,6 @@ keys = [
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(dired nil)'"),
                  desc='Emacsclient Dired'
                  ),
-
              Key([], "n",
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(elfeed-update)'  --eval '(elfeed)'"),
                  desc='Emacsclient Elfeed (RSS)'
@@ -182,8 +179,8 @@ keys = [
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(+eshell/here)'"),
                  desc='Emacsclient Eshell'
                  ),
-             Key([], "v",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(lish-vterm)'"),
+             Key([], "t",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(+vterm/here)'"),
                  desc='Emacsclient Vterm'
                  ),
              Key([], "p",
@@ -281,15 +278,15 @@ def init_layout_theme():
             }
 layout_theme = init_layout_theme()
 layouts = [
-    #layout.MonadTall(margin=8, border_width=2, border_focus="#5e81ac", border_normal="#4c566a"),
     layout.MonadTall(**layout_theme),
-    #layout.MonadWide(margin=8, border_width=2, border_focus="#5e81ac", border_normal="#4c566a"),
+    layout.Plasma(**layout_theme),
     layout.MonadWide(**layout_theme),
     layout.Matrix(**layout_theme),
     layout.Bsp(**layout_theme),
     layout.Floating(**layout_theme),
     layout.RatioTile(**layout_theme),
-    layout.Max(**layout_theme)
+    layout.Max(**layout_theme),
+    layout.TreeTab(**layout_theme),
 ]
 
 @hook.subscribe.client_new
@@ -301,7 +298,7 @@ def assign_app_group(client):
      d[group_names[0]] = ["Navigator", "Firefox", "Vivaldi-stable", "Vivaldi-snapshot", "Chromium", "Google-chrome", "Brave", "Brave-browser",
                "navigator", "firefox", "vivaldi-stable", "vivaldi-snapshot", "chromium", "google-chrome", "brave", "brave-browser", ]
      d[group_names[1]] = [ "emacs", "codium" ]
-     d[group_names[2]] = ["org-zaproxy-zap-ZAP" ]
+     d[group_names[2]] = ["org-zaproxy-zap-ZAP", ".virt-manager-wrapped"]
      wm_class = client.window.get_wm_class()[0]
 
      for i in range(len(d)):
@@ -389,6 +386,18 @@ def init_widgets_defaults():
 
 widget_defaults = init_widgets_defaults()
 
+
+def init_widget_box(items=None):
+    if items is None:  # Use 'is None' instead of '='
+        items = []
+    return widget.WidgetBox(
+        background=colors[0],  # Added missing comma
+        foreground=colors[7],
+        widgets=items  # 'widgets' instead of 'widget'
+)
+
+
+
 def init_widgets_list():
     prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
     widgets_list = [
@@ -421,6 +430,18 @@ def init_widgets_list():
             foreground = colors[5],
             background = colors[1]
         ),
+
+        init_widget_box([
+            widget.Plasma(
+                font = "Hack  Bold",
+                foreground = colors[5],
+                background = colors[1]
+            ),
+            widget.Chord(
+            font = "Hack  Bold",
+            foreground = colors[5],
+            background = colors[1]
+        )]),
         widget.Sep(
             linewidth = 1,
             padding = 10,
@@ -432,20 +453,36 @@ def init_widgets_list():
                           foreground = colors[5],
                           background = colors[1],
                           ),
-        widget.CheckUpdates(
-            distro='Arch_yay',
-            display_format='{updates} ',
-            colour_no_update="#39ff14",
-            colour_have_updates="#ff0000",
-            update_interval=30,
-            linewidth = 20,
-        ),
-
-
+        init_widget_box([
         widget.Pomodoro(foreground = colors[5],
             background = colors[1],
             padding = 10,
-            ),
+                        ),
+        widget.Sep(
+            linewidth = 1,
+            padding = 10,
+            foreground = colors[2],
+            background = colors[1]
+        ),
+        widget.TextBox(
+            font="3270 Nerd Font",
+            text="◎",
+            foreground=colors[6],
+            background=colors[1],
+            padding = 0,
+            fontsize=16
+        ),
+        widget.GenPollCommand(
+           cmd = "cat ~/.local/share/hackmode/current-op",
+           parse = lambda output: output.split('\n')[0],
+           update_interval = 1,
+           foreground = colors[6],
+           background = colors[1],
+           padding = 2,
+           shell = True
+        ),
+        ]),
+
         widget.Sep(
                   linewidth = 1,
                   padding = 10,
@@ -453,13 +490,13 @@ def init_widgets_list():
                   background = colors[1]
                   ),
 
-        widget.Net(
+
+        init_widget_box([widget.Net(
             forground = colors[6],
             background=colors[1]
         ),
-
         widget.TextBox(
-            font="FontAwesome",
+            font="3270 Nerd Font",
             text="  ",
             foreground=colors[6],
             background=colors[1],
@@ -474,13 +511,8 @@ def init_widgets_list():
             border_width = 1,
             line_width = 1,
             core = "all",
-            type = "box"
-        ),
-        widget.Sep(
-            linewidth = 1,
-            padding = 10,
-            foreground = colors[2],
-            background = colors[1]
+            type = "line",
+            frequency = 0.15
         ),
         widget.MemoryGraph(
             font="Hack ",
@@ -488,7 +520,9 @@ def init_widgets_list():
             fontsize = 12,
             foreground = colors[2],
             background = colors[1],
-        ),
+            type = "line",
+            frequency = 0.5
+        )]),
         widget.Sep(
             linewidth = 1,
             padding = 10,
