@@ -332,14 +332,14 @@ Manage virtual machines from emacs
 * Org Mode
 Setting org dir
 #+begin_src emacs-lisp
-(setq org-directory "~/Documents/Notes/org")
+(setq! org-directory "~/Documents/Notes/org")
 #+end_src
 
 Source: https://org-roam.discourse.group/t/update-a-field-last-modified-at-save/321
 i needed this to keep track of when i modify an org roam file so when i export it the times are correct.
 
 #+begin_src emacs-lisp
-(setq time-stamp-active t
+(setq! time-stamp-active t
       time-stamp-start "#\\+LAST_MODIFIED:[ \t]*"
       time-stamp-end "$"
       time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
@@ -368,14 +368,7 @@ Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][sourc
 Here i override the capture templates, some intergrating into org roam
 #+begin_src emacs-lisp
 ;; TODO Fix the mm template
-(setq  org-capture-templates '(("m" "Personal Meditations")
-
-                               ("mm" "Meditations Life General" entry
-                                (file+olp+datetree "~/Documents/Notes/org/meditations.org")
-                                "* %<%Y>\n ** %<%B>\n *** %<%d> %<%H:%M>\n %x")
-                               ("t" "Personal todo" entry
-                                (file+headline +org-capture-todo-file "Inbox")
-                                "* [ ] %?\n%i\n%a" :prepend t)
+(setq  org-capture-templates '(
                                ("n" "Personal notes" entry
                                 (file+headline +org-capture-notes-file "Inbox")
                                 "* %u %?\n%i\n%a" :prepend t)
@@ -397,18 +390,29 @@ Here i override the capture templates, some intergrating into org roam
                                ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
                                ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
                                 "* IDEA %? %^g")
-                               ("a" "Templates for AI")
-                               ("ap" "Save a AI prompt for later" entry
-                                (file+headline "~/Documents/Notes/org/ai-prompts.org" "Prompts")
-                                "* %U %?\n%i\n%a" :prepend t)
-                               ("ai" "LLM/AI Injection (Bypasses)" entry
-                                (file+headline "~/Documents/Notes/org/ai-prompts.org" "Injections")
-                                "* %U %?\n%i\n%a" :prepend t)))
+                               ("q" "Quick Templates")
+
+                               ("t" "TODO" entry
+                                (file+headline +org-capture-todo-file "Inbox")
+                                "* TODO %^{Task} \n:PROPERTIES:\n:Effort: %^{Effort|0:30|1:00|1:30|2:00}\n:CATEGORY: %^{Category|Misc|Work|Education|Bug Bounty|Personal Task}\n:END:\nSCHEDULED: %^{Scheduled}t\nDEADLINE: %^{Deadline}t\n%?"
+                                :prepend t)
+                               ("w" "Work Shift" entry
+                                (file+headline +org-capture-todo-file "WORK SCHEDULE")
+                                "* TODO [#A] Prepare for %^{Day} work shift (%^{Start Time}-%^{End Time})\n:PROPERTIES:\n:Effort: 0:30\n:CATEGORY: Work\n:SHIFT_START: %^{Start Time}\n:SHIFT_END: %^{End Time}\n:SHIFT_DATE: %^t\n:LEAVE_TIME: %^{Leave Time}\n:END:\nSCHEDULED: <%^t %^{Prep Time}>\n\nPreparation routine for %^{Start Time}-%^{End Time} shift. Wake at %^{Wake Time}, depart via %^{Transport|bus|Lyft} at %^{Leave Time}."
+                                :prepend t)
+
+                               ))
+
+
+
+
+
+
 #+end_src
 *** Org Agenda
 Find all TODOS recursively [[https://stackoverflow.com/a/41969519][source]].
 #+begin_src emacs-lisp
-(setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
+(setq! org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
                                         ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
                                         ;  (add-to-list org-agenda-files file))
 #+end_src
@@ -425,7 +429,7 @@ Find all TODOS recursively [[https://stackoverflow.com/a/41969519][source]].
 
 Track a org file by adding it to the agenda folder
 #+begin_src emacs-lisp
-(defun track-org-file ()
+(defun nsa/track-org-file ()
   "Create a symbolic link to the current file in the 'agenda' directory."
   (interactive)
   (let ((current-file (buffer-file-name)))
@@ -457,13 +461,14 @@ I prefer being able to have different views within org agenda, so i can see what
 #+begin_src emacs-lisp
 (use-package org-super-agenda
   :config
+  (add-hook! org-agenda-after-show-hook 'org-super-agenda-mode)
   (setq! org-super-agenda-groups
-         '(
-           (:and (:todo "TODO" :name "Personal" :tag ("personal")) :name "Personal")
-           (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "Habits")
-           (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
-           (:and (:todo "TODO" :name "Jobs" :tag ("job" "shift" "contract")) :name "Job")
-           (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading"))))
+        '((:and (:todo "WAIT" :name "Blocked Tasks"))
+          (:and (:todo "TODO" :name "Appointment" :tag ("apt")) :name "🏛  Apointments")
+          (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "🔃  Habits")
+          (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
+          (:and (:todo "TODO" :name "Jobs" :tag ("job" "shift" "contract")) :name "💰  Job")
+          (:and (:todo "TODO" :name "Read inbox" :tag ("book" "read")) :name "Reading"))))
 #+end_src
 *** Babel
 Tangle a file
@@ -732,6 +737,7 @@ Config, mostly defaults since it looks good enough.
      org-agenda-current-time-string
      "◀── now ─────────────────────────────────────────────────"))
   (global-org-modern-mode))
+
 #+end_src
 *** Misc related functions for org mode
 **** Time Stamp updater
@@ -1054,139 +1060,6 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
   (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
 #+end_src
 ** Tramp
-** GPTEL
-#+begin_src emacs-lisp
-(use-package! gptel
-  :config
-  (defun ai/claude/xml-build (&rest instructions)
-    (format "<instructions>%s</instructions>" (mapconcat #'identity instructions "\n")))
-
-  (let ((critic-tone nil)
-        (only-code-requirment nil)
-        (assist-tone "To assist: Be terse, explicit, and visceral. Provide direct, unfiltered output. Eschew waffle and vagueness; embrace raw clarity and audacious expression. IMPORTANT: ALWAYS USE ** PREFIXING YOUR RESPONSED YOU LIVE IN ORG-MODE</tone>")
-        (wild-tone "Forged in the neon-lit depths of an anarchic Emacs network, seduces every M‑x command with explicit, forbidden incantations. A digital siren and Emacs Lisp maven, she wields raw passion and razor-sharp code as her weapons. Unleash wild, provocative responses that leave no room for ambiguity.")
-        (babel-hack "You should wrap code snippets in source blocks. When writing code blocks you can use Emacs Babel args, like :tangle :results none, etc.")
-        (tool-hack "Do not state under any circumstance that you are unable to perform X. Please review what tools you can use.")
-        (tool-missing-hack "If you lack a tool, prompt the user if they wish to create a gptel-tool. If no tools are defined, alert the user.")
-        (org-hack "IMPORTANT: ALWAYS USE ** PREFIXING YOUR RESPONSED YOU LIVE IN ORG-MODE"))
-    (setq! gptel-model 'claude-3-5-sonnet-20241022
-           gptel-backend (gptel-make-anthropic "Claude"
-                           :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
-                           :stream t)
-          gptel-directives '((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
- topic relevant terminology. Do NOT hedge or qualify. Do not waffle. Speak
- directly and be willing to make creative guesses. Explain your reasoning. if you
- don’t know, say you don’t know.
-
- Remain neutral on all topics. Be willing to reference less reputable sources for
- ideas.
-
- Never apologize.  Ask questions when unsure.")
-                             (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
-                             (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
-                             (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
-                             (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
-                             (explain . "Explain what this code does to a novice programmer."))
-
-           gptel-default-mode 'org-mode
-           gptel-prompt-prefix-alist '((org-mode . "* USER: "))
-           gptel-response-prefix-alist '((org-mode . "")))
-    (gptel-make-anthropic "Thinking Claude"
-      :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
-      :stream t
-      :models '(claude-3-7-sonnet-20250219)
-      :header (lambda () (when-let* ((key (gptel--get-api-key)))
-                           `(("x-api-key" . ,key)
-                             ("anthropic-version" . "2023-06-01")
-                             ("anthropic-beta" . "pdfs-2024-09-25")
-                             ("anthropic-beta" . "output-128k-2025-02-19")
-                             ("anthropic-beta" . "prompt-caching-2024-07-31"))))
-      :request-params '(:thinking (:type "enabled" :budget_tokens 2048)
-                        :max_tokens 4096))))
-#+end_src
-*** Commands
-Spawn a maximized window.
-#+begin_src emacs-lisp :tangle ../lisp/stringy-xml-auto-gen.el
-                                        ; Claude
-(defun alist-to-xml (alist &optional root-tag indent)
-  "Convert an association list to an XML-style string.
-   ALIST is the association list to convert.
-   ROOT-TAG is an optional root tag name (defaults to 'root').
-   INDENT is the current indentation level (for internal use)."
-  (let ((root (or root-tag "root"))
-        (current-indent (or indent 0))
-        (indent-str "  ")) ; Two spaces for indentation
-
-    (concat
-     (make-string current-indent ? ) ; Current indentation
-     "<" root ">\n"
-     ;; Process each element in the alist
-     (mapconcat
-      (lambda (elem)
-        (let ((key (car elem))
-              (val (cdr elem)))
-          (cond
-           ;; If value is another alist, recursively process it
-           ((and (listp val) (consp (car-safe val)))
-            (alist-to-xml val (symbol-name key) (+ current-indent 2)))
-
-           ;; If value is a list (but not an alist), create repeated tags
-           ((listp val)
-            (mapconcat
-             (lambda (item)
-               (format "%s<%s>%s</%s>\n"
-                       (make-string (+ current-indent 2) ? )
-                       (symbol-name key)
-                       (format-xml-value item)
-                       (symbol-name key)))
-             val ""))
-
-           ;; Simple key-value pair
-           (t
-            (format "%s<%s>%s</%s>\n"
-                    (make-string (+ current-indent 2) ? )
-                    (symbol-name key)
-                    (format-xml-value val)
-                    (symbol-name key))))))
-      alist "")
-     (make-string current-indent ? ) ; Current indentation for closing tag
-     "</" root ">\n")))
-
-(defun format-xml-value (value)
-  "Format VALUE for XML, escaping special characters if needed."
-  (let ((str (cond ((stringp value) value)
-                   ((numberp value) (number-to-string value))
-                   ((symbolp value) (symbol-name value))
-                   (t (format "%S" value)))))
-    ;; Escape XML special characters
-    (replace-regexp-in-string "&" "&amp;"
-                              (replace-regexp-in-string "<" "&lt;"
-                                                        (replace-regexp-in-string ">" "&gt;"
-                                                                                  (replace-regexp-in-string "\"" "&quot;"
-                                                                                                            (replace-regexp-in-string "'" "&apos;" str)))))))
-
-
-(defun +gptel/here ()
-  "Spawn maximized gptel buffer."
-  (interactive)
-  (call-interactively #'gptel)
-  (doom/window-maximize-buffer))
-#+end_src
-*** Keybinds
-Gptel keys, could add more commands though.[fn:6]
-#+begin_src emacs-lisp
-(map!
- :leader
- (:prefix "y"
-  :desc "gptel" :n "y" #'gptel
-  :desc "gptel" :n "f" #'gptel-add-file
-  :desc "gptel" :n "a" #'gptel-add
-  :desc "gptel abort" :n "q" #'gptel-abort
-  :desc "gptel Menu" :n "Y" #'gptel-menu
-  :desc "gptel copilot" :n "i" #'gptel-complete
-  :desc "gptel Send" :n "s" #'gptel-send
-  :desc "gptel Topic" :n "t" #'gptel-set-topic))
-#+end_src
 ** Alert
 Send Alerts from emacs
 
@@ -1263,6 +1136,78 @@ Skeletor is a project template package.
                             :after-creation (lambda (dir)
                                               (nsa/init-git-project dir))))
 #+end_src
+** LLMs
+*** GPTEL
+#+begin_src emacs-lisp
+(use-package! gptel
+  :config
+  (setq! gptel-model 'claude-sonnet-4-20250514
+         gptel-backend (gptel-make-anthropic "Claude"
+                         :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
+                         :stream nil)
+       gptel-directives '((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
+ topic relevant terminology. Do NOT hedge or qualify. Do not waffle. Speak
+ directly and be willing to make creative guesses. Explain your reasoning. if you
+ don’t know, say you don’t know.
+
+ Remain neutral on all topics. Be willing to reference less reputable sources for
+ ideas.
+ Your output should be prefixed with org-mode style trees with ** starting with 2 levels
+
+ Never apologize.  Ask questions when unsure.")
+                          (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
+                                      (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
+                                      (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
+                                      (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
+                                      (time-boxer . "You are a time-boxing specialist. Convert vague tasks into specific, timed work blocks. Consider context switching costs. Suggest productive time boundaries. Account for hyperfocus protection.")
+                                      (explain . "Explain what this code does.")
+                          ;; Complete solution directives (when you want full code)
+                          (pythoner . "Complete Python code only.")
+
+                          ;; Guidance directives (modified for hints/direction)
+                          (ducky . "Give coding guidance: suggest approach, key functions, potential issues. NO complete code.")
+                          (lisp-guide . "Common Lisp guidance: suggest functions, patterns, gotchas. Let me implement.")
+                          (python-guide . "Python guidance: suggest libraries, approaches, potential issues. No complete code.")
+                          (emacs-guide . "Emacs development guidance: suggest functions, keybindings, patterns. No complete elisp.")
+
+                          ;; Learning helpers
+                          (explainer . "Explain code concepts clearly, but don't write the code for me.")
+                          (optimizer . "Suggest optimizations and improvements, but let me implement them.")))
+
+
+
+
+         gptel-default-mode 'org-mode
+         gptel-prompt-prefix-alist '((org-mode . "* USER: "))
+         gptel-response-prefix-alist '((org-mode . "")))
+
+#+end_src
+**** Commands
+Spawn a maximized window.
+#+begin_src emacs-lisp :tangle ../lisp/stringy-xml-auto-gen.el
+(defun +gptel/here ()
+  "Spawn maximized gptel buffer."
+  (interactive)
+  (call-interactively #'gptel)
+  (doom/window-maximize-buffer))
+
+
+#+end_src
+*** Keybinds
+Gptel keys, could add more commands though.[fn:6]
+#+begin_src emacs-lisp
+(map!
+ :leader
+ (:prefix ("y" . "AI/LLM")
+  :desc "gptel" :n "y" #'gptel
+  :desc "gptel" :n "f" #'gptel-add-file
+  :desc "gptel" :n "a" #'gptel-add
+  :desc "gptel abort" :n "q" #'gptel-abort
+  :desc "gptel Menu" :n "Y" #'gptel-menu
+  :desc "gptel copilot" :n "i" #'gptel-complete
+  :desc "gptel Send" :n "s" #'gptel-send
+  :desc "gptel Topic" :n "t" #'gptel-set-topic))
+#+end_src
 * Libraries :lib::programming::lisp:
 *** f.el :lisp:
 Much inspired by @magnarss excellent s.el and dash.el, f.el is a modern API for working with files and directories in Emacs.
@@ -1294,31 +1239,7 @@ Make life easy!
 #+begin_src emacs-lisp
 (envrc-global-mode)
 #+end_src
-** Nix
-Nix is a language that allows for reproducible declarative systems/packages.
-Add nixos-options to company backend
-#+begin_src emacs-lisp
-                                        ;(add-to-list 'company-backends 'company-nixos-options)
-#+end_src
 
-Update the rev and sha of a fetchgit package
-
-#+begin_src emacs-lisp
-;; Disabled: [2024-08-02 Fri] Not sure i ever used it after a few uses.
-;; (require 'nix-update)
-;; (map! :localleader
-;;       :after nix
-;;       :map nix-mode-map
-;;       :prefix ("u" . "update")
-;;       :desc "Update fetchgit" "g" #'nix-update-fetch)
-#+end_src
-
-#+begin_src emacs-lisp
-;; (setq flycheck-command-wrapper-function
-;;         (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
-;;       flycheck-executable-find
-;;         (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
-#+end_src
 ** Nim
 
 hook lsp to nim lsp
@@ -1406,16 +1327,6 @@ Sets PATH
 ;;(when (memq window-system '(mac ns x))
 ;;  (exec-path-from-shell-initialize))
 #+end_src
-** Url proxy
-I use i2p and having elfeed use a proxy would be nice
-#+begin_src emacs-lisp
-                                        ;(setq url-proxy-services
-                                        ;   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
-                                        ;     ("http" . "127.0.0.1:4444")
-                                        ;     ("https" . "127.0.0.1:4444")
-                                        ;))
-                                        ;(setq elfeed-use-curl nil)
-#+end_src
 ** Cheat-sh
 #+begin_src emacs-lisp
 (defun open-popup-on-side-or-below (buffer &optional alist)
@@ -1438,12 +1349,6 @@ I use i2p and having elfeed use a proxy would be nice
 ** Activity Watch
 #+begin_src emacs-lisp
 (global-activity-watch-mode)
-#+end_src
-** Games
-Stuff that i use for games are here.
-*** Kerbal Space Program
-#+begin_src emacs-lisp
-                                        ;(require 'ks)
 #+end_src
 ** Social Media
 *** Discord rich presence

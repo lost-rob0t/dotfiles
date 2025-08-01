@@ -50,7 +50,9 @@
 
 (package! project-tasks :recipe (:type git :host github :repo "TxGVNN/project-tasks"))
 
-(package! gptel)
+(package! gptel :recipe (:nonrecursive t))
+
+(package! mcp :recipe (:type git :host github :repo "lizqwerscott/mcp.el") )
 
 ;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
 

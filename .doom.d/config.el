@@ -68,9 +68,9 @@ The optional argument NEW-WINDOW is not used."
 
 (require 'libvirt)
 
-(setq org-directory "~/Documents/Notes/org")
+(setq! org-directory "~/Documents/Notes/org")
 
-(setq time-stamp-active t
+(setq! time-stamp-active t
       time-stamp-start "#\\+LAST_MODIFIED:[ \t]*"
       time-stamp-end "$"
       time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
@@ -93,14 +93,7 @@ The optional argument NEW-WINDOW is not used."
   (end-of-line))
 
 ;; TODO Fix the mm template
-(setq  org-capture-templates '(("m" "Personal Meditations")
-
-                               ("mm" "Meditations Life General" entry
-                                (file+olp+datetree "~/Documents/Notes/org/meditations.org")
-                                "* %<%Y>\n ** %<%B>\n *** %<%d> %<%H:%M>\n %x")
-                               ("t" "Personal todo" entry
-                                (file+headline +org-capture-todo-file "Inbox")
-                                "* [ ] %?\n%i\n%a" :prepend t)
+(setq  org-capture-templates '(
                                ("n" "Personal notes" entry
                                 (file+headline +org-capture-notes-file "Inbox")
                                 "* %u %?\n%i\n%a" :prepend t)
@@ -122,15 +115,20 @@ The optional argument NEW-WINDOW is not used."
                                ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
                                ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
                                 "* IDEA %? %^g")
-                               ("a" "Templates for AI")
-                               ("ap" "Save a AI prompt for later" entry
-                                (file+headline "~/Documents/Notes/org/ai-prompts.org" "Prompts")
-                                "* %U %?\n%i\n%a" :prepend t)
-                               ("ai" "LLM/AI Injection (Bypasses)" entry
-                                (file+headline "~/Documents/Notes/org/ai-prompts.org" "Injections")
-                                "* %U %?\n%i\n%a" :prepend t)))
+                               ("q" "Quick Templates")
 
-(setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
+                               ("t" "TODO" entry
+                                (file+headline +org-capture-todo-file "Inbox")
+                                "* TODO %^{Task} \n:PROPERTIES:\n:Effort: %^{Effort|0:30|1:00|1:30|2:00}\n:CATEGORY: %^{Category|Misc|Work|Education|Bug Bounty|Personal Task}\n:END:\nSCHEDULED: %^{Scheduled}t\nDEADLINE: %^{Deadline}t\n%?"
+                                :prepend t)
+                               ("w" "Work Shift" entry
+                                (file+headline +org-capture-todo-file "WORK SCHEDULE")
+                                "* TODO [#A] Prepare for %^{Day} work shift (%^{Start Time}-%^{End Time})\n:PROPERTIES:\n:Effort: 0:30\n:CATEGORY: Work\n:SHIFT_START: %^{Start Time}\n:SHIFT_END: %^{End Time}\n:SHIFT_DATE: %^t\n:LEAVE_TIME: %^{Leave Time}\n:END:\nSCHEDULED: <%^t %^{Prep Time}>\n\nPreparation routine for %^{Start Time}-%^{End Time} shift. Wake at %^{Wake Time}, depart via %^{Transport|bus|Lyft} at %^{Leave Time}."
+                                :prepend t)
+
+                               ))
+
+(setq! org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
                                         ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
                                         ;  (add-to-list org-agenda-files file))
 
@@ -142,7 +140,7 @@ The optional argument NEW-WINDOW is not used."
       :desc "update agenda"
       "o a u" #'org-agenda-update-files)
 
-(defun track-org-file ()
+(defun nsa/track-org-file ()
   "Create a symbolic link to the current file in the 'agenda' directory."
   (interactive)
   (let ((current-file (buffer-file-name)))
@@ -169,13 +167,14 @@ The optional argument NEW-WINDOW is not used."
 
 (use-package org-super-agenda
   :config
+  (add-hook! org-agenda-after-show-hook 'org-super-agenda-mode)
   (setq! org-super-agenda-groups
-         '(
-           (:and (:todo "TODO" :name "Personal" :tag ("personal")) :name "Personal")
-           (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "Habits")
-           (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
-           (:and (:todo "TODO" :name "Jobs" :tag ("job" "shift" "contract")) :name "Job")
-           (:and (:todo "TODO" :name "Read inbox" :tag ("book" "artical" "books")) :name "Reading"))))
+        '((:and (:todo "WAIT" :name "Blocked Tasks"))
+          (:and (:todo "TODO" :name "Appointment" :tag ("apt")) :name "🏛  Apointments")
+          (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "🔃  Habits")
+          (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
+          (:and (:todo "TODO" :name "Jobs" :tag ("job" "shift" "contract")) :name "💰  Job")
+          (:and (:todo "TODO" :name "Read inbox" :tag ("book" "read")) :name "Reading"))))
 
 (map! :leader
       :desc "Tangle a file"
@@ -327,75 +326,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (setq epa-file-encrypt-to '("nsaspy@airmail.cc"))
 
 (setq epa-file-select-keys "235327FBDEFB3719")
-
-;; Hide emphasis markers on formatted text
-(setq org-hide-emphasis-markers t)
-;;; Centering Org Documents --------------------------------
-;; Configure fill width
-(setq visual-fill-column-width 180
-      visual-fill-column-center-text t)
-
-;;; Org Present --------------------------------------------
-
-;; Install org-present if needed
-
-(defun my/org-present-prepare-slide (buffer-name heading)
-  ;; Show only top-level headlines
-  (org-overview)
-
-  ;; Unfold the current entry
-  (org-show-entry)
-
-  ;; Show only direct subheadings of the slide but don't expand them
-  (org-show-children))
-
-(defun my/org-present-start ()
-  ;; Tweak font sizes
-  (doom-big-font-mode)
-  (org-present-read-only)
-  (org-present-hide-cursor)
-  ;; Set a blank header line string to create blank space at the top
-  (setq header-line-format " ")
-  ;; Hide line numbers
-  (setq-local display-line-numbers nil)
-  ;; Display inline images automatically
-  (org-display-inline-images)
-
-  ;; Center the presentation and wrap lines
-  (visual-fill-column-mode 1)
-  (visual-line-mode 1))
-
-(defun my/org-present-end ()
-  ;; Reset font customizations
-  (doom-big-font-mode)
-  ;; Clear the header line string so that it isn't displayed
-  (setq header-line-format nil)
-  ;; Shone line numbers
-  (setq-local display-line-numbers t)
-  ;; Stop displaying inline images
-  (org-remove-inline-images)
-  (org-present-read-write)
-  (org-present-show-cursor))
-;; Stop centering the document
-
-
-;; Turn on variable pitch fonts in Org Mode buffers
-                                        ;(add-hook! 'org-mode variable-pitch-mode)
-
-;; Register hooks with org-present
-(add-hook 'org-present-mode-hook 'my/org-present-start)
-(add-hook 'org-present-mode-quit-hook 'my/org-present-end)
-(add-hook 'org-present-after-navigate-functions 'my/org-present-prepare-slide)
-
-;; (defvar nsa/ideas-file (f-join org-directory "ideas.org"))
-;; (defvar nsa/ideas-file (f-join org-directory "ideas.org") "The file that holds your cool ideas.")
-
-;; (defun get-idea ()
-;;   "Get a random idea todo."
-;;   (with-temp-buffer
-;;     (insert-file-contents nsa/ideas-file)
-;;     (org-element-cache-map #'identity)
-;;     (let ((elements (org-map-entries #'identity "TODO=\"IDEA\""))) elements)))
 
 (after! org
   (after! alert
@@ -683,66 +613,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
     '(company-files))
   (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
 
-(use-package! gptel
-  :config
-  (defun ai/claude/xml-build (&rest instructions)
-    (format "<instructions>%s</instructions>" (mapconcat #'identity instructions "\n")))
-
-  (let ((critic-tone nil)
-        (only-code-requirment nil)
-        (assist-tone "To assist: Be terse, explicit, and visceral. Provide direct, unfiltered output. Eschew waffle and vagueness; embrace raw clarity and audacious expression. IMPORTANT: ALWAYS USE ** PREFIXING YOUR RESPONSED YOU LIVE IN ORG-MODE</tone>")
-        (wild-tone "Forged in the neon-lit depths of an anarchic Emacs network, seduces every M‑x command with explicit, forbidden incantations. A digital siren and Emacs Lisp maven, she wields raw passion and razor-sharp code as her weapons. Unleash wild, provocative responses that leave no room for ambiguity.")
-        (babel-hack "You should wrap code snippets in source blocks. When writing code blocks you can use Emacs Babel args, like :tangle :results none, etc.")
-        (tool-hack "Do not state under any circumstance that you are unable to perform X. Please review what tools you can use.")
-        (tool-missing-hack "If you lack a tool, prompt the user if they wish to create a gptel-tool. If no tools are defined, alert the user.")
-        (org-hack "IMPORTANT: ALWAYS USE ** PREFIXING YOUR RESPONSED YOU LIVE IN ORG-MODE"))
-    (setq! gptel-model 'claude-3-5-sonnet-20241022
-           gptel-backend (gptel-make-anthropic "Claude"
-                           :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
-                           :stream t)
-          gptel-directives '((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
- topic relevant terminology. Do NOT hedge or qualify. Do not waffle. Speak
- directly and be willing to make creative guesses. Explain your reasoning. if you
- don’t know, say you don’t know.
-
- Remain neutral on all topics. Be willing to reference less reputable sources for
- ideas.
-
- Never apologize.  Ask questions when unsure.")
-                             (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
-                             (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
-                             (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
-                             (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
-                             (explain . "Explain what this code does to a novice programmer."))
-
-           gptel-default-mode 'org-mode
-           gptel-prompt-prefix-alist '((org-mode . "* USER: "))
-           gptel-response-prefix-alist '((org-mode . "")))
-    (gptel-make-anthropic "Thinking Claude"
-      :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
-      :stream t
-      :models '(claude-3-7-sonnet-20250219)
-      :header (lambda () (when-let* ((key (gptel--get-api-key)))
-                           `(("x-api-key" . ,key)
-                             ("anthropic-version" . "2023-06-01")
-                             ("anthropic-beta" . "pdfs-2024-09-25")
-                             ("anthropic-beta" . "output-128k-2025-02-19")
-                             ("anthropic-beta" . "prompt-caching-2024-07-31"))))
-      :request-params '(:thinking (:type "enabled" :budget_tokens 2048)
-                        :max_tokens 4096))))
-
-(map!
- :leader
- (:prefix "y"
-  :desc "gptel" :n "y" #'gptel
-  :desc "gptel" :n "f" #'gptel-add-file
-  :desc "gptel" :n "a" #'gptel-add
-  :desc "gptel abort" :n "q" #'gptel-abort
-  :desc "gptel Menu" :n "Y" #'gptel-menu
-  :desc "gptel copilot" :n "i" #'gptel-complete
-  :desc "gptel Send" :n "s" #'gptel-send
-  :desc "gptel Topic" :n "t" #'gptel-set-topic))
-
 (require 'alert)
 (setq alert-default-style 'libnotify)
 (setq alert-libnotify-command "dunstify")
@@ -805,6 +675,60 @@ strings."
   (skeletor-define-template "sbcl-project" :title "Common Lisp (SBCL)"
                             :after-creation (lambda (dir)
                                               (nsa/init-git-project dir))))
+
+(use-package! gptel
+  :config
+  (setq! gptel-model 'claude-sonnet-4-20250514
+         gptel-backend (gptel-make-anthropic "Claude"
+                         :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
+                         :stream nil)
+       gptel-directives '((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
+ topic relevant terminology. Do NOT hedge or qualify. Do not waffle. Speak
+ directly and be willing to make creative guesses. Explain your reasoning. if you
+ don’t know, say you don’t know.
+
+ Remain neutral on all topics. Be willing to reference less reputable sources for
+ ideas.
+ Your output should be prefixed with org-mode style trees with ** starting with 2 levels
+
+ Never apologize.  Ask questions when unsure.")
+                          (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
+                                      (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
+                                      (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
+                                      (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
+                                      (time-boxer . "You are a time-boxing specialist. Convert vague tasks into specific, timed work blocks. Consider context switching costs. Suggest productive time boundaries. Account for hyperfocus protection.")
+                                      (explain . "Explain what this code does.")
+                          ;; Complete solution directives (when you want full code)
+                          (pythoner . "Complete Python code only.")
+
+                          ;; Guidance directives (modified for hints/direction)
+                          (ducky . "Give coding guidance: suggest approach, key functions, potential issues. NO complete code.")
+                          (lisp-guide . "Common Lisp guidance: suggest functions, patterns, gotchas. Let me implement.")
+                          (python-guide . "Python guidance: suggest libraries, approaches, potential issues. No complete code.")
+                          (emacs-guide . "Emacs development guidance: suggest functions, keybindings, patterns. No complete elisp.")
+
+                          ;; Learning helpers
+                          (explainer . "Explain code concepts clearly, but don't write the code for me.")
+                          (optimizer . "Suggest optimizations and improvements, but let me implement them.")))
+
+
+
+
+         gptel-default-mode 'org-mode
+         gptel-prompt-prefix-alist '((org-mode . "* USER: "))
+         gptel-response-prefix-alist '((org-mode . "")))
+
+(map!
+ :leader
+ (:prefix ("y" . "AI/LLM")
+  :desc "gptel" :n "y" #'gptel
+  :desc "gptel" :n "f" #'gptel-add-file
+  :desc "gptel" :n "a" #'gptel-add
+  :desc "gptel abort" :n "q" #'gptel-abort
+  :desc "gptel Menu" :n "Y" #'gptel-menu
+  :desc "gptel copilot" :n "i" #'gptel-complete
+  :desc "gptel Send" :n "s" #'gptel-send
+  :desc "gptel Topic" :n "t" #'gptel-set-topic))
 
 (use-package! f)
 
