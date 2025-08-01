@@ -1,11 +1,11 @@
 ;;; system.el --- Manage emacs for multiple systems -*- lexical-binding: t; -*-
 ;;
-;; Copyright (C) 2023
+;; Copyright (C) 2025
 ;;
 ;; Author:  <https://github.com/unseen>
 ;; Maintainer:  <unseen@hunter-02>
 ;; Created: June 04, 2023
-;; Modified: June 04, 2023
+;; Modified: August 01, 2025
 ;; Version: 0.0.1
 ;; Keywords: abbrev bib c calendar comm convenience data docs emulations extensions faces files frames games hardware help hypermedia i18n internal languages lisp local maint mail matching mouse multimedia news outlines processes terminals tex tools unix vc wp
 ;; Homepage: https://github.com/unseen/system
@@ -16,7 +16,8 @@
 ;;; Commentary:
 ;;
 ;;  Manage emacs for multiple systems
-;;
+;;  this is a stub and im not sure why i added this
+;;  I think it was going to be usedf to change speficic settings for certain hostnames eg for desktop or optmize for android.
 ;;; Code:
 
 (defun system-load-platform-name (path)
@@ -24,10 +25,6 @@
   (with-temp-buffer
     (insert-file-contents path)
     (string-replace "\n" "" (buffer-string))))
-
-(defcustom system-name (system-load-platform-name (expand-file-name "~/.platform"))
-  "The current system name.
-This is used to only load elisp for that system.")
 
 (defmacro with-system (system &rest body)
   `(when (string= ,system system-name)
