@@ -56,7 +56,6 @@
     tdesktop
     rpi-imager
     virt-viewer
-    bookworm
     kdePackages.kdeconnect-kde
     # Security
 
