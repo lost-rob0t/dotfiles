@@ -1,7 +1,8 @@
 (setq user-mail-address "nsaspy@airmail.cc")
 
-(dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
-  (load file))
+(after! org
+  (dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
+    (load file)))
 
 (setq doom-theme 'doom-outrun-electric)
 
@@ -294,15 +295,19 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
           ("d" "default" plain "%?"
            :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
-          ("t" "tutorial" plain "*%?"
-           :target (file+head "Tutorial/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-          ("h" "hacking" plain "%?"
-           :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("v" "Video" plain "*%? %^g"
+           :target (file+head "yt/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+
+          ("h" "hacking" plain "%?"
+           :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
           ("a" "ai" plain "* {slug}\n%?"
            :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
@@ -471,22 +476,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                    (:prefix ("p" . "webpaste")
                     :desc "paste region to a paste service" "r" #'webpaste-paste-region
                     :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
-
-                                        ;(require 'pcap-mode)
-
-;; (with-eval-after-load 'org
-;;   (require 'inherit-org)
-;; ; BUG something is wrong with spc h f on nixos, works on arch
-;;   ;(with-eval-after-load 'info
-;;   ;  (add-hook 'Info-mode-hook 'inherit-org-mode))
-
-;;   ; BUG?
-;;   ;(with-eval-after-load 'helpful
-;;   ;  (add-hook 'helpful-mode-hook 'inherit-org-mode))
-
-;;   (with-eval-after-load 'w3m
-;;     (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
-;;     (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
 
 ;; (eval-after-load "w3m-form"
 ;;   '(progn
@@ -716,7 +705,33 @@ strings."
 
          gptel-default-mode 'org-mode
          gptel-prompt-prefix-alist '((org-mode . "* USER: "))
-         gptel-response-prefix-alist '((org-mode . "")))
+         gptel-response-prefix-alist '((org-mode . ""))
+         ; Presets
+
+
+        )
+
+(defun ai/todo-chat ()
+  "Start a interactive todo chat"
+  (interactive)
+  (let ((gptel--system-message (alist-get 'time-boxer gptel-directives)))
+    (gptel "*TODO boxer*" nil (ai/todo-list-todos-with-context '(and (or (todo) (todo "STRT" "LOOP" "PROJ")) (ts))) t)))
+
+;; (use-package! mcp
+;;   :after gptel
+;;   :custom (mcp-hub-servers
+;;            `(("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" "/home/lizqwer/MyProject/")))
+;;              ("fetch" . (:command "uvx" :args ("mcp-server-fetch")))
+;;              ("qdrant" . (:url "http://localhost:8000/sse"))
+;;              ("graphlit" . (
+;;                             :command "npx"
+;;                             :args ("-y" "graphlit-mcp-server")
+;;                             :env (
+;;                                   :GRAPHLIT_ORGANIZATION_ID "your-organization-id"
+;;                                   :GRAPHLIT_ENVIRONMENT_ID "your-environment-id"
+;;                                   :GRAPHLIT_JWT_SECRET "your-jwt-secret")))))
+;;   :config (require 'mcp-hub)
+;;   :hook (after-init . mcp-hub-start-all-server))
 
 (map!
  :leader
@@ -730,6 +745,20 @@ strings."
   :desc "gptel Send" :n "s" #'gptel-send
   :desc "gptel Topic" :n "t" #'gptel-set-topic))
 
+(after! ispell
+  (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
+         ispell-extra-args '("--sug-mode=ultra")))
+
+(use-package! spell-fu
+  :config
+  (add-hook! 'spell-fu-mode-hook
+    (lambda ()
+          (spell-fu-dictionary-add
+           (spell-fu-get-personal-dictionary "personal" (expand-file-name ".aspell.en.pws" "~/")))
+      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en-science"))
+      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en-computers"))
+      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en")))))
+
 (use-package! f)
 
 (use-package! dash)
@@ -739,21 +768,6 @@ strings."
 (setq lsp-package-path (executable-find "pyright"))
 
 (envrc-global-mode)
-
-                                        ;(add-to-list 'company-backends 'company-nixos-options)
-
-;; Disabled: [2024-08-02 Fri] Not sure i ever used it after a few uses.
-;; (require 'nix-update)
-;; (map! :localleader
-;;       :after nix
-;;       :map nix-mode-map
-;;       :prefix ("u" . "update")
-;;       :desc "Update fetchgit" "g" #'nix-update-fetch)
-
-;; (setq flycheck-command-wrapper-function
-;;         (lambda (command) (apply 'nix-shell-command (nix-current-sandbox) command))
-;;       flycheck-executable-find
-;;         (lambda (cmd) (nix-executable-find (nix-current-sandbox) cmd)))
 
                                         ;(require 'lsp-mode)
                                         ;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
@@ -804,13 +818,6 @@ strings."
 ;;(when (memq window-system '(mac ns x))
 ;;  (exec-path-from-shell-initialize))
 
-                                        ;(setq url-proxy-services
-                                        ;   '(("no_proxy" . "^\\(localhost\\|10.*\\|\\.(?!i2p)[a-zA-Z0-9-]{1,255}$\\)")
-                                        ;     ("http" . "127.0.0.1:4444")
-                                        ;     ("https" . "127.0.0.1:4444")
-                                        ;))
-                                        ;(setq elfeed-use-curl nil)
-
 (defun open-popup-on-side-or-below (buffer &optional alist)
   (+popup-display-buffer-stacked-side-window-fn
    buffer (append `((side . ,(if (one-window-p)
@@ -828,17 +835,25 @@ strings."
 
 (global-activity-watch-mode)
 
-                                        ;(require 'ks)
-
-(with-system "flake"
-             (require 'elcord)
-             (elcord-mode))
+(use-package! elcord
+  :config
+  (elcord-mode)
+)
 
 (use-package! midnight
   :config
   (add-hook! 'after-init-hook #'midnight-mode)
   (add-hook! 'midnight-hook #'(lambda ()
-                             (alert "Midnight mode is running.\nEmacs is fresh and clean again!")))
+                                (alert "Midnight mode is running.\nEmacs is fresh and clean again!")
+                                (when elcord-mode
+                                  (elcord-mode -1)
+                                  (elcord-mode 1)
+                                  (alert "Restarted Elcord!"))
+                                (when activity-watch-mode
+                                  (activity-watch-mode -1)
+                                  (activity-watch-mode 1)
+                                  (alert "Restarted Activity Watch mode"))
+                                (elfeed-update)))
   (midnight-delay-set 'midnight-delay "07:00am")
 
   (setq! clean-buffer-list-kill-predicate
@@ -860,8 +875,7 @@ strings."
    (list
 
     ;; Dired buffers (but not if they have unsaved changes)
-    "^[^*].*/$"
-    )))
+    "^[^*].*/$")))
 
 (use-package! elfeed-tube
   :ensure t ;; or :straight t
@@ -880,9 +894,6 @@ strings."
 
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
-
-(setq ppackage-template "~/.dotfiles/lisp/template")
-(setq ppackage-path "~/.dotfiles/lisp")
 
 (setq nsa/music-dir "~/Music/Music-inbox")
 
@@ -920,12 +931,6 @@ If COMPLETING-FN is nil default to `ezf-default'."
                     candidate)))
                candidates
                " ")))
-
-(after! org
-(defun nsa/org-publish-to-html (plist filename pub-dir)
-  (when (publishp filename)
-      (org-html-publish-to-html plist filename pub-dir)))
-)
 
 (fset 'nsa/spawn-window
       (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))

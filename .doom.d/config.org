@@ -100,7 +100,7 @@ This section tangles the init file
 
        :checkers
        syntax              ; tasing you for every semicolon you forget
-       (spell) ; tasing you for misspelling mispelling
+       (spell +aspell) ; tasing you for misspelling mispelling
        grammar           ; tasing grammar mistake every you make
 
        :tools
@@ -219,8 +219,9 @@ See [[file:~/.dotfiles/lisp/nixos-helpers/system.el][system.el]] for how I deter
 
 Load my Personal elisp
 #+begin_src emacs-lisp
-(dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
-  (load file))
+(after! org
+  (dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
+    (load file)))
 #+end_src
 * Styling
 ** Theme
@@ -625,15 +626,19 @@ Set roam directory
           ("d" "default" plain "%?"
            :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
-          ("t" "tutorial" plain "*%?"
-           :target (file+head "Tutorial/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-          ("h" "hacking" plain "%?"
-           :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
           ("s" "star intel" plain "*%? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("v" "Video" plain "*%? %^g"
+           :target (file+head "yt/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+
+          ("h" "hacking" plain "%?"
+           :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
           ("a" "ai" plain "* {slug}\n%?"
            :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
@@ -868,29 +873,6 @@ Web-paste allows you to paste text to pastebin like web services
                    (:prefix ("p" . "webpaste")
                     :desc "paste region to a paste service" "r" #'webpaste-paste-region
                     :desc "paste entire buffer to paste service" "b" #'webpaste-paste-buffer)))
-#+end_src
-** Pcap mode
-Keeping this here Incase i want to look at pcaps from emacs
-#+begin_src emacs-lisp
-                                        ;(require 'pcap-mode)
-#+end_src
-** inherit org
-inherit-org: Inherit org faces to non-org buffers.
-#+begin_src emacs-lisp
-
-;; (with-eval-after-load 'org
-;;   (require 'inherit-org)
-;; ; BUG something is wrong with spc h f on nixos, works on arch
-;;   ;(with-eval-after-load 'info
-;;   ;  (add-hook 'Info-mode-hook 'inherit-org-mode))
-
-;;   ; BUG?
-;;   ;(with-eval-after-load 'helpful
-;;   ;  (add-hook 'helpful-mode-hook 'inherit-org-mode))
-
-;;   (with-eval-after-load 'w3m
-;;     (add-hook 'w3m-fontify-before-hook 'inherit-org-w3m-headline-fontify) ;only one level is supported
-;;     (add-hook 'w3m-fontify-after-hook 'inherit-org-mode)))
 #+end_src
 ** W3M
 
@@ -1179,7 +1161,11 @@ Skeletor is a project template package.
 
          gptel-default-mode 'org-mode
          gptel-prompt-prefix-alist '((org-mode . "* USER: "))
-         gptel-response-prefix-alist '((org-mode . "")))
+         gptel-response-prefix-alist '((org-mode . ""))
+         ; Presets
+
+
+        )
 
 #+end_src
 **** Commands
@@ -1190,8 +1176,33 @@ Spawn a maximized window.
   (interactive)
   (call-interactively #'gptel)
   (doom/window-maximize-buffer))
+#+end_src
 
-
+Start a todo chat with tools needed 
+#+begin_src emacs-lisp
+(defun ai/todo-chat ()
+  "Start a interactive todo chat"
+  (interactive)
+  (let ((gptel--system-message (alist-get 'time-boxer gptel-directives)))
+    (gptel "*TODO boxer*" nil (ai/todo-list-todos-with-context '(and (or (todo) (todo "STRT" "LOOP" "PROJ")) (ts))) t)))
+#+end_src
+*** TODO MCP
+#+begin_src emacs-lisp
+;; (use-package! mcp
+;;   :after gptel
+;;   :custom (mcp-hub-servers
+;;            `(("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" "/home/lizqwer/MyProject/")))
+;;              ("fetch" . (:command "uvx" :args ("mcp-server-fetch")))
+;;              ("qdrant" . (:url "http://localhost:8000/sse"))
+;;              ("graphlit" . (
+;;                             :command "npx"
+;;                             :args ("-y" "graphlit-mcp-server")
+;;                             :env (
+;;                                   :GRAPHLIT_ORGANIZATION_ID "your-organization-id"
+;;                                   :GRAPHLIT_ENVIRONMENT_ID "your-environment-id"
+;;                                   :GRAPHLIT_JWT_SECRET "your-jwt-secret")))))
+;;   :config (require 'mcp-hub)
+;;   :hook (after-init . mcp-hub-start-all-server))
 #+end_src
 *** Keybinds
 Gptel keys, could add more commands though.[fn:6]
@@ -1207,6 +1218,28 @@ Gptel keys, could add more commands though.[fn:6]
   :desc "gptel copilot" :n "i" #'gptel-complete
   :desc "gptel Send" :n "s" #'gptel-send
   :desc "gptel Topic" :n "t" #'gptel-set-topic))
+#+end_src
+** Spell Checking
+*** Ispell
+#+begin_src emacs-lisp
+(after! ispell
+  (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
+         ispell-extra-args '("--sug-mode=ultra")))
+
+#+end_src
+*** spell-fu
+Fast spell checker
+
+#+begin_src emacs-lisp
+(use-package! spell-fu
+  :config
+  (add-hook! 'spell-fu-mode-hook
+    (lambda ()
+          (spell-fu-dictionary-add
+           (spell-fu-get-personal-dictionary "personal" (expand-file-name ".aspell.en.pws" "~/")))
+      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en-science"))
+      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en-computers"))
+      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en")))))
 #+end_src
 * Libraries :lib::programming::lisp:
 *** f.el :lisp:
@@ -1354,10 +1387,15 @@ Sets PATH
 *** Discord rich presence
 So i can brag about coding all the time lol.
 I only use it on the desktop so only load it there.
+
+It also serves as a way for people to know i indeed am alive.
+
+**** TODO Fix system.el
 #+begin_src emacs-lisp
-(with-system "flake"
-             (require 'elcord)
-             (elcord-mode))
+(use-package! elcord
+  :config
+  (elcord-mode)
+)
 #+end_src
 ** Midnight mode
 Clean up emacs overnight
@@ -1369,7 +1407,16 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
   :config
   (add-hook! 'after-init-hook #'midnight-mode)
   (add-hook! 'midnight-hook #'(lambda ()
-                             (alert "Midnight mode is running.\nEmacs is fresh and clean again!")))
+                                (alert "Midnight mode is running.\nEmacs is fresh and clean again!")
+                                (when elcord-mode
+                                  (elcord-mode -1)
+                                  (elcord-mode 1)
+                                  (alert "Restarted Elcord!"))
+                                (when activity-watch-mode
+                                  (activity-watch-mode -1)
+                                  (activity-watch-mode 1)
+                                  (alert "Restarted Activity Watch mode"))
+                                (elfeed-update)))
   (midnight-delay-set 'midnight-delay "07:00am")
 
   (setq! clean-buffer-list-kill-predicate
@@ -1391,8 +1438,8 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
    (list
 
     ;; Dired buffers (but not if they have unsaved changes)
-    "^[^*].*/$"
-    )))
+    "^[^*].*/$")))
+
 #+end_src
 ** Multi media
 *** Elfeed-tube
@@ -1420,12 +1467,6 @@ Tell auth info to put authsource in my dotfiles
       auth-source-cache-expiry 1360)
 #+end_src
 * Personal Lisp packages
-** Ppackage
-Simple utility to create local lisp code
-#+begin_src emacs-lisp
-(setq ppackage-template "~/.dotfiles/lisp/template")
-(setq ppackage-path "~/.dotfiles/lisp")
-#+end_src
 ** yt-dlp.el
 A simple wraper for yt-dlp a youtube-dl fork that still works.
 
@@ -1479,13 +1520,44 @@ If COMPLETING-FN is nil default to `ezf-default'."
                " ")))
 #+end_src
 ** Wiki Publish
-#+begin_src emacs-lisp
-(after! org
-(defun nsa/org-publish-to-html (plist filename pub-dir)
-  (when (publishp filename)
-      (org-html-publish-to-html plist filename pub-dir)))
-)
+Manually mark the file as publishable
+#+begin_src emacs-lisp :tangle ../lisp/wiki/wiki.el
+(defun nsa/wiki/toggle-publish (&optional file)
+  "Toggle :PUBLISH: property in org file.
+If FILE is provided, operate on that file, otherwise use current buffer."
+  (interactive)
+  (let ((buffer (if file
+                    (find-file-noselect file)
+                  (current-buffer))))
+    (with-current-buffer buffer
+      (save-excursion
+        (goto-char (point-min))
+        (if (org-entry-get (point) "PUBLISH")
+            (org-delete-property "PUBLISH")
+          (org-set-property "PUBLISH" "t")))
+      (unless (eq buffer (current-buffer))
+        (save-buffer)
+        (kill-buffer)))))
 #+end_src
+Mark all files in a directory for publish
+#+begin_src emacs-lisp :tangle ../lisp/wiki/wiki.el
+(defun nsa/wiki/toggle-directory-publish (directory)
+  "Toggle :PUBLISH: property for all org files in DIRECTORY."
+  (interactive "DDirectory: ")
+  (let ((org-files (directory-files-recursively directory "\\.org$")))
+    (dolist (file org-files)
+      (nsa/wiki/toggle-publish file))
+    (message "Toggled publish state for %d org files" (length org-files))))
+#+end_src
+Wrapper function for org-html-publish-to-html
+#+begin_src emacs-lisp :tangle ../lisp/wiki/wiki.el
+(defun wiki/org-publish-to-html (plist filename pub-dir)
+  "Only Uplish when the file contains a publish param."
+   (when (publishp filename)
+       (org-html-publish-to-html plist filename pub-dir)))
+#+end_src
+
+
 * Macros
 ** Frame macros
 Spawn a new window

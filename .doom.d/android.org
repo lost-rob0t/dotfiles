@@ -8,5 +8,3 @@
 #+end_src
 * about
 this is the android specific config that will make andeoid on termux slightly better amd also not be a large config.
-** TODO
-+ [ ] tangle init.el from this file

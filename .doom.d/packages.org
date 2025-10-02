@@ -28,14 +28,14 @@
 ;(eval-when-compile (require 'use-package))
 #+end_src
 * About
-This org document contains all the packages that i install into emacs. I thought about merging it into config.org but thats just going to make a big mess. I will split it into sections and catogries of packages.
+This org document contains all the packages that i install into emacs. I thought about merging it into config.org but that's just going to make a big mess. I will split it into sections and catogries of packages.
 
 + Config is here [[./config.org]]
 
 
 * Org mode
 ** org-roam-ui
-Org-Roam-UI is a frontend for exploring and interacting with your org-roam notes.
+Org-Roam-UI is a front-end for exploring and interacting with your org-roam notes.
 unpin org-roam.
 #+begin_src emacs-lisp
 (unpin! org-roam)
@@ -74,19 +74,7 @@ export to hugo markdown
 #+begin_src emacs-lisp
 ;; (package! ox-hugo)
 #+end_src
-** org-present-mode
-Make presentations
-#+begin_src emacs-lisp
-(package! org-present :recipe (:type git :host github :repo "rlister/org-present"))
-#+end_src
-
-** org-pomodoro
-I dont actually use this any more... I now have a pomodoro timer in my qtile bar.
-#+begin_src emacs-lisp
-;; (package! org-pomodoro)
-#+end_src
 ** Org Modern
-
 #+begin_src emacs-lisp
 (package! org-modern)
 #+end_src
@@ -95,21 +83,11 @@ Distraction free writing.
 #+begin_src emacs-lisp
 (package! writeroom-mode)
 #+end_src
-** ob-ffuf
-#+begin_src emacs-lisp
-(package! ob-ffuf :recipe (:type git :host github :repo "daniel-ts/ob-ffuf"))
-
-#+end_src
-
 ** ob-http
 #+begin_src emacs-lisp
 (package! ob-http)
 #+end_src
 
-** ob-graphql
-#+begin_src emacs-lisp
-(package! ob-graphql)
-#+end_src
 ** org-recoll
 
 #+begin_src emacs-lisp
@@ -121,6 +99,11 @@ Distraction free writing.
 Sysadmin/hackmode checklists with orgmode
 #+begin_src emacs-lisp
 (package! project-tasks :recipe (:type git :host github :repo "TxGVNN/project-tasks"))
+#+end_src
+** TODO Org Transclusion
+Include notes from other notes!
+#+begin_src emacs-lisp
+;(package! org-transclusion)
 #+end_src
 
 * AI
@@ -208,8 +191,8 @@ Org babel functions for prolog.
 (package! magit-todos :recipe (:type git :host github :repo "alphapapa/magit-todos"))
 #+end_src
 
-* Utils
-** Hackmode
+* utilities
+** Hack mode
 Hack banks from emacs
 jk, package full of utilities for pentesting
 #+begin_src emacs-lisp
@@ -255,7 +238,6 @@ keep track of time.
 (package! activity-watch-mode :recipe (:type git :host github :repo "pauldub/activity-watch-mode"))
 #+end_src
 
-** TODO Sqlite mode
 ** Discover
 Find more of emacs using context menus
 #+begin_src emacs-lisp
@@ -270,13 +252,6 @@ help of websocket.
 #+begin_src emacs-lisp
 (package! atomic-chrome)
 #+end_src
-
-** noaa
-Get weather from the government
-#+begin_src emacs-lisp :tangle yes
-;;(package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
-#+end_src
-
 
 
 ** app-launcher
@@ -329,8 +304,8 @@ Looks likes its already in doom emacs...
 #+end_src
 
 ** jeison
-Pasring json in a declraritive manner
-Personnaly i find in other languages like nim creating a type then marshalling json into it is the best way to deal with json IMO
+Parsing json in a declarative manner
+Personally i find in other languages like nim creating a type then marshaling json into it is the best way to deal with json IMO
 #+begin_src emacs-lisp
 ;(package! jeison)
 #+end_src
@@ -339,13 +314,18 @@ Personnaly i find in other languages like nim creating a type then marshalling j
 #+begin_src emacs-lisp
 (package! org-contrib)
 #+end_src
-** pcre2el
+** REGEX
 Required By magit todos.
 pcre2el: convert between PCRE, Emacs and rx regexp syntax
 
 #+begin_src emacs-lisp
 (package! ppcre2el :recipe (:type git :host github :repo "joddie/pcre2el"))
 #+end_src
+
+#+begin_src emacs-lisp
+(package! rx)
+#+end_src
+
 ** Starintel Deps
 #+begin_src emacs-lisp
 (package! asoc :recipe (:type git :host github :repo "troyp/asoc.el"))
@@ -356,7 +336,6 @@ pcre2el: convert between PCRE, Emacs and rx regexp syntax
 * Messaging And media
 ** Cuckord
 I only use it for normal fren stuff
-
 #+begin_src emacs-lisp
 (package! elcord :recipe (:type git :host github :repo "Mstrodl/elcord"))
 #+end_src
@@ -367,37 +346,10 @@ MPV+elfeed
 (package! elfeed-tube)
 #+end_src
 * rice
-** inherit-org
-Add org faces to non org buffers.
-#+begin_src emacs-lisp
-;(package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
-#+end_src
-** Golden ratio
-When working with many windows at the same time, each window has a size that is not convenient for editing.
-
-golden-ratio helps on this issue by resizing automatically the windows you are working on to the size specified in the "Golden Ratio". The window that has the main focus will have the perfect size for editing, while the ones that are not being actively edited will be re-sized to a smaller size that doesn't get in the way, but at the same time will be readable enough to know it's content.
-
-#+begin_src emacs-lisp
-;(package! golden :recipe (:host "git.sr.ht" :repo "~wklew/golden"))
-#+end_src
 ** dirvish
 a better dired
 #+begin_src emacs-lisp
 (package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
-#+end_src
-* Games
-** Kerbal Space Program
-
-KOs mode for writing scripts
-
-#+begin_src emacs-lisp
-;(package! ks-mode :recipe (:type git :host github :repo "jarpy/ks-mode"))
-#+end_src
-* Spell checkers
-
-Disable flyspell
-#+begin_src emacs-lisp
-;(package! flyspell-lazy :disable t)
 #+end_src
 
 

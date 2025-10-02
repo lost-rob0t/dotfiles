@@ -1,8 +1,0 @@
-#+title: Readme
-
-* ppackage
-Create and edit local lisp code for your emacs.
-
-** Usage
-To create a new package: M-x ppackage-new
-To edit a package: M-x ppackage-edit

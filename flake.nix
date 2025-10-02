@@ -16,6 +16,9 @@
     hardware.url = "github:nixos/nixos-hardware";
     # For games
     mousetrap.url = "github:lost-rob0t/Mousetrap";
+    # Bixby Studio IDE
+    bixby-studio.url = "github:lost-rob0t/bixby-studio";
+    bixby-studio.inputs.nixpkgs.follows = "nixpkgs";
     # Shameless plug: looking for a way to nixify your themes and make
     # everything match nicely? Try nix-colors!
     # nix-colors.url = "github:misterio77/nix-colors";
@@ -37,11 +40,10 @@
     in
     rec {
       # Your custom packages
-      # Acessible through 'nix build', 'nix shell', etc
-      #packages = forAllSystems (system:
-      #let pkgs = nixpkgs.legacyPackages.${system};
-      #in import ./pkgs { inherit pkgs; }
-      #);
+      # Accessible through 'nix build', 'nix shell', etc
+      packages = forAllSystems (system: {
+        bixby-studio = inputs.bixby-studio.packages.${system}.default;
+      });
       # Devshell for bootstrapping
       # Acessible through 'nix develop' or 'nix-shell' (legacy)
       #devShells = forAllSystems (system:
