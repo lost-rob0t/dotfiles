@@ -99,7 +99,7 @@
         pkgs.xdotool
         pkgs.fd
         (pkgs.aspellWithDicts
-          (dicts: with dicts; [ en en_US en-computers en-science]))];};
+          (dicts: with dicts; [ en en-computers en-science]))];};
 
     xdg = mkIf config.emacs.diredXDG.enable {
       mimeApps = {
