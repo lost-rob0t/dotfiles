@@ -1390,13 +1390,6 @@ I only use it on the desktop so only load it there.
 
 It also serves as a way for people to know i indeed am alive.
 
-**** TODO Fix system.el
-#+begin_src emacs-lisp
-(use-package! elcord
-  :config
-  (elcord-mode)
-)
-#+end_src
 ** Midnight mode
 Clean up emacs overnight
 Set the time to 7 am local

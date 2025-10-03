@@ -835,11 +835,6 @@ strings."
 
 (global-activity-watch-mode)
 
-(use-package! elcord
-  :config
-  (elcord-mode)
-)
-
 (use-package! midnight
   :config
   (add-hook! 'after-init-hook #'midnight-mode)

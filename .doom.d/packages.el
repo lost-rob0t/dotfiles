@@ -32,23 +32,17 @@
 
 ;; (package! ox-hugo)
 
-(package! org-present :recipe (:type git :host github :repo "rlister/org-present"))
-
-;; (package! org-pomodoro)
-
 (package! org-modern)
 
 (package! writeroom-mode)
 
-(package! ob-ffuf :recipe (:type git :host github :repo "daniel-ts/ob-ffuf"))
-
 (package! ob-http)
-
-(package! ob-graphql)
 
 (package! org-recoll :recipe (:type git :host github :repo "alraban/org-recoll"))
 
 (package! project-tasks :recipe (:type git :host github :repo "TxGVNN/project-tasks"))
+
+;(package! org-transclusion)
 
 (package! gptel :recipe (:nonrecursive t))
 
@@ -99,8 +93,6 @@
 
 (package! atomic-chrome)
 
-;;(package! noaa.el :recipe (:type git :host github :repo "thomp/noaa"))
-
 (package! app-launcher :recipe (:type git :host github :repo "SebastienWae/app-launcher"))
 
 (package! yasnippet-snippets)
@@ -125,21 +117,13 @@
 
 (package! ppcre2el :recipe (:type git :host github :repo "joddie/pcre2el"))
 
-(package! asoc :recipe (:type git :host github :repo "troyp/asoc.el"))
+(package! rx)
 
-(package! elcord :recipe (:type git :host github :repo "Mstrodl/elcord"))
+(package! asoc :recipe (:type git :host github :repo "troyp/asoc.el"))
 
 (package! elfeed-tube)
 
-;(package! inherit-org :recipe (:host github :repo "chenyanming/inherit-org"))
-
-;(package! golden :recipe (:host "git.sr.ht" :repo "~wklew/golden"))
-
 (package! dirvish :recipe (:host github :repo "alexluigit/dirvish"))
-
-;(package! ks-mode :recipe (:type git :host github :repo "jarpy/ks-mode"))
-
-;(package! flyspell-lazy :disable t)
 
 (package! libvirt :recipe (:type git :host github :repo "lost-rob0t/libvirt-el"))
 
