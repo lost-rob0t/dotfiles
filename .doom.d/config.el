@@ -191,7 +191,7 @@ The optional argument NEW-WINDOW is not used."
 
 (org-babel-do-load-languages
  'org-babel-load-languages
- '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t)))
+ '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t) (c . t)))
 
 (defun edit-src-block (src fn language)
   "Replace SRC org-element's value property with the result of FN.

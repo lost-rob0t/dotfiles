@@ -225,7 +225,6 @@ Load my Personal elisp
 #+end_src
 * Styling
 ** Theme
-I like doom's outrun electric theme
 #+begin_src emacs-lisp
 (setq doom-theme 'doom-outrun-electric)
 #+end_src
@@ -498,7 +497,7 @@ Add languages to org babel
 #+begin_src emacs-lisp
 (org-babel-do-load-languages
  'org-babel-load-languages
- '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t)))
+ '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t) (c . t)))
 #+end_src
 **** Better Formating in org-babel
 Adapted from [[https://www.reddit.com/r/emacs/comments/9tp79o/comment/e90g7km/?utm_source=share&utm_medium=web2x&context=3][here]].
