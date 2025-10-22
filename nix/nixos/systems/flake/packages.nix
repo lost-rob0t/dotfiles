@@ -93,16 +93,13 @@
     android-tools
     waydroid
     ## Games
-    lutris
     steam-run-native
     winePackages.stagingFull
     wineWowPackages.staging
     winetricks
     faudio
-    qjoypad
     sunshine
-    ##(winetricks.override { wine = wineWowPackages.staging; })
-
+    atlauncher
     ## Programming
     pipenv
     direnv
@@ -115,6 +112,7 @@
     podman-compose
     sqlite
     (python3.withPackages (ps: with ps; [ requests ]))
+    # BUG qjoypad
 
     ## Security
     tor-browser-bundle-bin

@@ -57,10 +57,5 @@
 
   hardware = {
     cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-    graphics.extraPackages = with pkgs; [
-      #rocm-opencl-icd
-      #rocm-opencl-runtime
-      amdvlk
-    ];
   };
 }
