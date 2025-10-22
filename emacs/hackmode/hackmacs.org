@@ -1,0 +1,433 @@
+#+Title: Hackmacks: Emacs pentesting
+#+PROPERTY: header-args:emacs-lisp :tangle ./init.el :results none
+#+startup: org-startup-folded: show2levels
+#+disable_spellchecker: t
+
+* custom functions
+** Android
+this is chorthand for checking system type
+#+begin_src emacs-lisp
+(defun android-p ()
+  "Return t if Emacs is running on Android, nil otherwise."
+  (or (eq system-type 'android)
+      (featurep 'android)))
+#+end_src
+* Basic setup
+
+bootstrap streight.el
+#+begin_src emacs-lisp
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 6))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+;; Install use-package via straight
+(straight-use-package 'use-package)
+
+;; Configure use-package to use straight.el by default
+(use-package straight
+  :custom
+  (straight-use-package-by-default t))
+#+end_src
+
+Disable startup screen
+#+begin_src emacs-lisp
+(setq debug-on-error t)
+(setq message-log-max 10000)
+(setq
+ visible-bell t
+ inhibit-startup-message t)
+;;  Display Line numbers
+(global-display-line-numbers-mode 1)
+(setq inhibit-startup-screen t)
+(setq initial-scratch-message nil)
+(setq ring-bell-function 'ignore)
+(global-hl-line-mode 1)
+
+
+#+end_src
+Disable the toolbar and menus UNLESS it is android, in that case allow it.
+
+#+begin_src emacs-lisp
+(unless (android-p)
+ (menu-bar-mode -1)  ; Leave this one on if you're a beginner!
+ (tool-bar-mode -1)
+ (scroll-bar-mode -1))
+#+end_src
+Packages setup
+#+begin_src emacs-lisp
+(require 'package)
+(setq package-enable-at-startup nil)
+(setq package-archives
+      ;; Package archives
+      '(("MELPA Stable" . "https://stable.melpa.org/packages/") ("MELPA" . "https://melpa.org/packages/"))
+      ;; Prefer MELPA Stable over GNU over MELPA. IOW prefer MELPA's stable
+      ;; packages over everything and only fall back to GNU or MELPA if ;; necessary.
+      package-archive-priorities '(("MELPA Stable" . 10) ("GNU ELPA" . 5) ("MELPA" . 0))) (package-initialize)
+
+;; Bootstrap `use-package'
+(unless (package-installed-p 'use-package) (package-refresh-contents) (package-install 'use-package))
+
+#+end_src
+Install evil mode
+#+begin_src emacs-lisp
+(use-package evil
+  :ensure t
+  :init
+  (evil-mode 1)
+  )
+
+(use-package undo-tree :ensure t)
+(use-package undo-fu :ensure t)
+#+end_src
+
+
+** lines
+#+begin_src emacs-lisp
+(column-number-mode)
+(global-display-line-numbers-mode t)
+
+;; Disable line numbers for some modes
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+#+end_src
+
+** Lisp rainbow delimiters
+
+I consider this to be a basic feature that Is required for edidint the config.
+
+#+begin_src emacs-lisp
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
+* Windows
+#+begin_src emacs-lisp
+(evil-define-command +evil-window-vsplit-a (&optional count file)
+  "Same as `evil-window-split', but correctly updates the window history."
+  :repeat nil
+  (interactive "P<f>")
+  ;; HACK: This ping-ponging between the destination and source windows is to
+  ;;   update the window focus history, so that, if you close either split
+  ;;   afterwards you won't be sent to some random window.
+  (let ((origwin (selected-window))
+        window-selection-change-functions)
+    (select-window (split-window origwin count 'right))
+    (unless evil-vsplit-window-right
+      (select-window origwin)))
+  (run-hook-with-args 'window-selection-change-functions nil)
+  (recenter)
+  (when (and (not count) evil-auto-balance-windows)
+    (balance-windows (window-parent)))
+  (if file (evil-edit file)))
+
+#+end_src
+* Styling
+** Theme
+
+*** Theme toggle
+I like to use my laptop outside, dark-themes looks bad outside.
+[[https://emacs.stackexchange.com/a/26981][Source]].
+#+begin_src emacs-lisp
+(setq ivan/themes '(doom-gruvbox-light doom-outrun-electric))
+(setq ivan/themes-index 1)
+
+(defun ivan/cycle-theme ()
+  (interactive)
+  (setq ivan/themes-index (% (1+ ivan/themes-index) (length ivan/themes)))
+  (ivan/load-indexed-theme))
+
+(defun ivan/load-indexed-theme ()
+  (ivan/try-load-theme (nth ivan/themes-index ivan/themes)))
+
+(defun ivan/try-load-theme (theme)
+  (if (ignore-errors (load-theme theme :no-confirm))
+      (mapcar #'disable-theme (remove theme custom-enabled-themes))
+    (message "Unable to find theme file for ‘%s’" theme)))
+#+end_src
+
+Map this theme toggle to SPC t T
+#+begin_src emacs-lisp
+;; TODO Port map! over
+;; (map! :leader
+;;       (:prefix-map ("t" . "toggle")
+;;        :desc "Cycle The Theme" "T" #'ivan/cycle-theme))
+#+end_src
+** Line numbers
+#+begin_src emacs-lisp
+(setq display-line-numbers-type t)
+#+end_src
+** Frame resize
+This might help for wm like qtile
+#+begin_src emacs-lisp
+(setq frame-resize-pixelwise t)
+#+end_src
+I have also noticed that it is prob required on my laptop running a Intel N3060.
+** Hide async shell commands
+#+begin_src emacs-lisp
+(add-to-list 'display-buffer-alist
+             (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
+#+end_src
+** Stop stealing my point org mode![fn:7]
+#+begin_src emacs-lisp
+(setq org-src-tab-acts-natively nil)
+#+end_src
+* Packages
+** Style
+#+begin_src emacs-lisp
+(use-package all-the-icons
+  :ensure t
+  :if (display-graphic-p))
+#+end_src
+
+I will use doom's own modeline
+#+begin_src emacs-lisp
+(use-package doom-modeline
+  :ensure t
+  :init (doom-modeline-mode 1)
+  :config
+  (setq doom-modeline-height 25)
+  (setq doom-modeline-bar-width 3)
+  (setq doom-modeline-icon t)
+  (setq doom-modeline-major-mode-icon t)
+  (setq doom-modeline-major-mode-color-icon t)
+  (setq doom-modeline-buffer-state-icon t)
+  (setq doom-modeline-buffer-modification-icon t)
+  (setq doom-modeline-minor-modes nil)
+  (setq doom-modeline-enable-word-count nil)
+  (setq doom-modeline-buffer-encoding t)
+  (setq doom-modeline-indent-info nil)
+  (setq doom-modeline-checker-simple-format t)
+  (setq doom-modeline-vcs-max-length 12)
+  (setq doom-modeline-env-version t)
+  (setq doom-modeline-project-detection 'auto)
+  (setq doom-modeline-buffer-file-name-style 'relative-from-project))
+#+end_src
+
+I pretty much only like to use the doom-outrun-electric theme
+
+#+begin_src emacs-lisp
+(use-package doom-themes
+  :ensure t
+  :custom
+  ;; Global settings (defaults)
+  (doom-themes-enable-bold t)   ; if nil, bold is universally disabled
+  (doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  ;; for treemacs users
+  (doom-themes-treemacs-theme "doom-outrun-electric") ; use "doom-colors" for less minimal icon theme
+  :config
+  (load-theme 'doom-outrun-electric t)
+
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (nerd-icons must be installed!)
+  (doom-themes-neotree-config)
+  ;; or for treemacs users
+  (doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+#+end_src
+** Org
+Enable timestamp updating apon saving
+#+begin_src emacs-lisp
+(setq time-stamp-active t
+      time-stamp-start "#\\+LAST_MODIFIED:[ \t]*"
+      time-stamp-end "$"
+      time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
+(add-hook 'before-save-hook 'time-stamp nil)
+#+end_src
+*** Org Modern
+*** org-roam
+#+begin_src emacs-lisp
+(use-package org-roam
+  :ensure t
+  :init
+  (setq org-roam-v2-ack t)
+  (setq org-roam-directory "~/Documents/Notes/org/roam/")
+  (setq org-roam-dailies-directory "daily")
+  (setq org-roam-complete-everywhere t)
+  (setq org-roam-capture-templates
+        '(
+          ("d" "default" plain "%?"
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
+
+          ("s" "star intel" plain "*%? %^g"
+           :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("v" "Video" plain "*%? %^g"
+           :target (file+head "yt/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+
+          ("h" "hacking" plain "%?"
+           :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("a" "ai" plain "* {slug}\n%?"
+           :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("r" "Reading notes" plain "%?"
+           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("p" "Programming" plain "%?"
+           :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
+#+end_src
+
+** Keybinding
+*** which-key
+#+begin_src emacs-lisp
+(use-package which-key
+  :init (which-key-mode)
+  :diminish which-key-mode
+  :config
+  (setq which-key-idle-delay 0.3))
+#+end_src
+*** general.el
+#+begin_src emacs-lisp
+(use-package general
+  :ensure t
+  :config
+  (general-evil-setup)
+  
+  ;; Set up SPC as the global leader key
+  (general-create-definer my/leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC")
+  
+  ;; Set up , as the local leader key
+  (general-create-definer my/local-leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix ","
+    :global-prefix "C-,"))
+#+end_src
+
+
+** Selection
+
+
+#+begin_src emacs-lisp
+(use-package ivy
+  :ensure t
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t)
+  (setq enable-recursive-minibuffers t))
+
+(use-package counsel
+  :ensure t
+  :after ivy
+  :config
+  (counsel-mode 1))
+
+(use-package ivy-rich
+  :ensure t
+  :after (ivy counsel)
+  :config
+  (ivy-rich-mode 1)
+  (setcdr (assq t ivy-format-functions-alist) #'ivy-format-function-line))
+#+end_src
+
+#+begin_src emacs-lisp
+(use-package helpful
+  :config
+  (global-set-key (kbd "C-h f") #'helpful-callable)
+ (global-set-key (kbd "C-h v") #'helpful-variable)
+ (global-set-key (kbd "C-h k") #'helpful-key)
+ (global-set-key (kbd "C-h x") #'helpful-command))
+#+end_src
+
+#+RESULTS:
+: t
+
+** Projects
+#+begin_src emacs-lisp
+(use-package projectile
+  :config
+  (setq projectile-project-search-path
+         '(("~/Documents/Projects" . 1))))
+#+end_src
+*** magit
+#+begin_src
+#+begin_src emacs-lisp
+(my/leader-keys
+  "g" '(:ignore t :which-key "git")
+  "gg" '(magit-status :which-key "magit status")
+  "gs" '(magit-status :which-key "magit status")
+  "gb" '(magit-blame :which-key "magit blame")
+  "gc" '(magit-commit :which-key "magit commit")
+  "gd" '(magit-diff :which-key "magit diff")
+  "gD" '(magit-diff-buffer-file :which-key "diff buffer file")
+  "gf" '(magit-fetch :which-key "magit fetch")
+  "gF" '(magit-pull :which-key "magit pull")
+  "gl" '(magit-log :which-key "magit log")
+  "gL" '(magit-log-buffer-file :which-key "magit log buffer file")
+  "gp" '(magit-push :which-key "magit push")
+  "gr" '(magit-rebase :which-key "magit rebase")
+  "gR" '(magit-revert :which-key "magit revert")
+  "gt" '(magit-tag :which-key "magit tag")
+  "gT" '(magit-todos-list :which-key "list todos"))
+
+;; Required package
+(use-package magit
+  :ensure t
+  :config
+  (setq magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+#+end_src
+** AI
+
+** Languages
+*** Json
+#+begin_src emacs-lisp
+(use-package json-mode
+  :ensure t)
+
+(use-package yaml-mode
+  :ensure t)  ; For config files
+
+;; Since you mentioned Prolog
+(use-package prolog
+  :ensure t
+  :mode ("\\.pl\\'" . prolog-mode))
+#+end_src
+** Tools
+#+begin_src emacs-lisp
+(use-package vterm
+  :ensure t
+  :config
+  (setq vterm-shell "/bin/bash"))
+#+end_src
+
+
+* templated section
+this section is where your own config will go
+
+** Keybinds
+
+** Org
+#+begin_src emacs-lisp
+(setq org-directory "~/Documents/Notes/org")
+#+end_src
+** Roam
+
+* AI
+** gptel
+Interact with LLM from orgmode
+GPTEL now supports agent like workflows via tools
+** MCP Services
+GPTEL supports MCP.
+#+begin_src emacs-lisp
+(use-package mcp
+  :ensure t)
+#+end_src
