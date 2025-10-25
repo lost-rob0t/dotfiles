@@ -1,0 +1,536 @@
+(defun android-p ()
+  "Return t if Emacs is running on Android, nil otherwise."
+  (or (eq system-type 'android)
+      (featurep 'android)))
+
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 6))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+;; Install use-package via straight
+(straight-use-package 'use-package)
+
+;; Configure use-package to use straight.el by default
+(use-package straight
+  :custom
+  (straight-use-package-by-default t))
+
+(setq debug-on-error t)
+(setq message-log-max 10000)
+(setq
+ visible-bell t
+ inhibit-startup-message t)
+;;  Display Line numbers
+(global-display-line-numbers-mode 1)
+(setq inhibit-startup-screen t)
+(setq initial-scratch-message nil)
+(setq ring-bell-function 'ignore)
+(global-hl-line-mode 1)
+
+;; Android-friendly settings
+(when (android-p)
+  (setq touch-screen-display-keyboard t)  ; Always show keyboard
+  (setq-default line-spacing 0.15)        ; Better readability on small screens
+  (set-face-attribute 'default nil :height 140)) ; Larger font for mobile
+
+(unless (android-p)
+ (menu-bar-mode -1)  ; Leave this one on if you're a beginner!
+ (tool-bar-mode -1)
+ (scroll-bar-mode -1))
+
+(require 'package)
+(setq package-enable-at-startup nil)
+(setq package-archives
+      ;; Package archives
+      '(("MELPA Stable" . "https://stable.melpa.org/packages/") ("MELPA" . "https://melpa.org/packages/"))
+      ;; Prefer MELPA Stable over GNU over MELPA. IOW prefer MELPA's stable
+      ;; packages over everything and only fall back to GNU or MELPA if ;; necessary.
+      package-archive-priorities '(("MELPA Stable" . 10) ("GNU ELPA" . 5) ("MELPA" . 0))) (package-initialize)
+
+;; Bootstrap `use-package'
+(unless (package-installed-p 'use-package) (package-refresh-contents) (package-install 'use-package))
+
+(use-package evil
+  :ensure t
+  :init
+  (evil-mode 1)
+  )
+
+(use-package undo-tree :ensure t)
+(use-package undo-fu :ensure t)
+
+(column-number-mode)
+(global-display-line-numbers-mode t)
+
+;; Disable line numbers for some modes
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+(use-package paredit
+  :ensure t
+  :hook ((emacs-lisp-mode lisp-mode scheme-mode clojure-mode) . paredit-mode)
+  :config
+  ;; Making paredit work with delete-selection-mode
+  (put 'paredit-forward-delete 'delete-selection 'supersede)
+  (put 'paredit-backward-delete 'delete-selection 'supersede)
+  (put 'paredit-open-round 'delete-selection t)
+  (put 'paredit-open-square 'delete-selection t)
+  (put 'paredit-doublequote 'delete-selection t)
+  (put 'paredit-newline 'delete-selection t))
+
+;; Highlight the sexp at point
+(use-package highlight-parentheses
+  :ensure t
+  :hook (prog-mode . highlight-parentheses-mode)
+  :config
+  (setq highlight-parentheses-colors '("#ff6c6b" "#98be65" "#da8548" "#51afef")))
+
+;; Show matching parens
+(use-package paren
+  :config
+  (setq show-paren-delay 0.0
+        show-paren-style 'mixed
+        show-paren-when-point-inside-paren t
+        show-paren-when-point-in-periphery t)
+  (show-paren-mode 1))
+
+;; Navigate by function
+(defun my/lisp-describe-thing-at-point ()
+  "Describe the Lisp thing at point."
+  (interactive)
+  (let ((symbol (symbol-at-point)))
+    (when symbol
+      (if (fboundp symbol)
+          (describe-function symbol)
+        (describe-variable symbol)))))
+
+;; Quick eval bindings
+(defun my/eval-and-replace ()
+  "Replace the preceding sexp with its value."
+  (interactive)
+  (backward-kill-sexp)
+  (condition-case nil
+      (prin1 (eval (read (current-kill 0)))
+             (current-buffer))
+    (error (message "Invalid expression")
+           (insert (current-kill 0)))))
+
+(use-package prolog
+  :ensure t
+  :mode (("\\.pl\\'" . prolog-mode)
+         ("\\.pro\\'" . prolog-mode))
+  :config
+  (setq prolog-system 'swi)
+  (setq prolog-program-name "swipl")
+  
+  ;; Indentation
+  (setq prolog-indent-width 4)
+  
+  ;; Electric mode for auto-completion
+  (add-hook 'prolog-mode-hook 'prolog-electric-mode))
+
+;; Enhanced Prolog editing
+(use-package ediprolog
+  :ensure t
+  :after prolog
+  :config
+  (setq ediprolog-program "swipl")
+  ;; Keybind for running queries in buffer
+  (add-hook 'prolog-mode-hook
+            (lambda ()
+              (local-set-key (kbd "C-c C-e") 'ediprolog-dwim))))
+
+(use-package macrostep
+  :ensure t
+  :after elisp-mode
+  :bind (:map emacs-lisp-mode-map
+              ("C-c e m" . macrostep-expand)))
+
+(use-package helpful
+  :ensure t
+  :config
+  ;; Keybindings
+  (global-set-key (kbd "C-h f") #'helpful-callable)
+  (global-set-key (kbd "C-h v") #'helpful-variable)
+  (global-set-key (kbd "C-h k") #'helpful-key)
+  (global-set-key (kbd "C-h x") #'helpful-command)
+  (global-set-key (kbd "C-c C-d") #'helpful-at-point))
+
+(use-package lispy
+  :ensure t
+  :hook ((emacs-lisp-mode lisp-mode scheme-mode clojure-mode) . lispy-mode)
+  :config
+  (setq lispy-compat '(edebug cider)))
+
+;; Extended navigation
+(use-package lispyville
+  :ensure t
+  :after (lispy evil)
+  :hook (lispy-mode . lispyville-mode)
+  :config
+  (lispyville-set-key-theme '(operators c-w additional)))
+
+;; Built-in hideshow
+(use-package hideshow
+  :hook (prog-mode . hs-minor-mode)
+  :config
+  (setq hs-hide-comments-when-hiding-all nil)
+  
+  ;; Better indicators
+  (defun my/display-code-line-counts (ov)
+    (when (eq 'code (overlay-get ov 'hs))
+      (overlay-put ov 'display
+                   (format " ... [%d lines]"
+                           (count-lines (overlay-start ov)
+                                        (overlay-end ov))))))
+  
+  (setq hs-set-up-overlay #'my/display-code-line-counts))
+
+;; Origami - Advanced folding
+(use-package origami
+  :ensure t
+  :hook (prog-mode . origami-mode))
+
+(use-package org-roam
+  :ensure t
+  :init
+  (setq org-roam-v2-ack t)
+  (setq org-roam-directory "~/Documents/Notes/org/roam/")
+  (setq org-roam-dailies-directory "daily")
+  (setq org-roam-complete-everywhere t)
+  (setq org-roam-capture-templates
+        '(
+          ("d" "default" plain "%?"
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
+
+          ("s" "star intel" plain "*%? %^g"
+           :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("v" "Video" plain "*%? %^g"
+           :target (file+head "yt/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+
+          ("h" "hacking" plain "%?"
+           :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("a" "ai" plain "* {slug}\n%?"
+           :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("r" "Reading notes" plain "%?"
+           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("p" "Programming" plain "%?"
+           :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("t" "temple" plain "* %?\n** Oracle\n\n** Reflection\n\n"
+           :target (file+head "temple/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n#+FILETAGS: :temple:\n\n"))))
+  :config
+  (org-roam-db-autosync-mode))
+
+;; Org-roam-ui for visualization
+(use-package org-roam-ui
+  :ensure t
+  :after org-roam
+  :config
+  (setq org-roam-ui-sync-theme t
+        org-roam-ui-follow t
+        org-roam-ui-update-on-save t))
+
+(use-package org-ql
+  :ensure t)
+
+(use-package ob-async
+  :ensure t)
+
+(use-package ob-prolog
+  :ensure t)
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t) 
+   (shell . t) 
+   (python . t) 
+   (prolog . t)))
+
+;; Don't ask for confirmation before evaluating code blocks
+(setq org-confirm-babel-evaluate nil)
+
+(defun edit-src-block (src fn language)
+  "Replace SRC org-element's value property with the result of FN.
+FN is a function that operates on org-element's value and returns a string.
+LANGUAGE is a string referring to one of orb-babel's supported languages.
+(https://orgmode.org/manual/Languages.html#Languages)"
+  (let ((src-language (org-element-property :language src))
+        (value (org-element-property :value src)))
+    (when (string= src-language language)
+      (let ((copy (org-element-copy src)))
+        (org-element-put-property copy :value
+                                  (funcall fn value))
+        (org-element-set-element src copy)))))
+
+(defun format-elisp-string (string)
+  "Indents elisp buffer string and reformats dangling parens."
+  (with-temp-buffer
+    (let ((inhibit-message t))
+      (emacs-lisp-mode)
+      (insert
+       (replace-regexp-in-string "[[:space:]]*
+[[:space:]]*)" ")" string))
+      (indent-region (point-min) (point-max))
+      (buffer-substring (point-min) (point-max)))))
+
+(defun format-elisp-src-blocks ()
+  "Format Elisp src blocks in the current org buffer"
+  (interactive)
+  (save-mark-and-excursion
+    (let ((AST (org-element-parse-buffer)))
+      (org-element-map AST 'src-block
+        (lambda (element)
+          (edit-src-block element #'format-elisp-string "emacs-lisp")))
+      (delete-region (point-min) (point-max))
+      (insert (org-element-interpret-data AST)))))
+
+(with-eval-after-load 'org
+  ;; is needed as of Org 9.2
+  (require 'org-tempo)
+  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
+  (add-to-list 'org-structure-template-alist '("pl" . "src prolog"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+  (add-to-list 'org-structure-template-alist '("js" . "src js"))
+  (add-to-list 'org-structure-template-alist '("json" . "src json")))
+
+(use-package which-key
+  :init (which-key-mode)
+  :diminish which-key-mode
+  :config
+  (setq which-key-idle-delay 0.3))
+
+(use-package general
+  :ensure t
+  :config
+  (general-evil-setup)
+  
+  ;; Set up SPC as the global leader key
+  (general-create-definer my/leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC")
+  
+  ;; Set up , as the local leader key
+  (general-create-definer my/local-leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix ","
+    :global-prefix "C-,"))
+
+(use-package ivy
+  :ensure t
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t)
+  (setq enable-recursive-minibuffers t))
+
+(use-package counsel
+  :ensure t
+  :after ivy
+  :config
+  (counsel-mode 1))
+
+(use-package ivy-rich
+  :ensure t
+  :after (ivy counsel)
+  :config
+  (ivy-rich-mode 1)
+  (setcdr (assq t ivy-format-functions-alist) #'ivy-format-function-line))
+
+;; High contrast theme good for Android screens
+(use-package doom-themes
+  :ensure t
+  :config
+  (setq doom-themes-enable-bold t
+        doom-themes-enable-italic t)
+
+  ;; Load theme based on environment
+  (if (android-p)
+      (load-theme 'doom-one t)  ; High contrast for Android
+    (load-theme 'doom-gruvbox t))
+
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+
+  ;; Corrects org-mode's native fontification
+  (doom-themes-org-config))
+
+;; Better modeline
+(use-package doom-modeline
+  :ensure t
+  :init (doom-modeline-mode 1)
+  :config
+  (setq doom-modeline-height 25
+        doom-modeline-bar-width 3
+        doom-modeline-project-detection 'projectile
+        doom-modeline-buffer-file-name-style 'truncate-except-project
+        doom-modeline-icon (display-graphic-p)))
+
+(use-package projectile
+  :config
+  (setq projectile-project-search-path
+        '(("~/Documents/Projects" . 1))))
+
+(my/leader-keys
+  "g" '(:ignore t :which-key "git")
+  "gg" '(magit-status :which-key "magit status")
+  "gs" '(magit-status :which-key "magit status")
+  "gb" '(magit-blame :which-key "magit blame")
+  "gc" '(magit-commit :which-key "magit commit")
+  "gd" '(magit-diff :which-key "magit diff")
+  "gD" '(magit-diff-buffer-file :which-key "diff buffer file")
+  "gf" '(magit-fetch :which-key "magit fetch")
+  "gF" '(magit-pull :which-key "magit pull")
+  "gl" '(magit-log :which-key "magit log")
+  "gL" '(magit-log-buffer-file :which-key "magit log buffer file")
+  "gp" '(magit-push :which-key "magit push")
+  "gr" '(magit-rebase :which-key "magit rebase")
+  "gR" '(magit-revert :which-key "magit revert")
+  "gt" '(magit-tag :which-key "magit tag")
+  "gT" '(magit-todos-list :which-key "list todos"))
+
+;; Required package
+(use-package magit
+  :ensure t
+  :config
+  (setq magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+
+(use-package json-mode
+  :ensure t)
+
+(use-package yaml-mode
+  :ensure t)
+
+;; vterm removed - not compatible with Android Emacs
+;; Use eshell or term instead for Android
+
+(use-package gptel
+  :ensure t
+  :config
+  ;; Configure your preferred backend
+  ;; Example for Claude (uncomment and set API key):
+  ;; (setq gptel-model "claude-sonnet-4-20250514"
+  ;;       gptel-backend (gptel-make-anthropic "Claude"
+  ;;                       :stream t
+  ;;                       :key "your-api-key-here"))
+  
+  ;; Or use OpenAI (uncomment and set API key):
+  ;; (setq gptel-api-key "your-openai-api-key"
+  ;;       gptel-model "gpt-4")
+  
+  ;; Keybindings
+  (global-set-key (kbd "C-c RET") #'gptel-send)
+  (global-set-key (kbd "C-c C-<return>") #'gptel-menu))
+
+;; Set the temple directory
+(setq org-directory "~/Documents/Notes/org")
+(setq temple-directory "~/Documents/Notes/org/Temple")
+
+;; Load temple.el after org-roam and gptel are ready
+(with-eval-after-load 'org-roam
+  (let ((temple-file (expand-file-name "temple.el" temple-directory)))
+    (if (file-exists-p temple-file)
+        (progn
+          (load temple-file)
+          (message "🕉️  Temple Oracle system loaded"))
+      (message "Warning: temple.el not found at %s" temple-file))))
+
+;; Temple keybindings with general.el
+(my/leader-keys
+  "t" '(:ignore t :which-key "temple")
+  "tt" '(temple :which-key "open temple")
+  "td" '(temple-divine-with-question :which-key "divine")
+  "ta" '(temple-show-affirmation :which-key "affirmation")
+  "tA" '(temple-insert-daily-affirmation :which-key "insert affirmation")
+  "tm" '(temple-insert-daily-int-meanings :which-key "insert meanings")
+  "tr" '(temple-review-past-divinations :which-key "review divinations")
+  "ts" '(temple-search-divinations :which-key "search divinations")
+  "tp" '(temple-record-pattern :which-key "record pattern")
+  "tf" '(temple-pattern-frequency :which-key "frequency analysis")
+  
+  ;; AI analysis functions (marked with *)
+  "t*" '(:ignore t :which-key "temple AI")
+  "t*r" '(temple-recent-numbers* :which-key "recent numbers*")
+  "t*f" '(temple-pattern-frequency* :which-key "frequency*")
+  "t*s" '(temple-synchronicity-analysis* :which-key "sync analysis*")
+  "t*q" '(temple-question-pattern* :which-key "question patterns*")
+  "t*m" '(temple-read-all* :which-key "meta-reading*"))
+
+;; Cashier system keybindings
+(my/leader-keys
+  "c" '(:ignore t :which-key "cashier")
+  "cc" '(cashier-android-dashboard :which-key "cashier dashboard")
+  "cq" '(cashier-android-quick :which-key "quick count")
+  "cs" '(cashier-super-quick :which-key "super quick")
+  "ce" '(cashier-emergency-50-100 :which-key "emergency 50s/100s")
+  "cd" '(cashier-drawer-status :which-key "drawer status")
+  "cl" '(cashier-show-log :which-key "show log")
+  "cr" '(cashier-reset-log :which-key "reset log"))
+
+;; Load cashier utility
+(add-to-list 'load-path (expand-file-name "emacs-lisp/cashier" user-emacs-directory))
+(require 'cash)
+
+;; Android-optimized cashier dashboard
+(defun cashier-android-dashboard ()
+  "Android-friendly cashier dashboard with persistent input."
+  (interactive)
+  (let ((buffer (get-buffer-create "*CASHIER DASHBOARD*")))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (insert "🏪 CASHIER DASHBOARD 🏪\n")
+      (insert "═══════════════════════\n\n")
+
+      (insert "QUICK ACTIONS:\n")
+      (insert "[1] Quick Count (separate fields)\n")
+      (insert "[2] Android Quick (comma input)\n")
+      (insert "[3] Emergency 50s/100s Check\n")
+      (insert "[4] Drawer Status\n")
+      (insert "[5] Show Log\n")
+      (insert "[6] Clear Log\n\n")
+
+      (insert "REMINDERS:\n")
+      (insert "• Keep $100 in drawer\n")
+      (insert "• Drop 50s/100s IMMEDIATELY\n")
+      (insert "• Drop anything over $100\n\n")
+
+      (cashier-drawer-status)
+      (insert "\n\nPress number key + ENTER...")
+
+      (goto-char (point-max))
+      (read-only-mode 1)
+      (local-set-key "1" (lambda () (interactive) (cashier-super-quick)))
+      (local-set-key "2" (lambda () (interactive) (cashier-android-quick)))
+      (local-set-key "3" (lambda () (interactive) (cashier-emergency-50-100)))
+      (local-set-key "4" (lambda () (interactive) (cashier-drawer-status)))
+      (local-set-key "5" (lambda () (interactive) (cashier-show-log)))
+      (local-set-key "6" (lambda () (interactive) (cashier-reset-log)))
+      (local-set-key "q" (lambda () (interactive) (kill-buffer)))
+      (local-set-key "r" (lambda () (interactive) (cashier-android-dashboard))))
+
+    (pop-to-buffer buffer)
+    (message "Cashier Dashboard ready - press number keys")))

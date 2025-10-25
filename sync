@@ -1,0 +1,179 @@
+#!/bin/bash
+# Sync script for Android Emacs deployment
+# Deploys Android Emacs config from dotfiles repo to Termux shared storage
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Directories
+DOTFILES_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ANDROID_SOURCE="$DOTFILES_ROOT/android"
+TERMUX_SHARED="/storage/emulated/0/Android/data/com.termux/files"
+TARGET_DIR="$TERMUX_SHARED/dotfiles/android"
+EMACS_CONFIG_DIR="/data/data/org.gnu.emacs/files"
+
+echo -e "${BLUE}🔄 Android Emacs Sync Script${NC}"
+echo "=================================================="
+
+# Function to check if running on Android
+check_android() {
+    if [[ ! -d "/data/data/com.termux" ]]; then
+        echo -e "${YELLOW}⚠️  Warning: Not running on Android/Termux${NC}"
+        echo "This script is intended to run on Android in Termux"
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    fi
+}
+
+# Function to create directories
+create_directories() {
+    echo -e "${YELLOW}📁 Creating directories...${NC}"
+
+    mkdir -p "$TERMUX_SHARED/dotfiles"
+    mkdir -p "$TARGET_DIR"
+
+    if [[ -d "$EMACS_CONFIG_DIR" ]]; then
+        mkdir -p "$EMACS_CONFIG_DIR/.emacs.d"
+    fi
+
+    echo -e "${GREEN}✅ Directories created${NC}"
+}
+
+# Function to sync files
+sync_files() {
+    echo -e "${YELLOW}🔄 Syncing Android Emacs files...${NC}"
+
+    if [[ ! -d "$ANDROID_SOURCE" ]]; then
+        echo -e "${RED}❌ Source directory not found: $ANDROID_SOURCE${NC}"
+        exit 1
+    fi
+
+    # Copy the entire android directory
+    cp -r "$ANDROID_SOURCE"/* "$TARGET_DIR/"
+
+    echo -e "${GREEN}✅ Files synced to $TARGET_DIR${NC}"
+}
+
+# Function to setup symlinks for Emacs app
+setup_emacs_symlinks() {
+    echo -e "${YELLOW}🔗 Setting up Emacs app symlinks...${NC}"
+
+    if [[ ! -d "$EMACS_CONFIG_DIR" ]]; then
+        echo -e "${YELLOW}⚠️  Emacs app config directory not found: $EMACS_CONFIG_DIR${NC}"
+        echo "Install the Emacs Android app first"
+        return
+    fi
+
+    # Create symlinks for Emacs app to use our config
+    ln -sf "$TARGET_DIR/early-init.el" "$EMACS_CONFIG_DIR/.emacs.d/early-init.el"
+
+    # If init.el exists in temple dir, link it
+    if [[ -f "$TARGET_DIR/temple/init.el" ]]; then
+        ln -sf "$TARGET_DIR/temple/init.el" "$EMACS_CONFIG_DIR/.emacs.d/init.el"
+    fi
+
+    echo -e "${GREEN}✅ Emacs app symlinks created${NC}"
+}
+
+# Function to tangle org config if emacs is available
+tangle_config() {
+    echo -e "${YELLOW}📝 Tangling org configuration...${NC}"
+
+    if command -v emacs >/dev/null 2>&1; then
+        cd "$TARGET_DIR/temple"
+
+        if [[ -f "temple.org" ]]; then
+            emacs --batch \
+                  --eval "(require 'org)" \
+                  --eval "(org-babel-tangle-file \"temple.org\")"
+            echo -e "${GREEN}✅ Configuration tangled${NC}"
+        else
+            echo -e "${YELLOW}⚠️  temple.org not found, skipping tangle${NC}"
+        fi
+
+        cd - >/dev/null
+    else
+        echo -e "${YELLOW}⚠️  Emacs not found, skipping tangle${NC}"
+        echo "Run this command manually in Emacs: M-x org-babel-tangle"
+    fi
+}
+
+# Function to set permissions
+set_permissions() {
+    echo -e "${YELLOW}🔐 Setting permissions...${NC}"
+
+    # Make sure files are readable
+    find "$TARGET_DIR" -type f -exec chmod 644 {} \;
+    find "$TARGET_DIR" -type d -exec chmod 755 {} \;
+
+    echo -e "${GREEN}✅ Permissions set${NC}"
+}
+
+# Function to show completion message
+show_completion() {
+    echo
+    echo -e "${GREEN}🎉 Android Emacs sync completed!${NC}"
+    echo "=================================================="
+    echo -e "${BLUE}Config location:${NC} $TARGET_DIR"
+    echo -e "${BLUE}Main config:${NC} $TARGET_DIR/temple/temple.org"
+    echo -e "${BLUE}Cashier utility:${NC} $TARGET_DIR/emacs-lisp/cashier/cash.el"
+    echo
+    echo -e "${YELLOW}Next steps:${NC}"
+    echo "1. Open Emacs Android app"
+    echo "2. Grant storage permissions if prompted"
+    echo "3. Run: M-x android-request-directory-access"
+    echo "4. Open cashier dashboard: SPC c c"
+    echo
+    echo -e "${BLUE}Quick cashier access:${NC}"
+    echo "• SPC c c - Dashboard"
+    echo "• SPC c q - Quick count"
+    echo "• SPC c e - Emergency 50s/100s check"
+}
+
+# Main execution
+main() {
+    check_android
+    create_directories
+    sync_files
+    setup_emacs_symlinks
+    tangle_config
+    set_permissions
+    show_completion
+}
+
+# Handle arguments
+case "${1:-}" in
+    --help|-h)
+        echo "Android Emacs Sync Script"
+        echo
+        echo "Usage: $0 [options]"
+        echo
+        echo "Options:"
+        echo "  --help, -h    Show this help message"
+        echo "  --dry-run     Show what would be done without doing it"
+        echo
+        exit 0
+        ;;
+    --dry-run)
+        echo -e "${YELLOW}🔍 DRY RUN MODE - No changes will be made${NC}"
+        echo "Would sync: $ANDROID_SOURCE -> $TARGET_DIR"
+        exit 0
+        ;;
+    "")
+        main
+        ;;
+    *)
+        echo -e "${RED}Unknown option: $1${NC}"
+        echo "Use --help for usage information"
+        exit 1
+        ;;
+esac

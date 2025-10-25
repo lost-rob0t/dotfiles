@@ -1,0 +1,612 @@
+#+Title: Hackmacks: Emacs pentesting + Temple Oracle
+#+PROPERTY: header-args:emacs-lisp :tangle ./init.el :results none
+startup: org-startup-folded: show2levels
+#+disable_spellchecker: t
+
+* Basic setup
+
+** custom functions
+*** Android
+this is chorthand for checking system type
+#+begin_src emacs-lisp
+(defun android-p ()
+  "Return t if Emacs is running on Android, nil otherwise."
+  (or (eq system-type 'android)
+      (featurep 'android)))
+#+end_src
+bootstrap streight.el
+#+begin_src emacs-lisp
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 6))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+;; Install use-package via straight
+(straight-use-package 'use-package)
+
+;; Configure use-package to use straight.el by default
+(use-package straight
+  :custom
+  (straight-use-package-by-default t))
+#+end_src
+
+Disable startup screen
+#+begin_src emacs-lisp
+(setq debug-on-error t)
+(setq message-log-max 10000)
+(setq
+ visible-bell t
+ inhibit-startup-message t)
+;;  Display Line numbers
+(global-display-line-numbers-mode 1)
+(setq inhibit-startup-screen t)
+(setq initial-scratch-message nil)
+(setq ring-bell-function 'ignore)
+(global-hl-line-mode 1)
+
+
+#+end_src
+Disable the toolbar and menus UNLESS it is android, in that case allow it.
+
+#+begin_src emacs-lisp
+(unless (android-p)
+ (menu-bar-mode -1)  ; Leave this one on if you're a beginner!
+ (tool-bar-mode -1)
+ (scroll-bar-mode -1))
+#+end_src
+Packages setup
+#+begin_src emacs-lisp
+(require 'package)
+(setq package-enable-at-startup nil)
+(setq package-archives
+      ;; Package archives
+      '(("MELPA Stable" . "https://stable.melpa.org/packages/") ("MELPA" . "https://melpa.org/packages/"))
+      ;; Prefer MELPA Stable over GNU over MELPA. IOW prefer MELPA's stable
+      ;; packages over everything and only fall back to GNU or MELPA if ;; necessary.
+      package-archive-priorities '(("MELPA Stable" . 10) ("GNU ELPA" . 5) ("MELPA" . 0))) (package-initialize)
+
+;; Bootstrap `use-package'
+(unless (package-installed-p 'use-package) (package-refresh-contents) (package-install 'use-package))
+
+#+end_src
+Install evil mode
+#+begin_src emacs-lisp
+(use-package evil
+  :ensure t
+  :init
+  (evil-mode 1)
+  )
+
+(use-package undo-tree :ensure t)
+(use-package undo-fu :ensure t)
+#+end_src
+
+
+** lines
+#+begin_src emacs-lisp
+(column-number-mode)
+(global-display-line-numbers-mode t)
+
+;; Disable line numbers for some modes
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+#+end_src
+
+** Lisp rainbow delimiters
+
+I consider this to be a basic feature that Is required for edidint the config.
+
+#+begin_src emacs-lisp
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+#+end_src
+* Alternative - Paredit (Classic Choice)
+
+If you prefer paredit's stricter approach:
+
+#+begin_src emacs-lisp
+(use-package paredit
+  :ensure t
+  :hook ((emacs-lisp-mode lisp-mode scheme-mode clojure-mode) . paredit-mode)
+  :config
+  ;; Making paredit work with delete-selection-mode
+  (put 'paredit-forward-delete 'delete-selection 'supersede)
+  (put 'paredit-backward-delete 'delete-selection 'supersede)
+  (put 'paredit-open-round 'delete-selection t)
+  (put 'paredit-open-square 'delete-selection t)
+  (put 'paredit-doublequote 'delete-selection t)
+  (put 'paredit-newline 'delete-selection t))
+#+end_src
+
+* Code Navigation & Evaluation
+
+#+begin_src emacs-lisp
+;; Highlight the sexp at point
+(use-package highlight-parentheses
+  :ensure t
+  :hook (prog-mode . highlight-parentheses-mode)
+  :config
+  (setq highlight-parentheses-colors '("#ff6c6b" "#98be65" "#da8548" "#51afef")))
+
+;; Show matching parens
+(use-package paren
+  :config
+  (setq show-paren-delay 0.0
+        show-paren-style 'mixed
+        show-paren-when-point-inside-paren t
+        show-paren-when-point-in-periphery t)
+  (show-paren-mode 1))
+
+;; Navigate by function
+(defun my/lisp-describe-thing-at-point ()
+  "Describe the Lisp thing at point."
+  (interactive)
+  (let ((symbol (symbol-at-point)))
+    (when symbol
+      (if (fboundp symbol)
+          (describe-function symbol)
+        (describe-variable symbol)))))
+
+;; Quick eval bindings
+(defun my/eval-and-replace ()
+  "Replace the preceding sexp with its value."
+  (interactive)
+  (backward-kill-sexp)
+  (condition-case nil
+      (prin1 (eval (read (current-kill 0)))
+             (current-buffer))
+    (error (message "Invalid expression")
+           (insert (current-kill 0)))))
+#+end_src
+
+* Prolog Support (Enhanced for Temple)
+
+#+begin_src emacs-lisp
+(use-package prolog
+  :ensure t
+  :mode (("\\.pl\\'" . prolog-mode)
+         ("\\.pro\\'" . prolog-mode))
+  :config
+  (setq prolog-system 'swi)
+  (setq prolog-program-name "swipl")
+  
+  ;; Indentation
+  (setq prolog-indent-width 4)
+  
+  ;; Electric mode for auto-completion
+  (add-hook 'prolog-mode-hook 'prolog-electric-mode))
+
+;; Enhanced Prolog editing
+(use-package ediprolog
+  :ensure t
+  :after prolog
+  :config
+  (setq ediprolog-program "swipl")
+  ;; Keybind for running queries in buffer
+  (add-hook 'prolog-mode-hook
+            (lambda ()
+              (local-set-key (kbd "C-c C-e") 'ediprolog-dwim))))
+#+end_src
+
+* Macrostep - Visual Macro Expansion
+
+Essential for understanding Lisp macros:
+
+#+begin_src emacs-lisp
+(use-package macrostep
+  :ensure t
+  :after elisp-mode
+  :bind (:map emacs-lisp-mode-map
+              ("C-c e m" . macrostep-expand)))
+#+end_src
+
+* Helpful Symbol Information
+
+Better help buffers:
+
+#+begin_src emacs-lisp
+(use-package helpful
+  :ensure t
+  :config
+  ;; Keybindings
+  (global-set-key (kbd "C-h f") #'helpful-callable)
+  (global-set-key (kbd "C-h v") #'helpful-variable)
+  (global-set-key (kbd "C-h k") #'helpful-key)
+  (global-set-key (kbd "C-h x") #'helpful-command)
+  (global-set-key (kbd "C-c C-d") #'helpful-at-point))
+#+end_src
+
+* Lispy - Alternative Modal Editing
+
+Lisp-specific modal editing (alternative to evil-cleverparens):
+
+#+begin_src emacs-lisp
+(use-package lispy
+  :ensure t
+  :hook ((emacs-lisp-mode lisp-mode scheme-mode clojure-mode) . lispy-mode)
+  :config
+  (setq lispy-compat '(edebug cider)))
+
+;; Extended navigation
+(use-package lispyville
+  :ensure t
+  :after (lispy evil)
+  :hook (lispy-mode . lispyville-mode)
+  :config
+  (lispyville-set-key-theme '(operators c-w additional)))
+#+end_src
+
+* Code Folding
+
+Hide/show code blocks:
+
+#+begin_src emacs-lisp
+;; Built-in hideshow
+(use-package hideshow
+  :hook (prog-mode . hs-minor-mode)
+  :config
+  (setq hs-hide-comments-when-hiding-all nil)
+  
+  ;; Better indicators
+  (defun my/display-code-line-counts (ov)
+    (when (eq 'code (overlay-get ov 'hs))
+      (overlay-put ov 'display
+                   (format " ... [%d lines]"
+                           (count-lines (overlay-start ov)
+                                        (overlay-end ov))))))
+  
+  (setq hs-set-up-overlay #'my/display-code-line-counts))
+
+;; Origami - Advanced folding
+(use-package origami
+  :ensure t
+  :hook (prog-mode . origami-mode))
+#+end_src
+
+* Org Mode Setup
+
+** Org-roam (Required for Temple)
+#+begin_src emacs-lisp
+(use-package org-roam
+  :ensure t
+  :init
+  (setq org-roam-v2-ack t)
+  (setq org-roam-directory "~/Documents/Notes/org/roam/")
+  (setq org-roam-dailies-directory "daily")
+  (setq org-roam-complete-everywhere t)
+  (setq org-roam-capture-templates
+        '(
+          ("d" "default" plain "%?"
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
+
+          ("s" "star intel" plain "*%? %^g"
+           :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("v" "Video" plain "*%? %^g"
+           :target (file+head "yt/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+
+          ("h" "hacking" plain "%?"
+           :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("a" "ai" plain "* {slug}\n%?"
+           :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("r" "Reading notes" plain "%?"
+           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("p" "Programming" plain "%?"
+           :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("t" "temple" plain "* %?\n** Oracle\n\n** Reflection\n\n"
+           :target (file+head "temple/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n#+FILETAGS: :temple:\n\n"))))
+  :config
+  (org-roam-db-autosync-mode))
+
+;; Org-roam-ui for visualization
+(use-package org-roam-ui
+  :ensure t
+  :after org-roam
+  :config
+  (setq org-roam-ui-sync-theme t
+        org-roam-ui-follow t
+        org-roam-ui-update-on-save t))
+#+end_src
+
+** Org-ql (Required for Temple pattern analysis)
+#+begin_src emacs-lisp
+(use-package org-ql
+  :ensure t)
+#+end_src
+
+** Babel
+Add languages to org babel
+
+#+begin_src emacs-lisp
+(use-package ob-async
+  :ensure t)
+
+(use-package ob-prolog
+  :ensure t)
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t) 
+   (shell . t) 
+   (python . t) 
+   (prolog . t)))
+
+;; Don't ask for confirmation before evaluating code blocks
+(setq org-confirm-babel-evaluate nil)
+#+end_src
+
+** Better Formating in org-babel
+Adapted from [[https://www.reddit.com/r/emacs/comments/9tp79o/comment/e90g7km/?utm_source=share&utm_medium=web2x&context=3][here]].
+#+begin_src emacs-lisp
+(defun edit-src-block (src fn language)
+  "Replace SRC org-element's value property with the result of FN.
+FN is a function that operates on org-element's value and returns a string.
+LANGUAGE is a string referring to one of orb-babel's supported languages.
+(https://orgmode.org/manual/Languages.html#Languages)"
+  (let ((src-language (org-element-property :language src))
+        (value (org-element-property :value src)))
+    (when (string= src-language language)
+      (let ((copy (org-element-copy src)))
+        (org-element-put-property copy :value
+                                  (funcall fn value))
+        (org-element-set-element src copy)))))
+
+(defun format-elisp-string (string)
+  "Indents elisp buffer string and reformats dangling parens."
+  (with-temp-buffer
+    (let ((inhibit-message t))
+      (emacs-lisp-mode)
+      (insert
+       (replace-regexp-in-string "[[:space:]]*
+[[:space:]]*)" ")" string))
+      (indent-region (point-min) (point-max))
+      (buffer-substring (point-min) (point-max)))))
+
+(defun format-elisp-src-blocks ()
+  "Format Elisp src blocks in the current org buffer"
+  (interactive)
+  (save-mark-and-excursion
+    (let ((AST (org-element-parse-buffer)))
+      (org-element-map AST 'src-block
+        (lambda (element)
+          (edit-src-block element #'format-elisp-string "emacs-lisp")))
+      (delete-region (point-min) (point-max))
+      (insert (org-element-interpret-data AST)))))
+#+end_src
+
+** Org Tempo templates
+Makes it easier to write src blocks.
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  ;; is needed as of Org 9.2
+  (require 'org-tempo)
+  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
+  (add-to-list 'org-structure-template-alist '("pl" . "src prolog"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+  (add-to-list 'org-structure-template-alist '("js" . "src js"))
+  (add-to-list 'org-structure-template-alist '("json" . "src json")))
+#+end_src
+
+** Keybinding
+*** which-key
+#+begin_src emacs-lisp
+(use-package which-key
+  :init (which-key-mode)
+  :diminish which-key-mode
+  :config
+  (setq which-key-idle-delay 0.3))
+#+end_src
+
+*** general.el
+#+begin_src emacs-lisp
+(use-package general
+  :ensure t
+  :config
+  (general-evil-setup)
+  
+  ;; Set up SPC as the global leader key
+  (general-create-definer my/leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC")
+  
+  ;; Set up , as the local leader key
+  (general-create-definer my/local-leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix ","
+    :global-prefix "C-,"))
+#+end_src
+
+
+** Selection
+
+#+begin_src emacs-lisp
+(use-package ivy
+  :ensure t
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t)
+  (setq enable-recursive-minibuffers t))
+
+(use-package counsel
+  :ensure t
+  :after ivy
+  :config
+  (counsel-mode 1))
+
+(use-package ivy-rich
+  :ensure t
+  :after (ivy counsel)
+  :config
+  (ivy-rich-mode 1)
+  (setcdr (assq t ivy-format-functions-alist) #'ivy-format-function-line))
+#+end_src
+
+** Projects
+#+begin_src emacs-lisp
+(use-package projectile
+  :config
+  (setq projectile-project-search-path
+        '(("~/Documents/Projects" . 1))))
+#+end_src
+
+*** magit
+#+begin_src emacs-lisp
+(my/leader-keys
+  "g" '(:ignore t :which-key "git")
+  "gg" '(magit-status :which-key "magit status")
+  "gs" '(magit-status :which-key "magit status")
+  "gb" '(magit-blame :which-key "magit blame")
+  "gc" '(magit-commit :which-key "magit commit")
+  "gd" '(magit-diff :which-key "magit diff")
+  "gD" '(magit-diff-buffer-file :which-key "diff buffer file")
+  "gf" '(magit-fetch :which-key "magit fetch")
+  "gF" '(magit-pull :which-key "magit pull")
+  "gl" '(magit-log :which-key "magit log")
+  "gL" '(magit-log-buffer-file :which-key "magit log buffer file")
+  "gp" '(magit-push :which-key "magit push")
+  "gr" '(magit-rebase :which-key "magit rebase")
+  "gR" '(magit-revert :which-key "magit revert")
+  "gt" '(magit-tag :which-key "magit tag")
+  "gT" '(magit-todos-list :which-key "list todos"))
+
+;; Required package
+(use-package magit
+  :ensure t
+  :config
+  (setq magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+#+end_src
+
+** Languages
+*** Json
+#+begin_src emacs-lisp
+(use-package json-mode
+  :ensure t)
+
+(use-package yaml-mode
+  :ensure t)
+#+end_src
+
+** Tools
+#+begin_src emacs-lisp
+(use-package vterm
+  :ensure t
+  :config
+  (setq vterm-shell "/bin/bash"))
+#+end_src
+
+* AI - GPTel Setup (Required for Temple AI functions)
+
+#+begin_src emacs-lisp
+(use-package gptel
+  :ensure t
+  :config
+  ;; Configure your preferred backend
+  ;; Example for Claude (uncomment and set API key):
+  ;; (setq gptel-model "claude-sonnet-4-20250514"
+  ;;       gptel-backend (gptel-make-anthropic "Claude"
+  ;;                       :stream t
+  ;;                       :key "your-api-key-here"))
+  
+  ;; Or use OpenAI (uncomment and set API key):
+  ;; (setq gptel-api-key "your-openai-api-key"
+  ;;       gptel-model "gpt-4")
+  
+  ;; Keybindings
+  (global-set-key (kbd "C-c RET") #'gptel-send)
+  (global-set-key (kbd "C-c C-<return>") #'gptel-menu))
+#+end_src
+
+* Temple Oracle System
+
+Load the temple divination system after all dependencies are ready.
+
+#+begin_src emacs-lisp
+;; Set the temple directory
+(setq org-directory "~/Documents/Notes/org")
+
+;; Load temple.el after org-roam and gptel are ready
+(with-eval-after-load 'org-roam
+  (let ((temple-file (expand-file-name "~/Documents/Notes/org/Temple/temple.el")))
+    (if (file-exists-p temple-file)
+        (progn
+          (load temple-file)
+          (message "🕉️  Temple Oracle system loaded"))
+      (message "Warning: temple.el not found at %s" temple-file))))
+
+;; Temple keybindings with general.el
+(my/leader-keys
+  "t" '(:ignore t :which-key "temple")
+  "tt" '(temple :which-key "open temple")
+  "td" '(temple-divine-with-question :which-key "divine")
+  "ta" '(temple-show-affirmation :which-key "affirmation")
+  "tA" '(temple-insert-daily-affirmation :which-key "insert affirmation")
+  "tm" '(temple-insert-daily-int-meanings :which-key "insert meanings")
+  "tr" '(temple-review-past-divinations :which-key "review divinations")
+  "ts" '(temple-search-divinations :which-key "search divinations")
+  "tp" '(temple-record-pattern :which-key "record pattern")
+  "tf" '(temple-pattern-frequency :which-key "frequency analysis")
+  
+  ;; AI analysis functions (marked with *)
+  "t*" '(:ignore t :which-key "temple AI")
+  "t*r" '(temple-recent-numbers* :which-key "recent numbers*")
+  "t*f" '(temple-pattern-frequency* :which-key "frequency*")
+  "t*s" '(temple-synchronicity-analysis* :which-key "sync analysis*")
+  "t*q" '(temple-question-pattern* :which-key "question patterns*")
+  "t*m" '(temple-read-all* :which-key "meta-reading*"))
+#+end_src
+
+* Custom Configuration Section
+
+This section is where your own config additions go.
+
+** Additional Keybinds
+#+begin_src emacs-lisp
+;; Add your custom keybindings here
+#+end_src
+
+** Custom Functions
+#+begin_src emacs-lisp
+;; Add your custom functions here
+#+end_src
+
+* Final Notes
+
+The temple system is now integrated! Make sure to:
+
+1. Set your GPTel API key in the AI section
+2. Ensure ~/Documents/Notes/org/Temple/ contains:
+   - temple.el
+   - kb/base.pl
+   - kb/meanings.pl  
+   - kb/affirmations.pl
+3. Run M-x org-roam-db-sync after first startup
+
+Key temple bindings (with SPC leader):
+- SPC t t - Open temple
+- SPC t d - Perform divination  
+- SPC t a - Get affirmation
+- SPC t r - Review past divinations
+- SPC t * - AI analysis menu
+
+The most important number is 12 (sobriety/daily reset).
