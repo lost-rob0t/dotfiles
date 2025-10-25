@@ -646,7 +646,22 @@ Set roam directory
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))))
+  ;; Lets cope about it and stop spamming others
+  (setq org-roam-capture-templates
+        '(("s" "Symbol" plain
+           "%?"
+           :if-new (file+head "symbols/${slug}.org"
+                              "#+title: ${title}\n#+roam_tags: symbol number\n\n* Symbol\n${title}\n\n* Interpretations\n\n* Appears in spreads\n\n")
+           :unnarrowed t)
+
+          ("r" "Ritual Spread" plain
+           "%(my/temple-capture-spread)"
+           :if-new (file+head "daily/${slug}.org"
+                              "#+title: ${title}\n#+roam_tags: ritual daily\n\n* Ritual Spread\n%U\n\n")
+           :empty-lines 1))))
+
+
 
 #+end_src
 *** Misc org roam

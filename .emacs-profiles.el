@@ -8,4 +8,7 @@
                  (user-emacs-directory . "~/.config/emacs")
                  (env . (("DOOMDIR" . "~/.doom.d")))))
  ("android" . ((server-name . "android")
-               (user-emacs-directory . "~/Documents/Emacs/configs/android"))))
+               (user-emacs-directory . "~/Documents/Emacs/configs/android")))
+ ("temple" . ((server-name . "temple")
+              (user-emacs-directory . "~/Documents/Emacs/configs/android")
+              (env . (("TEMPLE_MODE" . "active"))))))

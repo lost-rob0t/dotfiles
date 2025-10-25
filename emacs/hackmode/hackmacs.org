@@ -1,10 +1,12 @@
 #+Title: Hackmacks: Emacs pentesting
 #+PROPERTY: header-args:emacs-lisp :tangle ./init.el :results none
-#+startup: org-startup-folded: show2levels
+startup: org-startup-folded: show2levels
 #+disable_spellchecker: t
 
-* custom functions
-** Android
+* Basic setup
+
+** custom functions
+*** Android
 this is chorthand for checking system type
 #+begin_src emacs-lisp
 (defun android-p ()
@@ -12,8 +14,6 @@ this is chorthand for checking system type
   (or (eq system-type 'android)
       (featurep 'android)))
 #+end_src
-* Basic setup
-
 bootstrap streight.el
 #+begin_src emacs-lisp
 (defvar bootstrap-version)
@@ -110,6 +110,386 @@ I consider this to be a basic feature that Is required for edidint the config.
 (use-package rainbow-delimiters
   :hook (prog-mode . rainbow-delimiters-mode))
 #+end_src
+* Alternative - Paredit (Classic Choice)
+
+If you prefer paredit's stricter approach:
+
+#+begin_src emacs-lisp
+(use-package paredit
+  :ensure t
+  :hook ((emacs-lisp-mode lisp-mode scheme-mode clojure-mode) . paredit-mode)
+  :config
+  ;; Making paredit work with delete-selection-mode
+  (put 'paredit-forward-delete 'delete-selection 'supersede)
+  (put 'paredit-backward-delete 'delete-selection 'supersede)
+  (put 'paredit-open-round 'delete-selection t)
+  (put 'paredit-open-square 'delete-selection t)
+  (put 'paredit-doublequote 'delete-selection t)
+  (put 'paredit-newline 'delete-selection t))
+#+end_src
+
+* Code Navigation & Evaluation
+
+#+begin_src emacs-lisp
+;; Highlight the sexp at point
+(use-package highlight-parentheses
+  :ensure t
+  :hook (prog-mode . highlight-parentheses-mode)
+  :config
+  (setq highlight-parentheses-colors '("#ff6c6b" "#98be65" "#da8548" "#51afef")))
+
+;; Show matching parens
+(use-package paren
+  :config
+  (setq show-paren-delay 0.0
+        show-paren-style 'mixed
+        show-paren-when-point-inside-paren t
+        show-paren-when-point-in-periphery t)
+  (show-paren-mode 1))
+
+;; Navigate by function
+(defun my/lisp-describe-thing-at-point ()
+  "Describe the Lisp thing at point."
+  (interactive)
+  (let ((symbol (symbol-at-point)))
+    (when symbol
+      (if (fboundp symbol)
+          (describe-function symbol)
+        (describe-variable symbol)))))
+
+;; Quick eval bindings
+(defun my/eval-and-replace ()
+  "Replace the preceding sexp with its value."
+  (interactive)
+  (backward-kill-sexp)
+  (condition-case nil
+      (prin1 (eval (read (current-kill 0)))
+             (current-buffer))
+    (error (message "Invalid expression")
+           (insert (current-kill 0)))))
+#+end_src
+
+* SLY - Modern SLIME Alternative
+
+#+begin_src emacs-lisp
+(use-package sly
+  :ensure t
+  :config
+  (setq inferior-lisp-program "sbcl")
+  
+  ;; SLY extensions
+  (use-package sly-asdf :ensure t)
+  (use-package sly-quicklisp :ensure t)
+  (use-package sly-repl-ansi-color :ensure t)
+  
+  (setq sly-complete-symbol-function 'sly-flex-completions))
+#+end_src
+
+* Prolog Support
+
+#+begin_src emacs-lisp
+(use-package prolog
+  :ensure t
+  :mode (("\\.pl\\'" . prolog-mode)
+         ("\\.pro\\'" . prolog-mode))
+  :config
+  (setq prolog-system 'swi)  ; or 'gnu for GNU Prolog
+  (setq prolog-program-name "swipl")
+  
+  ;; Indentation
+  (setq prolog-indent-width 4)
+  
+  ;; Electric mode for auto-completion
+  (add-hook 'prolog-mode-hook 'prolog-electric-mode))
+
+;; Enhanced Prolog editing
+(use-package ediprolog
+  :ensure t
+  :after prolog
+  :config
+  (setq ediprolog-program "swipl"))
+#+end_src
+
+* Macrostep - Visual Macro Expansion
+
+Essential for understanding Lisp macros:
+
+#+begin_src emacs-lisp
+(use-package macrostep
+  :ensure t
+  :after elisp-mode
+  :bind (:map emacs-lisp-mode-map
+              ("C-c e m" . macrostep-expand)))
+#+end_src
+
+* Helpful Symbol Information
+
+Better help buffers:
+
+#+begin_src emacs-lisp
+(use-package helpful
+  :ensure t
+  :config
+  ;; Keybindings
+  (global-set-key (kbd "C-h f") #'helpful-callable)
+  (global-set-key (kbd "C-h v") #'helpful-variable)
+  (global-set-key (kbd "C-h k") #'helpful-key)
+  (global-set-key (kbd "C-h x") #'helpful-command)
+  (global-set-key (kbd "C-c C-d") #'helpful-at-point))
+#+end_src
+
+* Lispy - Alternative Modal Editing
+
+Lisp-specific modal editing (alternative to evil-cleverparens):
+
+#+begin_src emacs-lisp
+(use-package lispy
+  :ensure t
+  :hook ((emacs-lisp-mode lisp-mode scheme-mode clojure-mode) . lispy-mode)
+  :config
+  (setq lispy-compat '(edebug cider)))
+
+;; Extended navigation
+(use-package lispyville
+  :ensure t
+  :after (lispy evil)
+  :hook (lispy-mode . lispyville-mode)
+  :config
+  (lispyville-set-key-theme '(operators c-w additional)))
+#+end_src
+
+* Code Folding
+
+Hide/show code blocks:
+
+#+begin_src emacs-lisp
+;; Built-in hideshow
+(use-package hideshow
+  :hook (prog-mode . hs-minor-mode)
+  :config
+  (setq hs-hide-comments-when-hiding-all nil)
+  
+  ;; Better indicators
+  (defun my/display-code-line-counts (ov)
+    (when (eq 'code (overlay-get ov 'hs))
+      (overlay-put ov 'display
+                   (format " ... [%d lines]"
+                           (count-lines (overlay-start ov)
+                                        (overlay-end ov))))))
+  (setq hs-set-up-overlay 'my/display-code-line-counts))
+#+end_src
+
+* ElDoc for Inline Documentation
+
+#+begin_src emacs-lisp
+(use-package eldoc
+  :hook ((emacs-lisp-mode lisp-mode ielm-mode) . eldoc-mode)
+  :config
+  (setq eldoc-idle-delay 0.1)
+  (setq eldoc-echo-area-use-multiline-p t))
+#+end_src
+
+* General Keybindings with Leader Key
+
+Doom-style keybindings using general.el:
+
+#+begin_src emacs-lisp
+;; Lisp evaluation bindings
+;; Make sure general.el is set up FIRST
+(use-package general
+  :ensure t
+  :config
+  (general-evil-setup)
+
+  ;; Set up SPC as the global leader key
+  (general-create-definer my/leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC")
+
+  ;; Set up , as the local leader key
+  (general-create-definer my/local-leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix ","
+    :global-prefix "C-,")
+
+  ;; NOW define your keybindings here, after my/leader-keys exists
+  ;; Lisp evaluation bindings
+  (my/leader-keys
+    "e" '(:ignore t :which-key "eval")
+    "e b" '(eval-buffer :which-key "eval buffer")
+    "e d" '(eval-defun :which-key "eval defun")
+    "e e" '(eval-last-sexp :which-key "eval sexp")
+    "e r" '(eval-region :which-key "eval region")
+    "e l" '(load-file :which-key "load file")
+    "e R" '(my/eval-and-replace :which-key "eval and replace"))
+
+  ;; Lisp navigation
+  (my/leader-keys
+    "j" '(:ignore t :which-key "jump")
+    "j f" '(find-function :which-key "find function")
+    "j v" '(find-variable :which-key "find variable")
+    "j l" '(find-library :which-key "find library"))
+
+  ;; OSINT tools
+  (my/leader-keys
+    "o" '(:ignore t :which-key "osint")
+    "o h" '(my/hash-region :which-key "hash region")
+    "o b" '(my/base64-encode-region :which-key "base64 encode")
+    "o B" '(my/base64-decode-region :which-key "base64 decode")
+    "o x" '(my/hex-encode-region :which-key "hex encode")
+    "o X" '(my/hex-decode-region :which-key "hex decode")
+    "o u" '(my/decode-url :which-key "decode URL")
+    "o U" '(my/encode-url :which-key "encode URL")
+    "o p" '(my/generate-password :which-key "generate password"))
+
+  ;; Network tools
+  (my/leader-keys
+    "n" '(:ignore t :which-key "network")
+    "n s" '(my/nmap-scan :which-key "nmap scan")
+    "n w" '(my/whois :which-key "whois")
+    "n d" '(my/dig :which-key "dig")
+    "n c" '(my/curl-headers :which-key "curl headers")
+    "n i" '(my/search-ip-addresses :which-key "find IPs")
+    "n e" '(my/search-emails :which-key "find emails")
+    "n u" '(my/search-urls :which-key "find URLs"))
+
+  ;; SLIME/SLY
+  (my/leader-keys
+    "s" '(:ignore t :which-key "SLIME/SLY")
+    "s s" '(slime :which-key "start SLIME")
+    "s c" '(slime-connect :which-key "connect")
+    "s e" '(slime-eval-last-expression :which-key "eval sexp")
+    "s r" '(slime-eval-region :which-key "eval region")
+    "s d" '(slime-compile-defun :which-key "compile defun")
+    "s l" '(slime-load-file :which-key "load file")
+    "s m" '(slime-macroexpand-1 :which-key "macroexpand-1")
+    "s M" '(slime-macroexpand-all :which-key "macroexpand-all"))
+
+  ;; Prolog
+  (my/leader-keys
+    "p" '(:ignore t :which-key "prolog")
+    "p c" '(prolog-consult-buffer :which-key "consult buffer")
+    "p r" '(prolog-consult-region :which-key "consult region")
+    "p p" '(run-prolog :which-key "run prolog"))
+
+  ;; Git (magit)
+  (my/leader-keys
+    "g" '(:ignore t :which-key "git")
+    "g g" '(magit-status :which-key "magit status")
+    "g s" '(magit-status :which-key "magit status")
+    "g b" '(magit-blame :which-key "magit blame")
+    "g c" '(magit-commit :which-key "magit commit")
+    "g d" '(magit-diff :which-key "magit diff")
+    "g D" '(magit-diff-buffer-file :which-key "diff buffer file")
+    "g f" '(magit-fetch :which-key "magit fetch")
+    "g F" '(magit-pull :which-key "magit pull")
+    "g l" '(magit-log :which-key "magit log")
+    "g L" '(magit-log-buffer-file :which-key "magit log buffer file")
+    "g p" '(magit-push :which-key "magit push")
+    "g r" '(magit-rebase :which-key "magit rebase")
+    "g R" '(magit-revert :which-key "magit revert")
+    "g t" '(magit-tag :which-key "magit tag")
+    "g T" '(magit-todos-list :which-key "list todos"))
+
+  ;; Code/quickrun
+  (my/leader-keys
+    "c" '(:ignore t :which-key "code")
+    "c r" '(quickrun :which-key "run code")
+    "c R" '(quickrun-region :which-key "run region")))
+#+end_src
+
+* Pretty Symbols
+
+Make your code look nicer:
+
+#+begin_src emacs-lisp
+;; Prettify symbols is built-in, don't try to install it
+;; (use-package prettify-symbols-mode
+;;   :ensure nil  ; This tells straight.el NOT to try installing it
+;;   :hook ((emacs-lisp-mode lisp-mode scheme-mode) . prettify-symbols-mode)
+;;   :config
+;;   (setq prettify-symbols-unprettify-at-point 'right-edge)
+
+;;   ;; Custom symbols
+;;   (defun my/add-pretty-lambda ()
+;;     (push '("lambda" . ?λ) prettify-symbols-alist)
+;;     (push '("defun" . ?ƒ) prettify-symbols-alist)
+;;     (push '("defmacro" . ?μ) prettify-symbols-alist))
+
+;;   (add-hook 'emacs-lisp-mode-hook 'my/add-pretty-lambda))
+#+end_src
+
+* Quickrun - Execute Code Quickly
+
+Test snippets without leaving Emacs:
+
+#+begin_src emacs-lisp
+(use-package quickrun
+  :ensure t
+  :config
+  (my/leader-keys
+    "c" '(:ignore t :which-key "code")
+    "c r" '(quickrun :which-key "run code")
+    "c R" '(quickrun-region :which-key "run region")))
+#+end_src
+
+* Bonus: Better REPL Experience
+
+#+begin_src emacs-lisp
+;; Better completion in REPL
+(use-package company
+  :ensure t
+  :hook ((sly-mrepl-mode ielm-mode) . company-mode)
+  :config
+  (setq company-idle-delay 0.1
+        company-minimum-prefix-length 2
+        company-tooltip-align-annotations t))
+
+;; IELM (Emacs Lisp REPL) improvements
+(defun my/ielm-config ()
+  (setq ielm-prompt "λ> ")
+  (eldoc-mode 1)
+  (rainbow-delimiters-mode 1)
+  (smartparens-strict-mode 1))
+
+(add-hook 'ielm-mode-hook 'my/ielm-config)
+#+end_src
+
+* IDE 
+
+All together for a complete Lisp IDE:
+
+#+begin_src emacs-lisp
+;; Full Lisp editing setup
+(progn
+
+  ;; Core packages
+  (use-package smartparens :ensure t)
+  (use-package rainbow-delimiters :ensure t)
+  (use-package aggressive-indent :ensure t)
+  (use-package highlight-parentheses :ensure t)
+  
+  ;; Common Lisp
+
+  ;; Prolog
+  (use-package prolog :ensure t)
+  (use-package ediprolog :ensure t)
+  
+  ;; Enable for all Lisp modes
+  (dolist (mode '(emacs-lisp-mode-hook
+                  lisp-mode-hook
+                  scheme-mode-hook
+                  clojure-mode-hook))
+    (add-hook mode
+              (lambda ()
+                (smartparens-strict-mode 1)
+                (rainbow-delimiters-mode 1)
+                (aggressive-indent-mode 1)
+                (highlight-parentheses-mode 1)
+                (show-paren-mode 1)
+                (eldoc-mode 1)))))
+#+end_src
 * Windows
 #+begin_src emacs-lisp
 (evil-define-command +evil-window-vsplit-a (&optional count file)
@@ -182,6 +562,13 @@ I have also noticed that it is prob required on my laptop running a Intel N3060.
 (setq org-src-tab-acts-natively nil)
 #+end_src
 * Packages
+** security
+#+begin_src emacs-lisp
+(require 'epa-file)
+(epa-file-enable)
+#+end_src
+** Library
+** Languages
 ** Style
 #+begin_src emacs-lisp
 (use-package all-the-icons
@@ -246,6 +633,33 @@ Enable timestamp updating apon saving
 (add-hook 'before-save-hook 'time-stamp nil)
 #+end_src
 *** Org Modern
+#+begin_src emacs-lisp
+(use-package org-modern
+    :config
+    (setq
+     ;; Edit settings
+     org-auto-align-tags nil
+     org-tags-column 0
+     org-catch-invisible-edits 'show-and-error
+     org-special-ctrl-a/e t
+     org-insert-heading-respect-content t
+
+     ;; Org styling, hide markup etc.
+     org-hide-emphasis-markers t
+     org-pretty-entities t
+     org-ellipsis "…"
+
+     ;; Agenda styling
+     org-agenda-tags-column 0
+     org-agenda-block-separator ?─
+     org-agenda-time-grid
+     '((daily today require-timed)
+       (800 1000 1200 1400 1600 1800 2000)
+       " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
+     org-agenda-current-time-string
+     "◀── now ─────────────────────────────────────────────────")
+     (global-org-modern-mode 1))
+#+end_src
 *** org-roam
 #+begin_src emacs-lisp
 (use-package org-roam
@@ -282,6 +696,103 @@ Enable timestamp updating apon saving
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
+#+end_src
+
+*** Babel
+Tangle a file
+#+begin_src emacs-lisp
+  ;; (map! :leader
+  ;;       :desc "Tangle a file"
+  ;;       "b t" #'org-babel-tangle)
+#+end_src
+
+Execute the selected source block (used for literate programming)
+#+begin_src emacs-lisp
+  ;; (map! :leader
+  ;;       :desc "Babel execute selected source block"
+  ;;       "c b" #'org-babel-execute-src-block)
+#+end_src
+
+Execute all src blocks in buffer
+#+begin_src emacs-lisp
+  ;; (map! :leader
+  ;;       :desc "Babel execute buffer"
+  ;;       "c B" #'org-babel-execute-buffer)
+#+end_src
+
+Add languages to org babel
+
+#+begin_src emacs-lisp
+(use-package ob-async
+  :ensure t)
+
+(use-package ob-prolog
+  :ensure t)
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t) (shell . t) (lisp . t) (python . t) (prolog . t)))
+#+end_src
+**** Better Formating in org-babel
+Adapted from [[https://www.reddit.com/r/emacs/comments/9tp79o/comment/e90g7km/?utm_source=share&utm_medium=web2x&context=3][here]].
+#+begin_src emacs-lisp
+    (defun edit-src-block (src fn language)
+      "Replace SRC org-element's value property with the result of FN.
+    FN is a function that operates on org-element's value and returns a string.
+    LANGUAGE is a string referring to one of orb-babel's supported languages.
+    (https://orgmode.org/manual/Languages.html#Languages)"
+      (let ((src-language (org-element-property :language src))
+            (value (org-element-property :value src)))
+        (when (string= src-language language)
+          (let ((copy (org-element-copy src)))
+            (org-element-put-property copy :value
+                                      (funcall fn value))
+            (org-element-set-element src copy)))))
+
+    (defun format-elisp-string (string)
+      "Indents elisp buffer string and reformats dangling parens."
+      (with-temp-buffer
+        (let ((inhibit-message t))
+          (emacs-lisp-mode)
+          (insert
+           (replace-regexp-in-string "[[:space:]]*
+    [[:space:]]*)" ")" string))
+          (indent-region (point-min) (point-max))
+          (buffer-substring (point-min) (point-max)))))
+
+    (defun format-elisp-src-blocks ()
+      "Format Elisp src blocks in the current org buffer"
+      (interactive)
+      (save-mark-and-excursion
+        (let ((AST (org-element-parse-buffer)))
+          (org-element-map AST 'src-block
+            (lambda (element)
+              (edit-src-block element #'format-elisp-string "emacs-lisp")))
+          (delete-region (point-min) (point-max))
+           (insert (org-element-interpret-data AST)))))
+
+  ;; (map! :leader
+  ;;         :after org
+  ;;         :prefix ("b" . "org-babel-fomats")
+  ;;         :desc "format src" "f" #'format-elisp-src-blocks)
+#+end_src
+*** Org Tempo templates
+Makes it easier to write src blocks.
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  ;; is needed as of Org 9.2
+  (require 'org-tempo)
+  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
+  (add-to-list 'org-structure-template-alist '("php" . "src php"))
+  (add-to-list 'org-structure-template-alist '("jn" . "src json"))
+  (add-to-list 'org-structure-template-alist '("xm" . "src xml"))
+  (add-to-list 'org-structure-template-alist '("js" . "src js"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+  (add-to-list 'org-structure-template-alist '("nim" . "src nim"))
+  (add-to-list 'org-structure-template-alist '("erl" . "src erlang"))
+  (add-to-list 'org-structure-template-alist '("ss" . "src scheme"))
+  (add-to-list 'org-structure-template-alist '("cl" . "src lisp"))
+  (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
 #+end_src
 
 ** Keybinding
