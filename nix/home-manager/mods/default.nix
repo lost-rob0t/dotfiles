@@ -12,5 +12,6 @@
     ./syncthing.nix
     ./media.nix
     ./pentesting.nix
+    ./llm.nix
   ];
 }

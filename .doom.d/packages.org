@@ -116,7 +116,7 @@ GPTEL now supports agent like workflows via tools
 ** MCP Services
 GPTEL supports MCP.
 #+begin_src emacs-lisp
-(package! mcp :recipe (:type git :host github :repo "lizqwerscott/mcp.el") )
+(package! mcp :recipe (:type git :host github :repo "lizqwerscott/mcp.el"))
 #+end_src
 * Development
 ** TODO Codeium ai code completion tool

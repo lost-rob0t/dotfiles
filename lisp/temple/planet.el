@@ -51,11 +51,10 @@
       (string-trim result))))
 
 ;;; API Functions (simplified)
-
 (defun temple-get-astronomy-simple* ()
   "Get astronomy data via ipgeolocation.io"
   (condition-case err
-      (let* ((url (format "https://api.ipgeolocation.io/astronomy?apiKey=%s&lat=40.0&long=-83.0"
+      (let* ((url (format "https://api.ipgeolocation.io/astronomy?apiKey=%s" ;dont fool yourself Thinking that was enough bro.
                           temple-ipgeo-api-key))
              (url-request-method "GET")
              (buffer (url-retrieve-synchronously url t nil 5)))

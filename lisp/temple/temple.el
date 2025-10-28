@@ -13,7 +13,7 @@
 
 
 
-(defvar temple-prolog-file (expand-file-name "~/Documents/Notes/org/Temple/facts.pl"))
+(defvar temple-prolog-file (expand-file-name "~/Documents/Notes/org/Temple/kb/facts.pl"))
 
 
 (defvar temple-prolog-binary "swipl"
@@ -58,7 +58,7 @@
       (insert (format "- %d: %s\n" (car pair) (cdr pair))))))
 
 ;; optional keybinding
-(global-set-key (kbd "C-c t m") #'temple-insert-daily-meanings)
+(global-set-key (kbd "C-c t m") #'temple-insert-daily-int-meanings)
 
 ;;; Affirmations
 (defun temple-get-random-affirmation ()
@@ -660,6 +660,53 @@ Be direct, technical, and spiritually literate. No fluff.")
                         (insert response)
                         (org-mode)
                         (display-buffer buf))))))))
+
+(defun number-tarot (&optional question n affirmations)
+  "Perform a numeric divination reading with past/present/future spread.
+Queries the Prolog knowledge base for meanings and affirmations."
+  (interactive (list (read-string "What do you seek guidance on? ")
+                     (read-number "Number of meanings: " 3)
+                     (read-number "Number of affirmations: " 2)))
+  (let* ((meanings (temple-query-int-meaning-list (format "random_meanings(%d, Result)" n)))
+         (past (cdr (first meanings)))
+         (present (cdr (second meanings)))
+         (future (cdr (third meanings)))
+         (numbers (mapcar #'car meanings))
+         (affirmation-texts (temple-query-affirmations* affirmations))
+         (buf (get-buffer-create "*Temple Reading*")))
+    (with-current-buffer buf
+      (erase-buffer)
+      (org-mode)
+      (insert "#+TITLE: Temple Reading\n")
+      (insert (format "#+DATE: %s\n\n" (format-time-string "%Y-%m-%d %H:%M")))
+      (insert "* Reading\n\n")
+      (when (and question (not (string-empty-p question)))
+        (insert (format "** Question\n%s\n\n" question)))
+      (insert (format "** Numbers Drawn\n%s\n\n"
+                      (mapconcat #'number-to-string numbers " → ")))
+      (insert (format "** Past [%d]\n%s\n\n" (first numbers) past))
+      (insert (format "** Present [%d]\n%s\n\n" (second numbers) present))
+      (insert (format "** Future [%d]\n%s\n\n" (third numbers) future))
+      (when affirmation-texts
+        (insert "\n** Affirmations*\n")
+        (dolist (aff affirmation-texts)
+          (insert (format "- %s\n" aff))))
+      (insert "\n** Reflection\n\n")
+      (goto-char (point-max)))
+    (pop-to-buffer buf)
+    (message "Reading complete. Numbers: %s" numbers)))
+
+(defun temple-query-affirmations* (n)
+  "Query N random affirmations from the Prolog KB."
+  (let ((result '()))
+    (dotimes (_ n)
+      (let ((aff (temple-query-single "random_affirmation(Text)")))
+        (when aff
+          (push (cdr (assoc 'Text aff)) result))))
+    (nreverse result)))
+
+
+
 
 ;; Keybindings for AI analysis
 (global-set-key (kbd "C-c t * r") #'temple-recent-numbers*)

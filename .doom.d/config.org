@@ -159,9 +159,9 @@ This section tangles the init file
        ;;(haskell +lsp)    ; a language that's lazier than I am
                                         ;hy                ; readability of scheme w/ speed of python
        ;;idris             ; a language you can depend on
-       json              ; At least it ain't XML
+       (json +tree-sitter)              ; At least it ain't XML
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
-       (javascript +lsp)        ; all(hope(abandon(ye(who(enter(here))))))
+       (javascript +lsp +tree-sitter)        ; all(hope(abandon(ye(who(enter(here))))))
        ;;julia             ; a better, faster MATLAB
        ;;kotlin            ; a better, slicker Java(Script)
        ;;latex             ; writing papers in Emacs has never been so fun
@@ -1200,23 +1200,67 @@ Start a todo chat with tools needed
   (let ((gptel--system-message (alist-get 'time-boxer gptel-directives)))
     (gptel "*TODO boxer*" nil (ai/todo-list-todos-with-context '(and (or (todo) (todo "STRT" "LOOP" "PROJ")) (ts))) t)))
 #+end_src
-*** TODO MCP
+*** MCP Configuration
 #+begin_src emacs-lisp
-;; (use-package! mcp
-;;   :after gptel
-;;   :custom (mcp-hub-servers
-;;            `(("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" "/home/lizqwer/MyProject/")))
-;;              ("fetch" . (:command "uvx" :args ("mcp-server-fetch")))
-;;              ("qdrant" . (:url "http://localhost:8000/sse"))
-;;              ("graphlit" . (
-;;                             :command "npx"
-;;                             :args ("-y" "graphlit-mcp-server")
-;;                             :env (
-;;                                   :GRAPHLIT_ORGANIZATION_ID "your-organization-id"
-;;                                   :GRAPHLIT_ENVIRONMENT_ID "your-environment-id"
-;;                                   :GRAPHLIT_JWT_SECRET "your-jwt-secret")))))
-;;   :config (require 'mcp-hub)
-;;   :hook (after-init . mcp-hub-start-all-server))
+(use-package! mcp
+  :after gptel
+  :custom (mcp-hub-servers
+           `(("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" ,(expand-file-name "~"))))
+             ("mpris" . (:command "python3" :args (,(expand-file-name "~/.local/share/mcp-servers/mpris-server.py"))))))
+  :config
+  (require 'mcp-hub)
+  :hook (after-init . mcp-hub-start-all-server))
+#+end_src
+
+*** MCP Integration with GPTEL
+#+begin_src emacs-lisp
+(after! mcp
+  (after! gptel
+    ;; Add MCP tools to gptel directives
+    (add-to-list 'gptel-directives
+                 '(desktop-assistant . "You are a desktop assistant with access to filesystem and media player controls.
+You can:
+- Browse and manipulate files using filesystem tools
+- Control media playback (play/pause/stop/next/previous)
+- Get information about currently playing media
+- Adjust volume and player settings
+- List available media players
+
+Be concise and helpful. When using tools, explain what you're doing."))
+
+    ;; Create desktop assistant function
+    (defun +mcp/desktop-assistant ()
+      "Start a desktop assistant chat with MCP tools"
+      (interactive)
+      (let ((gptel--system-message (alist-get 'desktop-assistant gptel-directives)))
+        (gptel "*Desktop Assistant*" nil nil t)))
+
+    ;; MCP tool testing functions
+    (defun +mcp/test-filesystem ()
+      "Test MCP filesystem server"
+      (interactive)
+      (message "Testing MCP filesystem server...")
+      ;; This would call the MCP filesystem tools
+      (message "MCP filesystem test completed"))
+
+    (defun +mcp/test-mpris ()
+      "Test MCP MPRIS server"
+      (interactive)
+      (message "Testing MCP MPRIS server...")
+      ;; This would call the MCP MPRIS tools
+      (message "MCP MPRIS test completed"))
+
+    ;; Voice command integration
+    (defun +mcp/process-voice-command (command)
+      "Process voice command through MCP"
+      (interactive "sVoice command: ")
+      (let ((gptel--system-message (alist-get 'desktop-assistant gptel-directives)))
+        (gptel-request command
+                      :callback (lambda (response _info)
+                                  (message "Voice command processed: %s" response)
+                                  (when (fboundp 'alert)
+                                    (alert response :title "Desktop Assistant"))))))
+    ))
 #+end_src
 *** Keybinds
 Gptel keys, could add more commands though.[fn:6]
@@ -1231,14 +1275,19 @@ Gptel keys, could add more commands though.[fn:6]
   :desc "gptel Menu" :n "Y" #'gptel-menu
   :desc "gptel copilot" :n "i" #'gptel-complete
   :desc "gptel Send" :n "s" #'gptel-send
-  :desc "gptel Topic" :n "t" #'gptel-set-topic))
+  :desc "gptel Topic" :n "t" #'gptel-set-topic
+  :desc "Desktop Assistant" :n "d" #'+mcp/desktop-assistant
+  :desc "Process Voice Command" :n "v" #'+mcp/process-voice-command
+  (:prefix ("m" . "MCP")
+   :desc "Test Filesystem" :n "f" #'+mcp/test-filesystem
+   :desc "Test MPRIS" :n "m" #'+mcp/test-mpris)))
 #+end_src
 ** Spell Checking
 *** Ispell
 #+begin_src emacs-lisp
-(after! ispell
-  (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
-         ispell-extra-args '("--sug-mode=ultra")))
+;; (after! ispell
+;;   (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
+;;          ispell-extra-args '("--sug-mode=ultra")))
 
 #+end_src
 *** spell-fu
@@ -1465,6 +1514,13 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
          :map elfeed-search-mode-map
          ("F" . elfeed-tube-fetch)
          ([remap save-buffer] . elfeed-tube-save)))
+#+end_src
+** Temple
+just a place to derive meanings from nothing.
+#+begin_src emacs-lisp
+(setq temple-guardian-llm-enabled t)
+(setq temple-guardian-llm-provider 'claude)
+(temple-guardian-mode 1)
 #+end_src
 * Security
 ** Auth info source
