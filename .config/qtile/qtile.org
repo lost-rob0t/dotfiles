@@ -558,7 +558,17 @@ def init_widgets_list():
         #          background=colors[1],
         #          padding = 0,
         #          ),
+        widget.TextBox(
+            update_interval=3600,
+            fmt= subprocess.getoutput("emacsclient -e '(temple-get-random-affirmation)'|| echo 'Emacs Isnt running'"),
+            scroll_interval=0.1,
+            scroll=True,
+            scroll_delay=0.5,
+            scroll_fixed_width=True,
+            width=200,
+            max_chars = 200
 
+        ),
         widget.Pomodoro(foreground = colors[2],
             background = colors[1],
             ),
