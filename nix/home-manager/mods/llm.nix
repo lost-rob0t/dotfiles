@@ -23,7 +23,7 @@
       pulseaudio
 
       # Speech processing tools for voice interface
-      espeak
+      espeak-ng
       sox
       alsa-utils
 
@@ -258,7 +258,7 @@ mkdir -p "$TEMP_DIR"
 
 # Function to speak text
 speak_text() {
-    echo "$1" | espeak -s 150 -v en 2>/dev/null &
+    echo "$1" | espeak-ng -s 150 -v en 2>/dev/null &
 }
 
 # Function to show notification
