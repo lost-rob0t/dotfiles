@@ -142,6 +142,10 @@ keys = [
     Key([mod, "shift"], "Left", lazy.layout.swap_left()),
     Key([mod, "shift"], "Right", lazy.layout.swap_right()),
     Key([mod, "shift"], "space", lazy.window.toggle_floating()),
+
+    # Voice interface keybinds
+    Key([mod], "v", lazy.spawn(home + "/.local/bin/llm-voice-capture capture")),
+    Key([mod, "shift"], "v", lazy.spawn("emacsclient --eval '(+mcp/process-voice-command (read-string \"Voice command: \"))'")),
     KeyChord([mod],"e", [
              Key([], "e",
                  lazy.spawn("emacsclient -c -a 'emacs'"),
@@ -178,7 +182,11 @@ keys = [
                  ),
              Key([], "y",
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(+gptel/here)'"),
-                 desc='Emacsclient Vterm'
+                 desc='Emacsclient GPTel'
+                 ),
+             Key([], "m",
+                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(+mcp/desktop-assistant)'"),
+                 desc='Emacsclient MCP Desktop Assistant'
                  ),
          ])
  ]
@@ -446,6 +454,27 @@ def init_widgets_list():
         widget.Sep(
                   linewidth = 1,
                   padding = 10,
+                  foreground = colors[2],
+                  background = colors[1]
+                  ),
+
+        # AI Assistant Button - Voice and Chat Interface
+        widget.TextBox(
+            text=" AI ",
+            foreground=colors[6],
+            background=colors[0],
+            fontsize=12,
+            font="Hack Nerd Bold",
+            padding=8,
+            mouse_callbacks={
+                'Button1': lambda: qtile.cmd_spawn(home + "/.local/bin/qtile-ai-assistant voice"),
+                'Button2': lambda: qtile.cmd_spawn(home + "/.local/bin/qtile-ai-assistant chat"),
+                'Button3': lambda: qtile.cmd_spawn("emacsclient --eval '(+mcp/desktop-assistant)'")
+            }
+        ),
+        widget.Sep(
+                  linewidth = 1,
+                  padding = 5,
                   foreground = colors[2],
                   background = colors[1]
                   ),
