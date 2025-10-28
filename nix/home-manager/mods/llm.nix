@@ -17,12 +17,6 @@
       # Node.js for filesystem MCP server
       nodejs_22
 
-      # Python packages for MPRIS MCP server
-      python3
-      python3Packages.dbus-python
-      python3Packages.pygobject3
-      python3Packages.requests
-
       # Audio and media control utilities
       playerctl
       pavucontrol
@@ -36,10 +30,8 @@
       # Additional utilities
       jq
       curl
-    ];
 
-    # Python packages for MCP development
-    home.packages = with pkgs; [
+      # Python with required packages for MCP development
       (python3.withPackages (ps: with ps; [
         dbus-python
         pygobject3
