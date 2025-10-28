@@ -31,13 +31,10 @@
       jq
       curl
 
-      # Python with required packages for MCP development
+      # Python with basic packages for MCP development
       (python3.withPackages (ps: with ps; [
-        dbus-python
-        pygobject3
         requests
         websockets
-        uvloop
       ]))
     ];
 
@@ -50,14 +47,12 @@
 #!/usr/bin/env python3
 """
 MPRIS MCP Server - Bridge between Model Context Protocol and MPRIS media players
-Provides AI agents with media player control capabilities
+Provides AI agents with media player control capabilities via playerctl
 """
 
 import asyncio
 import json
 import sys
-import dbus
-from dbus.mainloop.glib import DBusGMainLoop
 import subprocess
 import logging
 from typing import Dict, List, Optional, Any
@@ -136,8 +131,8 @@ class MCPServer:
 
 class MPRISController:
     def __init__(self):
-        DBusGMainLoop(set_as_default=True)
-        self.bus = dbus.SessionBus()
+        # Using playerctl for MPRIS control - much simpler than D-Bus
+        pass
 
     def get_players(self) -> List[str]:
         """Get list of available MPRIS players"""
