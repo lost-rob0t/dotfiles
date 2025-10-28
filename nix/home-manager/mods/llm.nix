@@ -36,8 +36,6 @@
         dbus-python
         pygobject3
         requests
-        asyncio
-        json5
         websockets
         uvloop
       ]))
