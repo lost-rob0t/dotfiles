@@ -316,7 +316,20 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))))
+  ;; Lets cope about it and stop spamming others
+  (setq org-roam-capture-templates
+        '(("s" "Symbol" plain
+           "%?"
+           :if-new (file+head "symbols/${slug}.org"
+                              "#+title: ${title}\n#+roam_tags: symbol number\n\n* Symbol\n${title}\n\n* Interpretations\n\n* Appears in spreads\n\n")
+           :unnarrowed t)
+
+          ("r" "Ritual Spread" plain
+           "%(my/temple-capture-spread)"
+           :if-new (file+head "daily/${slug}.org"
+                              "#+title: ${title}\n#+roam_tags: ritual daily\n\n* Ritual Spread\n%U\n\n")
+           :empty-lines 1))))
 
 (defun url2org (begin end)
   "Download a webpage from selected url and convert to org."
@@ -745,9 +758,9 @@ strings."
   :desc "gptel Send" :n "s" #'gptel-send
   :desc "gptel Topic" :n "t" #'gptel-set-topic))
 
-(after! ispell
-  (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
-         ispell-extra-args '("--sug-mode=ultra")))
+;; (after! ispell
+;;   (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
+;;          ispell-extra-args '("--sug-mode=ultra")))
 
 (use-package! spell-fu
   :config
@@ -886,6 +899,10 @@ strings."
          :map elfeed-search-mode-map
          ("F" . elfeed-tube-fetch)
          ([remap save-buffer] . elfeed-tube-save)))
+
+(setq temple-guardian-llm-enabled t)
+(setq temple-guardian-llm-provider 'claude)
+(temple-guardian-mode 1)
 
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
