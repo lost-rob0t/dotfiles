@@ -388,6 +388,31 @@ def _unswallow(window):
     if hasattr(window, 'parent'):
         window.parent.minimized = False
 
+def get_last_line(cmd):
+    """Run a shell command and return its last line."""
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, text=True)
+    lines = result.stdout.strip().split("\n")
+    return lines[-1] if lines else ""
+
+# Keep the current scroll offset in a closure
+def make_scroller(cmd, width=30):
+    text = get_last_line(cmd)
+    if not text:
+        text = "(no output)"
+    scroll_state = {"offset": 0, "text": text}
+
+    def scroll_func():
+        # Refresh text each time (in case it changed)
+        scroll_state["text"] = get_last_line(cmd)
+        t = scroll_state["text"] + "   "  # pad spaces for smooth loop
+        offset = scroll_state["offset"]
+        scroll_state["offset"] = (offset + 1) % len(t)
+        # Slice text in a circular way
+        banner = (t + t)[offset:offset + width]
+        return banner
+
+    return scroll_func
+
 def init_widgets_defaults():
     return dict(font="Hack Nerd Regular",
                 fontsize = 12,
@@ -447,7 +472,6 @@ def init_widgets_list():
         #          background=colors[1],
         #          padding = 0,
         #          ),
-
         widget.Pomodoro(foreground = colors[2],
             background = colors[1],
             ),
@@ -458,26 +482,6 @@ def init_widgets_list():
                   background = colors[1]
                   ),
 
-        # AI Assistant Button - Voice and Chat Interface
-        widget.TextBox(
-            text=" AI ",
-            foreground=colors[6],
-            background=colors[0],
-            fontsize=12,
-            font="Hack Nerd Bold",
-            padding=8,
-            mouse_callbacks={
-                'Button1': lambda: qtile.cmd_spawn(home + "/.local/bin/qtile-ai-assistant voice"),
-                'Button2': lambda: qtile.cmd_spawn(home + "/.local/bin/qtile-ai-assistant chat"),
-                'Button3': lambda: qtile.cmd_spawn("emacsclient --eval '(+mcp/desktop-assistant)'")
-            }
-        ),
-        widget.Sep(
-                  linewidth = 1,
-                  padding = 5,
-                  foreground = colors[2],
-                  background = colors[1]
-                  ),
         widget.Mpris2(background=colors[1],
                       foreground=colors[6],
                       scroll_fixed_width=True,
