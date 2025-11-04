@@ -5,26 +5,16 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-24.11";
-    # Also see the 'unstable-packages' overlay at 'overlays/default.nix'.
-
-    # Home manager
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
-
-    # Emacs Overlay
     emacs-overlay.url = "github:nix-community/emacs-overlay";
     hardware.url = "github:nixos/nixos-hardware";
-    # For games
     mousetrap.url = "github:lost-rob0t/Mousetrap";
-    # Bixby Studio IDE
-    # Shameless plug: looking for a way to nixify your themes and make
-    # everything match nicely? Try nix-colors!
-    # nix-colors.url = "github:misterio77/nix-colors";
     nix-pre-commit.url = "github:jmgilman/nix-pre-commit";
-    #nimble.url = "github:lost-rob0t/flake-nimble";
+    zara.url = "github:lost-rob0t/zara";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, ... }@inputs:
+  outputs = { self, zara, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, ... }@inputs:
     let
       inherit (self) outputs;
       forAllSystems = nixpkgs.lib.genAttrs [
