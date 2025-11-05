@@ -2,6 +2,13 @@
 # KEYBOARD BINDINGS FOR ANY TWM
 #################################################################
 
+####################
+# ZARA
+####################
+super + shift + v
+     bash /home/unseen/.dotfiles/.config/qtile/scripts/stt.sh toggle
+
+
 #################################################################
 # SUPER + FUNCTION KEYS
 #################################################################
@@ -47,7 +54,7 @@ super + ctrl + c
 
 #Pavucontrol
 super + v
-    pavucontrol-qt
+    pavucontrol
 
 #Pragha
 super + m

@@ -388,31 +388,6 @@ def _unswallow(window):
     if hasattr(window, 'parent'):
         window.parent.minimized = False
 
-def get_last_line(cmd):
-    """Run a shell command and return its last line."""
-    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, text=True)
-    lines = result.stdout.strip().split("\n")
-    return lines[-1] if lines else ""
-
-# Keep the current scroll offset in a closure
-def make_scroller(cmd, width=30):
-    text = get_last_line(cmd)
-    if not text:
-        text = "(no output)"
-    scroll_state = {"offset": 0, "text": text}
-
-    def scroll_func():
-        # Refresh text each time (in case it changed)
-        scroll_state["text"] = get_last_line(cmd)
-        t = scroll_state["text"] + "   "  # pad spaces for smooth loop
-        offset = scroll_state["offset"]
-        scroll_state["offset"] = (offset + 1) % len(t)
-        # Slice text in a circular way
-        banner = (t + t)[offset:offset + width]
-        return banner
-
-    return scroll_func
-
 def init_widgets_defaults():
     return dict(font="Hack Nerd Regular",
                 fontsize = 12,

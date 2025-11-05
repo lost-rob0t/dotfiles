@@ -33,6 +33,7 @@ fi
 #feh --bg-fill /usr/share/archlinux-tweak-tool/data/wallpaper/wallpaper.png &
 #start the conky to learn the shortcuts
 (conky -c $HOME/.config/qtile/scripts/system-overview) &
+(conky -c $HOME/.config/qtile/scripts/temple-hourly.conf) &
 
 #start sxhkd to replace Qtile native key-bindings
 run sxhkd -c ~/.config/qtile/sxhkd/sxhkdrc &
@@ -56,3 +57,4 @@ run brave &
 run bash /home/unseen/.dotfiles/.config/qtile/scripts/pinger.sh $HOME/.config/hosts &
 run kdeconnect-indicator &
 run aw-qt &
+run "$HOME/.config/qtile/scripts/zara-wake.sh on"

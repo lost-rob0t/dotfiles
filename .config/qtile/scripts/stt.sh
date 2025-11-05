@@ -12,7 +12,8 @@ launch_sst() {
         "🎤 Starting Speech-to-Text" \
         "Model: $zara_model\nWorkers: Z=$zara_workers / W=$whisper_workers"
 
-    zara-dictate "$zara_model" "$zara_mode" "$whisper_workers" "$zara_workers" &
+    path=$(which zara-dictate)
+    $($path) "$zara_model" "$zara_mode" "$whisper_workers" "$zara_workers" &
     pid=$!
     echo "$pid" >"$ZARA_DICTATE_PID"
     touch "$lockfile"
