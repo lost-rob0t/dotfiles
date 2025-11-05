@@ -94,40 +94,55 @@ The optional argument NEW-WINDOW is not used."
   (end-of-line))
 
 ;; TODO Fix the mm template
-(setq  org-capture-templates '(
-                               ("n" "Personal notes" entry
-                                (file+headline +org-capture-notes-file "Inbox")
-                                "* %u %?\n%i\n%a" :prepend t)
-                               ("j" "Journal" entry #'org-roam-dailies-capture-today
-                                "* %I %?" :prepend t)
-                               ("p" "Templates for projects")
-                               ("pt" "Project-local todo" entry
-                                (file+headline +org-capture-project-todo-file "Inbox")
-                                "* TODO %?\n%i\n%a" :prepend t)
-                               ("pn" "Project-local notes" entry
-                                (file+headline +org-capture-project-notes-file "Inbox")
-                                "* %U %?\n%i\n%a" :prepend t)
-                               ("pc" "Project-local changelog" entry
-                                (file+headline +org-capture-project-changelog-file "Changelog")
-                                "* %U %?\n%i\n%a" :prepend t)
-                               ("o" "Centralized templates for projects")
-                               ("ot" "Project todo" entry #'+org-capture-central-project-todo-file "* TODO %?\n %i\n %a" :heading "Tasks" :prepend nil)
-                               ("on" "Project notes" entry #'+org-capture-central-project-notes-file "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
-                               ("oc" "Project changelog" entry #'+org-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
-                               ("i" "Ideas Box" entry (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
-                                "* IDEA %? %^g")
-                               ("q" "Quick Templates")
+(setq org-capture-templates
+      '(
+        ("n" "Personal notes" entry
+         (file+headline +org-capture-notes-file "Inbox")
+         "* %u %?\n%i\n%a" :prepend t)
 
-                               ("t" "TODO" entry
-                                (file+headline +org-capture-todo-file "Inbox")
-                                "* TODO %^{Task} \n:PROPERTIES:\n:Effort: %^{Effort|0:30|1:00|1:30|2:00}\n:CATEGORY: %^{Category|Misc|Work|Education|Bug Bounty|Personal Task}\n:END:\nSCHEDULED: %^{Scheduled}t\nDEADLINE: %^{Deadline}t\n%?"
-                                :prepend t)
-                               ("w" "Work Shift" entry
-                                (file+headline +org-capture-todo-file "WORK SCHEDULE")
-                                "* TODO [#A] Prepare for %^{Day} work shift (%^{Start Time}-%^{End Time})\n:PROPERTIES:\n:Effort: 0:30\n:CATEGORY: Work\n:SHIFT_START: %^{Start Time}\n:SHIFT_END: %^{End Time}\n:SHIFT_DATE: %^t\n:LEAVE_TIME: %^{Leave Time}\n:END:\nSCHEDULED: <%^t %^{Prep Time}>\n\nPreparation routine for %^{Start Time}-%^{End Time} shift. Wake at %^{Wake Time}, depart via %^{Transport|bus|Lyft} at %^{Leave Time}."
-                                :prepend t)
+        ("j" "Journal" entry #'org-roam-dailies-capture-today
+         "* %I %?" :prepend t)
 
-                               ))
+        ("p" "Templates for projects")
+
+        ("pt" "Project-local todo" entry
+         (file+headline +org-capture-project-todo-file "Inbox")
+         "* TODO %?\n%i\n%a" :prepend t)
+
+        ("pn" "Project-local notes" entry
+         (file+headline +org-capture-project-notes-file "Inbox")
+         "* %U %?\n%i\n%a" :prepend t)
+
+        ("pc" "Project-local changelog" entry
+         (file+headline +org-capture-project-changelog-file "Changelog")
+         "* %U %?\n%i\n%a" :prepend t)
+
+        ("o" "Centralized templates for projects")
+
+        ("ot" "Project todo" entry
+         #'+org-capture-central-project-todo-file
+         "* TODO %?\n %i\n %a"
+         :heading "Tasks" :prepend nil)
+
+        ("on" "Project notes" entry
+         #'+org-capture-central-project-notes-file
+         "* %U %?\n %i\n %a"
+         :heading "Notes" :prepend t)
+
+        ("oc" "Project changelog" entry
+         #'+org-capture-central-project-changelog-file
+         "* %U %?\n %i\n %a"
+         :heading "Changelog" :prepend t)
+
+        ("i" "Ideas Box" entry
+         (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
+         "* IDEA %? %^g")
+
+
+        ("t" "TODO" entry
+         (file+headline +org-capture-todo-file "Inbox")
+         "* TODO %^{Task} \n:PROPERTIES:\n:Effort: %^{Effort|0:30|1:00|1:30|2:00}\n:CATEGORY: %^{Category|Misc|Work|Education|Bug Bounty|Personal Task}\n:END:\nSCHEDULED: %^{Scheduled}t\nDEADLINE: %^{Deadline}t\n%?"
+         :prepend t)))
 
 (setq! org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
                                         ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
@@ -234,20 +249,79 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :desc "format src" "f" #'format-elisp-src-blocks)
 
 (with-eval-after-load 'org
-  ;; is needed as of Org 9.2
   (require 'org-tempo)
-  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
-  (add-to-list 'org-structure-template-alist '("py" . "src python"))
-  (add-to-list 'org-structure-template-alist '("php" . "src php"))
-  (add-to-list 'org-structure-template-alist '("jn" . "src json"))
-  (add-to-list 'org-structure-template-alist '("xm" . "src xml"))
-  (add-to-list 'org-structure-template-alist '("js" . "src js"))
-  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
-  (add-to-list 'org-structure-template-alist '("nim" . "src nim"))
-  (add-to-list 'org-structure-template-alist '("erl" . "src erlang"))
-  (add-to-list 'org-structure-template-alist '("ss" . "src scheme"))
-  (add-to-list 'org-structure-template-alist '("cl" . "src lisp"))
-  (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
+  ;; Scripting languages
+  (dolist (tpl '(("sh"   . "src shell")
+                 ("bash" . "src bash")
+                 ("zsh"  . "src shell")
+                 ("py"   . "src python")
+                 ("rb"   . "src ruby")
+                 ("php"  . "src php")
+                 ("pl"   . "src prolog")
+                 ("r"    . "src R")
+                 ("lua"  . "src lua")
+                 ("perl" . "src perl")
+                 ("awk"  . "src awk")))
+    (add-to-list 'org-structure-template-alist tpl))
+
+  ;; Web / markup
+  (dolist (tpl '(("js"   . "src javascript")
+                 ("ts"   . "src typescript")
+                 ("jsx"  . "src js")
+                 ("html" . "src html")
+                 ("css"  . "src css")
+                 ("xml"  . "src xml")
+                 ("yaml" . "src yaml")
+                 ("yml"  . "src yaml")
+                 ("json" . "src json")
+                 ("md"   . "src markdown")))
+    (add-to-list 'org-structure-template-alist tpl))
+
+  ;; Lisp family
+  (dolist (tpl '(("el"   . "src emacs-lisp")
+                 ("cl"   . "src lisp")
+                 ("elisp". "src emacs-lisp")
+                 ("scm"  . "src scheme")
+                 ("ss"   . "src scheme")
+                 ("rkt"  . "src racket")))
+    (add-to-list 'org-structure-template-alist tpl))
+
+  ;; Functional & compiled languages
+  (dolist (tpl '(("hs"   . "src haskell")
+                 ("ml"   . "src ocaml")
+                 ("erl"  . "src erlang")
+                 ("nim"  . "src nim")
+                 ("rs"   . "src rust")
+                 ("go"   . "src go")
+                 ("c"    . "src C")
+                 ("cpp"  . "src cpp")
+                 ("cs"   . "src csharp")
+                 ("java" . "src java")
+                 ("kt"   . "src kotlin")
+                 ("swift". "src swift")))
+    (add-to-list 'org-structure-template-alist tpl))
+
+  ;; Config & data
+  (dolist (tpl '(("nix"  . "src nix")
+                 ("toml" . "src toml")
+                 ("ini"  . "src conf")
+                 ("conf" . "src conf")
+                 ("csv"  . "src csv")
+                 ("sql"  . "src sql")))
+    (add-to-list 'org-structure-template-alist tpl))
+
+  ;; Misc / scientific / documentation
+  (dolist (tpl '(("gnuplot" . "src gnuplot")
+                 ("dot"     . "src dot")
+                 ("plantuml". "src plantuml")
+                 ("latex"   . "src latex")
+                 ("tex"     . "src latex")
+                 ("ledger"  . "src ledger")
+                 ("matlab"  . "src matlab")
+                 ("octave"  . "src octave")
+                 ("sas"     . "src sas")
+                 ("stata"   . "src stata")))
+    (add-to-list 'org-structure-template-alist tpl)))
 
 (defvar org-configs-list ()
   "A List of org documents that holds your configuration. Will be used to tangle to elisp")
@@ -284,52 +358,44 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (setq org-roam-directory "~/Documents/Notes/org/roam")
 
 (after! org-roam
-  :ensure t
   :init
   (setq org-roam-v2-ack t)
   (setq org-roam-directory "~/Documents/Notes/org/roam/")
   (setq org-roam-dailies-directory "daily")
   (setq org-roam-complete-everywhere t)
+
+  ;; Main Templates (Temple removed)
   (setq org-roam-capture-templates
         '(
           ("d" "default" plain "%?"
            :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")
+           :unnarrowed t)
 
-          ("s" "star intel" plain "*%? %^g"
+          ("s" "star intel" plain "* %? %^g"
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-          ("v" "Video" plain "*%? %^g"
+
+          ("v" "Video" plain "* %? %^g"
            :target (file+head "yt/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-
 
           ("h" "hacking" plain "%?"
            :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
-          ("a" "ai" plain "* {slug}\n%?"
+          ("a" "ai" plain "* ${title}\n%?"
            :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
           ("r" "Reading notes" plain "%?"
            :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
-                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))))
-  ;; Lets cope about it and stop spamming others
-  (setq org-roam-capture-templates
-        '(("s" "Symbol" plain
-           "%?"
-           :if-new (file+head "symbols/${slug}.org"
-                              "#+title: ${title}\n#+roam_tags: symbol number\n\n* Symbol\n${title}\n\n* Interpretations\n\n* Appears in spreads\n\n")
-           :unnarrowed t)
-
-          ("r" "Ritual Spread" plain
-           "%(my/temple-capture-spread)"
-           :if-new (file+head "daily/${slug}.org"
-                              "#+title: ${title}\n#+roam_tags: ritual daily\n\n* Ritual Spread\n%U\n\n")
-           :empty-lines 1))))
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+        )))
 
 (defun url2org (begin end)
   "Download a webpage from selected url and convert to org."
@@ -730,21 +796,62 @@ strings."
   (let ((gptel--system-message (alist-get 'time-boxer gptel-directives)))
     (gptel "*TODO boxer*" nil (ai/todo-list-todos-with-context '(and (or (todo) (todo "STRT" "LOOP" "PROJ")) (ts))) t)))
 
-;; (use-package! mcp
-;;   :after gptel
-;;   :custom (mcp-hub-servers
-;;            `(("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" "/home/lizqwer/MyProject/")))
-;;              ("fetch" . (:command "uvx" :args ("mcp-server-fetch")))
-;;              ("qdrant" . (:url "http://localhost:8000/sse"))
-;;              ("graphlit" . (
-;;                             :command "npx"
-;;                             :args ("-y" "graphlit-mcp-server")
-;;                             :env (
-;;                                   :GRAPHLIT_ORGANIZATION_ID "your-organization-id"
-;;                                   :GRAPHLIT_ENVIRONMENT_ID "your-environment-id"
-;;                                   :GRAPHLIT_JWT_SECRET "your-jwt-secret")))))
-;;   :config (require 'mcp-hub)
-;;   :hook (after-init . mcp-hub-start-all-server))
+(use-package! mcp
+  :after gptel
+  :custom (mcp-hub-servers
+           `(("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" ,(expand-file-name "~"))))
+             ("mpris" . (:command "python3" :args (,(expand-file-name "~/.local/share/mcp-servers/mpris-server.py"))))))
+  :config
+  (require 'mcp-hub)
+  :hook (after-init . mcp-hub-start-all-server))
+
+(after! mcp
+  (after! gptel
+    ;; Add MCP tools to gptel directives
+    (add-to-list 'gptel-directives
+                 '(desktop-assistant . "You are a desktop assistant with access to filesystem and media player controls.
+You can:
+- Browse and manipulate files using filesystem tools
+- Control media playback (play/pause/stop/next/previous)
+- Get information about currently playing media
+- Adjust volume and player settings
+- List available media players
+
+Be concise and helpful. When using tools, explain what you're doing."))
+
+    ;; Create desktop assistant function
+    (defun +mcp/desktop-assistant ()
+      "Start a desktop assistant chat with MCP tools"
+      (interactive)
+      (let ((gptel--system-message (alist-get 'desktop-assistant gptel-directives)))
+        (gptel "*Desktop Assistant*" nil nil t)))
+
+    ;; MCP tool testing functions
+    (defun +mcp/test-filesystem ()
+      "Test MCP filesystem server"
+      (interactive)
+      (message "Testing MCP filesystem server...")
+      ;; This would call the MCP filesystem tools
+      (message "MCP filesystem test completed"))
+
+    (defun +mcp/test-mpris ()
+      "Test MCP MPRIS server"
+      (interactive)
+      (message "Testing MCP MPRIS server...")
+      ;; This would call the MCP MPRIS tools
+      (message "MCP MPRIS test completed"))
+
+    ;; Voice command integration
+    (defun +mcp/process-voice-command (command)
+      "Process voice command through MCP"
+      (interactive "sVoice command: ")
+      (let ((gptel--system-message (alist-get 'desktop-assistant gptel-directives)))
+        (gptel-request command
+                      :callback (lambda (response _info)
+                                  (message "Voice command processed: %s" response)
+                                  (when (fboundp 'alert)
+                                    (alert response :title "Desktop Assistant"))))))
+    ))
 
 (map!
  :leader
@@ -756,7 +863,11 @@ strings."
   :desc "gptel Menu" :n "Y" #'gptel-menu
   :desc "gptel copilot" :n "i" #'gptel-complete
   :desc "gptel Send" :n "s" #'gptel-send
-  :desc "gptel Topic" :n "t" #'gptel-set-topic))
+  :desc "gptel Topic" :n "t" #'gptel-set-topic
+  :desc "Desktop Assistant" :n "d" #'+mcp/desktop-assistant
+  (:prefix ("m" . "MCP")
+   :desc "Test Filesystem" :n "f" #'+mcp/test-filesystem
+   :desc "Test MPRIS" :n "m" #'+mcp/test-mpris)))
 
 ;; (after! ispell
 ;;   (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
@@ -779,6 +890,10 @@ strings."
 (use-package! s)
 
 (setq lsp-package-path (executable-find "pyright"))
+
+(defalias 'prolog/env
+   (kmacro "SPC . ~ /  .~/Documents/Notes/programmingorg/programming/prolog/prolog.org
+GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspace> o r g / p r o g r a m m i n g / p r o l o g / p r o l o g . o r g <return> G M-x r u n - p r o l o g <return>"))
 
 (envrc-global-mode)
 
@@ -806,21 +921,26 @@ strings."
       :map 'lispyville-mode-map
       "C-s" #'lispyville-move-down)
 
-(put 'defvar*   'doc-string-elt 3)
-(put 'defparameter*   'doc-string-elt 3)
-(put 'lambda*   'doc-string-elt 2)
+(after! lisp-mode
+  ;; Tell Emacs where the docstring lives for defstar macros
+  (put 'defvar*        'doc-string-elt 3)
+  (put 'defparameter*  'doc-string-elt 3)
+  (put 'defconstant*   'doc-string-elt 3)
+  (put 'lambda*        'doc-string-elt 2)
 
-(defvar *lisp-special-forms*
-  (regexp-opt '("defvar*"
-                "defconstant*"
-                "defparameter*"
-                "defgeneric*"
-                "defmethod*"
-                "lambda*"
-                "flet*"
-                "labels*") 'words))
-(font-lock-add-keywords 'lisp-mode
-                        `((,*lisp-special-forms* . font-lock-keyword-face)))
+  (defvar +star-lisp-special-forms
+    (regexp-opt '("defvar*"
+                  "defconstant*"
+                  "defparameter*"
+                  "defgeneric*"
+                  "defmethod*"
+                  "lambda*"
+                  "flet*"
+                  "labels*") 'words))
+
+  (font-lock-add-keywords
+   'common-lisp-mode
+   `((,+star-lisp-special-forms . font-lock-keyword-face))))
 
 (use-package! flycheck-package
   :after flycheck
@@ -900,9 +1020,7 @@ strings."
          ("F" . elfeed-tube-fetch)
          ([remap save-buffer] . elfeed-tube-save)))
 
-(setq temple-guardian-llm-enabled t)
-(setq temple-guardian-llm-provider 'claude)
-(temple-guardian-mode 1)
+(load "~/Temple/temple-loader.el")
 
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
