@@ -85,8 +85,6 @@
     coreutils
     pandoc #emacs
     xclip
-    (aspellWithDicts
-        (dicts: with dicts; [ en en-computers en-science  ]))
     cifs-utils
     pmutils # sleep/hibernate
     ## Android

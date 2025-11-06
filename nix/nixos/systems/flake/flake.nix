@@ -86,7 +86,7 @@
   hardware.bluetooth.enable = true;
   services.blueman.enable = true;
 
-  environment.variables.DICPATH = "/run/current-system/sw/share/hunspell:/run/current-system/sw/share/hyphen";
+  #environment.variables.DICPATH = "/run/current-system/sw/share/hunspell:/run/current-system/sw/share/hyphen";
 
   system.stateVersion = "21.11"; # Did you read the comment?
 }
