@@ -60,9 +60,12 @@
     tor = {
       enable = true;
     };
-    printing = {
-      enable = false;
+    avahi = {
+      enable = true;
+      nssmdns4 = true;
+      openFirewall = true;
     };
+
     i2p = {
       enable = false;
     };
@@ -100,9 +103,40 @@
 
     };
 
+    open-webui = {
+      enable = true;
+      package = pkgs.open-webui.overrideAttrs (oldAttrs: {
+      propagatedBuildInputs = (oldAttrs.propagatedBuildInputs or []) ++ (with pkgs.python3Packages; [
+        aiohttp
+        requests
+        numpy
+        pandas
+        scipy
+        matplotlib
+        scikit-learn
+        pyyaml
+        jinja2
+        click
+        python-dateutil
+        pytz
+        anthropic
+        pydantic
+      ]);
+      });
 
+
+  environment = {
+    ANONYMIZED_TELEMETRY = "False";
+    DO_NOT_TRACK = "True";
+    SCARF_NO_ANALYTICS = "True";
+    OLLAMA_API_BASE_URL = "http://127.0.0.1:11434";
+    # Enable function calling/tools support
+    ENABLE_FUNCTION_CALLING = "true";
+    BACKEND_CORS_ORIGINS = ''"*"'';
+  };
+};
      ollama = {
-       enable = true;
+       enable = false;
        user = "ollama";
        acceleration = "rocm";
        openFirewall = true;
@@ -130,4 +164,5 @@
 
   };
   virtualisation.docker.autoPrune.enable = true;
+
 }

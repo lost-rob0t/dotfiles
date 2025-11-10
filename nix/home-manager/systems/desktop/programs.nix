@@ -36,7 +36,6 @@
     terminator
     remmina
     freerdp
-    rpi-imager
     virt-manager
     virtiofsd
 
@@ -53,8 +52,7 @@
     remmina
     freerdp
     sqlitebrowser
-    tdesktop
-    rpi-imager
+    telegram-desktop
     virt-viewer
     kdePackages.kdeconnect-kde
     # Security

@@ -89,15 +89,14 @@
     pmutils # sleep/hibernate
     ## Android
     android-tools
-    waydroid
     ## Games
-    steam-run-native
+    steam-run
     winePackages.stagingFull
     wineWowPackages.staging
     winetricks
     faudio
     sunshine
-    atlauncher
+    prismlauncher # MC
     ## Programming
     pipenv
     direnv
@@ -109,11 +108,11 @@
     nimlsp
     podman-compose
     sqlite
-    (python3.withPackages (ps: with ps; [ requests ]))
+    # (python3.withPackages (ps: with ps; [ requests ]))
     # BUG qjoypad
 
     ## Security
-    tor-browser-bundle-bin
+    tor-browser
     tor
     torsocks
     i2p

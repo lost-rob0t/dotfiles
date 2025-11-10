@@ -40,7 +40,7 @@
     remmina
     freerdp
     sqlitebrowser
-    tdesktop
+    telegram-desktop
     # Misc
     sxhkd
     conky

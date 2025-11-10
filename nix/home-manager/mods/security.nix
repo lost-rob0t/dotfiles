@@ -12,7 +12,7 @@
     home.packages = with pkgs; [
     opensnitch-ui
     lxqt.lxqt-policykit
-    tor-browser-bundle-bin
+    tor-browser
     gnome-keyring
     ];
   };
