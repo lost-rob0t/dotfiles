@@ -26,13 +26,6 @@
     extraPackages = [];
   };
   security.enable = true;
-  services.llm = {
-    enable = true;
-    mcpServers = {
-      filesystem = true;
-      mpris = true;
-    };
-  };
   desktop = {
     # Enable Common sense apps
     enable = true;
