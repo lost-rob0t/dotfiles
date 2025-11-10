@@ -1603,7 +1603,7 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
 ** Temple
 
 #+begin_src emacs-lisp
-(load "~/Temple/temple-loader.el")
+(load "~/share/Temple/temple-loader.el")
 #+end_src
 * Security
 ** Auth info source

@@ -179,8 +179,8 @@ strings."
     (setq source-file (dired-get-filename)))
   (let* ((drive-list (nsa/list-drives))
          (selected-drive (nsa/select-disk))
-         (dd-command (format "sudo dd if=%s of=/dev/%s bs=4M status=progress" source-file selected-drive)))
-    (nsa/are-you-fucking-sure (format  "You have selected the drive %s" selected-drive))
+         (dd-command (format "sudo dd if=%s of=/dev/%s bs=4M status=progress && sync" source-file selected-drive)))
+    (nsa/are-you-fucking-sure (format "You have selected the drive %s" selected-drive))
     (async-shell-command dd-command "*dd*")
     (message "Copying %s to drive %s. Command: %s" source-file selected-drive dd-command)))
 

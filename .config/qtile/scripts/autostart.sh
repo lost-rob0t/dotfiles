@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 function run {
-  if ! pgrep -x $(basename $1 | head -c 15) 1>/dev/null; then
-    $@ &
-  fi
+    if ! pgrep -x $(basename $1 | head -c 15) 1>/dev/null; then
+        $@ &
+    fi
 }
 
 #Set your native resolution IF it does not exist in xrandr
@@ -23,7 +23,7 @@ function run {
 keybLayout=$(setxkbmap -v | awk -F "+" '/symbols/ {print $2}')
 
 if [ $keybLayout = "be" ]; then
-  cp $HOME/.config/qtile/config-azerty.py $HOME/.config/qtile/config.py
+    cp $HOME/.config/qtile/config-azerty.py $HOME/.config/qtile/config.py
 fi
 
 #Some ways to set your wallpaper besides variety or nitrogen
@@ -33,7 +33,7 @@ fi
 #feh --bg-fill /usr/share/archlinux-tweak-tool/data/wallpaper/wallpaper.png &
 #start the conky to learn the shortcuts
 (conky -c $HOME/.config/qtile/scripts/system-overview) &
-(conky -c $HOME/.config/qtile/scripts/temple-hourly.conf) &
+(conky -c $HOME/Documents/Scripts/weather.conf) &
 
 #start sxhkd to replace Qtile native key-bindings
 run sxhkd -c ~/.config/qtile/sxhkd/sxhkdrc &
@@ -57,4 +57,3 @@ run brave &
 run bash /home/unseen/.dotfiles/.config/qtile/scripts/pinger.sh $HOME/.config/hosts &
 run kdeconnect-indicator &
 run aw-qt &
-run "$HOME/.config/qtile/scripts/zara-wake.sh on"
