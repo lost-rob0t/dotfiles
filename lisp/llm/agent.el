@@ -924,5 +924,5 @@
 
 ;; Set default preset
 
-(provide 'ai-agent-tools)
+(provide 'ai-agent)
 ;;; ai-agent-tools.el ends here
