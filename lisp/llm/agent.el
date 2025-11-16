@@ -813,7 +813,7 @@
     - a 1–2 sentence purpose summary
     - a full or project-relative file path
     - nested sections for submodules if applicable.
-
+ 4. Create atomic topic focused files, eg 01-index.org for project index, 02-object-model.org, ect 
  Example format:
 
  * Project: Hackmode Expert
@@ -827,7 +827,7 @@
   - tools/ffuf.prolog :: Fuzzing tool integration and output parser.
   - tools/bbot.prolog :: JSON scanner output parser for discovery.
 
- The AI should treat these context files as agentic memory — persistent references describing project structure, purpose, and interrelations — but should only write or update them when explicitly instructed by the user.")
+ The AI should treat these context files as agentic memory — persistent references describing project structure, purpose, and interrelations — Remeber to use this as the user may forget to remind you.")
 
 
 (gptel-make-tool
