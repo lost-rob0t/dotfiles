@@ -322,7 +322,7 @@ Returns confirmation of the state change."))
 
 (defvar ai/todo-get-context-tool
   (gptel-make-tool
-   :name "get_context"
+   :name "get_todo_context"
    :function #'ai/todo-get-context
    :category "productivity"
    :include t
