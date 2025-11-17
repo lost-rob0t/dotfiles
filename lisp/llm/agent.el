@@ -286,7 +286,8 @@
 
 (defun ai/--brave-search (query &optional country search-lang count offset)
   "Search using Brave API with QUERY and optional parameters."
-  (let* ((api-key (getenv "BRAVE_API_KEY"))
+  (let* ((api-key (or  (getenv "BRAVE_API_KEY")
+                       (nsa/auth-source-get :host "api.brave.com")))
          (country (or country "US"))
          (search-lang (or search-lang "en"))
          (count (or count 5))
