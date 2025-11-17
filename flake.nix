@@ -12,9 +12,19 @@
     mousetrap.url = "github:lost-rob0t/Mousetrap";
     nix-pre-commit.url = "github:jmgilman/nix-pre-commit";
     zara.url = "github:lost-rob0t/zara";
+    org-vector.url = "github:lost-rob0t/org-vector";
+    bixby-studio.url = "github:lost-rob0t/org-vector";
   };
 
-  outputs = { self, zara, nixpkgs, nixpkgs-stable, home-manager, nixos-hardware, ... }@inputs:
+  outputs = { self,
+              org-vector,
+              zara,
+              nixpkgs,
+              nixpkgs-stable,
+              home-manager,
+              nixos-hardware,
+              bixby-studio,
+              ... }@inputs:
     let
       inherit (self) outputs;
       forAllSystems = nixpkgs.lib.genAttrs [

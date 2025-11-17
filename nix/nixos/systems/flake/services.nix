@@ -136,14 +136,14 @@
   };
 };
      ollama = {
-       enable = false;
-       user = "ollama";
-       acceleration = "rocm";
+       enable = true;
+       package = pkgs.ollama-rocm;
        openFirewall = true;
        host = "0.0.0.0";
-     };
-
-  };
+       user = "ollama";
+       group = "ai";
+       home = "/home/ollama";
+  };};
   virtualisation = {
     podman = {
       enable = false;

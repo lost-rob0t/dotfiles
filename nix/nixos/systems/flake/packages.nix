@@ -91,6 +91,7 @@
     android-tools
     ## Games
     steam-run
+    winboat
     winePackages.stagingFull
     wineWowPackages.staging
     winetricks

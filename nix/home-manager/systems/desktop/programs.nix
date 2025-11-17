@@ -82,6 +82,6 @@
     variety
     file
     yt-dlp # For Emacs
-
+   inputs.bixby-studio
   ];
 }

@@ -16,7 +16,9 @@
     };
   };
 
-  
+  llm = {
+    enable = true;
+  };
 
   emacs = {
     enable = true;

@@ -58,4 +58,5 @@
   hardware = {
     cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
   };
+  nixpkgs.config.rocmSupport = true;
 }
