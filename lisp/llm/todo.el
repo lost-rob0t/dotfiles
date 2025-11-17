@@ -117,25 +117,52 @@ QUERY is an org-ql query string (defaults to listing all todos)."
     (unless (file-exists-p file)
       (error "Todo file does not exist: %s" file))
 
-    (let ((results (org-ql-select file query-sexp)))
+    (let ((results (org-ql-select file query-sexp
+                     :action (lambda ()
+                               ;; Extract data while positioned at the heading
+                               (let* ((element (org-element-at-point))
+                                      (title (org-get-heading t t t t))
+                                      (todo-keyword (org-element-property :todo-keyword element))
+                                      (tags (org-get-tags))
+                                      (priority (org-element-property :priority element))
+                                      (scheduled (org-element-property :scheduled element))
+                                      (deadline (org-element-property :deadline element)))
+                                 (list :title title
+                                       :todo-keyword todo-keyword
+                                       :tags tags
+                                       :priority priority
+                                       :scheduled scheduled
+                                       :deadline deadline))))))
       (if results
           (mapconcat
            (lambda (item)
-             (let* ((title (org-element-property :title item))
-                    (todo-keyword (org-element-property :todo-keyword item))
-                    (tags (org-element-property :tags item))
-                    (priority (org-element-property :priority item))
-                    (scheduled (org-element-property :scheduled item))
-                    (deadline (org-element-property :deadline item)))
+             (let* ((title (plist-get item :title))
+                    (todo-keyword (plist-get item :todo-keyword))
+                    (tags (plist-get item :tags))
+                    (priority (plist-get item :priority))
+                    (scheduled (plist-get item :scheduled))
+                    (deadline (plist-get item :deadline)))
                (format "- [%s] %s%s%s%s%s"
                        (or todo-keyword "TODO")
-                       (if (listp title) (string-join title " ") (or title ""))
-                       (if tags (format " :%s:" (string-join tags ":")) "")
-                       (if priority (format " [#%c]" priority) "")
-                       (if scheduled (format " SCHEDULED: %s"
-                                             (org-timestamp-format scheduled "<%Y-%m-%d>")) "")
-                       (if deadline (format " DEADLINE: %s"
-                                            (org-timestamp-format deadline "<%Y-%m-%d>")) ""))))
+                       (or title "")
+                       (if (and tags (> (length tags) 0))
+                           (format " :%s:" (string-join tags ":"))
+                         "")
+                       (if (and priority (characterp priority))
+                           (format " [#%c]" priority)
+                         "")
+                       (if scheduled
+                           (condition-case nil
+                               (format " SCHEDULED: %s"
+                                       (org-timestamp-format scheduled "<%Y-%m-%d %a>"))
+                             (error ""))
+                         "")
+                       (if deadline
+                           (condition-case nil
+                               (format " DEADLINE: %s"
+                                       (org-timestamp-format deadline "<%Y-%m-%d %a>"))
+                             (error ""))
+                         ""))))
            results "\n")
         "No todos found matching the query."))))
 
@@ -418,7 +445,8 @@ INCORRECT EXAMPLES (DO NOT DO THIS):
 
 Remember: ALL temporal information goes in scheduled/deadline fields WITH TIMES, NOT in titles or tags!
 
-You have access to tools for creating, listing, updating todos, and managing time tracking.")
+You have access to tools for creating, listing, updating todos, and managing time tracking.
+Be sure to list the current open todos before creating new ones, If one exists, edit it instead")
 
 ;; ============================================================================
 ;; Preset Configuration (OPTIONAL - functions set up tools directly)
@@ -429,7 +457,7 @@ You have access to tools for creating, listing, updating todos, and managing tim
 (gptel-make-preset 'todo-agent
   :description "Manage todos, clock in and out, with date/time awareness"
   :backend "Claude"
-  :model 'claude-sonnet-4-20250514
+  :model 'claude-haiku-4-5-20251001
   :system ai/todo-system-prompt
   :stream t
   :tools (list ai/todo-write-tool
@@ -459,7 +487,7 @@ Example: 'Add todo: write report by Friday, high priority'"
                     :stream nil
                     :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))))
          (gptel-backend backend)
-         (gptel-model 'claude-sonnet-4-20250514))
+         (gptel-model 'claude-haiku-4-5-20251001))
     (message "Processing: %s" input)
     (gptel-request
         (format "%s\n\nPlease execute the necessary tool calls to complete this request. After calling tools, confirm what was created." input)
@@ -495,7 +523,7 @@ Use this for complex todo management, planning, and time tracking."
       (insert "What would you like to do?\n\n")
       ;; Set up gptel with tools
       (setq-local gptel-backend backend)
-      (setq-local gptel-model 'claude-sonnet-4-20250514)
+      (setq-local gptel-model 'claude-haiku-4-5-20251001)
       (setq-local gptel--system-message ai/todo-system-prompt)
       (setq-local gptel-tools (list ai/todo-write-tool
                                     ai/todo-list-tool
@@ -515,10 +543,9 @@ This is a synchronous version that waits for the response."
   (interactive "sWhat do you want to do? ")
   (let* ((backend (gptel-make-anthropic "Claude"
                     :stream nil
-                    :key (or (getenv "ANTHROPIC_API_KEY")
-                             (user-error "ANTHROPIC_API_KEY not set"))))
+                    :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))))
          (gptel-backend backend)
-         (gptel-model 'claude-sonnet-4-20250514)
+         (gptel-model 'claude-haiku-4-5-20251001)
          (response-received nil)
          (response-text nil))
     (message "Processing: %s" input)
