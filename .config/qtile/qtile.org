@@ -711,7 +711,9 @@ def init_widgets_list():
             foreground = colors[5],
             background = colors[1],
             fontsize = 12,
-            format="%Y-%m-%d %H:%M"
+            format="%Y-%m-%d %H:%M",
+            mouse_callbacks={ 'Button1': lambda: os.system('notify-send -a qtile "$(date "+%Y-%m-%d %H:%M")" "$(cal)"')}
+
         ),
         widget.Sep(
                   linewidth = 1,
