@@ -85,8 +85,8 @@ fi
 
 bind -m emacs-standard -x '"\C-r": __fzf_history__'
 
-source ~/.dotfiles/.bash.d/fzf-bash-cmpl.sh
-bind -x '"\t": fzf_bash_completion'
+#source ~/.dotfiles/.bash.d/fzf-bash-cmpl.sh
+#bind -x '"\t": fzf_bash_completion'
 
 function init_platform () {
 # create the .platform file i use
@@ -156,13 +156,6 @@ function install_doom() {
         return 1
     fi
 }
-
-if [ ! -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
-    source ~/.nix-profile/etc/profile.d/nix.sh
-    export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}
-fi
-
-PKG_CONFIG_PATH="$HOME/.nix-profile/lib/pkgconfig:$HOME/.nix-profile/lib64/pkgconfig:$HOME/.nix-profile/share/pkgconfig;"
 
 function nim-init () {
  # Init a nim project and start a git repo
@@ -369,6 +362,20 @@ export ANSIBLE_GALAXY_CACHE_DIR="${XDG_CACHE_HOME}/ansible/galaxy_cache"
 export RECOLL_CONFDIR="$XDG_CONFIG_HOME/recoll"
 export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
 export _JAVA_OPTIONS=-Djava.util.prefs.userRoot="$XDG_CONFIG_HOME"/java
+
+vterm_printf() {
+    if [ -n "$TMUX" ] \
+        && { [ "${TERM%%-*}" = "tmux" ] \
+            || [ "${TERM%%-*}" = "screen" ]; }; then
+        # Tell tmux to pass the escape sequences through
+        printf "\ePtmux;\e\e]%s\007\e\\" "$1"
+    elif [ "${TERM%%-*}" = "screen" ]; then
+        # GNU screen (screen, screen-256color, screen-256color-bce)
+        printf "\eP\e]%s\007\e\\" "$1"
+    else
+        printf "\e]%s\e\\" "$1"
+    fi
+}
 
 function fancy-shell () {
     eval "$(direnv hook bash)"

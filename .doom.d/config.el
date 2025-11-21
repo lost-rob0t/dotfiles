@@ -572,12 +572,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;        (dme:w3m-textarea-mode))
 ;;      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
 
-(after! vterm
-  (defun vterm--rename-buffer-as-title (title)
-    (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
-      (cd-absolute dir)
-      (rename-buffer (format "term %s" title))))
-  (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title))
+ (after! vterm
+   (setq vterm-environment '("TERM=xterm-256color"))
+   (defun vterm--rename-buffer-as-title (title)
+     (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
+       (cd-absolute dir)
+       (rename-buffer (format "term %s" title))))
+   (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+   (setq vterm-shell "/run/current-system/sw/bin/bash"))
 
 (after! vterm
   (defun nsa/tmux-vterm (arg)
@@ -746,11 +748,14 @@ strings."
 
 (use-package! gptel
   :config
+  
   (setq! gptel-model 'claude-sonnet-4-20250514
          gptel-backend (gptel-make-anthropic "Claude"
                          :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
                          :stream nil)
-       gptel-directives '((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
+         gptel-directives
+         '(
+           (default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
  topic relevant terminology. Do NOT hedge or qualify. Do not waffle. Speak
  directly and be willing to make creative guesses. Explain your reasoning. if you
  don’t know, say you don’t know.
@@ -760,35 +765,19 @@ strings."
  Your output should be prefixed with org-mode style trees with ** starting with 2 levels
 
  Never apologize.  Ask questions when unsure.")
-                          (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
-                                      (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
-                                      (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
-                                      (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
-                                      (time-boxer . "You are a time-boxing specialist. Convert vague tasks into specific, timed work blocks. Consider context switching costs. Suggest productive time boundaries. Account for hyperfocus protection.")
-                                      (explain . "Explain what this code does.")
-                          ;; Complete solution directives (when you want full code)
-                          (pythoner . "Complete Python code only.")
-
-                          ;; Guidance directives (modified for hints/direction)
-                          (ducky . "Give coding guidance: suggest approach, key functions, potential issues. NO complete code.")
-                          (lisp-guide . "Common Lisp guidance: suggest functions, patterns, gotchas. Let me implement.")
-                          (python-guide . "Python guidance: suggest libraries, approaches, potential issues. No complete code.")
-                          (emacs-guide . "Emacs development guidance: suggest functions, keybindings, patterns. No complete elisp.")
-
-                          ;; Learning helpers
-                          (explainer . "Explain code concepts clearly, but don't write the code for me.")
-                          (optimizer . "Suggest optimizations and improvements, but let me implement them.")))
-
-
-
-
-         gptel-default-mode 'org-mode
-         gptel-prompt-prefix-alist '((org-mode . "* USER: "))
-         gptel-response-prefix-alist '((org-mode . ""))
-         ; Presets
-
-
-        )
+           (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
+           (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
+           (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
+           (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
+           (time-boxer . "You are a time-boxing specialist. Convert vague tasks into specific, timed work blocks. Consider context switching costs. Suggest productive time boundaries. Account for hyperfocus protection.")
+           (explain . "Explain what this code does.")
+           (pythoner . "Complete Python code only.")
+           (ducky . "Give coding guidance: suggest approach, key functions, potential issues. NO complete code.")
+           (explainer . "Explain code concepts clearly, but don't write the code for me.")
+           (optimizer . "Suggest optimizations and improvements, but let me implement."))
+         gptel-default-mode 'org-mode)
+  (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "@user\n")
+  (setf (alist-get 'org-mode gptel-response-prefix-alist) "@assistant\n"))
 
 (defun ai/todo-chat ()
   "Start a interactive todo chat"
@@ -796,62 +785,14 @@ strings."
   (let ((gptel--system-message (alist-get 'time-boxer gptel-directives)))
     (gptel "*TODO boxer*" nil (ai/todo-list-todos-with-context '(and (or (todo) (todo "STRT" "LOOP" "PROJ")) (ts))) t)))
 
-(use-package! mcp
-  :after gptel
-  :custom (mcp-hub-servers
-           `(("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" ,(expand-file-name "~"))))
-             ("mpris" . (:command "python3" :args (,(expand-file-name "~/.local/share/mcp-servers/mpris-server.py"))))))
-  :config
-  (require 'mcp-hub)
-  :hook (after-init . mcp-hub-start-all-server))
-
-(after! mcp
-  (after! gptel
-    ;; Add MCP tools to gptel directives
-    (add-to-list 'gptel-directives
-                 '(desktop-assistant . "You are a desktop assistant with access to filesystem and media player controls.
-You can:
-- Browse and manipulate files using filesystem tools
-- Control media playback (play/pause/stop/next/previous)
-- Get information about currently playing media
-- Adjust volume and player settings
-- List available media players
-
-Be concise and helpful. When using tools, explain what you're doing."))
-
-    ;; Create desktop assistant function
-    (defun +mcp/desktop-assistant ()
-      "Start a desktop assistant chat with MCP tools"
-      (interactive)
-      (let ((gptel--system-message (alist-get 'desktop-assistant gptel-directives)))
-        (gptel "*Desktop Assistant*" nil nil t)))
-
-    ;; MCP tool testing functions
-    (defun +mcp/test-filesystem ()
-      "Test MCP filesystem server"
-      (interactive)
-      (message "Testing MCP filesystem server...")
-      ;; This would call the MCP filesystem tools
-      (message "MCP filesystem test completed"))
-
-    (defun +mcp/test-mpris ()
-      "Test MCP MPRIS server"
-      (interactive)
-      (message "Testing MCP MPRIS server...")
-      ;; This would call the MCP MPRIS tools
-      (message "MCP MPRIS test completed"))
-
-    ;; Voice command integration
-    (defun +mcp/process-voice-command (command)
-      "Process voice command through MCP"
-      (interactive "sVoice command: ")
-      (let ((gptel--system-message (alist-get 'desktop-assistant gptel-directives)))
-        (gptel-request command
-                      :callback (lambda (response _info)
-                                  (message "Voice command processed: %s" response)
-                                  (when (fboundp 'alert)
-                                    (alert response :title "Desktop Assistant"))))))
-    ))
+;; (use-package! mcp
+;;   :after gptel
+;;   :custom (mcp-hub-servers
+;;            `(("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" ,(expand-file-name "~"))))
+;;              ("mpris" . (:command "python3" :args (,(expand-file-name "~/.local/share/mcp-servers/mpris-server.py"))))))
+;;   :config
+;;   (require 'mcp-hub)
+;;   :hook (after-init . mcp-hub-start-all-server))
 
 (map!
  :leader
@@ -882,6 +823,47 @@ Be concise and helpful. When using tools, explain what you're doing."))
       (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en-science"))
       (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en-computers"))
       (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en")))))
+
+;; (use-package! consult-omni
+;;  :after consult
+;;   :config
+;;   (setq consult-omni-default-browse-function 'browse-url-brave)
+;;   (setq consult-omni-http-retrieve-backend 'plz)
+;;   (consult-omni-preview-key "C-o") 
+;;   (require 'consult-omni-embark)
+;;   (setq consult-omni-sources-modules-to-load
+;;       (list
+;;        'consult-omni-apps
+;;        'consult-omni-dict
+;;        'consult-omni-brave
+;;        'consult-omni-ripgrep
+;;        'consult-omni-ripgrep-all
+;;        'consult-omni-wikipedia
+;;        'consult-omni-youtube
+;;        'consult-omni-wikipedia))
+        
+ 
+;;   (setq consult-omni-multi-sources '("calc"
+;;                                      "File"
+;;                                      "Buffer"
+;;                                      "Bookmark"
+;;                                      "Apps"
+;;                                      "gptel"
+;;                                      "Brave"
+;;                                      "Dictionary"
+;;                                      "Wikipedia"
+;;                                      "elfeed"
+;;                                      "Notes Search"
+;;                                      "Org Agenda"
+;;                                      "GitHub"))
+;;                                    ;; "YouTube"
+                                     
+
+;;   (require 'consult-omni-sources)
+;;   (consult-omni-sources-load-modules)
+;;   (setq consult-omni-brave-api-key #'(lambda () (nsa/auth-source-get :host "api.brave.com")))
+
+;;  )
 
 (use-package! f)
 
@@ -1020,7 +1002,7 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
          ("F" . elfeed-tube-fetch)
          ([remap save-buffer] . elfeed-tube-save)))
 
-(load "~/Temple/temple-loader.el")
+(load "~/share/Temple/temple-loader.el")
 
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
@@ -1064,3 +1046,6 @@ If COMPLETING-FN is nil default to `ezf-default'."
 
 (fset 'nsa/spawn-window
       (kmacro-lambda-form [?  ?w ?v ?  ?w ?l ?  ?w ?T] 0 "%d"))
+
+;; (after! vterm
+;;   (setq vterm-shell-args '("-c" "STARSHIP_CONFIG=~/.config/starship-plain.toml exec bash")))

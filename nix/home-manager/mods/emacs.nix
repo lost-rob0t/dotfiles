@@ -92,7 +92,7 @@
         pkgs.zip
         pkgs.rar
         pkgs.ripgrep
-        pkgs.bash
+        pkgs.bashInteractive
         pkgs.recoll
         # For emacs everywhere which seemly only works on xorg rn
         pkgs.xorg.xwininfo
