@@ -448,6 +448,9 @@ Remember: ALL temporal information goes in scheduled/deadline fields WITH TIMES,
 You have access to tools for creating, listing, updating todos, and managing time tracking.
 Be sure to list the current open todos before creating new ones, If one exists, edit it instead")
 
+
+
+
 ;; ============================================================================
 ;; Preset Configuration (OPTIONAL - functions set up tools directly)
 ;; ============================================================================
