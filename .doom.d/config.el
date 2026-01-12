@@ -182,15 +182,79 @@ The optional argument NEW-WINDOW is not used."
       "o a y" #'org-agenda-year-view)
 
 (use-package org-super-agenda
+  :after org-agenda
   :config
-  (add-hook! org-agenda-after-show-hook 'org-super-agenda-mode)
+  ;; Turn it on for all agendas
+  (org-super-agenda-mode)
+
   (setq! org-super-agenda-groups
-        '((:and (:todo "WAIT" :name "Blocked Tasks"))
-          (:and (:todo "TODO" :name "Appointment" :tag ("apt")) :name "🏛  Apointments")
-          (:and (:todo "TODO" :name "Habits" :tag ("mow" "trash" "clean" "habit")) :name "🔃  Habits")
-          (:and (:todo "TODO" :name "Emacs" :tag ("emacs")) :name "Emacs")
-          (:and (:todo "TODO" :name "Jobs" :tag ("job" "shift" "contract")) :name "💰  Job")
-          (:and (:todo "TODO" :name "Read inbox" :tag ("book" "read")) :name "Reading"))))
+         '(
+           ;; ---------------- URGENCY / TIME ----------------
+           (:name "⚠ Overdue"
+                  :deadline past
+                  :scheduled past)
+
+           (:name "📆 Today"
+                  :time-grid t
+                  :date today
+                  :scheduled today
+                  :deadline today)
+
+           (:name "🔥 High priority"
+                  :priority "A")
+
+           ;; ---------------- CORE SYSTEMS / DEV ----------------
+           (:name "🧠 StarIntel / Temple"
+                  :tag ("StarIntel" "Temple"))
+
+           (:name "📚 Org parser / vector"
+                  :tag ("org_parser" "org_vector"))
+
+           (:name "🕵 Hackmode / bug bounty"
+                  :tag ("hackmode" "hackmode_expert"))
+
+           (:name "⌨ Emacs / editor / LLM tooling"
+                  :tag "emacs")
+
+           (:name "λ Lisp / command-server"
+                  :tag ("lisp" "command-server"))
+
+           ;; ---------------- LIFE / OPS ----------------
+           (:name "💼 Work shifts"
+                  :tag "work")
+
+           (:name "🏠 Home / maintenance"
+                  :tag ("cleaning" "home" "maintenance"))
+
+           (:name "🔁 Loops / recurring"
+                  :todo "LOOP")
+
+           (:name "🏛 Appointments"
+                  :tag "apt")
+
+           ;; ---------------- STATE / META ----------------
+           (:name "⏳ Waiting"
+                  :todo "WAIT")
+
+           (:name "▶ In progress"
+                  :todo "STRT")
+
+           (:name "💡 Ideas / design"
+                  :todo "IDEA")
+
+           (:name "🚫 Not doing"
+                  :todo "NO")
+
+           ;; ---------------- CATCH-ALL BUCKETS ----------------
+           ;; Things you can triage from Inbox / top subtree
+           (:name "📥 Inbox / unscheduled"
+                  :and (:todo ("TODO")
+                             :not (:scheduled future)))
+
+           ;; Only useful if you show DONE in agenda views
+           (:name "✅ Done"
+                  :todo ("DONE"))
+           )))
 
 (map! :leader
       :desc "Tangle a file"
@@ -809,6 +873,8 @@ strings."
   (:prefix ("m" . "MCP")
    :desc "Test Filesystem" :n "f" #'+mcp/test-filesystem
    :desc "Test MPRIS" :n "m" #'+mcp/test-mpris)))
+
+(use-package! flashcards)
 
 ;; (after! ispell
 ;;   (setq! ispell-program-name "/run/current-system/sw/bin/aspell"

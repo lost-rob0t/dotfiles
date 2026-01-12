@@ -44,11 +44,11 @@
 
 ;(package! org-transclusion)
 
+(package! org-drill)
+
 (package! gptel :recipe (:nonrecursive t))
 
-(package! mcp :recipe (:type git :host github :repo "lizqwerscott/mcp.el") )
-
-;(package! codeium :recipe (:type git :host github :repo "Exafunction/codeium.el"))
+(package! mcp :recipe (:type git :host github :repo "lizqwerscott/mcp.el"))
 
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
 
