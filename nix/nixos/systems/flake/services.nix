@@ -49,7 +49,7 @@
     # Remote stuff
     # Enable the OpenSSH daemon.
     xrdp = {
-      enable = true;
+      enable = false;
 
     };
     openssh = {

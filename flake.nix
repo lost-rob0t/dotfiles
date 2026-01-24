@@ -114,7 +114,7 @@
           buildInputs = with nixpkgs.legacyPackages.x86_64-linux; [
             openssl
             pkg-config
-            roswell
+            # BUG roswell
             sbcl
             ecl
           ];

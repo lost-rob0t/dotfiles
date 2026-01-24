@@ -8,7 +8,7 @@
       };};};
   config = with lib; mkIf config.dev.common-lisp.enable {
     home.packages  = with pkgs; [
-      roswell
+      # BUG roswell
       sbcl
       sbclPackages.qlot-cli
       openssl

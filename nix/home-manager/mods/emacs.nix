@@ -72,7 +72,6 @@
         epkgs.w3m
         epkgs.pandoc
         pkgs.nodePackages.bash-language-server
-        pkgs.roswell
         epkgs.xclip
         pkgs.aspell
         pkgs.aspellDicts.en
