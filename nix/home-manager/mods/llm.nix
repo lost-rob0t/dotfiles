@@ -10,12 +10,12 @@
   config = with lib; mkIf config.llm.enable {
     # Install required packages for MCP servers
     home.packages = with pkgs; [
-      inputs.zara.packages.${system}.zara-dictate
-      inputs.zara.packages.${system}.zara-wake
-      inputs.zara.packages.${system}.zara-prolog
-      inputs.org-vector.packages.${system}.org-vector
+      inputs.zara.packages.${stdenv.hostPlatform.system}.zara-dictate
+      inputs.zara.packages.${stdenv.hostPlatform.system}.zara-wake
+      inputs.zara.packages.${stdenv.hostPlatform.system}.zara-prolog
+      inputs.org-vector.packages.${stdenv.hostPlatform.system}.org-vector
       nodejs_22
-
+      claude-code
       playerctl
       pavucontrol
       pulseaudio

@@ -166,7 +166,7 @@
       enableSSHSupport = true;
       pinentryPackage = pkgs.pinentry-qt;
   };};
-  programs.adb.enable = true;
+  # TODO find a solution? programs.adb.enable = true;
   programs.nm-applet.enable = true;
 
 
