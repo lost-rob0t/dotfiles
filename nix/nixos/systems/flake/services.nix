@@ -67,7 +67,7 @@
     };
 
     i2p = {
-      enable = false;
+      enable = true;
     };
 
     blueman = {
@@ -136,7 +136,7 @@
   };
 };
      ollama = {
-       enable = true;
+       enable = false;
        package = pkgs.ollama-rocm;
        openFirewall = true;
        host = "0.0.0.0";
