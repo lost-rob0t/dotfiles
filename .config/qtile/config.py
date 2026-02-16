@@ -142,10 +142,6 @@ keys = [
     Key([mod, "shift"], "Left", lazy.layout.swap_left()),
     Key([mod, "shift"], "Right", lazy.layout.swap_right()),
     Key([mod, "shift"], "space", lazy.window.toggle_floating()),
-
-    # Voice interface keybinds
-    Key([mod], "v", lazy.spawn(home + "/.local/bin/llm-voice-capture capture")),
-    Key([mod, "shift"], "v", lazy.spawn("emacsclient --eval '(+mcp/process-voice-command (read-string \"Voice command: \"))'")),
     KeyChord([mod],"e", [
              Key([], "e",
                  lazy.spawn("emacsclient -c -a 'emacs'"),
@@ -182,11 +178,7 @@ keys = [
                  ),
              Key([], "y",
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(+gptel/here)'"),
-                 desc='Emacsclient GPTel'
-                 ),
-             Key([], "m",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(+mcp/desktop-assistant)'"),
-                 desc='Emacsclient MCP Desktop Assistant'
+                 desc='Emacsclient Vterm'
                  ),
          ])
  ]
@@ -447,6 +439,7 @@ def init_widgets_list():
         #          background=colors[1],
         #          padding = 0,
         #          ),
+
         widget.Pomodoro(foreground = colors[2],
             background = colors[1],
             ),
@@ -456,7 +449,6 @@ def init_widgets_list():
                   foreground = colors[2],
                   background = colors[1]
                   ),
-
         widget.Mpris2(background=colors[1],
                       foreground=colors[6],
                       scroll_fixed_width=True,
@@ -599,9 +591,7 @@ def init_widgets_list():
             foreground = colors[5],
             background = colors[1],
             fontsize = 12,
-            format="%Y-%m-%d %H:%M",
-            mouse_callbacks={ 'Button1': lambda: os.system('notify-send -a qtile "$(date "+%Y-%m-%d %H:%M")" "$(cal)"')}
-
+            format="%Y-%m-%d %H:%M"
         ),
         widget.Sep(
                   linewidth = 1,

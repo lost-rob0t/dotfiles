@@ -57,3 +57,4 @@ run brave &
 run bash /home/unseen/.dotfiles/.config/qtile/scripts/pinger.sh $HOME/.config/hosts &
 run kdeconnect-indicator &
 run aw-qt &
+run zara-wake &
