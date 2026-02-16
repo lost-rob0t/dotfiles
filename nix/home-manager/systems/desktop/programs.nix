@@ -27,7 +27,7 @@
     graphviz
     # Multimedia
     obs-studio
-    kdePackages.kdenlive
+    # BUG kdePackages.kdenlive
     qbittorrent
     picard
     # System Tools
