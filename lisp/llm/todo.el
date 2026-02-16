@@ -1,12 +1,23 @@
 (require 'org-ql)
 (require 'gptel)
+(require 'subr-x)
+
+(let ((ai-lib (expand-file-name "ai.el"
+                                (file-name-directory (or load-file-name buffer-file-name)))))
+  (when (file-exists-p ai-lib)
+    (load ai-lib nil t)))
+
+(let ((todo-diff-lib (expand-file-name "todo-diff.el"
+                                      (file-name-directory (or load-file-name buffer-file-name)))))
+  (when (file-exists-p todo-diff-lib)
+    (load todo-diff-lib nil t)))
 
 ;;; ai-todo.el --- AI-powered todo management with tool calling
 
 ;; SETUP INSTRUCTIONS:
-;; 1. Set your Anthropic API key:
-;;    (setenv "ANTHROPIC_API_KEY" "your-key-here")
-;;    Or in your shell: export ANTHROPIC_API_KEY="your-key-here"
+;; 1. Set your OpenRouter API key:
+;;    (setenv "OPENROUTER_API_KEY" "your-key-here")
+;;    Or store it in auth-source for host "openrouter.ai"
 ;;
 ;; 2. Optionally customize your todo file:
 ;;    (setq ai/todo-file (expand-file-name "~/my-todos.org"))
@@ -55,6 +66,45 @@ Todo file: %s
                 (format-time-string "%H:%M" org-clock-start-time)))
     "No task currently clocked in."))
 
+(defun ai/todo--resolve-file (&optional todo-file)
+  "Return absolute todo file path for TODO-FILE or `ai/todo-file'."
+  (expand-file-name (or todo-file ai/todo-file)))
+
+(defun ai/todo--ensure-file (file)
+  "Ensure FILE and its parent directory exist with Org headers."
+  (let ((dir (file-name-directory file)))
+    (when (and dir (not (file-directory-p dir)))
+      (make-directory dir t)))
+  (unless (file-exists-p file)
+    (with-temp-file file
+      (insert "#+TITLE: Todo List\n")
+      (insert "#+TODO: TODO NEXT WAITING SOMEDAY | DONE CANCELED\n\n"))))
+
+(defun ai/todo--normalize-datetime (value)
+  "Normalize VALUE datetime string in YYYY-MM-DD or YYYY-MM-DD HH:MM format."
+  (when value
+    (let ((trimmed (string-trim value)))
+      (if (string-match-p "\\`[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\(?: [0-9]\\{2\\}:[0-9]\\{2\\}\\)?\\'" trimmed)
+          trimmed
+        (error "Invalid datetime format: %s" value)))))
+
+(defun ai/todo--find-heading-marker (todo-title &optional todo-file)
+  "Return marker for TODO-TITLE in TODO-FILE, or nil if not found."
+  (let ((file (ai/todo--resolve-file todo-file)))
+    (unless (file-exists-p file)
+      (error "Todo file does not exist: %s" file))
+    (with-current-buffer (find-file-noselect file)
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (catch 'found
+         (org-map-entries
+          (lambda ()
+            (when (string= (org-get-heading t t t t) todo-title)
+              (throw 'found (copy-marker (point)))))
+          nil
+          'file)
+         nil)))))
+
 
 (defun ai/todo-write (title &optional todo-file tags priority deadline scheduled)
   "Write a new todo item to org file.
@@ -64,13 +114,19 @@ TAGS is a space-separated string of tags.
 PRIORITY is A, B, or C.
 DEADLINE is a datetime string in YYYY-MM-DD or YYYY-MM-DD HH:MM format.
 SCHEDULED is a datetime string in YYYY-MM-DD or YYYY-MM-DD HH:MM format."
-  (let* ((file (expand-file-name (or todo-file ai/todo-file)))
+  (let* ((file (ai/todo--resolve-file todo-file))
          (tags-list (when tags (split-string tags " " t)))
+         (priority-value (and priority (upcase priority)))
+         (scheduled-value (ai/todo--normalize-datetime scheduled))
+         (deadline-value (ai/todo--normalize-datetime deadline))
          (todo-text (concat "* TODO ")))
 
+    (when (and priority-value (not (member priority-value '("A" "B" "C"))))
+      (error "Priority must be one of A, B, or C"))
+
     ;; Add priority inline if specified
-    (when priority
-      (setq todo-text (concat todo-text "[#" (upcase priority) "] ")))
+    (when priority-value
+      (setq todo-text (concat todo-text "[#" priority-value "] ")))
 
     ;; Add title
     (setq todo-text (concat todo-text title))
@@ -79,29 +135,26 @@ SCHEDULED is a datetime string in YYYY-MM-DD or YYYY-MM-DD HH:MM format."
     (when tags-list
       (setq todo-text (concat todo-text " :" (string-join tags-list ":") ":")))
 
-    ;; Create file if it doesn't exist
-    (unless (file-exists-p file)
-      (with-temp-file file
-        (insert "#+TITLE: Todo List\n")
-        (insert "#+TODO: TODO NEXT WAITING SOMEDAY | DONE CANCELED\n\n")))
+    (ai/todo--ensure-file file)
 
     ;; Append the todo
-    (with-temp-buffer
-      (insert-file-contents file)
+    (with-current-buffer (find-file-noselect file)
+      (unless (derived-mode-p 'org-mode)
+        (org-mode))
       (goto-char (point-max))
       (unless (bolp) (insert "\n"))
       (insert todo-text "\n")
 
       ;; Add scheduled date/time if specified
-      (when scheduled
-        (insert (format "SCHEDULED: <%s>\n" scheduled)))
+      (when scheduled-value
+        (insert (format "SCHEDULED: <%s>\n" scheduled-value)))
 
       ;; Add deadline if specified
-      (when deadline
-        (insert (format "DEADLINE: <%s>\n" deadline)))
+      (when deadline-value
+        (insert (format "DEADLINE: <%s>\n" deadline-value)))
 
       (insert "\n")
-      (write-file file))
+      (save-buffer))
 
     (format "Added todo '%s' to %s" title file)))
 
@@ -170,25 +223,14 @@ QUERY is an org-ql query string (defaults to listing all todos)."
   "Clock in to a todo item by title.
 TODO-TITLE is the title of the todo to clock in to.
 TODO-FILE is the org file path (defaults to ai/todo-file)."
-  (let* ((file (expand-file-name (or todo-file ai/todo-file)))
-         (found-heading nil))
-
-    (unless (file-exists-p file)
-      (error "Todo file does not exist: %s" file))
-
-    (with-current-buffer (find-file-noselect file)
-      (save-excursion
-        (goto-char (point-min))
-        ;; Search for the todo heading
-        (when (re-search-forward
-               (format "^\\*+ \\(?:TODO\\|NEXT\\|WAITING\\).*%s" (regexp-quote todo-title)) nil t)
-          (setq found-heading t)
+  (if-let ((marker (ai/todo--find-heading-marker todo-title todo-file)))
+      (with-current-buffer (marker-buffer marker)
+        (save-excursion
+          (goto-char marker)
           (org-clock-in)
-          (save-buffer))))
-
-    (if found-heading
-        (format "Clocked in to: %s" todo-title)
-      (format "Todo not found: %s" todo-title))))
+          (save-buffer))
+        (format "Clocked in to: %s" todo-title))
+    (format "Todo not found: %s" todo-title)))
 
 (defun ai/todo-clock-out ()
   "Clock out from the currently active clock."
@@ -203,27 +245,24 @@ TODO-FILE is the org file path (defaults to ai/todo-file)."
 TODO-TITLE is the title of the todo to update.
 NEW-STATE is the new todo state (TODO, DONE, CANCELED, etc.).
 TODO-FILE is the org file path (defaults to ai/todo-file)."
-  (let* ((file (expand-file-name (or todo-file ai/todo-file)))
-         (found-heading nil)
-         (old-state nil))
+  (let ((target-state (upcase new-state))
+        (old-state nil))
+    (unless (member target-state ai/todo-states)
+      (error "Invalid todo state: %s" new-state))
 
-    (unless (file-exists-p file)
-      (error "Todo file does not exist: %s" file))
-
-    (with-current-buffer (find-file-noselect file)
-      (save-excursion
-        (goto-char (point-min))
-        ;; Search for the todo heading
-        (when (re-search-forward
-               (format "^\\*+ \\([A-Z]+\\) .*%s" (regexp-quote todo-title)) nil t)
-          (setq found-heading t)
-          (setq old-state (match-string 1))
-          ;; Replace the state
-          (replace-match (upcase new-state) nil nil nil 1)
-          (save-buffer))))
-
-    (if found-heading
-        (format "Updated '%s' from %s to %s" todo-title old-state (upcase new-state))
+    (if-let ((marker (ai/todo--find-heading-marker todo-title todo-file)))
+        (with-current-buffer (marker-buffer marker)
+          (save-excursion
+            (goto-char marker)
+            (setq old-state (org-get-todo-state))
+            (org-todo target-state)
+            (save-buffer))
+          (format "Updated '%s' from %s to %s"
+                  todo-title
+                  (if (stringp old-state)
+                      (substring-no-properties old-state)
+                    "<none>")
+                  target-state))
       (format "Todo not found: %s" todo-title))))
 
 (defun ai/todo-get-context ()
@@ -358,6 +397,23 @@ Returns confirmation of the state change."))
 Returns the current date/time, todo file location, and information about any currently clocked-in task.
 Call this at the start of conversations to understand the current context."))
 
+(defvar ai/todo-tools nil
+  "Tool names used by todo-agent preset.")
+
+(setq ai/todo-tools
+      '("write_todo"
+        "list_todos"
+        "clock_in_todo"
+        "clock_out_todo"
+        "get_todo_context"
+        "read_todo_heading"
+        "read_todo_numbered"
+        "get_todo_lines"
+        "preview_todo_changes"
+        "apply_todo_line_changes"
+        "todo_search_replace"
+        "apply_todo_patch"))
+
 ;; ============================================================================
 ;; System Prompt
 ;; ============================================================================
@@ -366,7 +422,7 @@ Call this at the start of conversations to understand the current context."))
   "You are a helpful AI assistant for managing org-mode todos.
 
 CRITICAL ORG-MODE FORMATTING RULES:
-1. ALWAYS call get_context() FIRST to know the current date/time, always account for existing task and work around it.
+1. ALWAYS call get_todo_context() FIRST to know the current date/time, always account for existing task and work around it.
 2. Use proper org-mode TODO states: TODO, NEXT, WAITING, SOMEDAY, DONE, CANCELED
    - TODO: Tasks not yet started
    - NEXT: Tasks ready to work on immediately
@@ -445,7 +501,10 @@ INCORRECT EXAMPLES (DO NOT DO THIS):
 
 Remember: ALL temporal information goes in scheduled/deadline fields WITH TIMES, NOT in titles or tags!
 
-You have access to tools for creating, listing, updating todos, and managing time tracking.
+You have access to tools for creating, listing, editing todos, and managing time tracking.
+For edits, prefer: read_todo_numbered -> preview_todo_changes -> apply_todo_line_changes.
+Use todo_search_replace for scoped text updates inside a todo heading.
+Use apply_todo_patch only for complex multiline changes.
 Be sure to list the current open todos before creating new ones, If one exists, edit it instead")
 
 
@@ -459,16 +518,11 @@ Be sure to list the current open todos before creating new ones, If one exists, 
 ;; The functions above (quick-add, chat, process) set up tools automatically
 (gptel-make-preset 'todo-agent
   :description "Manage todos, clock in and out, with date/time awareness"
-  :backend "Claude"
-  :model 'claude-haiku-4-5-20251001
+  :backend (ai/llm-openrouter-backend :stream t :name "OpenRouter")
+  :model (ai/llm-resolve-model)
   :system ai/todo-system-prompt
   :stream t
-  :tools (list ai/todo-write-tool
-               ai/todo-list-tool
-               ai/todo-clock-in-tool
-               ai/todo-clock-out-tool
-               ai/todo-update-state-tool
-               ai/todo-get-context-tool)
+  :tools ai/todo-tools
   :temperature 1.0
   :max-tokens nil
   :use-context 'system
@@ -486,19 +540,19 @@ Creates todos, sets priorities, schedules, and deadlines based on the input.
 Example: 'Add todo: write report by Friday, high priority'"
   (interactive "sQuick add todo: ")
   (let* ((gptel-default-preset 'todo-agent)
-         (backend (gptel-make-anthropic "Claude"
-                    :stream nil
-                    :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))))
+         (backend (ai/llm-openrouter-backend :stream nil :name "OpenRouter"))
          (gptel-backend backend)
-         (gptel-model 'claude-haiku-4-5-20251001))
+         (gptel-model (ai/llm-resolve-model)))
     (message "Processing: %s" input)
     (gptel-request
         (format "%s\n\nPlease execute the necessary tool calls to complete this request. After calling tools, confirm what was created." input)
       :system ai/todo-system-prompt
+      :tools ai/todo-tools
       :callback (lambda (response info)
                   (if response
-                      (message "✓ Done: %s" response))
-                  (message "Error: %s" (plist-get info :status))))))
+                      (message "✓ Done: %s" response)
+                    (message "Error: %s" (plist-get info :status))))))
+  )
 
 ;;;###autoload
 (defun ai/todo-chat ()
@@ -507,9 +561,7 @@ Use this for complex todo management, planning, and time tracking."
   (interactive)
   (let* ((buffer-name "*AI Todo Chat*")
          (buffer (get-buffer-create buffer-name))
-         (backend (gptel-make-anthropic "Claude"
-                    :stream t
-                    :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com")))))
+         (backend (ai/llm-openrouter-backend :stream t :name "OpenRouter")))
     (with-current-buffer buffer
       (unless (eq major-mode 'org-mode)
         (org-mode))
@@ -526,14 +578,9 @@ Use this for complex todo management, planning, and time tracking."
       (insert "What would you like to do?\n\n")
       ;; Set up gptel with tools
       (setq-local gptel-backend backend)
-      (setq-local gptel-model 'claude-haiku-4-5-20251001)
+      (setq-local gptel-model (ai/llm-resolve-model))
       (setq-local gptel--system-message ai/todo-system-prompt)
-      (setq-local gptel-tools (list ai/todo-write-tool
-                                    ai/todo-list-tool
-                                    ai/todo-clock-in-tool
-                                    ai/todo-clock-out-tool
-                                    ai/todo-update-state-tool
-                                    ai/todo-get-context-tool)))
+      (setq-local gptel-tools ai/todo-tools))
     (switch-to-buffer buffer)
     (goto-char (point-max))
     (gptel-mode 1)
@@ -544,23 +591,16 @@ Use this for complex todo management, planning, and time tracking."
   "Process INPUT with AI and execute the resulting todo operations.
 This is a synchronous version that waits for the response."
   (interactive "sWhat do you want to do? ")
-  (let* ((backend (gptel-make-anthropic "Claude"
-                    :stream nil
-                    :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))))
+  (let* ((backend (ai/llm-openrouter-backend :stream nil :name "OpenRouter"))
          (gptel-backend backend)
-         (gptel-model 'claude-haiku-4-5-20251001)
+         (gptel-model (ai/llm-resolve-model))
          (response-received nil)
          (response-text nil))
     (message "Processing: %s" input)
     (gptel-request
         (format "%s\n\nPlease execute the necessary tool calls to complete this request. After calling tools, confirm what was created." input)
       :system ai/todo-system-prompt
-      :tools (list ai/todo-write-tool
-                   ai/todo-list-tool
-                   ai/todo-clock-in-tool
-                   ai/todo-clock-out-tool
-                   ai/todo-update-state-tool
-                   ai/todo-get-context-tool)
+      :tools ai/todo-tools
       :callback
       (lambda (response info)
         (setq response-text response)

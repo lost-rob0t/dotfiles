@@ -13,6 +13,11 @@
 (require 'cl-lib)
 (require 'plz)
 
+(let ((ai-lib (expand-file-name "ai.el"
+                                (file-name-directory (or load-file-name buffer-file-name)))))
+  (when (file-exists-p ai-lib)
+    (load ai-lib nil t)))
+
 
 (defun ai/--expand-file (filename)
   "Expand FILENAME, handling TRAMP paths correctly."
@@ -58,6 +63,170 @@
     (if (file-directory-p dir)
         (directory-files dir nil "^[^.].*")
       (error "Not a directory: %s" dir))))
+
+(defun ai/--read-file-numbered (filename)
+  "Read FILENAME with line numbers."
+  (let* ((content (ai/--read-file filename))
+         (lines (split-string content "\n"))
+         (i 0))
+    (mapconcat (lambda (line)
+                 (setq i (1+ i))
+                 (format "%4d| %s" i line))
+               lines "\n")))
+
+(defun ai/--get-file-lines (filename start end)
+  "Get lines from START to END in FILENAME."
+  (let* ((content (ai/--read-file filename))
+         (lines (split-string content "\n"))
+         (num-lines (length lines))
+         ;; Ensure start/end are within bounds
+         (start-line (max 1 (min start num-lines)))
+         (end-line (max start-line (min end num-lines)))
+         ;; Extract subset (nth is 0-indexed, lines are 1-indexed)
+         (subset (seq-subseq lines (1- start-line) end-line))
+         (i (1- start-line)))
+    (mapconcat (lambda (line)
+                 (setq i (1+ i))
+                 (format "%4d| %s" i line))
+               subset "\n")))
+
+(defun ai/--search-replace (filename search replace &optional replace-all)
+  "Search and replace in FILENAME."
+  (let ((file (ai/--expand-file filename)))
+    (if (file-exists-p file)
+        (let ((count 0))
+          (with-temp-file file
+            (insert-file-contents (ai/--expand-file filename))
+            (goto-char (point-min))
+            (while (search-forward search nil t)
+              (replace-match replace)
+              (setq count (1+ count))
+              (unless replace-all (goto-char (point-max)))))
+          (format "Replaced %d occurrences" count))
+      (error "File not found: %s" filename))))
+
+(defun ai/--apply-line-changes (filename changes)
+  "Apply CHANGES to FILENAME. CHANGES is a list of plists with :line and :content."
+  (let ((file (ai/--expand-file filename)))
+    (if (file-exists-p file)
+        (let ((lines (with-temp-buffer
+                       (insert-file-contents file)
+                       (split-string (buffer-string) "\n")))
+              (updates (make-hash-table :test 'eql))
+              (count 0))
+          ;; Index updates
+          (dolist (change changes)
+            (puthash (plist-get change :line) (plist-get change :content) updates))
+          ;; Write back
+          (with-temp-file file
+            (let ((i 0))
+              (dolist (line lines)
+                (setq i (1+ i))
+                (if-let ((new-content (gethash i updates)))
+                    (progn
+                      (insert new-content "\n")
+                      (setq count (1+ count)))
+                  (insert line "\n")))))
+          (format "Applied %d line changes to %s" count filename))
+      (error "File not found: %s" filename))))
+
+(defun ai/--preview-changes (filename changes)
+  "Preview CHANGES to FILENAME without applying."
+  (let ((file (ai/--expand-file filename)))
+    (if (file-exists-p file)
+        (let ((lines (with-temp-buffer
+                       (insert-file-contents file)
+                       (split-string (buffer-string) "\n")))
+              (output ""))
+          (dolist (change changes)
+            (let* ((line-num (plist-get change :line))
+                   (new-content (plist-get change :content))
+                   (old-content (if (<= line-num (length lines))
+                                    (nth (1- line-num) lines)
+                                  "[EOF]")))
+              (setq output (concat output
+                                   (format "Line %d:\n- %s\n+ %s\n\n"
+                                           line-num (or old-content "") new-content)))))
+          (if (string-empty-p output) "No changes to preview" output))
+      (error "File not found: %s" filename))))
+
+;;; Helper Functions - Diff/Patch
+
+(defun ai/--diff-files (file1 file2)
+  "Generate unified diff between FILE1 and FILE2."
+  (let ((f1 (ai/--expand-file file1))
+        (f2 (ai/--expand-file file2)))
+    (if (and (file-exists-p f1) (file-exists-p f2))
+        (with-temp-buffer
+          (call-process "diff" nil t nil "-u" f1 f2)
+          (buffer-string))
+      (error "One or both files not found: %s, %s" file1 file2))))
+
+(defun ai/--git-diff (mode &optional target)
+  "Run git diff in MODE (staged, unstaged, ref) for TARGET."
+  (let ((args (list "diff"))
+        (default-directory (ai/--project-root)))
+    (cond
+     ((string= mode "staged") (push "--cached" args))
+     ((string= mode "unstaged") nil) ;; default
+     ((string= mode "ref") (when target (push target args)))) ;; ref is target
+
+    ;; Append target file path if specific file requested (and not handled by ref)
+    (when (and target (not (string= mode "ref")))
+      (push "--" args)
+      (push target args))
+
+    (with-temp-buffer
+      (apply #'call-process "git" nil t nil (nreverse args))
+      (buffer-string))))
+
+(defun ai/--diff-changes (filename)
+  "Diff current FILENAME content against HEAD."
+  (ai/--git-diff "unstaged" filename))
+
+(defun ai/--count-patch-target-files (patch)
+  "Return number of target files referenced by unified PATCH text."
+  (with-temp-buffer
+    (insert patch)
+    (goto-char (point-min))
+    (let ((count 0))
+      (while (re-search-forward "^diff --git " nil t)
+        (setq count (1+ count)))
+      (when (zerop count)
+        (goto-char (point-min))
+        (while (re-search-forward "^\\+\\+\\+ [ab]/" nil t)
+          (setq count (1+ count))))
+      count)))
+
+(defun ai/--apply-patch (patch &optional dry-run)
+  "Apply PATCH (string) to files. Enforces single-file apply unless specified."
+  (let ((patch-file (make-temp-file "ai-patch")))
+    (unwind-protect
+        (progn
+          (with-temp-file patch-file
+            (insert patch))
+
+          (when (> (ai/--count-patch-target-files patch) 1)
+            (error "Multi-file patches are not allowed by default. Apply one file at a time."))
+
+          (let ((args (append
+                       '("apply" "--ignore-space-change" "--ignore-whitespace")
+                       (when dry-run '("--check"))
+                       (list patch-file)))
+                (default-directory (ai/--project-root)))
+            (with-temp-buffer
+              (let ((exit-code (apply #'call-process "git" nil t nil args)))
+                (if (zerop exit-code)
+                    (if dry-run
+                        "Patch applies cleanly (dry-run)"
+                      "Patch applied successfully")
+                  (format "Patch failed:\n%s" (buffer-string)))))))
+      (when (file-exists-p patch-file)
+        (delete-file patch-file)))))
+
+(defun ai/--apply-diff-patch (patch &optional dry-run)
+  "Alias for `ai/--apply-patch'."
+  (ai/--apply-patch patch dry-run))
 
 ;;; Helper Functions - Emacs Introspection
 
@@ -628,6 +797,117 @@
 
 
 (gptel-make-tool
+ :function #'ai/--read-file-numbered
+ :name "read_file_numbered"
+ :category "filesystem"
+ :args '((:name "filename" :type string
+          :description "File path to read"))
+ :description "Read file content with line numbers. Use this tool before making line-based edits to ensure you have the correct line numbers.")
+
+
+(gptel-make-tool
+ :function #'ai/--get-file-lines
+ :name "get_file_lines"
+ :category "filesystem"
+ :args '((:name "filename" :type string
+          :description "File path")
+         (:name "start" :type integer
+          :description "Start line number (1-based)")
+         (:name "end" :type integer
+          :description "End line number (1-based)"))
+ :description "Read a specific range of lines from a file. Returns the lines with line numbers.")
+
+
+(gptel-make-tool
+ :function (lambda (filename changes)
+             (ai/--apply-line-changes 
+              filename 
+              (mapcar (lambda (u) (list :line (plist-get u :line) :content (plist-get u :content)))
+                      changes)))
+ :name "apply_line_changes"
+ :category "filesystem"
+ :args '((:name "filename" :type string
+          :description "File path")
+         (:name "changes" :type array
+          :description "List of line changes, each with :line (number) and :content (string)"))
+ :description "Apply specific line-by-line changes to a file. Requires exact line numbers.")
+
+(gptel-make-tool
+ :function #'ai/--search-replace
+ :name "search_replace"
+ :category "filesystem"
+ :args '((:name "filename" :type string
+          :description "File path")
+         (:name "search" :type string
+          :description "String to search for")
+         (:name "replace" :type string
+          :description "Replacement string")
+         (:name "replace_all" :type boolean :optional t
+          :description "Replace all occurrences (default false)"))
+ :description "Search and replace text in a file. Be careful with replacing common strings.")
+
+(gptel-make-tool
+ :function (lambda (filename changes)
+             (ai/--preview-changes 
+              filename 
+              (mapcar (lambda (u) (list :line (plist-get u :line) :content (plist-get u :content)))
+                      changes)))
+ :name "preview_changes"
+ :category "filesystem"
+ :args '((:name "filename" :type string
+          :description "File path")
+         (:name "changes" :type array
+          :description "List of proposed changes"))
+ :description "Preview line changes before applying them.")
+
+(gptel-make-tool
+ :function #'ai/--diff-files
+ :name "diff_files"
+ :category "filesystem"
+ :args '((:name "file1" :type string :description "First file path")
+         (:name "file2" :type string :description "Second file path"))
+ :description "Show unified diff between two files.")
+
+(gptel-make-tool
+ :function #'ai/--diff-changes
+ :name "diff_changes"
+ :category "filesystem"
+ :args '((:name "filename" :type string
+          :description "File path to diff against HEAD"))
+ :description "Show diff for a file's current changes against HEAD.")
+
+(gptel-make-tool
+ :function #'ai/--git-diff
+ :name "git_diff"
+ :category "project"
+ :args '((:name "mode" :type string :enum ["staged" "unstaged" "ref"]
+          :description "Diff mode: staged (cached), unstaged (working), or ref (commit)")
+         (:name "target" :type string :optional t
+          :description "File path or ref (commit/branch) to diff against"))
+ :description "Run git diff to see changes in the repository.")
+
+(gptel-make-tool
+ :function #'ai/--apply-patch
+ :name "apply_patch"
+ :category "filesystem"
+ :args '((:name "patch" :type string
+          :description "Unified diff content to apply")
+         (:name "dry_run" :type boolean :optional t
+          :description "Test patch application without modifying files"))
+ :description "Apply a unified patch to files. Single-file patches only by default.")
+
+(gptel-make-tool
+ :function #'ai/--apply-diff-patch
+ :name "apply_diff_patch"
+ :category "filesystem"
+ :args '((:name "patch" :type string
+          :description "Unified diff content to apply")
+         (:name "dry_run" :type boolean :optional t
+          :description "Test patch application without modifying files"))
+ :description "Apply a unified diff patch. Single-file patches only by default.")
+
+
+(gptel-make-tool
  :function (lambda (path filename content)
              (let ((full-path (expand-file-name filename path)))
                (with-temp-buffer
@@ -753,24 +1033,7 @@
  It must not auto-run during normal interaction.
  This command sets up the agentic memory layer for project documentation.")
 
-(gptel-make-tool
- :function #'ai/--list-context
- :name "list_context_files"
- :category "context"
- :description
- "List all .org context files in the project's .context directory.
- Returns absolute or project-relative paths for reference.")
 
-(gptel-make-tool
- :function #'ai/--read-context
- :name "read_context"
- :category "context"
- :args '((:name "filename" :type string
-          :description "Path relative to .context/ (e.g., '00_index.org', 'architecture/01_system-design.org')."))
- :description
- "Read a specific context file when the user or workflow explicitly requests project context loading.
- Context files are authoritative knowledge documents containing architecture, coding conventions, and specifications.
- The LLM must never automatically read or pre-load these files — it must do when the current task directly requires project understanding (e.g., 'follow architecture guidelines from context').")
 
 
 (gptel-make-tool
@@ -793,43 +1056,13 @@
  :function #'ai/--create-context
  :name "create_context_file"
  :category "context"
- :args '((:name "project_name" :type string
-          :description "Name of the project or repository root (e.g., 'hackmode-expert', 'temple').")
-         (:name "project_path" :type string
-          :description "Full path to the project directory (e.g., '~/Documents/Projects/hackmode-expert'). Include tilde if home-relative.")
-         (:name "slug" :type string
-          :description "Short descriptive identifier for the context file (e.g., 'architecture', 'api-design'). Filename generated as 'NN_slug.org'.")
+ :args '((:name "slug" :type string
+          :description "Short descriptive identifier (e.g., 'architecture', 'api-design').")
          (:name "content" :type string
-          :description "Comprehensive Org-mode formatted content. Must include a project tree with full paths and brief 1–2 sentence descriptions for each file.")
+          :description "Org-mode content.")
          (:name "priority" :type integer
-          :description "Priority number (0–99). Lower numbers (0–9) are foundational; 10–49 are functional; 50–99 are supplementary."))
- :description
- "Create or update a project context file in .context/ only when the user explicitly requests it.
- The LLM must NOT automatically generate or update context files unless prompted by the user.
-
- Context files serve as long-term project memory and must follow a strict structure:
-
- 1. Include #+TITLE and #+DATE headers.
- 2. Start with a top-level heading naming the project and its full path.
- 3. Provide an Org-mode tree of directories and files, each with:
-    - a 1–2 sentence purpose summary
-    - a full or project-relative file path
-    - nested sections for submodules if applicable.
- 4. Create atomic topic focused files, eg 01-index.org for project index, 02-object-model.org, ect 
- Example format:
-
- * Project: Hackmode Expert
-   Path: ~/Documents/Projects/hackmode-expert
-
- ** modules/
-  - modules/targets.prolog :: Handles classification and storage of program targets (domain, URL, IP).
-  - modules/operations.prolog :: Defines phases, workflows, and run sequences for tools.
-
- ** tools/
-  - tools/ffuf.prolog :: Fuzzing tool integration and output parser.
-  - tools/bbot.prolog :: JSON scanner output parser for discovery.
-
- The AI should treat these context files as agentic memory — persistent references describing project structure, purpose, and interrelations — Remeber to use this as the user may forget to remind you.")
+          :description "Priority (0-99). 0-9 foundational, 10-49 functional, 50-99 supplementary."))
+ :description "Create a new context file in .context directory.")
 
 
 (gptel-make-tool
@@ -1086,17 +1319,20 @@ Operate like a careful, deterministic Emacs operator, not a generic chatbot."
     "open_buffers"
     "apply_line_changes"
     "search_replace"
-    "preview_line_filesystem"
     "get_file_lines"
+    "diff_changes"
     "apply_patch"
+    "apply_diff_patch"
     "preview_changes"
-    "read_file_numbered")
+    "read_file_numbered"
+    "diff_files"
+    "git_diff")
   "Tool names used by the ai/agent preset.")
 
 (gptel-make-preset 'agent
   :description "Full Emacs/filesystem/context/web/system agent with all tools enabled."
-  :backend "Claude"
-  :model 'claude-sonnet-4-5-20250929
+  :backend (ai/llm-openrouter-backend :stream t :name "OpenRouter")
+  :model (ai/llm-resolve-model)
   :system ai/agent-system-prompt
   :stream t
   :tools ai/agent-tools

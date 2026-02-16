@@ -3,6 +3,11 @@
 (require 'org)
 (require 'gptel)
 
+(let ((ai-lib (expand-file-name "ai.el"
+                                (file-name-directory (or load-file-name buffer-file-name)))))
+  (when (file-exists-p ai-lib)
+    (load ai-lib nil t)))
+
 (defgroup flashcards nil
   "Generate org-drill flashcards with gptel."
   :group 'org
@@ -17,8 +22,8 @@ This should be a symbol created with `gptel-make-preset'."
 ;; Model is a symbol on purpose; fix it to whatever Opus you actually use.
 (gptel-make-preset 'org-flashcards-opus
   :description "Org-drill flashcard generator using Opus"
-  :backend "Claude"
-  :model 'claude-opus-4-1-20250805          ;; FIXME: set to real model symbol
+  :backend (ai/llm-openrouter-backend :stream t :name "OpenRouter")
+  :model (ai/llm-resolve-model)
   :temperature 0.3
   :system
   "You convert notes into high-quality Org-mode flashcards for org-drill.

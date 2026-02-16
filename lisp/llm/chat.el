@@ -21,6 +21,11 @@
 (require 'gptel)
 (require 'org)
 
+(let ((ai-lib (expand-file-name "ai.el"
+                                (file-name-directory (or load-file-name buffer-file-name)))))
+  (when (file-exists-p ai-lib)
+    (load ai-lib nil t)))
+
 ;;; ============================================================================
 ;;; Configuration Variables
 ;;; ============================================================================
@@ -45,19 +50,14 @@
 ;;; ============================================================================
 
 (defun ai/chat--get-summary-backend ()
-  "Get or create the Claude Haiku backend for summarization."
+  "Get or create the OpenRouter backend for summarization."
   (or ai/chat-summary-backend
       (setq ai/chat-summary-backend
-            (gptel-make-anthropic "ClaudeReWrite"
-              :model 'claude-haiku-4-5-20251001
-              :stream nil
-              :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))))))
+            (ai/llm-openrouter-backend :stream nil :name "OpenRouterReWrite"))))
 
 (defun ai/chat--get-main-backend ()
-  "Get the main chat backend (Claude Sonnet)."
-  (gptel-make-anthropic "Claude"
-    :stream t
-    :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))))
+  "Get the main chat backend."
+  (ai/llm-openrouter-backend :stream t :name "OpenRouter"))
 
 ;;; ============================================================================
 ;;; Summarization Logic
@@ -99,7 +99,7 @@ Conversation:
     
     (gptel-request prompt
       :backend backend
-      :model 'claude-haiku-20240307
+      :model (ai/llm-resolve-model)
       :callback
       (lambda (response info)
         (if response
@@ -231,10 +231,10 @@ Called with START and END positions of the AI response."
       ;; Set up minimal initial content (no wasteful descriptions)
       (insert "*** USER: ")
       
-      ;; Configure gptel
-      (setq-local gptel-backend backend)
-      (setq-local gptel-model 'claude-sonnet-4-5-20250929)
-      (setq-local gptel--system-message ai/todo-system-prompt)
+       ;; Configure gptel
+       (setq-local gptel-backend backend)
+       (setq-local gptel-model (ai/llm-resolve-model))
+       (setq-local gptel--system-message ai/todo-system-prompt)
       
       ;; Initialize buffer-local variables
       (setq-local ai/chat--first-exchange-done nil)
