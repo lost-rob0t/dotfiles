@@ -11,7 +11,7 @@
   boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "ahci" "usb_storage" "usbhid" "sd_mod"  ];
   boot.initrd.kernelModules = [ "dm-snapshot" ];
   boot.kernelModules = [ "kvm-amd" ];
-  boot.extraModulePackages = with config.boot.kernelPackages; [  ];
+  boot.extraModulePackages = with config.boot.kernelPackages; [ rtl8814au ];
 
   fileSystems."/" =
     { device = "/dev/disk/by-uuid/0b67f502-a60c-415b-8ffe-81549c99a207";
