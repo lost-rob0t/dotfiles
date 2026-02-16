@@ -4,7 +4,7 @@
   description = "My Nixos Config";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-24.11";
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";
     home-manager.url = "github:nix-community/home-manager";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     emacs-overlay.url = "github:nix-community/emacs-overlay";
@@ -65,6 +65,14 @@
             ./nix/nixos/systems/flake/flake.nix
             #./nix/nixos/systems/flake/flake-qtile.nix
             #./nix/nixos/systems/flake/flake-budgie.nix
+          ];
+        };
+        flake-nvidia = nixpkgs.lib.nixosSystem {
+          specialArgs = { inherit inputs outputs; };
+          modules = [
+            ./nix/nixos/mods/default.nix
+            ./nix/nixos/systems/flake/flake.nix
+            ./nix/nixos/systems/flake/flake-nvidia.nix
           ];
         };
         # flake-qtile = nixpkgs.lib.nixosSystem {
