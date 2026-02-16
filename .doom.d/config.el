@@ -636,14 +636,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;        (dme:w3m-textarea-mode))
 ;;      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
 
- (after! vterm
-   (setq vterm-environment '("TERM=xterm-256color"))
-   (defun vterm--rename-buffer-as-title (title)
-     (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
-       (cd-absolute dir)
-       (rename-buffer (format "term %s" title))))
-   (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
-   (setq vterm-shell "/run/current-system/sw/bin/bash"))
+ ;; (after! vterm
+ ;;   (setq vterm-environment '("TERM=xterm-256color"))
+ ;;   (defun vterm--rename-buffer-as-title (title)
+ ;;     (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
+ ;;       (cd-absolute dir)
+ ;;       (rename-buffer (format "term %s" title))))
+ ;;   (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+ ;;   (setq vterm-shell "/run/current-system/sw/bin/bash"))
 
 (after! vterm
   (defun nsa/tmux-vterm (arg)
@@ -812,11 +812,18 @@ strings."
 
 (use-package! gptel
   :config
+
   
-  (setq! gptel-model 'claude-sonnet-4-20250514
-         gptel-backend (gptel-make-anthropic "Claude"
-                         :key #'(lambda () (nsa/auth-source-get :host "api.anthropic.com"))
-                         :stream nil)
+
+  (setq! gptel-model 'openai/gpt-5-mini
+         gptel-backend (gptel-make-openai "OpenRouter"       ;Any name you want
+    :host "openrouter.ai"
+    :endpoint "/api/v1/chat/completions"
+    :stream t
+    :key #'(lambda () (nsa/auth-source-get :host "openrouter.ai")) ;can be a function that returns the key
+    :models '(openai/gpt-5.2-codex
+              openai/gpt-5-mini
+              moonshotai/kimi-k2.5))
          gptel-directives
          '(
            (default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
@@ -1021,10 +1028,10 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
   (add-hook! 'after-init-hook #'midnight-mode)
   (add-hook! 'midnight-hook #'(lambda ()
                                 (alert "Midnight mode is running.\nEmacs is fresh and clean again!")
-                                (when elcord-mode
-                                  (elcord-mode -1)
-                                  (elcord-mode 1)
-                                  (alert "Restarted Elcord!"))
+                                ;; (when elcord-mode
+                                ;;   (elcord-mode -1)
+                                ;;   (elcord-mode 1)
+                                ;;   (alert "Restarted Elcord!"))
                                 (when activity-watch-mode
                                   (activity-watch-mode -1)
                                   (activity-watch-mode 1)
