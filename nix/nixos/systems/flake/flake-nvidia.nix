@@ -6,32 +6,17 @@
   # Allow unfree packages (required for NVIDIA drivers)
   nixpkgs.config.allowUnfree = true;
 
-  # Enable OpenGL
-  hardware.opengl = {
-    enable = true;
-    driSupport = true;
-    driSupport32Bit = true;
-    extraPackages = with pkgs; [
-      # NVIDIA Video Acceleration
-      vaapiVdpau
-      libvdpau-va-gl
-      # CUDA support
-      cudaPackages.cudatoolkit
-      cudaPackages.cudnn
-    ];
-  };
+  # Enable graphics support (required for CUDA and GPU applications)
+  # Note: hardware.graphics.enable was named hardware.opengl.enable until NixOS 24.11
+  hardware.graphics.enable = true;
 
   # Load nvidia driver for Xorg and Wayland
-  services.xserver.videoDrivers = ["nvidia"];
+  services.xserver.videoDrivers = [ "nvidia" ];
 
   hardware.nvidia = {
-    # Modesetting is required
+    # Modesetting is required for Wayland support
     modesetting.enable = true;
 
-    # Nvidia power management. Experimental, and can cause sleep/suspend to fail.
-    # Enable this if you have graphical corruption issues or application crashes after waking
-    # up from sleep. This fixes it by saving the entire VRAM memory to /tmp/ instead
-    # of just the bare essentials.
     powerManagement.enable = false;
 
     # Fine-grained power management. Turns off GPU when not in use.
@@ -44,39 +29,35 @@
     # supported GPUs is at:
     # https://github.com/NVIDIA/open-gpu-kernel-modules#compatible-gpus
     # Only available from driver 515.43.04+
-    # Currently alpha-quality/buggy, so false is currently the recommended setting.
-    open = false;
+    open = true;
 
     # Enable the Nvidia settings menu,
     # accessible via `nvidia-settings`.
     nvidiaSettings = true;
 
     # Optionally, you may need to select the appropriate driver version for your specific GPU.
-    # package = config.boot.kernelPackages.nvidiaPackages.stable;
-    package = config.boot.kernelPackages.nvidiaPackages.production;
+    # Available options: stable, beta, production, legacy_470, legacy_390, etc.
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
 
-  # CUDA support
+  # CUDA support packages
   environment.systemPackages = with pkgs; [
-    cudaPackages.cudatoolkit
-    cudaPackages.cudnn
-    cudaPackages.cutensor
-    cudaPackages.nccl
+    cudatoolkit
+    cudnn
+    cutensor
     # NVIDIA utilities
     nvtop
-    nvidia-vaapi-driver
   ];
 
-  # Set environment variables for CUDA
+  # Set environment variables for CUDA development
   environment.variables = {
-    CUDA_PATH = "${pkgs.cudaPackages.cudatoolkit}";
-    CUDA_HOME = "${pkgs.cudaPackages.cudatoolkit}";
-    EXTRA_LDFLAGS = "-L${pkgs.cudaPackages.cudatoolkit}/lib";
-    EXTRA_CCFLAGS = "-I${pkgs.cudaPackages.cudatoolkit}/include";
+    CUDA_PATH = "${pkgs.cudatoolkit}";
+    EXTRA_LDFLAGS = "-L/lib -L${config.boot.kernelPackages.nvidiaPackages.stable}/lib";
+    EXTRA_CCFLAGS = "-I/usr/include";
   };
 
-  # Add CUDA libraries to the library path
+  # Add CUDA and NVIDIA libraries to the library path
   environment.sessionVariables = {
-    LD_LIBRARY_PATH = lib.mkDefault "${pkgs.cudaPackages.cudatoolkit}/lib:${pkgs.cudaPackages.cudnn}/lib";
+    LD_LIBRARY_PATH = "${config.boot.kernelPackages.nvidiaPackages.stable}/lib";
   };
 }

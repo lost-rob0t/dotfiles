@@ -145,6 +145,7 @@
        home = "/home/ollama";
   };};
   virtualisation = {
+    spiceUSBRedirection.enable = true;
     podman = {
       enable = false;
       # Create a `docker` alias for podman, to use it as a drop-in replacement
@@ -152,8 +153,10 @@
     };
     docker = {
       enable = true;
-    };
+      autoPrune = {
+        enable = true;
 
+    };};
     libvirtd = {
       enable = true;
       onBoot = "start";
@@ -162,7 +165,6 @@
       enable = false;
     };
 
-  };
-  virtualisation.docker.autoPrune.enable = true;
+    };
 
 }
