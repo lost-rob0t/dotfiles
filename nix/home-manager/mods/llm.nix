@@ -12,7 +12,6 @@
     home.packages = with pkgs; [
       inputs.zara.packages.${stdenv.hostPlatform.system}.zarathushtra
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-cli
-      inputs.zara.packages.${stdenv.hostPlatform.system}.zara
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-wake
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-dictate
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-prolog
