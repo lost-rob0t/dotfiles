@@ -257,7 +257,7 @@ keys.extend([Key([mod], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
 keys.extend([Key([mod, "shift"], "E", lazy.group['editorPad'].dropdown_toggle('emacs'))])
 keys.extend([Key([mod], "F3", lazy.group['passwords'].dropdown_toggle('keepassxc'))])
 keys.extend([Key([mod], "x", lazy.group['editorPad'].dropdown_toggle('org-capture'))])
-keys.extend([Key([mod, "shift"], "M", lazy.group['media'].dropdown_toggle('sonixd'))])
+keys.extend([Key([mod, "shift"], "M", lazy.group['media'].dropdown_toggle('feishin'))])
 
 def init_layout_theme():
     return {"margin":5,
@@ -680,7 +680,7 @@ floating_layout = layout.Floating(float_rules=[
     Match(title='Emacs Everywhere'),
     Match(title='Atomic Chrome'),
     Match(title="org-capture"),
-    Match(title="Sonixd")
+    Match(title="Feishin")
 
 ],  fullscreen_border_width = 0, border_width = 0)
 
