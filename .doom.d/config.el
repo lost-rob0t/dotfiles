@@ -1,8 +1,17 @@
 (setq user-mail-address "nsaspy@airmail.cc")
 
-(after! org
-  (dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
-    (load file)))
+(defvar nsa/lisp-directory (expand-file-name "~/.dotfiles/lisp/"))
+
+(dolist (directory (cons nsa/lisp-directory
+                         (directory-files nsa/lisp-directory t "^[^.]" t)))
+  (when (file-directory-p directory)
+    (add-to-list 'load-path directory)))
+
+(autoload #'nsa/async-shell-command-alert "saved" nil t)
+(autoload #'nsa/auth-source-get "saved" nil nil)
+(autoload #'lish-vterm "lish" nil t)
+(autoload #'ai/todo-list-todos-with-context "ai-sced" nil nil)
+(autoload #'org-gptel-generate-flashcards "flashcard" nil t)
 
 (setq doom-theme 'doom-outrun-electric)
 
@@ -30,11 +39,11 @@
 
 (setq frame-resize-pixelwise t)
 
-                                        ;(setq
-                                        ; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
-                                        ; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
-                                        ; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
-                                        ; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
+;(setq
+; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
+; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
 
 (add-to-list 'display-buffer-alist
              (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
@@ -67,7 +76,8 @@ The optional argument NEW-WINDOW is not used."
    ("github" . browse-url-brave)
    ("." . browse-url-brave)))
 
-(require 'libvirt)
+(use-package! libvirt
+  :commands (libvirt))
 
 (setq! org-directory "~/Documents/Notes/org")
 
@@ -144,14 +154,17 @@ The optional argument NEW-WINDOW is not used."
          "* TODO %^{Task} \n:PROPERTIES:\n:Effort: %^{Effort|0:30|1:00|1:30|2:00}\n:CATEGORY: %^{Category|Misc|Work|Education|Bug Bounty|Personal Task}\n:END:\nSCHEDULED: %^{Scheduled}t\nDEADLINE: %^{Deadline}t\n%?"
          :prepend t)))
 
-(setq! org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
-                                        ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
-                                        ;  (add-to-list org-agenda-files file))
+(defvar nsa/org-agenda-directory "~/Documents/Notes/org/agenda/")
 
 (defun org-agenda-update-files ()
-  "Update the org-agenda-files"
+  "Update the org-agenda-files."
   (interactive)
-  (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda" "\\.org$")))
+  (setq org-agenda-files
+        (directory-files-recursively nsa/org-agenda-directory "\\.org$")))
+
+(after! org-agenda
+  (org-agenda-update-files))
+
 (map! :leader
       :desc "update agenda"
       "o a u" #'org-agenda-update-files)
@@ -268,9 +281,10 @@ The optional argument NEW-WINDOW is not used."
       :desc "Babel execute buffer"
       "c B" #'org-babel-execute-buffer)
 
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t) (c . t)))
+(after! org
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t) (c . t))))
 
 (defun edit-src-block (src fn language)
   "Replace SRC org-element's value property with the result of FN.
@@ -415,7 +429,9 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   "Alias for 'nsa/config/sync'"
   (nsa/config-sync))
 
-(require 'org-download)
+(use-package! org-download
+  :after org
+  :commands (org-download-clipboard org-download-yank))
 
 ;; Drag-and-drop to `dired`
 ;;(add-hook 'dired-mode-hook 'org-download-enable)
@@ -476,8 +492,10 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                            (concat "pandoc --from=html --to=org " (buffer-substring begin end))
                            nil t))
 
-(require 'epa-file)
-(epa-file-enable)
+(run-with-idle-timer 3 nil
+                     (lambda ()
+                       (require 'epa-file)
+                       (epa-file-enable)))
 
 (setq epa-file-encrypt-to '("nsaspy@airmail.cc"))
 
@@ -597,6 +615,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (use-package! forge))
 
 (use-package! projectile
+  :after projectile
   :config
   (setq! projectile-project-search-path
          '(("~/Documents/Projects" . 1))))
@@ -612,6 +631,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode))
 
 (use-package! webpaste
+  :commands (webpaste-paste-region webpaste-paste-buffer)
   :config
 
   (setq!
@@ -644,14 +664,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;        (dme:w3m-textarea-mode))
 ;;      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
 
- ;; (after! vterm
- ;;   (setq vterm-environment '("TERM=xterm-256color"))
- ;;   (defun vterm--rename-buffer-as-title (title)
- ;;     (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
- ;;       (cd-absolute dir)
- ;;       (rename-buffer (format "term %s" title))))
- ;;   (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
- ;;   (setq vterm-shell "/run/current-system/sw/bin/bash"))
+;; (after! vterm
+;;   (setq vterm-environment '("TERM=xterm-256color"))
+;;   (defun vterm--rename-buffer-as-title (title)
+;;     (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
+;;       (cd-absolute dir)
+;;       (rename-buffer (format "term %s" title))))
+;;   (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+;;   (setq vterm-shell "/run/current-system/sw/bin/bash"))
 
 (after! vterm
   (defun nsa/tmux-vterm (arg)
@@ -677,7 +697,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       (if (not (file-executable-p script))
           (message "The script '%s' is not executable." script)
         (let ((default-directory (file-name-directory script)))
-          (nsa/async-shell-command-alert command (format "*%s*" (f-base script))))))))
+          (nsa/async-shell-command-alert command (format "*%s*" (file-name-base script))))))))
 
 (use-package! dired
   :config
@@ -740,24 +760,26 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;   (setq tramp-use-ssh-controlmaster-options nil))
 
 (use-package! atomic-chrome
+  :commands (atomic-chrome-start-server)
   :config
   (setq! atomic-chrome-buffer-open-style 'frame))
 
 (after! atomic-chrome
-  (add-hook 'after-init-hook #'atomic-chrome-start-server))
+  (run-with-idle-timer 5 nil #'atomic-chrome-start-server))
 
 (bind-key "M-&" #'nsa/async-shell-command-alert)
 
 (use-package! eshell
+  :after eshell
   :config
   (setq! eshell-aliases-file "~/.doom.d/eshell/aliases")
   (set-company-backend! 'eshell-mode
     '(company-files))
   (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
 
-(require 'alert)
-(setq alert-default-style 'libnotify)
-(setq alert-libnotify-command "dunstify")
+(after! alert
+  (setq alert-default-style 'libnotify)
+  (setq alert-libnotify-command "dunstify"))
 
 (defun alert-libnotify-notify (info)
   "Send INFO using notifications-notify.
@@ -789,6 +811,7 @@ strings."
     (alert-message-notify info)))
 
 (use-package! skeletor
+  :commands (skeletor-create-project skeletor-define-template)
   :config
   (setq! skeletor-user-directory "~/Templates/")
 
@@ -819,6 +842,8 @@ strings."
                                               (nsa/init-git-project dir))))
 
 (use-package! gptel
+  :commands (gptel gptel-add gptel-add-file gptel-abort gptel-menu
+             gptel-complete gptel-send gptel-set-topic)
   :config
 
   (setq! gptel-model 'openai/gpt-5-mini
@@ -890,22 +915,22 @@ strings."
           :desc "Vector menu" "m" #'org-vector-transient
           :desc "Kill all" "k" #'org-vector-stop-all))))
 
- (use-package! mcp
-  :after gptel
-  :custom (mcp-hub-servers
-           `(
-             
-             ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
-             ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
-                                                    ,(expand-file-name "~/Documents/Projects")
-                                                    ,(expand-file-name "~/common-lisp")
-                                                    ,(expand-file-name "~/.dotfiles"))))))
-             
-  :config
-  (require 'gptel-integrations)
-  (require 'mcp-hub)
-  (gptel-mcp-connect)
-  :hook (after-init . mcp-hub-start-all-server))
+(use-package! mcp
+ :after gptel
+ :commands (mcp-hub-start-all-server gptel-mcp-connect)
+ :custom (mcp-hub-servers
+          `(
+            
+            ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
+            ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
+                                                   ,(expand-file-name "~/Documents/Projects")
+                                                   ,(expand-file-name "~/common-lisp")
+                                                   ,(expand-file-name "~/.dotfiles"))))))
+            
+ :config
+ (require 'gptel-integrations)
+ (require 'mcp-hub)
+ (gptel-mcp-connect))
 
 (map!
  :leader
@@ -923,21 +948,14 @@ strings."
    :desc "Test Filesystem" :n "f" #'+mcp/test-filesystem
    :desc "Test MPRIS" :n "m" #'+mcp/test-mpris)))
 
-(use-package! flashcards)
+(use-package! flashcards
+  :commands (org-gptel-generate-flashcards))
 
 ;; (after! ispell
 ;;   (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
 ;;          ispell-extra-args '("--sug-mode=ultra")))
 
-(use-package! spell-fu
-  :config
-  (add-hook! 'spell-fu-mode-hook
-    (lambda ()
-          (spell-fu-dictionary-add
-           (spell-fu-get-personal-dictionary "personal" (expand-file-name ".aspell.en.pws" "~/")))
-      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en-science"))
-      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en-computers"))
-      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en")))))
+;; Disabled with Doom's spell module for faster startup.
 
 ;; (use-package! consult-omni
 ;;  :after consult
@@ -980,11 +998,14 @@ strings."
 
 ;;  )
 
-(use-package! f)
+(use-package! f
+  :defer t)
 
-(use-package! dash)
+(use-package! dash
+  :defer t)
 
-(use-package! s)
+(use-package! s
+  :defer t)
 
 (setq lsp-package-path (executable-find "pyright"))
 
@@ -992,15 +1013,15 @@ strings."
    (kmacro "SPC . ~ /  .~/Documents/Notes/programmingorg/programming/prolog/prolog.org
 GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspace> o r g / p r o g r a m m i n g / p r o l o g / p r o l o g . o r g <return> G M-x r u n - p r o l o g <return>"))
 
-(envrc-global-mode)
+(run-with-idle-timer 3 nil #'envrc-global-mode)
 
-                                        ;(require 'lsp-mode)
-                                        ;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
-                                        ;(lsp-register-client
-                                        ; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
-                                        ;                  :major-modes '(nim-mode)
-                                        ;                  :server-id 'nimlsp))
-                                        ;(add-hook 'nim-mode-hook #'lsp)
+;(require 'lsp-mode)
+;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
+;(lsp-register-client
+; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
+;                  :major-modes '(nim-mode)
+;                  :server-id 'nimlsp))
+;(add-hook 'nim-mode-hook #'lsp)
 
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 
@@ -1063,11 +1084,11 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
 
 (setq bookmark-file "~/Documents/Emacs/bookmarks")
 
-(global-activity-watch-mode)
+(run-with-idle-timer 10 nil #'global-activity-watch-mode)
 
 (use-package! midnight
   :config
-  (add-hook! 'after-init-hook #'midnight-mode)
+  (run-with-idle-timer 10 nil #'midnight-mode)
   (add-hook! 'midnight-hook #'(lambda ()
                                 (alert "Midnight mode is running.\nEmacs is fresh and clean again!")
                                 ;; (when elcord-mode
@@ -1105,7 +1126,6 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
 (use-package! elfeed-tube
   :ensure t ;; or :straight t
   :after elfeed
-  :demand t
   :config
   ;; (setq elfeed-tube-auto-save-p nil) ; default value
   ;; (setq elfeed-tube-auto-fetch-p t)  ; default value
@@ -1118,8 +1138,8 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
          ([remap save-buffer] . elfeed-tube-save)))
 
 (let ((temple "~/Temple/temple-loader.el"))
-  (when (f-exists? temple)
-    (load temple)))
+  (when (file-exists-p temple)
+    (run-with-idle-timer 10 nil #'load temple)))
 
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
@@ -1127,11 +1147,12 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
 (setq nsa/music-dir "~/Music/Music-inbox")
 
 (use-package! project-tasks
+  :commands (project-tasks)
   :config
   (map! :leader
         :desc "Run Project Task" "p r" #'project-tasks))
 
-                                        ;(require 'persp-mode)
+;(require 'persp-mode)
 
 (defun ezf-default (filename)
   "EZF completion with your default completion system."

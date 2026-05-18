@@ -219,9 +219,18 @@ See [[file:~/.dotfiles/lisp/nixos-helpers/system.el][system.el]] for how I deter
 
 Load my Personal elisp
 #+begin_src emacs-lisp
-(after! org
-  (dolist (file (directory-files-recursively "~/.dotfiles/lisp" "\\.el$"))
-    (load file)))
+(defvar nsa/lisp-directory (expand-file-name "~/.dotfiles/lisp/"))
+
+(dolist (directory (cons nsa/lisp-directory
+                         (directory-files nsa/lisp-directory t "^[^.]" t)))
+  (when (file-directory-p directory)
+    (add-to-list 'load-path directory)))
+
+(autoload #'nsa/async-shell-command-alert "saved" nil t)
+(autoload #'nsa/auth-source-get "saved" nil nil)
+(autoload #'lish-vterm "lish" nil t)
+(autoload #'ai/todo-list-todos-with-context "ai-sced" nil nil)
+(autoload #'org-gptel-generate-flashcards "flashcard" nil t)
 #+end_src
 * Styling
 ** Theme
@@ -327,7 +336,8 @@ Define a open in brave function
 ** Libvirt
 Manage virtual machines from emacs
 #+begin_src emacs-lisp
-(require 'libvirt)
+(use-package! libvirt
+  :commands (libvirt))
 #+end_src
 * Org Mode
 Setting org dir
@@ -430,16 +440,19 @@ Here i override the capture templates, some intergrating into org roam
 *** Org Agenda
 Find all TODOS recursively [[https://stackoverflow.com/a/41969519][source]].
 #+begin_src emacs-lisp
-(setq! org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$"))
-                                        ;(dolist (file (directory-files-recursively "~/Documents/Notes/org/roam/" "\\.org$"))
-                                        ;  (add-to-list org-agenda-files file))
+(defvar nsa/org-agenda-directory "~/Documents/Notes/org/agenda/")
+
+(defun org-agenda-update-files ()
+  "Update the org-agenda-files."
+  (interactive)
+  (setq org-agenda-files
+        (directory-files-recursively nsa/org-agenda-directory "\\.org$")))
+
+(after! org-agenda
+  (org-agenda-update-files))
 #+end_src
 
 #+begin_src emacs-lisp
-(defun org-agenda-update-files ()
-  "Update the org-agenda-files"
-  (interactive)
-  (setq org-agenda-files (directory-files-recursively "~/Documents/Notes/org/agenda" "\\.org$")))
 (map! :leader
       :desc "update agenda"
       "o a u" #'org-agenda-update-files)
@@ -578,9 +591,10 @@ Execute all src blocks in buffer
 Add languages to org babel
 
 #+begin_src emacs-lisp
-(org-babel-do-load-languages
- 'org-babel-load-languages
- '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t) (c . t)))
+(after! org
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t) (org . t) (nim . t) (python . t)  (lisp . t) (prolog . t) (http . t) (graphql . t) (ffuf . t) (makefile . t) (c . t))))
 #+end_src
 **** Better Formating in org-babel
 Adapted from [[https://www.reddit.com/r/emacs/comments/9tp79o/comment/e90g7km/?utm_source=share&utm_medium=web2x&context=3][here]].
@@ -739,7 +753,9 @@ Create a function to tangle and sync doom at the same time
 This extension facilitates moving images from point A to point B.
 
 #+begin_src emacs-lisp
-(require 'org-download)
+(use-package! org-download
+  :after org
+  :commands (org-download-clipboard org-download-yank))
 
 ;; Drag-and-drop to `dired`
 ;;(add-hook 'dired-mode-hook 'org-download-enable)
@@ -827,8 +843,10 @@ If my notes get slow i will disable it.
 
 Eyes off my doccuments
 #+begin_src emacs-lisp
-(require 'epa-file)
-(epa-file-enable)
+(run-with-idle-timer 3 nil
+                     (lambda ()
+                       (require 'epa-file)
+                       (epa-file-enable)))
 #+end_src
 
 #+begin_src emacs-lisp
@@ -995,6 +1013,7 @@ Setting the path to find projects
 I store my stuff in ~/Documents/Projects
 #+begin_src emacs-lisp
 (use-package! projectile
+  :after projectile
   :config
   (setq! projectile-project-search-path
          '(("~/Documents/Projects" . 1))))
@@ -1016,6 +1035,7 @@ I store my stuff in ~/Documents/Projects
 Web-paste allows you to paste text to pastebin like web services
 #+begin_src emacs-lisp
 (use-package! webpaste
+  :commands (webpaste-paste-region webpaste-paste-buffer)
   :config
 
   (setq!
@@ -1098,7 +1118,7 @@ Internally to my head, =C-c C-c= is the same as the org-babel, so it makes since
       (if (not (file-executable-p script))
           (message "The script '%s' is not executable." script)
         (let ((default-directory (file-name-directory script)))
-          (nsa/async-shell-command-alert command (format "*%s*" (f-base script))))))))
+          (nsa/async-shell-command-alert command (format "*%s*" (file-name-base script))))))))
 
 (use-package! dired
   :config
@@ -1173,13 +1193,14 @@ Edit text areas in your web browser within emacs!
 I want it to open a new frame
 #+begin_src emacs-lisp
 (use-package! atomic-chrome
+  :commands (atomic-chrome-start-server)
   :config
   (setq! atomic-chrome-buffer-open-style 'frame))
 #+end_src
 Make sure to start atomic chrome at emacs startup.
 #+begin_src emacs-lisp
 (after! atomic-chrome
-  (add-hook 'after-init-hook #'atomic-chrome-start-server))
+  (run-with-idle-timer 5 nil #'atomic-chrome-start-server))
 #+end_src
 ** shell commands
 I defined a function to run dunstify to send an alert when it is done.
@@ -1195,6 +1216,7 @@ If i cant run it in eshell i have a terminal dropdown for it.
 Set the aliases file. Doom already sets this but i will do so again incase i want to change it.
 #+begin_src emacs-lisp
 (use-package! eshell
+  :after eshell
   :config
   (setq! eshell-aliases-file "~/.doom.d/eshell/aliases")
   (set-company-backend! 'eshell-mode
@@ -1208,9 +1230,9 @@ Send Alerts from emacs
 You must set the command, it is nil be default
 I use dunst as my notification system, here is a config to set that up
 #+begin_src emacs-lisp
-(require 'alert)
-(setq alert-default-style 'libnotify)
-(setq alert-libnotify-command "dunstify")
+(after! alert
+  (setq alert-default-style 'libnotify)
+  (setq alert-libnotify-command "dunstify"))
 #+end_src
 
 This is needed for it to work at all....[fn:3]
@@ -1249,6 +1271,7 @@ Skeletor is a project template package.
 
 #+begin_src emacs-lisp
 (use-package! skeletor
+  :commands (skeletor-create-project skeletor-define-template)
   :config
   (setq! skeletor-user-directory "~/Templates/")
 
@@ -1283,6 +1306,8 @@ Skeletor is a project template package.
 *** GPTEL
 #+begin_src emacs-lisp
 (use-package! gptel
+  :commands (gptel gptel-add gptel-add-file gptel-abort gptel-menu
+             gptel-complete gptel-send gptel-set-topic)
   :config
 
   (setq! gptel-model 'openai/gpt-5-mini
@@ -1375,6 +1400,7 @@ Start a todo chat with tools needed
 #+begin_src emacs-lisp
  (use-package! mcp
   :after gptel
+  :commands (mcp-hub-start-all-server gptel-mcp-connect)
   :custom (mcp-hub-servers
            `(
              
@@ -1387,8 +1413,7 @@ Start a todo chat with tools needed
   :config
   (require 'gptel-integrations)
   (require 'mcp-hub)
-  (gptel-mcp-connect)
-  :hook (after-init . mcp-hub-start-all-server))
+  (gptel-mcp-connect))
 #+end_src
 
 *** Keybinds
@@ -1412,7 +1437,8 @@ Gptel keys, could add more commands though.[fn:6]
 #+end_src
 *** Flashcards
 #+begin_src emacs-lisp
-(use-package! flashcards)
+(use-package! flashcards
+  :commands (org-gptel-generate-flashcards))
   
   
 
@@ -1429,15 +1455,7 @@ Gptel keys, could add more commands though.[fn:6]
 Fast spell checker
 
 #+begin_src emacs-lisp
-(use-package! spell-fu
-  :config
-  (add-hook! 'spell-fu-mode-hook
-    (lambda ()
-          (spell-fu-dictionary-add
-           (spell-fu-get-personal-dictionary "personal" (expand-file-name ".aspell.en.pws" "~/")))
-      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en-science"))
-      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en-computers"))
-      (spell-fu-dictionary-add (spell-fu-get-ispell-dictionary "en")))))
+;; Disabled with Doom's spell module for faster startup.
 #+end_src
 ** Consult Omni
 Powerful omni search in emacs
@@ -1490,18 +1508,21 @@ Consulti multiple sources and have them in a dropdown.
 *** f.el :lisp:
 Much inspired by @magnarss excellent s.el and dash.el, f.el is a modern API for working with files and directories in Emacs.
 #+begin_src emacs-lisp
-(use-package! f)
+(use-package! f
+  :defer t)
 #+end_src
 *** dash.el :lisp:
 A modern list API for Emacs. No 'cl required.
 
 #+begin_src emacs-lisp
-(use-package! dash)
+(use-package! dash
+  :defer t)
 #+end_src
 *** s.el :lisp:
 The long lost Emacs string manipulation library.
 #+begin_src emacs-lisp
-(use-package! s)
+(use-package! s
+  :defer t)
 #+end_src
 * Programming
 
@@ -1524,7 +1545,7 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
 ** Direnv
 Make life easy!
 #+begin_src emacs-lisp
-(envrc-global-mode)
+(run-with-idle-timer 3 nil #'envrc-global-mode)
 #+end_src
 
 ** Nim
@@ -1641,7 +1662,7 @@ Sets PATH
 #+end_src
 ** Activity Watch
 #+begin_src emacs-lisp
-(global-activity-watch-mode)
+(run-with-idle-timer 10 nil #'global-activity-watch-mode)
 #+end_src
 ** Social Media
 *** Discord rich presence
@@ -1658,7 +1679,7 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
 #+begin_src emacs-lisp
 (use-package! midnight
   :config
-  (add-hook! 'after-init-hook #'midnight-mode)
+  (run-with-idle-timer 10 nil #'midnight-mode)
   (add-hook! 'midnight-hook #'(lambda ()
                                 (alert "Midnight mode is running.\nEmacs is fresh and clean again!")
                                 ;; (when elcord-mode
@@ -1700,7 +1721,6 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
 (use-package! elfeed-tube
   :ensure t ;; or :straight t
   :after elfeed
-  :demand t
   :config
   ;; (setq elfeed-tube-auto-save-p nil) ; default value
   ;; (setq elfeed-tube-auto-fetch-p t)  ; default value
@@ -1716,8 +1736,8 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
 
 #+begin_src emacs-lisp
 (let ((temple "~/Temple/temple-loader.el"))
-  (when (f-exists? temple)
-    (load temple)))
+  (when (file-exists-p temple)
+    (run-with-idle-timer 10 nil #'load temple)))
 #+end_src
 * Security
 ** Auth info source
@@ -1739,6 +1759,7 @@ This is a simple way of running tasks for a project.
 Simply put a tasks.org file in the project root and make sure the src block has a NAME.
 #+begin_src emacs-lisp
 (use-package! project-tasks
+  :commands (project-tasks)
   :config
   (map! :leader
         :desc "Run Project Task" "p r" #'project-tasks))
