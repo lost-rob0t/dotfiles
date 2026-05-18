@@ -631,6 +631,14 @@ now all i do is lisp n prolog.
 #+begin_src emacs-lisp
 (with-eval-after-load 'org
   (require 'org-tempo)
+  (defun ivan/org-set-structure-template (tpl)
+    (setf (alist-get (car tpl) org-structure-template-alist nil nil #'equal)
+          (cdr tpl)))
+  (setq org-structure-template-alist
+        (cl-remove-if (lambda (tpl)
+                        (and (equal (car tpl) "c")
+                             (equal (cdr tpl) "src C")))
+                      org-structure-template-alist))
   ;; Scripting languages
   (dolist (tpl '(("sh"   . "src shell")
                  ("bash" . "src bash")
@@ -643,7 +651,7 @@ now all i do is lisp n prolog.
                  ("lua"  . "src lua")
                  ("perl" . "src perl")
                  ("awk"  . "src awk")))
-    (add-to-list 'org-structure-template-alist tpl))
+    (ivan/org-set-structure-template tpl))
 
   ;; Web / markup
   (dolist (tpl '(("js"   . "src javascript")
@@ -656,7 +664,7 @@ now all i do is lisp n prolog.
                  ("yml"  . "src yaml")
                  ("json" . "src json")
                  ("md"   . "src markdown")))
-    (add-to-list 'org-structure-template-alist tpl))
+    (ivan/org-set-structure-template tpl))
 
   ;; Lisp family
   (dolist (tpl '(("el"   . "src emacs-lisp")
@@ -665,7 +673,7 @@ now all i do is lisp n prolog.
                  ("scm"  . "src scheme")
                  ("ss"   . "src scheme")
                  ("rkt"  . "src racket")))
-    (add-to-list 'org-structure-template-alist tpl))
+    (ivan/org-set-structure-template tpl))
 
   ;; Functional & compiled languages
   (dolist (tpl '(("hs"   . "src haskell")
@@ -674,13 +682,13 @@ now all i do is lisp n prolog.
                  ("nim"  . "src nim")
                  ("rs"   . "src rust")
                  ("go"   . "src go")
-                 ("c"    . "src C")
+                 ("cc"   . "src C")
                  ("cpp"  . "src cpp")
                  ("cs"   . "src csharp")
                  ("java" . "src java")
                  ("kt"   . "src kotlin")
                  ("swift". "src swift")))
-    (add-to-list 'org-structure-template-alist tpl))
+    (ivan/org-set-structure-template tpl))
 
   ;; Config & data
   (dolist (tpl '(("nix"  . "src nix")
@@ -689,7 +697,7 @@ now all i do is lisp n prolog.
                  ("conf" . "src conf")
                  ("csv"  . "src csv")
                  ("sql"  . "src sql")))
-    (add-to-list 'org-structure-template-alist tpl))
+    (ivan/org-set-structure-template tpl))
 
   ;; Misc / scientific / documentation
   (dolist (tpl '(("gnuplot" . "src gnuplot")
@@ -702,7 +710,7 @@ now all i do is lisp n prolog.
                  ("octave"  . "src octave")
                  ("sas"     . "src sas")
                  ("stata"   . "src stata")))
-    (add-to-list 'org-structure-template-alist tpl)))
+    (ivan/org-set-structure-template tpl)))
 #+end_src
 *** Org config sync
 Create a function to tangle and sync doom at the same time
@@ -1277,8 +1285,6 @@ Skeletor is a project template package.
 (use-package! gptel
   :config
 
-  
-
   (setq! gptel-model 'openai/gpt-5-mini
          gptel-backend (gptel-make-openai "OpenRouter"       ;Any name you want
     :host "openrouter.ai"
@@ -1367,14 +1373,22 @@ Start a todo chat with tools needed
 
 
 #+begin_src emacs-lisp
-;; (use-package! mcp
-;;   :after gptel
-;;   :custom (mcp-hub-servers
-;;            `(("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" ,(expand-file-name "~"))))
-;;              ("mpris" . (:command "python3" :args (,(expand-file-name "~/.local/share/mcp-servers/mpris-server.py"))))))
-;;   :config
-;;   (require 'mcp-hub)
-;;   :hook (after-init . mcp-hub-start-all-server))
+ (use-package! mcp
+  :after gptel
+  :custom (mcp-hub-servers
+           `(
+             
+             ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
+             ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
+                                                    ,(expand-file-name "~/Documents/Projects")
+                                                    ,(expand-file-name "~/common-lisp")
+                                                    ,(expand-file-name "~/.dotfiles"))))))
+             
+  :config
+  (require 'gptel-integrations)
+  (require 'mcp-hub)
+  (gptel-mcp-connect)
+  :hook (after-init . mcp-hub-start-all-server))
 #+end_src
 
 *** Keybinds
@@ -1701,7 +1715,9 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
 ** Temple
 
 #+begin_src emacs-lisp
-(load "~/share/Temple/temple-loader.el")
+(let ((temple "~/Temple/temple-loader.el"))
+  (when (f-exists? temple)
+    (load temple)))
 #+end_src
 * Security
 ** Auth info source

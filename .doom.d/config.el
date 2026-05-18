@@ -314,6 +314,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 
 (with-eval-after-load 'org
   (require 'org-tempo)
+  (defun ivan/org-set-structure-template (tpl)
+    (setf (alist-get (car tpl) org-structure-template-alist nil nil #'equal)
+          (cdr tpl)))
+  (setq org-structure-template-alist
+        (cl-remove-if (lambda (tpl)
+                        (and (equal (car tpl) "c")
+                             (equal (cdr tpl) "src C")))
+                      org-structure-template-alist))
   ;; Scripting languages
   (dolist (tpl '(("sh"   . "src shell")
                  ("bash" . "src bash")
@@ -326,7 +334,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                  ("lua"  . "src lua")
                  ("perl" . "src perl")
                  ("awk"  . "src awk")))
-    (add-to-list 'org-structure-template-alist tpl))
+    (ivan/org-set-structure-template tpl))
 
   ;; Web / markup
   (dolist (tpl '(("js"   . "src javascript")
@@ -339,7 +347,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                  ("yml"  . "src yaml")
                  ("json" . "src json")
                  ("md"   . "src markdown")))
-    (add-to-list 'org-structure-template-alist tpl))
+    (ivan/org-set-structure-template tpl))
 
   ;; Lisp family
   (dolist (tpl '(("el"   . "src emacs-lisp")
@@ -348,7 +356,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                  ("scm"  . "src scheme")
                  ("ss"   . "src scheme")
                  ("rkt"  . "src racket")))
-    (add-to-list 'org-structure-template-alist tpl))
+    (ivan/org-set-structure-template tpl))
 
   ;; Functional & compiled languages
   (dolist (tpl '(("hs"   . "src haskell")
@@ -357,13 +365,13 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                  ("nim"  . "src nim")
                  ("rs"   . "src rust")
                  ("go"   . "src go")
-                 ("c"    . "src C")
+                 ("cc"   . "src C")
                  ("cpp"  . "src cpp")
                  ("cs"   . "src csharp")
                  ("java" . "src java")
                  ("kt"   . "src kotlin")
                  ("swift". "src swift")))
-    (add-to-list 'org-structure-template-alist tpl))
+    (ivan/org-set-structure-template tpl))
 
   ;; Config & data
   (dolist (tpl '(("nix"  . "src nix")
@@ -372,7 +380,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                  ("conf" . "src conf")
                  ("csv"  . "src csv")
                  ("sql"  . "src sql")))
-    (add-to-list 'org-structure-template-alist tpl))
+    (ivan/org-set-structure-template tpl))
 
   ;; Misc / scientific / documentation
   (dolist (tpl '(("gnuplot" . "src gnuplot")
@@ -385,7 +393,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                  ("octave"  . "src octave")
                  ("sas"     . "src sas")
                  ("stata"   . "src stata")))
-    (add-to-list 'org-structure-template-alist tpl)))
+    (ivan/org-set-structure-template tpl)))
 
 (defvar org-configs-list ()
   "A List of org documents that holds your configuration. Will be used to tangle to elisp")
@@ -813,8 +821,6 @@ strings."
 (use-package! gptel
   :config
 
-  
-
   (setq! gptel-model 'openai/gpt-5-mini
          gptel-backend (gptel-make-openai "OpenRouter"       ;Any name you want
     :host "openrouter.ai"
@@ -856,14 +862,50 @@ strings."
   (let ((gptel--system-message (alist-get 'time-boxer gptel-directives)))
     (gptel "*TODO boxer*" nil (ai/todo-list-todos-with-context '(and (or (todo) (todo "STRT" "LOOP" "PROJ")) (ts))) t)))
 
-;; (use-package! mcp
-;;   :after gptel
-;;   :custom (mcp-hub-servers
-;;            `(("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem" ,(expand-file-name "~"))))
-;;              ("mpris" . (:command "python3" :args (,(expand-file-name "~/.local/share/mcp-servers/mpris-server.py"))))))
-;;   :config
-;;   (require 'mcp-hub)
-;;   :hook (after-init . mcp-hub-start-all-server))
+(use-package! org-vector
+  :after (org-roam gptel)
+  :commands (org-vector-search org-vector-embed org-vector-start-service
+             org-vector-transient)
+  :init
+  (setq org-vector-dir "~/Documents/Notes/org/roam/")
+  (setq org-vector-db "~/.cache/org-vector/")
+  :config 
+  (setq org-vector-model "sentence-transformers/all-MiniLM-L6-v2")
+  (setq org-vector-url "")
+  (setq org-vector-ingestion-instructions
+        "Instruct: Given a document, retrieve semantically similar text\nDocument: ")
+  (setq org-vector-query-instructions
+        "Instruct: Given a query, retrieve relevant documents\nQuery: ")
+
+  (setq org-vector-collection-name "org-roam")
+  (setq org-vector-log-level "WARNING")
+  (setq org-vector-log-to-file t)
+  ;(org-vector-start-service)
+  (map! :leader
+        (:prefix-map ("n" . "notes")
+         (:prefix-map ("v" . "vector")
+          :desc "Vector search" "s" #'org-vector-search
+          :desc "Search at point" "S" #'org-vector-search-at-point
+          :desc "Full re-index" "i" #'org-vector-embed
+          :desc "Vector menu" "m" #'org-vector-transient
+          :desc "Kill all" "k" #'org-vector-stop-all))))
+
+ (use-package! mcp
+  :after gptel
+  :custom (mcp-hub-servers
+           `(
+             
+             ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
+             ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
+                                                    ,(expand-file-name "~/Documents/Projects")
+                                                    ,(expand-file-name "~/common-lisp")
+                                                    ,(expand-file-name "~/.dotfiles"))))))
+             
+  :config
+  (require 'gptel-integrations)
+  (require 'mcp-hub)
+  (gptel-mcp-connect)
+  :hook (after-init . mcp-hub-start-all-server))
 
 (map!
  :leader
@@ -1075,7 +1117,9 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
          ("F" . elfeed-tube-fetch)
          ([remap save-buffer] . elfeed-tube-save)))
 
-(load "~/share/Temple/temple-loader.el")
+(let ((temple "~/Temple/temple-loader.el"))
+  (when (f-exists? temple)
+    (load temple)))
 
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)
