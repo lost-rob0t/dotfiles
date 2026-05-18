@@ -142,6 +142,7 @@ keys = [
     Key([mod, "shift"], "Left", lazy.layout.swap_left()),
     Key([mod, "shift"], "Right", lazy.layout.swap_right()),
     Key([mod, "shift"], "space", lazy.window.toggle_floating()),
+
     KeyChord([mod],"e", [
              Key([], "e",
                  lazy.spawn("emacsclient -c -a 'emacs'"),
@@ -178,7 +179,7 @@ keys = [
                  ),
              Key([], "y",
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(+gptel/here)'"),
-                 desc='Emacsclient Vterm'
+                 desc='Emacsclient GPTel'
                  ),
          ])
  ]
@@ -238,9 +239,9 @@ groups.extend([ScratchPad("termpad", [
              on_focus_lost_hide=False),
     ]),
     ScratchPad("media", [
-    DropDown("sonixd",
-             "sonixd",
-             match = Match(wm_class='sonixd'),
+    DropDown("feishin",
+             "feishin",
+             match = Match(wm_class='feishin'),
              height=0.8,
              width = 0.8,
              x = 0.1,
@@ -389,7 +390,7 @@ def init_widgets_defaults():
 widget_defaults = init_widgets_defaults()
 
 def init_widgets_list():
-    prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
+    #prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
     widgets_list = [
         widget.GroupBox(font="3270 Nerd Font",
                         visible_groups=["1","2","3","4","5","6","7","8", "9", "0"],
@@ -439,7 +440,6 @@ def init_widgets_list():
         #          background=colors[1],
         #          padding = 0,
         #          ),
-
         widget.Pomodoro(foreground = colors[2],
             background = colors[1],
             ),
@@ -449,6 +449,7 @@ def init_widgets_list():
                   foreground = colors[2],
                   background = colors[1]
                   ),
+
         widget.Mpris2(background=colors[1],
                       foreground=colors[6],
                       scroll_fixed_width=True,
@@ -459,11 +460,16 @@ def init_widgets_list():
                       linewidth = 60,
                       max_chars=60
                       ),
-        widget.Wttr(
-            format =  '%f %C',
-            location={f'@{myIp}': 'Home'},
-            units = "u",
-            update_interval = 300,
+        widget.GenPollCommand(
+            cmd=[
+                "curl",
+                "-s",
+                "--max-time",
+                "5",
+                f"https://wttr.in/@{myIp}?u&format=%f+%C",
+            ],
+            parse=lambda output: output.strip() or "weather n/a",
+            update_interval=300,
         ),
         widget.Sep(
             linewidth = 1,
@@ -591,7 +597,9 @@ def init_widgets_list():
             foreground = colors[5],
             background = colors[1],
             fontsize = 12,
-            format="%Y-%m-%d %H:%M"
+            format="%Y-%m-%d %H:%M",
+            mouse_callbacks={ 'Button1': lambda: os.system('notify-send -a qtile "$(date "+%Y-%m-%d %H:%M")" "$(cal)"')}
+
         ),
         widget.Sep(
                   linewidth = 1,
