@@ -13,6 +13,11 @@
 (require 'cl-lib)
 (require 'plz)
 
+
+(defvar ai/agent-context-files '("AGENTS.md")
+  "List of files to include ")
+
+
 (let ((ai-lib (expand-file-name "ai.el"
                                 (file-name-directory (or load-file-name buffer-file-name)))))
   (when (file-exists-p ai-lib)
@@ -1034,6 +1039,12 @@
  This command sets up the agentic memory layer for project documentation.")
 
 
+(gptel-make-tool
+ :function #'ai/--inital-context
+ :name "inital_context"
+ :category "context"
+ :description "")
+
 
 
 (gptel-make-tool
@@ -1341,6 +1352,27 @@ Operate like a careful, deterministic Emacs operator, not a generic chatbot."
   :use-context 'system
   :track-media nil
   :include-reasoning t)
+
+(define-minor-mode ai/agent-context-mode
+  "Minor mode to automatically add `ai/agent-context-files' to gptel context.
+When enabled, adds all files listed in `ai/agent-context-files' to the
+current gptel conversation.  When disabled, clears gptel context."
+  :lighter " AgentCtx"
+  (if ai/agent-context-mode
+      (let ((added 0))
+        (dolist (file ai/agent-context-files)
+          (let ((expanded (expand-file-name file)))
+            (when (and (file-exists-p expanded)
+                       (not (file-directory-p expanded)))
+              (condition-case err
+                  (progn (gptel-add-file expanded)
+                         (cl-incf added))
+                (error (message "Failed to add %s: %s" file err))))))
+        (when (> added 0)
+          (message "ai/agent-context-mode: Added %d file(s)" added)))
+    ;; Disable: clear context
+    (gptel-add -1)
+    (message "ai/agent-context-mode: Cleared context")))
 
 
 (provide 'ai-agent)
