@@ -37,7 +37,6 @@
       simplescreenrecorder
       feh
       gimp
-      sonixd # Self-hosted music streaming
     ];
   };
 }

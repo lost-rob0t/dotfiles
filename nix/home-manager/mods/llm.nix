@@ -24,7 +24,7 @@
       playerctl
       pavucontrol
       pulseaudio
-
+      #codex
       espeak-ng
       sox
       alsa-utils

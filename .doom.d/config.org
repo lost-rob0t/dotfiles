@@ -1271,6 +1271,7 @@ Skeletor is a project template package.
                                               (nsa/init-git-project dir))))
 #+end_src
 ** LLMs
+
 *** GPTEL
 #+begin_src emacs-lisp
 (use-package! gptel
@@ -1332,7 +1333,39 @@ Start a todo chat with tools needed
   (let ((gptel--system-message (alist-get 'time-boxer gptel-directives)))
     (gptel "*TODO boxer*" nil (ai/todo-list-todos-with-context '(and (or (todo) (todo "STRT" "LOOP" "PROJ")) (ts))) t)))
 #+end_src
+*** Org vector
+#+begin_src emacs-lisp
+(use-package! org-vector
+  :after (org-roam gptel)
+  :commands (org-vector-search org-vector-embed org-vector-start-service
+             org-vector-transient)
+  :init
+  (setq org-vector-dir "~/Documents/Notes/org/roam/")
+  (setq org-vector-db "~/.cache/org-vector/")
+  :config 
+  (setq org-vector-model "sentence-transformers/all-MiniLM-L6-v2")
+  (setq org-vector-url "")
+  (setq org-vector-ingestion-instructions
+        "Instruct: Given a document, retrieve semantically similar text\nDocument: ")
+  (setq org-vector-query-instructions
+        "Instruct: Given a query, retrieve relevant documents\nQuery: ")
+
+  (setq org-vector-collection-name "org-roam")
+  (setq org-vector-log-level "WARNING")
+  (setq org-vector-log-to-file t)
+  ;(org-vector-start-service)
+  (map! :leader
+        (:prefix-map ("n" . "notes")
+         (:prefix-map ("v" . "vector")
+          :desc "Vector search" "s" #'org-vector-search
+          :desc "Search at point" "S" #'org-vector-search-at-point
+          :desc "Full re-index" "i" #'org-vector-embed
+          :desc "Vector menu" "m" #'org-vector-transient
+          :desc "Kill all" "k" #'org-vector-stop-all))))
+#+end_src
 *** MCP Configuration
+
+
 #+begin_src emacs-lisp
 ;; (use-package! mcp
 ;;   :after gptel
