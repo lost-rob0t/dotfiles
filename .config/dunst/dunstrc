@@ -1,3 +1,7 @@
+# See dunst(5) for all configuration options
+# This file is tangled from dunst.org
+# Do not edit directly - edit dunst.org and tangle
+
 [global]
 follow = keyboard
 
@@ -10,6 +14,7 @@ origin = top-right
 offset = 10x50
 
 separator_height = 2
+gap_size = 0
 
 notification_limit = 0
 
@@ -23,6 +28,8 @@ text_icon_padding = 0
 
 sort = yes
 
+# idle_threshold = 120
+
 show_age_threshold = 60
 
 stack_duplicates = true
@@ -33,20 +40,20 @@ show_indicators = yes
 enable_recursive_icon_lookup = true
 
     # Set icon theme (only used for recursive icon lookup)
-icon_theme = Adwaita
+    icon_theme = Adwaita
     # You can also set multiple icon themes, with the leftmost one being used first.
     # icon_theme = "Adwaita, breeze"
 
     # Align icons left/right/top/off
-icon_position = left
+    icon_position = left
 
-    # Scale small icons up to this size, set to 0 to disable. Helpful
-    # for e.g. small files or high-dpi screens. In case of conf :tangle ~/.dotfiles/.config/dunst/dunstrclict,
-    # max_icon_size takes precedence over this.
-min_icon_size = 32
+    # Scale small icons up to this size, set to 0 to disable.
+    # Helpful for e.g. small files or high-dpi screens.
+    # In case of conflict, max_icon_size takes precedence over this.
+    min_icon_size = 32
 
     # Scale larger icons down to this size, set to 0 to disable
-max_icon_size = 128
+    max_icon_size = 128
 
 font = Monospace 8
 
@@ -62,6 +69,8 @@ frame_color = "#92406e"
 separator_color = frame
 
 markup = full
+
+# format = "<b>%s</b>\n%b"
 
 # Possible values are "left", "center" and "right".
 alignment = left
@@ -93,6 +102,10 @@ progress_bar_max_width = 300
 # Corner radius for the progress bar. 0 disables rounded corners.
 progress_bar_corner_radius = 0
 
+sticky_history = yes
+
+history_length = 20
+
 dmenu = ~/.nix-profile/bin/j4-dmenu-desktop -p dunst:
 
 browser = ~/.nix-profile/bin/xdg-open
@@ -102,9 +115,18 @@ always_run_script = true
 [speak]
 summary = "*"
 script = dunst_speak.sh
+
 [speak1]
 summary = "*test*"
 script = dunstify "hello"
+
+[experimental]
+    # Calculate the dpi to use on a per-monitor basis.
+    # If this setting is enabled the Xft.dpi value will be ignored and instead
+    # dunst will attempt to calculate an appropriate dpi value for each monitor
+    # using the resolution and physical size. This might be useful in setups
+    # where there are multiple screens with very different dpi values.
+    per_monitor_dpi = false
 
 [urgency_low]
     # IMPORTANT: colors have to be defined in quotation marks.
@@ -128,3 +150,30 @@ script = dunstify "hello"
     foreground = "#ffffff"
     frame_color = "#ff0000"
     timeout = 0
+
+# Rules - see dunst.org for documentation
+#[fullscreen_delay_everything]
+#    fullscreen = delay
+#[fullscreen_show_critical]
+#    msg_urgency = critical
+#    fullscreen = show
+
+#[transient_disable]
+#    match_transient = yes
+#    set_transient = no
+
+#[transient_history_ignore]
+#    match_transient = yes
+#    history_ignore = yes
+
+#[ignore]
+#    summary = "foobar"
+#    skip_display = true
+
+#[history-ignore]
+#    summary = "foobar"
+#    history_ignore = yes
+
+#[stack-volumes]
+#    appname = "some_volume_notifiers"
+#    set_stack_tag = "volume"

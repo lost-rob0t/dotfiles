@@ -1,19 +1,20 @@
 #+title: Dunst
-#+property: header-args conf tangle: ~/.dotfiles/.config/dunst/dunstrc-test :tangle yes
+#+property: header-args conf :tangle ~/.dotfiles/.config/dunst/dunstrc
 
 * Dunst Config
 This is my Dunst config which is my notification system.
-
+Dunst is a lightweight notification daemon for Linux.
+It replaces libnotify and provides highly customizable notifications.
 
 ** Behavior
-Follow The keyboard, I want the notification where my mouse is.
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Follow the keyboard, I want the notification where my mouse is.
+#+begin_src conf
 [global]
 follow = keyboard
 #+end_src
 
-Set The size of the max size of a single notification.
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Set the max size of a single notification.
+#+begin_src conf
 width = 300
 height = 300
 # Scale factor. It is auto-detected if value is 0.
@@ -21,118 +22,148 @@ scale = 0
 #+end_src
 
 Placement of notification and offset.
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+#+begin_src conf
 origin = top-right
 offset = 10x50
 #+end_src
 
-Make sure a small gap is created.
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
-
+Make sure a small gap is created between notifications.
+If gap_size is greater than 0, separator_height will be ignored and a border
+of size frame_width will be drawn around each notification instead.
+#+begin_src conf
 separator_height = 2
+gap_size = 0
 #+end_src
 
-Max Notifications.
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Max notifications. 0 means no limit.
+#+begin_src conf
 notification_limit = 0
 #+end_src
 
-Show How many are hidden under the limit
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Show how many are hidden under the limit.
+#+begin_src conf
 indicate_hidden = yes
 #+end_src
 
-Transparency
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Transparency of the window. Range: [0; 100].
+Only works with a compositing window manager (X11 only).
+#+begin_src conf
 transparency = 0
 #+end_src
 
-Padding
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Padding between text and separator, horizontal padding, and text-icon padding.
+#+begin_src conf
 padding = 8
 horizontal_padding = 8
 text_icon_padding = 0
 #+end_src
 
-Sort the messages by Urgency
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Sort the messages by urgency.
+#+begin_src conf
 sort = yes
 #+end_src
 
-Show age of message if its older, setting it to -1 disables it.
+Don't remove messages if the user is idle for longer than idle_threshold seconds.
+Set to 0 to disable. A client can set the 'transient' hint to bypass this.
+#+begin_src conf
+# idle_threshold = 120
+#+end_src
 
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Show age of message if it's older than show_age_threshold seconds.
+Set to -1 to disable.
+#+begin_src conf
 show_age_threshold = 60
 #+end_src
 
-Stack Dupplicates.
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Stack duplicates and show count.
+#+begin_src conf
 stack_duplicates = true
 hide_duplicate_count = false
 #+end_src
 
-Show actions.
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
-
+Show indicators for URLs (U) and actions (A).
+#+begin_src conf
 show_indicators = yes
 #+end_src
 
 ** Icons
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Recursive icon lookup lets you set a single theme instead of defining all paths.
+#+begin_src conf
 enable_recursive_icon_lookup = true
 
     # Set icon theme (only used for recursive icon lookup)
-icon_theme = Adwaita
+    icon_theme = Adwaita
     # You can also set multiple icon themes, with the leftmost one being used first.
     # icon_theme = "Adwaita, breeze"
 
     # Align icons left/right/top/off
-icon_position = left
+    icon_position = left
 
-    # Scale small icons up to this size, set to 0 to disable. Helpful
-    # for e.g. small files or high-dpi screens. In case of conf :tangle ~/.dotfiles/.config/dunst/dunstrclict,
-    # max_icon_size takes precedence over this.
-min_icon_size = 32
+    # Scale small icons up to this size, set to 0 to disable.
+    # Helpful for e.g. small files or high-dpi screens.
+    # In case of conflict, max_icon_size takes precedence over this.
+    min_icon_size = 32
 
     # Scale larger icons down to this size, set to 0 to disable
-max_icon_size = 128
+    max_icon_size = 128
 #+end_src
+
 ** Markup and Content
-Set Font
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Set font.
+#+begin_src conf
 font = Monospace 8
 #+end_src
 
-Set the space between lines
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Set the space between lines. If smaller than font height, it gets raised.
+#+begin_src conf
 line_height = 0
 #+end_src
-Where to put ellipis in long messages
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+
+Where to put ellipsis in long messages.
+#+begin_src conf
 ellipsize = middle
 #+end_src
-Ignore newlinees
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+
+Ignore newlines in notifications.
+#+begin_src conf
 ignore_newline = no
 #+end_src
+
 ** Frame
-Width
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Width of the frame around the notification window.
+#+begin_src conf
 frame_width = 3
 #+end_src
-Color
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+
+Color of the frame and separator.
+#+begin_src conf
 frame_color = "#92406e"
 separator_color = frame
 #+end_src
-Allow Markup
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+
+Allow markup in notifications.
+#+begin_src conf
 markup = full
 #+end_src
 
-Alignment
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+** Format
+The format of the message. Possible variables:
+- %a  appname
+- %s  summary
+- %b  body
+- %i  iconname (including its path)
+- %I  iconname (without its path)
+- %p  progress value if set ([  0%] to [100%]) or nothing
+- %n  progress value if set without any extra characters
+- %%  Literal %
+Markup is allowed.
+#+begin_src conf
+# format = "<b>%s</b>\n%b"
+#+end_src
 
+** Alignment
+Alignment of message text.
+#+begin_src conf
 # Possible values are "left", "center" and "right".
 alignment = left
 # Vertical alignment of message text and icon.
@@ -140,31 +171,42 @@ alignment = left
 vertical_alignment = center
 #+end_src
 
-Round windows
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+** Window
+Round windows. 0 disables rounded corners.
+The radius will be automatically lowered if it exceeds half of the
+notification height to avoid clipping text and/or icons.
+#+begin_src conf
 corner_radius = 0
 #+end_src
 
 Do not ignore the dbus close message.
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Useful to enforce the timeout set by dunst configuration.
+#+begin_src conf
 ignore_dbusclose = false
 #+end_src
-Do not force wayland and do not force xinerama
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+
+** Wayland and Legacy
+Do not force wayland and do not force xinerama.
+force_xwayland uses X11 output on Wayland.
+force_xinerama uses Xinerama instead of RandR for multi-monitor support.
+#+begin_src conf
 force_xwayland = false
 force_xinerama = false
 #+end_src
 
-Mouse actions, left click opens them. Middle to open the context menu, right close all.
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+** Mouse Actions
+Left click opens URLs and closes current. Middle to do action.
+Right close all.
+#+begin_src conf
 mouse_left_click = do_action, close_current, open_url
 mouse_middle_click = do_action
 mouse_right_click = close_all
 #+end_src
 
 ** Progress Bar
-Progress bar only works when a progress hint is sent.
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Progress bar only works when a progress hint is sent
+(e.g. dunstify -h int:value:12).
+#+begin_src conf
 progress_bar = true
 # Set the progress bar height. This includes the frame, so make sure
 # it's at least twice as big as the frame width.
@@ -180,38 +222,64 @@ progress_bar_corner_radius = 0
 #+end_src
 
 ** History
+Whether notifications popped from history are sticky or timeout normally.
+#+begin_src conf
+sticky_history = yes
+#+end_src
+
+Maximum amount of notifications kept in history.
+#+begin_src conf
+history_length = 20
+#+end_src
+
 ** Misc
-Set path to a dmenu
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Set path to dmenu.
+#+begin_src conf
 dmenu = ~/.nix-profile/bin/j4-dmenu-desktop -p dunst:
 #+end_src
 
-Always Use browser for opening urls
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Always use browser for opening URLs.
+#+begin_src conf
 browser = ~/.nix-profile/bin/xdg-open
 #+end_src
 
 ** Scripts
-Always run script
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Always run rule-defined scripts, even if the notification is suppressed.
+#+begin_src conf
 always_run_script = true
 #+end_src
+
 *** Speak the notification
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+Uses mimic TTS to speak notifications aloud.
+#+begin_src conf
 [speak]
 summary = "*"
 script = dunst_speak.sh
+#+end_src
+
+*** Test rule
+A test rule for debugging.
+#+begin_src conf
 [speak1]
 summary = "*test*"
 script = dunstify "hello"
-
-
-
 #+end_src
+
+** Experimental
+Experimental features that may or may not work correctly.
+#+begin_src conf
+[experimental]
+    # Calculate the dpi to use on a per-monitor basis.
+    # If this setting is enabled the Xft.dpi value will be ignored and instead
+    # dunst will attempt to calculate an appropriate dpi value for each monitor
+    # using the resolution and physical size. This might be useful in setups
+    # where there are multiple screens with very different dpi values.
+    per_monitor_dpi = false
+#+end_src
+
 ** Urgency
 *** Low
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
-
+#+begin_src conf
 [urgency_low]
     # IMPORTANT: colors have to be defined in quotation marks.
     # Otherwise the "#" and following would be interpreted as a comment.
@@ -221,25 +289,99 @@ script = dunstify "hello"
     timeout = 10
 # Icon for notifications with low urgency, uncomment to enable
 #default_icon = /path/to/icon
-
-
 #+end_src
-*** normal
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+
+*** Normal
+#+begin_src conf
 [urgency_normal]
     background = "#202146"
     foreground = "#ffffff"
     timeout = 10
     # Icon for notifications with normal urgency, uncomment to enable
     #default_icon = /path/to/icon
-
-
 #+end_src
+
 *** Critical
-#+begin_src conf :tangle ~/.dotfiles/.config/dunst/dunstrc
+#+begin_src conf
 [urgency_critical]
     background = "#fba922"
     foreground = "#ffffff"
     frame_color = "#ff0000"
     timeout = 0
+#+end_src
+
+** Rules
+Every section that isn't one of the above is interpreted as a rule to
+override settings for certain messages.
+
+Messages can be matched by:
+- appname (discouraged, see desktop_entry)
+- body
+- category
+- desktop_entry
+- icon
+- match_transient
+- msg_urgency
+- stack_tag
+- summary
+
+And you can override:
+- background, foreground, format, frame_color
+- fullscreen, new_icon, set_stack_tag, set_transient
+- set_category, timeout, urgency, icon_position
+- skip_display, history_ignore, action_name
+- word_wrap, ellipsize, alignment, hide_text
+
+Shell-like globbing will get expanded.
+
+*** Fullscreen handling
+show: show notifications regardless of fullscreen windows
+delay: display new notification if no fullscreen window is active
+pushback: same as delay but withdraw from screen when entering fullscreen
+#+begin_src conf
+#[fullscreen_delay_everything]
+#    fullscreen = delay
+#[fullscreen_show_critical]
+#    msg_urgency = critical
+#    fullscreen = show
+#+end_src
+
+*** Transient notifications
+Disable the transient hint so that idle_threshold cannot be bypassed.
+#+begin_src conf
+#[transient_disable]
+#    match_transient = yes
+#    set_transient = no
+#+end_src
+
+Make transient notifications not be placed in history.
+#+begin_src conf
+#[transient_history_ignore]
+#    match_transient = yes
+#    history_ignore = yes
+#+end_src
+
+*** Ignore rules
+Skip display for specific summaries.
+#+begin_src conf
+#[ignore]
+#    # This notification will not be displayed
+#    summary = "foobar"
+#    skip_display = true
+#+end_src
+
+Ignore from history.
+#+begin_src conf
+#[history-ignore]
+#    # This notification will not be saved in history
+#    summary = "foobar"
+#    history_ignore = yes
+#+end_src
+
+*** Stack tags
+Group volume notifiers together.
+#+begin_src conf
+#[stack-volumes]
+#    appname = "some_volume_notifiers"
+#    set_stack_tag = "volume"
 #+end_src
