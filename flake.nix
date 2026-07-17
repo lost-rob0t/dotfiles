@@ -30,7 +30,6 @@
         default = logos.config.system.build.toplevel;
         logos = logos.config.system.build.toplevel;
         logos-iso = logosIso.config.system.build.isoImage;
-        actionlint = pkgs.actionlint;
       };
 
       checks.${system}.logos = logos.config.system.build.toplevel;
