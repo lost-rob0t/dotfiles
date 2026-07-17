@@ -90,13 +90,11 @@
       "wheel"
       "networkmanager"
       "docker"
-      "adbusers"
     ];
     shell = pkgs.zsh;
   };
 
   programs = {
-    adb.enable = true;
     dconf.enable = true;
     git.enable = true;
     nm-applet.enable = true;
@@ -112,6 +110,7 @@
 
   environment.systemPackages = with pkgs; [
     alacritty
+    android-tools
     bash
     bluez-tools
     brave
