@@ -142,7 +142,7 @@
     rofi
     sbcl
     stow
-    swiProlog
+    swi-prolog
     tree
     unzip
     wget
