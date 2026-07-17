@@ -1,0 +1,103 @@
+name: Publish Logos ISO
+
+on:
+  push:
+    tags:
+      - "logos-*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Git tag and release name, for example logos-2026.07.1
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: logos-iso-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: cachix/install-nix-action@v31
+
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        env:
+          MANUAL_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            release_tag="$GITHUB_REF_NAME"
+          else
+            release_tag="$MANUAL_TAG"
+          fi
+
+          if [[ ! "$release_tag" =~ ^logos-[A-Za-z0-9._-]+$ ]]; then
+            echo "Release tag must start with logos- and contain only letters, numbers, dots, underscores, or dashes." >&2
+            exit 1
+          fi
+
+          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "version=${release_tag#logos-}" >> "$GITHUB_OUTPUT"
+
+      - name: Build installer ISO
+        run: nix build .#logos-iso --print-build-logs
+
+      - name: Prepare release assets
+        id: assets
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          source_iso="$(find -L result/iso -maxdepth 1 -type f -name '*.iso' -print -quit)"
+          test -n "$source_iso"
+
+          asset="$RUNNER_TEMP/logos-nixos-${RELEASE_VERSION}.iso"
+          checksum="${asset}.sha256"
+
+          cp "$source_iso" "$asset"
+          (
+            cd "$RUNNER_TEMP"
+            sha256sum "$(basename "$asset")" > "$(basename "$checksum")"
+          )
+
+          echo "iso=$asset" >> "$GITHUB_OUTPUT"
+          echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
+
+      - name: Publish downloadable release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          ISO: ${{ steps.assets.outputs.iso }}
+          CHECKSUM: ${{ steps.assets.outputs.checksum }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$ISO" "$CHECKSUM" --clobber
+            exit 0
+          fi
+
+          target_args=()
+          if ! git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            target_args=(--target "$GITHUB_SHA")
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            "$ISO" "$CHECKSUM" \
+            "${target_args[@]}" \
+            --title "$RELEASE_TAG" \
+            --generate-notes
