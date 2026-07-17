@@ -51,6 +51,15 @@ def telemetry_event(event, **fields):
         pass
 
 
+def telemetry_auto_route(window, source_group, target_group):
+    telemetry_event(
+        "window_auto_routed",
+        source_group=source_group,
+        target_group=target_group,
+        window=_window(window),
+    )
+
+
 def _window(window):
     if window is None:
         return None
