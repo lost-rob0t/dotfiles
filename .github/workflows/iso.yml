@@ -99,5 +99,4 @@ jobs:
             "$ISO" "$CHECKSUM" \
             "${target_args[@]}" \
             --title "$RELEASE_TAG" \
-            --generate-notes \
-            --notes-start-tag "$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
+            --generate-notes
