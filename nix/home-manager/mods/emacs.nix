@@ -50,11 +50,11 @@
     };
     programs.git = {
       enable = true;
-      userName = "N545PY"; # If you use my modules change this
-      userEmail = "nsaspy@fedora.email";
-      extraConfig = {
+      settings = {
+        user.name = "N545PY"; # If you use my modules change this
+        user.email = "nsaspy@fedora.email";
         merge = {
-        conflictStyle = "diff3";
+          conflictStyle = "diff3";
         };
       };
     };
@@ -71,7 +71,6 @@
         epkgs.pylint
         epkgs.w3m
         epkgs.pandoc
-        pkgs.nodePackages.bash-language-server
         epkgs.xclip
         pkgs.aspell
         pkgs.aspellDicts.en

@@ -143,9 +143,6 @@ keys = [
     Key([mod, "shift"], "Right", lazy.layout.swap_right()),
     Key([mod, "shift"], "space", lazy.window.toggle_floating()),
 
-    # Voice interface keybinds
-    Key([mod], "v", lazy.spawn(home + "/.local/bin/llm-voice-capture capture")),
-    Key([mod, "shift"], "v", lazy.spawn("emacsclient --eval '(+mcp/process-voice-command (read-string \"Voice command: \"))'")),
     KeyChord([mod],"e", [
              Key([], "e",
                  lazy.spawn("emacsclient -c -a 'emacs'"),
@@ -183,10 +180,6 @@ keys = [
              Key([], "y",
                  lazy.spawn("emacsclient -c -a 'emacs' --eval '(+gptel/here)'"),
                  desc='Emacsclient GPTel'
-                 ),
-             Key([], "m",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(+mcp/desktop-assistant)'"),
-                 desc='Emacsclient MCP Desktop Assistant'
                  ),
          ])
  ]
@@ -246,9 +239,9 @@ groups.extend([ScratchPad("termpad", [
              on_focus_lost_hide=False),
     ]),
     ScratchPad("media", [
-    DropDown("sonixd",
-             "sonixd",
-             match = Match(wm_class='sonixd'),
+    DropDown("feishin",
+             "feishin",
+             match = Match(wm_class='feishin'),
              height=0.8,
              width = 0.8,
              x = 0.1,
@@ -265,7 +258,7 @@ keys.extend([Key([mod], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
 keys.extend([Key([mod, "shift"], "E", lazy.group['editorPad'].dropdown_toggle('emacs'))])
 keys.extend([Key([mod], "F3", lazy.group['passwords'].dropdown_toggle('keepassxc'))])
 keys.extend([Key([mod], "x", lazy.group['editorPad'].dropdown_toggle('org-capture'))])
-keys.extend([Key([mod, "shift"], "M", lazy.group['media'].dropdown_toggle('sonixd'))])
+keys.extend([Key([mod, "shift"], "M", lazy.group['media'].dropdown_toggle('feishin'))])
 
 def init_layout_theme():
     return {"margin":5,
@@ -364,9 +357,9 @@ focus_on_window_activation = "smart"
 reconfigure_screens = True
 auto_minimize = False
 
-follow_mouse_focus = True
+follow_mouse_focus = False
 bring_front_click = False
-cursor_warp = True # Keep mouse inside game window!
+cursor_warp = False # Keep mouse inside game window when set to true
 
 @hook.subscribe.client_new
 def _swallow(window):
@@ -397,7 +390,7 @@ def init_widgets_defaults():
 widget_defaults = init_widgets_defaults()
 
 def init_widgets_list():
-    prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
+    #prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
     widgets_list = [
         widget.GroupBox(font="3270 Nerd Font",
                         visible_groups=["1","2","3","4","5","6","7","8", "9", "0"],
@@ -467,11 +460,16 @@ def init_widgets_list():
                       linewidth = 60,
                       max_chars=60
                       ),
-        widget.Wttr(
-            format =  '%f %C',
-            location={f'@{myIp}': 'Home'},
-            units = "u",
-            update_interval = 300,
+        widget.GenPollCommand(
+            cmd=[
+                "curl",
+                "-s",
+                "--max-time",
+                "5",
+                f"https://wttr.in/@{myIp}?u&format=%f+%C",
+            ],
+            parse=lambda output: output.strip() or "weather n/a",
+            update_interval=300,
         ),
         widget.Sep(
             linewidth = 1,
@@ -690,7 +688,7 @@ floating_layout = layout.Floating(float_rules=[
     Match(title='Emacs Everywhere'),
     Match(title='Atomic Chrome'),
     Match(title="org-capture"),
-    Match(title="Sonixd")
+    Match(title="Feishin")
 
 ],  fullscreen_border_width = 0, border_width = 0)
 

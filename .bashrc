@@ -186,6 +186,7 @@ shopt -s expand_aliases # expand aliases
 alias em="emacs -nw"
 alias emacs="emacsclient -c -a 'emacs'"
 alias emacs-debug="$(which emacs) --debug-init"
+alias emcd='cd "$(emacsclient -e "default-directory" | tr -d \"\")"'
 
 alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
 
@@ -280,7 +281,7 @@ alias npm-install="npm install --prefix ~/.node -g"
 
 alias ai-proxy="ssh -N -L 7860:127.0.0.1:7860 unseen@10.50.50.18"
 
-alias sync-music="rsync --progress -av ~/Music/Music-Sorted/ proxmox:/mnt/Music && ssh proxmox python3 /mnt/sort.py /mnt/Music"
+alias sync-music="rsync --progress -av ~/Music/Sorted/ music:/music && ssh music python3 /music/sort.py /mnt/Music"
 
 export HACKMODE_OP=$(cat ~/.local/share/hackmode/current-op | head -n 1)
 export HACKMODE_PATH=$(cat ~/.local/share/hackmode/op-path | head -n 1)

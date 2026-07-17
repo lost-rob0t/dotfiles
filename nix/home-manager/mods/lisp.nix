@@ -12,7 +12,7 @@
       sbcl
       sbclPackages.qlot-cli
       openssl
-      pkg-config
+      #pkg-config
     ];
      home.sessionVariables = {
       LD_LIBRARY_PATH = lib.mkIf pkgs.stdenv.isLinux "${pkgs.openssl.out}/lib:$LD_LIBRARY_PATH";

@@ -319,6 +319,7 @@ Open emacs
 alias em="emacs -nw"
 alias emacs="emacsclient -c -a 'emacs'"
 alias emacs-debug="$(which emacs) --debug-init"
+alias emcd='cd "$(emacsclient -e "default-directory" | tr -d \"\")"'
 #+end_src
 *** Nix
 Link home-manager/nix-env to the xgd dirs, without it non nixos systems apps will not be in start bars
@@ -463,7 +464,7 @@ alias ai-proxy="ssh -N -L 7860:127.0.0.1:7860 unseen@10.50.50.18"
 
 Rsync new music to music server
 #+begin_src sh :tangle .bashrc
-alias sync-music="rsync --progress -av ~/Music/Music-Sorted/ proxmox:/mnt/Music && ssh proxmox python3 /mnt/sort.py /mnt/Music"
+alias sync-music="rsync --progress -av ~/Music/Sorted/ music:/music && ssh music python3 /music/sort.py /mnt/Music"
 #+end_src
 
 ** hackmode
@@ -603,3 +604,5 @@ esac
 
 [fn:2] https://taingram.org/blog/emacs-client.html
 [fn:1] https://github.com/labbots/bash-oneliners#terminal
+
+
