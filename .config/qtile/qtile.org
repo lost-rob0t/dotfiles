@@ -8,7 +8,11 @@ This file previously duplicated the complete Python configuration and tangled it
 Edit =config.py= directly.
 
 * Automatic group mode
-The first button on each top bar displays either =AUTO:OFF= or =AUTO:ON=.
+The first button on each top bar always displays =AUTO=.
+
+Its color indicates the current mode:
+- Green means automatic group management is enabled.
+- Pink/red means automatic group management is disabled.
 
 Left-clicking the button enables or disables automatic group management.
 
