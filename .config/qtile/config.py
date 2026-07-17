@@ -1,702 +1,297 @@
 #!/usr/bin/env python
 import os
-import re
-import socket
 import subprocess
-import psutil # For window swallow
-from typing import List  # noqa: F401
-from libqtile import layout, bar, widget, hook
-from libqtile.config import Click, Drag, Group, Key, Match, Screen, Rule, KeyChord
-from libqtile.config import ScratchPad, DropDown
-from libqtile.lazy import lazy
-from libqtile.widget import Spacer
-from libqtile.log_utils import logger
-#from layouts.addmacs import AddmacsLayout
-#import ip
-def readIpFile(file_path= os.path.expanduser("~/.local/share/ip")):
-    with open(file_path, "r") as file:
-        return file.read().strip()
 
-thermalTag="Tctl"
+import psutil
+from libqtile import bar, hook, layout, widget
+from libqtile.config import Drag, DropDown, Group, Key, KeyChord, Match, ScratchPad, Screen
+from libqtile.lazy import lazy
 
 mod = "mod4"
-mod1 = "mod1"
-mod2 = "control"
-home = os.path.expanduser('~')
-myIp = readIpFile()
-myTerm = "terminator"
-
-#https://archive.is/DOJvD
+alt = "mod1"
+home = os.path.expanduser("~")
 wmname = "LG3D"
-groups = []
-
-def init_colors():
-    return [["#170c32", "#170c32"], # color 0
-            ["#202146", "#202146"], # color 1
-            ["#92406e", "#92406e"], # color 2
-            ["#fba922", "#fba922"], # color 3
-            ["#2de2e6", "#2de2e6"], # color 4
-            ["#f3f4f5", "#f3f4f5"], # color 5
-            ["#f6019d", "#f6019d"], # color 6
-            ["#62FF00", "#62FF00"], # color 7
-            ["#dd546e", "#dd546e"], # color 8
-            ["#9700cc", "#9700cc"]] # color 9
 
 
-colors = init_colors()
+def read_ip(path=os.path.expanduser("~/.local/share/ip")):
+    with open(path, encoding="utf-8") as stream:
+        return stream.read().strip()
+
+
+my_ip = read_ip()
+colors = [
+    ["#170c32"] * 2,
+    ["#202146"] * 2,
+    ["#92406e"] * 2,
+    ["#fba922"] * 2,
+    ["#2de2e6"] * 2,
+    ["#f3f4f5"] * 2,
+    ["#f6019d"] * 2,
+    ["#62FF00"] * 2,
+    ["#dd546e"] * 2,
+    ["#9700cc"] * 2,
+]
+
 
 @hook.subscribe.startup_once
-def start_once():
-    home = os.path.expanduser('~')
-    subprocess.call([home + '/.config/qtile/scripts/autostart.sh'])
+def startup_once():
+    subprocess.call([home + "/.config/qtile/scripts/autostart.sh"])
+
 
 @hook.subscribe.startup
-def start_always():
-    # Set the cursor to something sane in X
-    subprocess.Popen(['xsetroot', '-cursor_name', 'left_ptr'])
+def startup():
+    subprocess.Popen(["xsetroot", "-cursor_name", "left_ptr"])
 
-group_names = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
-#group_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0",]
-group_labels = ["", "", "", "", "", "", "", "", "", "",]
-group_layouts = ["max", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall", "monadtall",]
 
-for i in range(len(group_names)):
-    groups.append(
-        Group(
-            name=group_names[i],
-            layout=group_layouts[i].lower(),
-            label=group_labels[i],
-        ))
+group_names = list("1234567890")
+group_labels = ["", "", "", "", "", "", "", "", "", ""]
+groups = [
+    Group(name=name, label=label, layout="max" if name == "1" else "monadtall")
+    for name, label in zip(group_names, group_labels)
+]
+
+
+@lazy.function
+def kill_focused_window(qtile):
+    if qtile.current_window:
+        qtile.current_window.kill()
+
+
+@lazy.function
+def move_window_screen(qtile, step):
+    if not qtile.current_window:
+        return
+    current = qtile.screens.index(qtile.current_screen)
+    target = current + step
+    if 0 <= target < len(qtile.screens):
+        qtile.current_window.togroup(qtile.screens[target].group.name)
+        qtile.cmd_to_screen(target)
+
 
 keys = [
     Key([mod], "f", lazy.window.toggle_fullscreen()),
-    Key([mod], "q", lazy.window.kill()),
-    Key([mod, "shift"], "q", lazy.window.kill()),
+    Key([mod], "q", kill_focused_window()),
+    Key([mod, "shift"], "q", kill_focused_window()),
     Key([mod, "shift"], "r", lazy.restart()),
     Key([mod], "n", lazy.layout.normalize()),
     Key([mod], "space", lazy.next_layout()),
-    Key([mod], "Up", lazy.layout.up()),
-    Key([mod], "Down", lazy.layout.down()),
-    Key([mod], "Left", lazy.layout.left()),
-    Key([mod], "Right", lazy.layout.right()),
-    Key([mod], "k", lazy.layout.up()),
-    Key([mod], "j", lazy.layout.down()),
-    Key([mod], "h", lazy.layout.left()),
-    Key([mod], "l", lazy.layout.right()),
-    Key([mod, "control"], "l",
-        lazy.layout.grow_right(),
-        lazy.layout.grow(),
-        lazy.layout.increase_ratio(),
-        lazy.layout.delete(),
-        ),
-    Key([mod, "control"], "Right",
-        lazy.layout.grow_right(),
-        lazy.layout.grow(),
-        lazy.layout.increase_ratio(),
-        lazy.layout.delete(),
-        ),
-    Key([mod, "control"], "h",
-        lazy.layout.grow_left(),
-        lazy.layout.shrink(),
-        lazy.layout.decrease_ratio(),
-        lazy.layout.add(),
-        ),
-    Key([mod, "control"], "Left",
-        lazy.layout.grow_left(),
-        lazy.layout.shrink(),
-        lazy.layout.decrease_ratio(),
-        lazy.layout.add(),
-        ),
-    Key([mod, "control"], "k",
-        lazy.layout.grow_up(),
-        lazy.layout.grow(),
-        lazy.layout.decrease_nmaster(),
-        ),
-    Key([mod, "control"], "Up",
-        lazy.layout.grow_up(),
-        lazy.layout.grow(),
-        lazy.layout.decrease_nmaster(),
-        ),
-    Key([mod, "control"], "j",
-        lazy.layout.grow_down(),
-        lazy.layout.shrink(),
-        lazy.layout.increase_nmaster(),
-        ),
-    Key([mod, "control"], "Down",
-        lazy.layout.grow_down(),
-        lazy.layout.shrink(),
-        lazy.layout.increase_nmaster(),
-        ),
     Key([mod, "shift"], "f", lazy.layout.flip()),
-
-    Key([mod, "mod1"], "k", lazy.layout.flip_up()),
-    Key([mod, "mod1"], "j", lazy.layout.flip_down()),
-    Key([mod, "mod1"], "l", lazy.layout.flip_right()),
-    Key([mod, "mod1"], "h", lazy.layout.flip_left()),
-    Key([mod, "shift"], "k", lazy.layout.shuffle_up()),
-    Key([mod, "shift"], "j", lazy.layout.shuffle_down()),
-    Key([mod, "shift"], "h", lazy.layout.shuffle_left()),
-    Key([mod, "shift"], "l", lazy.layout.shuffle_right()),
-    Key([mod, "shift"], "Up", lazy.layout.shuffle_up()),
-    Key([mod, "shift"], "Down", lazy.layout.shuffle_down()),
-    Key([mod, "shift"], "Left", lazy.layout.swap_left()),
-    Key([mod, "shift"], "Right", lazy.layout.swap_right()),
     Key([mod, "shift"], "space", lazy.window.toggle_floating()),
-
-    KeyChord([mod],"e", [
-             Key([], "e",
-                 lazy.spawn("emacsclient -c -a 'emacs'"),
-                 desc='Emacsclient Dashboard'
-                 ),
-             Key([], "a",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(emms)' --eval '(emms-play-directory-tree nsaspy/music-dir)'"),
-                 desc='Emacsclient EMMS (music)'
-                 ),
-             Key([], "b",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(ibuffer)'"),
-                 desc='Emacsclient Ibuffer'
-                 ),
-             Key([], "d",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(dired nil)'"),
-                 desc='Emacsclient Dired'
-                 ),
-
-             Key([], "n",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(elfeed-update)'  --eval '(elfeed)'"),
-                 desc='Emacsclient Elfeed (RSS)'
-                 ),
-             Key([], "s",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(+eshell/here)'"),
-                 desc='Emacsclient Eshell'
-                 ),
-             Key([], "v",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(lish-vterm)'"),
-                 desc='Emacsclient Vterm'
-                 ),
-             Key([], "p",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(addmacs)'"),
-                 desc='Emacsclient Vterm'
-                 ),
-             Key([], "y",
-                 lazy.spawn("emacsclient -c -a 'emacs' --eval '(+gptel/here)'"),
-                 desc='Emacsclient GPTel'
-                 ),
-         ])
- ]
-
-for i in groups:
-    keys.extend([
-        Key([mod], i.name, lazy.group[i.name].toscreen()),
-        Key([mod], "Tab", lazy.screen.next_group()),
-        Key([mod, "shift" ], "Tab", lazy.screen.prev_group()),
-        Key(["mod1"], "Tab", lazy.screen.next_group()),
-        Key(["mod1", "shift"], "Tab", lazy.screen.prev_group()),
-        Key([mod, "shift"], i.name, lazy.window.togroup(i.name) , lazy.group[i.name].toscreen()),
-    ])
-
-groups.extend([ScratchPad("termpad", [
-    DropDown("term",
-             myTerm)]),
-    ScratchPad("browserPad", [
-    DropDown("browser",
-             ["nyxt"],
-             height=0.8,
-             width = 0.8,
-             x = 0.1,
-             y = 0.1,
-             on_focus_lost_hide=False)]),
-
-    ScratchPad("editorPad", [
-    DropDown("emacs",
-             home + '/.config/qtile/scripts/eclient.sh',
-             match = Match(title='floating'),
-             height=0.8,
-             width = 0.8,
-             x = 0.1,
-             y = 0.1,
-             opacity = 0.95,
-             on_focus_lost_hide=False),
-    DropDown("org-capture",
-             home + '/.config/qtile/scripts/org-capture.sh',
-             match = Match(title='org-capture'),
-             height=0.8,
-             width = 0.8,
-             x = 0.1,
-             y = 0.1,
-             opacity = 0.95,
-             on_focus_lost_hide=False)
-
-    ]),
-    ScratchPad("passwords", [
-    DropDown("keepassxc",
-             "keepassxc",
-
-             height=0.8,
-             width = 0.8,
-             x = 0.1,
-             y = 0.1,
-             opacity = 0.95,
-             on_focus_lost_hide=False),
-    ]),
-    ScratchPad("media", [
-    DropDown("feishin",
-             "feishin",
-             match = Match(wm_class='feishin'),
-             height=0.8,
-             width = 0.8,
-             x = 0.1,
-             y = 0.1,
-             opacity = 0.95,
-             on_focus_lost_hide=False),
-    ]),
-
-
-               ])
-
-keys.extend([Key([mod, "shift"], 'F1', lazy.group['browserPad'].dropdown_toggle('browser'))])
-keys.extend([Key([mod], 'F12', lazy.group['termpad'].dropdown_toggle('term'))])
-keys.extend([Key([mod, "shift"], "E", lazy.group['editorPad'].dropdown_toggle('emacs'))])
-keys.extend([Key([mod], "F3", lazy.group['passwords'].dropdown_toggle('keepassxc'))])
-keys.extend([Key([mod], "x", lazy.group['editorPad'].dropdown_toggle('org-capture'))])
-keys.extend([Key([mod, "shift"], "M", lazy.group['media'].dropdown_toggle('feishin'))])
-
-def init_layout_theme():
-    return {"margin":5,
-            "border_width":2,
-            "border_focus": colors[2],
-            "border_normal": colors[1]
-            }
-layout_theme = init_layout_theme()
-layouts = [
-    #layout.MonadTall(margin=8, border_width=2, border_focus="#5e81ac", border_normal="#4c566a"),
-    layout.MonadTall(**layout_theme),
-    #layout.MonadWide(margin=8, border_width=2, border_focus="#5e81ac", border_normal="#4c566a"),
-    layout.MonadWide(**layout_theme),
-    layout.Matrix(**layout_theme),
-    layout.Bsp(**layout_theme),
-    layout.Floating(**layout_theme),
-    layout.RatioTile(**layout_theme),
-    layout.Max(**layout_theme)
 ]
+for key in ("Up", "Left", "k", "h"):
+    keys.append(Key([mod], key, lazy.layout.previous()))
+for key in ("Down", "Right", "j", "l"):
+    keys.append(Key([mod], key, lazy.layout.next()))
+for key, commands in {
+    "l": (lazy.layout.grow_right(), lazy.layout.grow(), lazy.layout.increase_ratio(), lazy.layout.delete()),
+    "Right": (lazy.layout.grow_right(), lazy.layout.grow(), lazy.layout.increase_ratio(), lazy.layout.delete()),
+    "h": (lazy.layout.grow_left(), lazy.layout.shrink(), lazy.layout.decrease_ratio(), lazy.layout.add()),
+    "Left": (lazy.layout.grow_left(), lazy.layout.shrink(), lazy.layout.decrease_ratio(), lazy.layout.add()),
+    "k": (lazy.layout.grow_up(), lazy.layout.grow(), lazy.layout.decrease_nmaster()),
+    "Up": (lazy.layout.grow_up(), lazy.layout.grow(), lazy.layout.decrease_nmaster()),
+    "j": (lazy.layout.grow_down(), lazy.layout.shrink(), lazy.layout.increase_nmaster()),
+    "Down": (lazy.layout.grow_down(), lazy.layout.shrink(), lazy.layout.increase_nmaster()),
+}.items():
+    keys.append(Key([mod, "control"], key, *commands))
+for key, command in {
+    "k": lazy.layout.flip_up(),
+    "j": lazy.layout.flip_down(),
+    "l": lazy.layout.flip_right(),
+    "h": lazy.layout.flip_left(),
+}.items():
+    keys.append(Key([mod, alt], key, command))
+for key, command in {
+    "k": lazy.layout.shuffle_up(),
+    "Up": lazy.layout.shuffle_up(),
+    "j": lazy.layout.shuffle_down(),
+    "Down": lazy.layout.shuffle_down(),
+    "h": lazy.layout.shuffle_left(),
+    "l": lazy.layout.shuffle_right(),
+}.items():
+    keys.append(Key([mod, "shift"], key, command))
+
+keys.append(
+    KeyChord(
+        [mod],
+        "e",
+        [
+            Key([], "e", lazy.spawn("emacsclient -c -a 'emacs'"), desc="Dashboard"),
+            Key([], "a", lazy.spawn("emacsclient -c -a 'emacs' --eval '(emms)' --eval '(emms-play-directory-tree nsaspy/music-dir)'"), desc="EMMS"),
+            Key([], "b", lazy.spawn("emacsclient -c -a 'emacs' --eval '(ibuffer)'"), desc="Ibuffer"),
+            Key([], "d", lazy.spawn("emacsclient -c -a 'emacs' --eval '(dired nil)'"), desc="Dired"),
+            Key([], "n", lazy.spawn("emacsclient -c -a 'emacs' --eval '(elfeed-update)' --eval '(elfeed)'"), desc="Elfeed"),
+            Key([], "s", lazy.spawn("emacsclient -c -a 'emacs' --eval '(+eshell/here)'"), desc="Eshell"),
+            Key([], "v", lazy.spawn("emacsclient -c -a 'emacs' --eval '(lish-vterm)'"), desc="Vterm"),
+            Key([], "p", lazy.spawn("emacsclient -c -a 'emacs' --eval '(addmacs)'"), desc="Addmacs"),
+            Key([], "y", lazy.spawn("emacsclient -c -a 'emacs' --eval '(+gptel/here)'"), desc="GPTel"),
+        ],
+    )
+)
+for group in groups:
+    keys.extend(
+        [
+            Key([mod], group.name, lazy.group[group.name].toscreen()),
+            Key([mod, "shift"], group.name, lazy.window.togroup(group.name), lazy.group[group.name].toscreen()),
+        ]
+    )
+keys.extend(
+    [
+        Key([mod], "Tab", lazy.screen.next_group()),
+        Key([mod, "shift"], "Tab", lazy.screen.prev_group()),
+        Key([alt], "Tab", lazy.screen.next_group()),
+        Key([alt, "shift"], "Tab", lazy.screen.prev_group()),
+    ]
+)
+
+def dropdown(name, command, **kwargs):
+    return DropDown(name, command, height=0.8, width=0.8, x=0.1, y=0.1, on_focus_lost_hide=False, **kwargs)
+
+
+groups.extend(
+    [
+        ScratchPad("termpad", [DropDown("term", "terminator")]),
+        ScratchPad("browserPad", [dropdown("browser", ["nyxt"])]),
+        ScratchPad(
+            "editorPad",
+            [
+                dropdown("emacs", home + "/.config/qtile/scripts/eclient.sh", match=Match(title="floating"), opacity=0.95),
+                dropdown("org-capture", home + "/.config/qtile/scripts/org-capture.sh", match=Match(title="org-capture"), opacity=0.95),
+            ],
+        ),
+        ScratchPad("passwords", [dropdown("keepassxc", "keepassxc", opacity=0.95)]),
+        ScratchPad("media", [dropdown("feishin", "feishin", match=Match(wm_class="feishin"), opacity=0.95)]),
+    ]
+)
+keys.extend(
+    [
+        Key([mod, "shift"], "F1", lazy.group["browserPad"].dropdown_toggle("browser")),
+        Key([mod], "F12", lazy.group["termpad"].dropdown_toggle("term")),
+        Key([mod, "shift"], "E", lazy.group["editorPad"].dropdown_toggle("emacs")),
+        Key([mod], "F3", lazy.group["passwords"].dropdown_toggle("keepassxc")),
+        Key([mod], "x", lazy.group["editorPad"].dropdown_toggle("org-capture")),
+        Key([mod, "shift"], "M", lazy.group["media"].dropdown_toggle("feishin")),
+        Key([alt], "Right", lazy.next_screen()),
+        Key([alt], "Left", lazy.prev_screen()),
+        Key([mod, "shift"], "Right", move_window_screen(1)),
+        Key([mod, "shift"], "Left", move_window_screen(-1)),
+    ]
+)
+
+theme = {"margin": 5, "border_width": 2, "border_focus": colors[2], "border_normal": colors[1]}
+layouts = [layout.MonadTall(**theme), layout.MonadWide(**theme), layout.Matrix(**theme), layout.Bsp(**theme), layout.Floating(**theme), layout.RatioTile(**theme), layout.Max(**theme)]
+
 
 @hook.subscribe.client_new
 def assign_app_group(client):
-     d = {}
-     #####################################################################################
-     ### Use xprop fo find  the value of WM_CLASS(STRING) -> First field is sufficient ###
-     #####################################################################################
-     d[group_names[0]] = ["Navigator", "Firefox", "Vivaldi-stable", "Vivaldi-snapshot", "Chromium", "Google-chrome", "Brave", "Brave-browser",
-               "navigator", "firefox", "vivaldi-stable", "vivaldi-snapshot", "chromium", "google-chrome", "brave", "brave-browser", ]
-     d[group_names[1]] = [ "emacs", "codium" ]
-     d[group_names[2]] = ["Inkscape", "Nomacs", "Ristretto", "Nitrogen", "Feh",
-                          "inkscape", "nomacs", "ristretto", "nitrogen", "feh", "gimp", "krita" ]
-     d[group_names[3]] = ["virt-manager", "Virtual Machine Manager" ]
-     #d[group_names[4]] = ["Meld", "meld", "org.gnome.meld" "org.gnome.Meld" ]
-     d[group_names[5]] = ["Vlc","vlc", "Mpv", "mpv", "Minecraft", "War Thuder" ]
-     #d[group_names[6]] = ["VirtualBox Manager", "VirtualBox Machine", "Vmplayer",
-     #          "virtualbox manager", "virtualbox machine", "vmplayer", ]
-     d[group_names[7]] = ["Thunar", "Nemo", "Caja", "Nautilus", "org.gnome.Nautilus", "Pcmanfm", "Pcmanfm-qt",
-               "thunar", "nemo", "caja", "nautilus", "org.gnome.nautilus", "pcmanfm", "pcmanfm-qt", ]
-     d[group_names[8]] = ["Evolution", "Geary", "Mail", "Thunderbird",
-               "evolution", "geary", "mail", "thunderbird" ]
-     #d[group_names[9]] = ["Spotify", "Pragha", "Clementine", "Deadbeef", "Audacious",
-     #          "spotify", "pragha", "clementine", "deadbeef", "audacious" ]
-     #     ######################################################################################
-     m_class = client.window.get_wm_class()[0]
-
-     for i in range(len(d)):
-         if wm_class in list(d.values())[i]:
-             group = list(d.keys())[i]
-             client.togroup(group)
-             client.group.cmd_toscreen(toggle=True)
+    routes = {
+        "1": {"navigator", "firefox", "vivaldi-stable", "vivaldi-snapshot", "chromium", "google-chrome", "brave", "brave-browser"},
+        "2": {"emacs", "codium"},
+        "3": {"inkscape", "nomacs", "ristretto", "nitrogen", "feh", "gimp", "krita"},
+        "4": {"virt-manager", "virtual machine manager"},
+        "6": {"vlc", "mpv", "minecraft", "war thunder"},
+        "8": {"thunar", "nemo", "caja", "nautilus", "org.gnome.nautilus", "pcmanfm", "pcmanfm-qt"},
+        "9": {"evolution", "geary", "mail", "thunderbird"},
+    }
+    wm_classes = client.window.get_wm_class() or ()
+    normalized = {value.casefold() for value in wm_classes if value}
+    for group_name, classes in routes.items():
+        if normalized & classes:
+            client.togroup(group_name, switch_group=True)
+            return
 
 
-main = None
-
-@lazy.function
-def window_to_prev_group(qtile):
-    if qtile.currentWindow is not None:
-        i = qtile.groups.index(qtile.currentGroup)
-        qtile.currentWindow.togroup(qtile.groups[i - 1].name)
-
-@lazy.function
-def window_to_next_group(qtile):
-    if qtile.currentWindow is not None:
-        i = qtile.groups.index(qtile.currentGroup)
-        qtile.currentWindow.togroup(qtile.groups[i + 1].name)
-
-def window_to_previous_screen(qtile, switch_group=False, switch_screen=False):
-    i = qtile.screens.index(qtile.current_screen)
-    if i != 0:
-        group = qtile.screens[i - 1].group.name
-        qtile.current_window.togroup(group, switch_group=switch_group)
-        if switch_screen == True:
-            qtile.cmd_to_screen(i - 1)
-
-def window_to_next_screen(qtile, switch_group=False, switch_screen=False):
-    i = qtile.screens.index(qtile.current_screen)
-    if i + 1 != len(qtile.screens):
-        group = qtile.screens[i + 1].group.name
-        qtile.current_window.togroup(group, switch_group=switch_group)
-        if switch_screen == True:
-            qtile.cmd_to_screen(i + 1)
-
-keys.extend([
-    Key([mod1], "Right", lazy.next_screen(), desc="Next Monitor"),
-    Key([mod1], "Left", lazy.prev_screen(), desc="Prev Monitor")
-])
-
-keys.extend([
-    # MOVE WINDOW TO NEXT SCREEN
-    Key([mod,"shift"], "Right", lazy.function(window_to_next_screen, switch_screen=True)),
-    Key([mod,"shift"], "Left", lazy.function(window_to_previous_screen, switch_screen=True)),
-])
-
-auto_fullscreen = False # I dont want it "full screen"
+auto_fullscreen = False
 focus_on_window_activation = "smart"
 reconfigure_screens = True
 auto_minimize = False
-
 follow_mouse_focus = False
 bring_front_click = False
-cursor_warp = False # Keep mouse inside game window when set to true
+cursor_warp = False
+
 
 @hook.subscribe.client_new
-def _swallow(window):
+def swallow(window):
     pid = window.window.get_net_wm_pid()
-    ppid = psutil.Process(pid).ppid()
-    cpids = {c.window.get_net_wm_pid(): wid for wid, c in window.qtile.windows_map.items()}
-    for i in range(5):
-        if not ppid:
+    if pid is None:
+        return
+    try:
+        parent_pid = psutil.Process(pid).ppid()
+    except psutil.Error:
+        return
+    clients = {client.window.get_net_wm_pid(): wid for wid, client in window.qtile.windows_map.items()}
+    for _ in range(5):
+        if not parent_pid:
             return
-        if ppid in cpids:
-            parent = window.qtile.windows_map.get(cpids[ppid])
-            parent.minimized = True
-            window.parent = parent
+        if parent_pid in clients:
+            parent = window.qtile.windows_map.get(clients[parent_pid])
+            if parent:
+                parent.minimized = True
+                window.parent = parent
             return
-        ppid = psutil.Process(ppid).ppid()
+        try:
+            parent_pid = psutil.Process(parent_pid).ppid()
+        except psutil.Error:
+            return
+
 
 @hook.subscribe.client_killed
-def _unswallow(window):
-    if hasattr(window, 'parent'):
+def unswallow(window):
+    if getattr(window, "parent", None):
         window.parent.minimized = False
 
-def init_widgets_defaults():
-    return dict(font="Hack Nerd Regular",
-                fontsize = 12,
-                padding = 2,
-                background=colors[1])
 
-widget_defaults = init_widgets_defaults()
-
-def init_widgets_list():
-    #prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
-    widgets_list = [
-        widget.GroupBox(font="3270 Nerd Font",
-                        visible_groups=["1","2","3","4","5","6","7","8", "9", "0"],
-                        fontsize = 18,
-                        margin_y = 2,
-                        margin_x = 2,
-                        padding_y = -6,
-                        padding_x = 6,
-                        borderwidth = 0,
-                        disable_drag = False,
-                        active = colors[9],
-                        inactive = colors[5],
-                        rounded = True,
-                        highlight_method = "text",
-                        this_current_screen_border = colors[8],
-                        foreground = colors[2],
-                        background = colors[1]
-                        ),
-        widget.Sep(
-            margin_x = 5,
-            linewidth = 1,
-            padding = 10,
-            foreground = colors[2],
-            background = colors[1]
-        ),
-        widget.CurrentLayout(
-            font = "Hack  Bold",
-            foreground = colors[5],
-            background = colors[1]
-        ),
-        widget.Sep(
-            linewidth = 1,
-            padding = 10,
-            foreground = colors[2],
-            background = colors[1]
-        ),
-        widget.WindowName(font="Hack ",
-                          fontsize = 12,
-                          foreground = colors[5],
-                          background = colors[1],
-                          ),
-        # widget.Net(
-        #          font="Hack ",
-        #          fontsize=12,
-        #          interface="enp0s31f6",
-        #          foreground=colors[2],
-        #          background=colors[1],
-        #          padding = 0,
-        #          ),
-        widget.Pomodoro(foreground = colors[2],
-            background = colors[1],
-            ),
-        widget.Sep(
-                  linewidth = 1,
-                  padding = 10,
-                  foreground = colors[2],
-                  background = colors[1]
-                  ),
-
-        widget.Mpris2(background=colors[1],
-                      foreground=colors[6],
-                      scroll_fixed_width=True,
-                      poll_interval=1,
-                      width=100,
-                      padding=10,
-                      size=60,
-                      linewidth = 60,
-                      max_chars=60
-                      ),
-        widget.GenPollCommand(
-            cmd=[
-                "curl",
-                "-s",
-                "--max-time",
-                "5",
-                f"https://wttr.in/@{myIp}?u&format=%f+%C",
-            ],
-            parse=lambda output: output.strip() or "weather n/a",
-            update_interval=300,
-        ),
-        widget.Sep(
-            linewidth = 1,
-            padding = 5,
-            foreground = colors[2],
-            background = colors[1]
-        ),
-        ## do not activate in Virtualbox - will break qtile
-        ## NOTE is this really the case for libvirt? lol
-        widget.ThermalSensor(
-            foreground = colors[5],
-            foreground_alert = colors[6],
-            background = colors[1],
-            metric = True,
-            padding = 3,
-            threshold = 70,
-            tag_sensor=thermalTag
-        ),
-        widget.Sep(
-            linewidth = 1,
-            padding = 10,
-            foreground = colors[2],
-            background = colors[1]
-        ),
-        # # battery option 1  ArcoLinux Horizontal icons do not forget to import arcobattery at the top
-        # widget.Sep(
-        #          linewidth = 1,
-        #          padding = 10,
-        #          foreground = colors[2],
-        #          background = colors[1]
-        #          ),
-        # arcobattery.BatteryIcon(
-        #          padding=0,
-        #          scale=0.7,
-        #          y_poss=2,
-        #          theme_path=home + "/.config/qtile/icons/battery_icons_horiz",
-        #          update_interval = 5,
-        #          background = colors[1]
-        #          ),
-        # # battery option 2  from Qtile
-        # widget.Sep(
-        #          linewidth = 1,
-        #          padding = 10,
-        #          foreground = colors[2],
-        #          background = colors[1]
-        #          ),
-        # widget.Battery(
-        #          font="Hack ",
-        #          update_interval = 10,
-        #          fontsize = 12,
-        #          foreground = colors[5],
-        #          background = colors[1],
-	    #          ),
+widget_defaults = {"font": "Hack Nerd Regular", "fontsize": 12, "padding": 2, "background": colors[1]}
 
 
-        widget.Net(
-            forground = colors[6],
-            background=colors[1]
-        ),
+def sep(padding=10):
+    return widget.Sep(linewidth=1, padding=padding, foreground=colors[2], background=colors[1])
 
-        widget.TextBox(
-            font="FontAwesome",
-            text="  ",
-            foreground=colors[6],
-            background=colors[1],
-            padding = 0,
-            fontsize=16
-        ),
-        widget.CPUGraph(
-            border_color = colors[2],
-            fill_color = colors[4],
-            graph_color = colors[4],
-            background=colors[1],
-            border_width = 1,
-            line_width = 1,
-            core = "all",
-            type = "box"
-        ),
-        widget.Sep(
-            linewidth = 1,
-            padding = 10,
-            foreground = colors[2],
-            background = colors[1]
-        ),
-        # widget.TextBox(
-        #          font="FontAwesome",
-        #          text="  ",
-        #          foreground=colors[4],
-        #          background=colors[1],
-        #          padding = 0,
-        #          fontsize=16
-        #          ),
-        widget.Memory(
-            font="Hack ",
-            format = 'Mem:{MemUsed: 0.2f}G',
-            update_interval = 1,
-            fontsize = 12,
-            foreground = colors[6],
-            background = colors[1],
-            measure_mem = "G",
-        ),
-        widget.Sep(
-            linewidth = 1,
-            padding = 10,
-            foreground = colors[2],
-            background = colors[1]
-        ),
-        #widget.CheckUpdates(
-        #         distro='Arch_yay',
-        #         display_format=' {updates}',
-        #         colour_no_update="#39ff14",
-        #         colour_have_updates="#ff0000",
-        #         update_interval=30,
-        #         ),
 
-        widget.TextBox(
-            font="FontAwesome",
-            text="  ",
-            foreground=colors[3],
-            background=colors[1],
-            padding = 0,
-            fontsize=16
-        ),
-        widget.Clock(
-            foreground = colors[5],
-            background = colors[1],
-            fontsize = 12,
-            format="%Y-%m-%d %H:%M",
-            mouse_callbacks={ 'Button1': lambda: os.system('notify-send -a qtile "$(date "+%Y-%m-%d %H:%M")" "$(cal)"')}
-
-        ),
-        widget.Sep(
-                  linewidth = 1,
-                  padding = 10,
-                  foreground = colors[2],
-                  background = colors[1]
-                  ),
-        widget.Volume(
-            #emoji="󱄠",
-            foreground = colors[2],
-            background = colors[1],
-            volume_up_command = "amixer set Master 10%+",
-            volume_down_command = "amixer set Master 10%-",
-        )
+def widgets():
+    return [
+        widget.GroupBox(font="3270 Nerd Font", visible_groups=group_names, fontsize=18, margin_y=2, margin_x=2, padding_y=-6, padding_x=6, borderwidth=0, active=colors[9], inactive=colors[5], rounded=True, highlight_method="text", this_current_screen_border=colors[8], foreground=colors[2], background=colors[1]),
+        sep(),
+        widget.CurrentLayout(font="Hack Bold", foreground=colors[5], background=colors[1]),
+        sep(),
+        widget.WindowName(font="Hack", fontsize=12, foreground=colors[5], background=colors[1]),
+        widget.Pomodoro(foreground=colors[2], background=colors[1]),
+        sep(),
+        widget.Mpris2(background=colors[1], foreground=colors[6], scroll_fixed_width=True, poll_interval=1, width=100, padding=10, size=60, linewidth=60, max_chars=60, markup=False),
+        widget.GenPollCommand(cmd=["curl", "-s", "--max-time", "5", f"https://wttr.in/@{my_ip}?u&format=%f+%C"], parse=lambda output: output.strip() or "weather n/a", update_interval=300),
+        sep(5),
+        widget.ThermalSensor(foreground=colors[5], foreground_alert=colors[6], background=colors[1], metric=True, padding=3, threshold=70, tag_sensor="Tctl"),
+        sep(),
+        widget.Net(foreground=colors[6], background=colors[1]),
+        widget.TextBox(font="FontAwesome", text="  ", foreground=colors[6], background=colors[1], padding=0, fontsize=16),
+        widget.CPUGraph(border_color=colors[2], fill_color=colors[4], graph_color=colors[4], background=colors[1], border_width=1, line_width=1, core="all", type="box"),
+        sep(),
+        widget.Memory(font="Hack", format="Mem:{MemUsed: 0.2f}G", update_interval=1, fontsize=12, foreground=colors[6], background=colors[1], measure_mem="G"),
+        sep(),
+        widget.TextBox(font="FontAwesome", text="  ", foreground=colors[3], background=colors[1], padding=0, fontsize=16),
+        widget.Clock(foreground=colors[5], background=colors[1], fontsize=12, format="%Y-%m-%d %H:%M", mouse_callbacks={"Button1": lambda: os.system('notify-send -a qtile "$(date "+%Y-%m-%d %H:%M")" "$(cal)"')}),
+        sep(),
+        widget.Volume(foreground=colors[2], background=colors[1], volume_up_command="amixer set Master 10%+", volume_down_command="amixer set Master 10%-"),
     ]
-    return widgets_list
-
-widgets_list = init_widgets_list()
-
-widgets_list = init_widgets_list()
 
 
-def init_widgets_screen1():
-    widgets_screen1 = init_widgets_list()
-
-    widgets_screen1.append(widget.Systray(
-                        background=colors[1],
-                        icon_size=20,
-                        padding = 4))
-    return widgets_screen1
-
-def init_widgets_screen2():
-    widgets_screen2 = init_widgets_list()
-    widget_len = len(widgets_screen2) - 10
-
-    return widgets_screen2
-
-widgets_screen1 = init_widgets_screen1()
-widgets_screen2 = init_widgets_screen2()
+def screen_widgets(systray=False):
+    items = widgets()
+    if systray:
+        items.append(widget.Systray(background=colors[1], icon_size=20, padding=4))
+    return items
 
 
-def init_screens():
-    return [Screen(top=bar.Bar(widgets=init_widgets_screen1(), size=26, opacity=0.8)),
-            Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=26, opacity=0.8))]
-screens = init_screens()
-
+screens = [Screen(top=bar.Bar(screen_widgets(True), 26, opacity=0.8)), Screen(top=bar.Bar(screen_widgets(), 26, opacity=0.8))]
 mouse = [
-    Drag([mod], "Button1", lazy.window.set_position_floating(),
-         start=lazy.window.get_position()),
-    Drag([mod], "Button3", lazy.window.set_size_floating(),
-         start=lazy.window.get_size())
+    Drag([mod], "Button1", lazy.window.set_position_floating(), start=lazy.window.get_position()),
+    Drag([mod], "Button3", lazy.window.set_size_floating(), start=lazy.window.get_size()),
 ]
-
-@hook.subscribe.client_new
-def set_floating(window):
-    if (window.window.get_wm_transient_for()
-            or window.window.get_wm_type() in floating_types):
-        window.floating = True
-
-floating_layout = layout.Floating(float_rules=[
-    # Run the utility of `xprop` to see the wm class and name of an X client.
-    *layout.Floating.default_float_rules,
-    Match(wm_class='confirmreset'),  # gitk
-    Match(wm_class='makebranch'),  # gitk
-    Match(wm_class='maketag'),  # gitk
-    Match(wm_class='ssh-askpass'),  # ssh-askpass
-    Match(title='branchdialog'),  # gitk
-    Match(title='pinentry'),  # GPG key password entry
-    Match(wm_class='Arcolinux-welcome-app.py'),
-    Match(wm_class='Arcolinux-calamares-tool.py'),
-    Match(wm_class='confirm'),
-    Match(wm_class='dialog'),
-    Match(wm_class='download'),
-    Match(wm_class='error'),
-    Match(wm_class='file_progress'),
-    Match(wm_class='notification'),
-    Match(wm_class='splash'),
-    Match(wm_class='toolbar'),
-    Match(wm_class='Arandr'),
-    Match(wm_class='feh'),
-    Match(wm_class='Galculator'),
-    Match(wm_class='archlinux-logout'),
-    Match(wm_class='xfce4-terminal'),
-    Match(title='floating'),
-    Match(title='Minecraft'),
-    Match(title='Emacs Everywhere'),
-    Match(title='Atomic Chrome'),
-    Match(title="org-capture"),
-    Match(title="Feishin")
-
-],  fullscreen_border_width = 0, border_width = 0)
-
-
-
-#groups.append(Group("project", layouts=[AddmacsLayout(margin=5)], matches=[Match(wm_class=re.compile(r"^(Emacs)$"))]))
-#@hook.subscribe.client_new
-#def assign_app_group(client):
-#    if isinstance(client.window.get_wm_class(), tuple):
-#        if any(x in client.name for x in ["Right Now", "In Progress", "Task Pile"]):
-#            client.togroup("project")
+floating_layout = layout.Floating(
+    float_rules=[
+        *layout.Floating.default_float_rules,
+        *[Match(wm_class=name) for name in ("confirmreset", "makebranch", "maketag", "ssh-askpass", "Arcolinux-welcome-app.py", "Arcolinux-calamares-tool.py", "confirm", "dialog", "download", "error", "file_progress", "notification", "splash", "toolbar", "Arandr", "feh", "Galculator", "archlinux-logout", "xfce4-terminal")],
+        *[Match(title=name) for name in ("branchdialog", "pinentry", "floating", "Minecraft", "Emacs Everywhere", "Atomic Chrome", "org-capture", "Feishin")],
+    ],
+    fullscreen_border_width=0,
+    border_width=0,
+)
