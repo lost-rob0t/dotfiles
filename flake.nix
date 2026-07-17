@@ -1,12 +1,15 @@
 {
-  # thanks to the kind work of Misterio77 for making a working example for me to use
-  # https://github.com/Misterio77/nix-starter-configs/blob/main/standard/flake.nix
-  description = "My Nixos Config";
+  description = "NixOS configurations, installer, and Home Manager dotfiles";
+
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";
-    home-manager.url = "github:nix-community/home-manager";
-    home-manager.inputs.nixpkgs.follows = "nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.11";
+
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     emacs-overlay.url = "github:nix-community/emacs-overlay";
     hardware.url = "github:nixos/nixos-hardware";
     mousetrap.url = "github:lost-rob0t/Mousetrap";
@@ -16,120 +19,95 @@
     bixby-studio.url = "github:lost-rob0t/org-vector";
   };
 
-  outputs = { self,
-              org-vector,
-              zara,
-              nixpkgs,
-              nixpkgs-stable,
-              home-manager,
-              nixos-hardware,
-              bixby-studio,
-              ... }@inputs:
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      home-manager,
+      ...
+    }:
     let
-      inherit (self) outputs;
-      forAllSystems = nixpkgs.lib.genAttrs [
-        "aarch64-linux"
-        "i686-linux"
-        "x86_64-linux"
-        "aarch64-darwin"
-        "x86_64-darwin"
-      ];
-      npkgs = nixpkgs.legacyPackages.x86_64-linux;
-    in
-    rec {
-      # Your custom packages
-      # Accessible through 'nix build', 'nix shell', etc
-      # Devshell for bootstrapping
-      # Acessible through 'nix develop' or 'nix-shell' (legacy)
-      #devShells = forAllSystems (system:
-      #  let pkgs = nixpkgs.legacyPackages.${system};
-      #  in import ./shell.nix { inherit pkgs; }
-      #);
-
-      # Your custom packages and modifications, exported as overlays
-      #overlays = import ./overlays { inherit inputs; };
-      # Reusable nixos modules you might want to export
-      # These are usually stuff you would upstream into nixpkgs
-      #nixosModules = import ./modules/nixos;
-      # Reusable home-manager modules you might want to export
-      # These are usually stuff you would upstream into home-manager
-      #homeManagerModules = import ./modules/home-manager;
-
-      # NixOS configuration entrypoint
-      # Available through 'nixos-rebuild --flake .#your-hostname'
-      nixosConfigurations = {
-        flake = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs outputs; };
-          modules = [
-            ./nix/nixos/mods/default.nix
-            ./nix/nixos/systems/flake/flake.nix
-            #./nix/nixos/systems/flake/flake-qtile.nix
-            #./nix/nixos/systems/flake/flake-budgie.nix
-          ];
-        };
-        flake-nvidia = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit inputs outputs; };
-          modules = [
-            ./nix/nixos/mods/default.nix
-            ./nix/nixos/systems/flake/flake.nix
-            ./nix/nixos/systems/flake/flake-nvidia.nix
-          ];
-        };
-        # flake-qtile = nixpkgs.lib.nixosSystem {
-        #   specialArgs = { inherit inputs outputs; };
-        #   modules = [
-        #     # > Our main nixos configuration file <
-        #     ./nix/nixos/systems/flake/flake.nix
-        #     ./nix/nixos/systems/flake/flake-qtile.nix
-
-        #   ];
-        # };
-        # flake-budgie = nixpkgs.lib.nixosSystem {
-        #   specialArgs = { inherit inputs outputs; };
-        #   modules = [
-        #     # > Our main nixos configuration file <
-        #     ./nix/nixos/systems/flake/flake.nix
-        #     ./nix/nixos/systems/flake/flake-budgie.nix
-
-        #   ];
-        # };
-
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
+      specialArgs = {
+        inherit inputs;
+        outputs = self;
       };
-      # Standalone home-manager configuration entrypoint
-      # Available through 'home-manager --flake .#your-username@your-hostname'
+
+      logos = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [ ./nix/nixos/hosts/logos ];
+      };
+
+      logosIso = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit self; };
+        modules = [ ./nix/nixos/installer/logos-iso.nix ];
+      };
+
+      flake = nixpkgs.lib.nixosSystem {
+        inherit system specialArgs;
+        modules = [
+          ./nix/nixos/mods/default.nix
+          ./nix/nixos/systems/flake/flake.nix
+        ];
+      };
+
+      flakeNvidia = nixpkgs.lib.nixosSystem {
+        inherit system specialArgs;
+        modules = [
+          ./nix/nixos/mods/default.nix
+          ./nix/nixos/systems/flake/flake.nix
+          ./nix/nixos/systems/flake/flake-nvidia.nix
+        ];
+      };
+    in
+    {
+      nixosConfigurations = {
+        inherit logos flake;
+        logos-iso = logosIso;
+        flake-nvidia = flakeNvidia;
+      };
+
       homeConfigurations = {
         "unseen@flake" = home-manager.lib.homeManagerConfiguration {
-          pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
-          extraSpecialArgs = { inherit inputs outputs; };
-          modules = [
-            ./nix/home-manager/systems/desktop/home.nix
-            #./nix/home-manager/global/global.nix
-            # TODO Import all the stuff HERE
-          ];
+          inherit pkgs;
+          extraSpecialArgs = specialArgs;
+          modules = [ ./nix/home-manager/systems/desktop/home.nix ];
         };
 
         "unseen@hunter02" = home-manager.lib.homeManagerConfiguration {
-          pkgs = nixpkgs.legacyPackages.x86_64-linux; # Home-manager requires 'pkgs' instance
-          extraSpecialArgs = { inherit inputs outputs; };
-          modules = [
-            ./nix/home-manager/systems/hunter02/home.nix
-          ];
+          inherit pkgs;
+          extraSpecialArgs = specialArgs;
+          modules = [ ./nix/home-manager/systems/hunter02/home.nix ];
         };
       };
 
-      devShell.x86_64-linux =
-        nixpkgs.legacyPackages.x86_64-linux.mkShell {
-          buildInputs = with nixpkgs.legacyPackages.x86_64-linux; [
-            openssl
-            pkg-config
-            # BUG roswell
-            sbcl
-            ecl
-          ];
+      packages.${system} = {
+        default = logos.config.system.build.toplevel;
+        logos = logos.config.system.build.toplevel;
+        logos-iso = logosIso.config.system.build.isoImage;
+      };
 
-          shellHook = ''
-            export LD_LIBRARY_PATH=${nixpkgs.legacyPackages.x86_64-linux.lib.makeLibraryPath([nixpkgs.legacyPackages.x86_64-linux.openssl])}:${nixpkgs.legacyPackages.x86_64-linux.lib.makeLibraryPath([nixpkgs.legacyPackages.x86_64-linux.file])}
-          '';
-        };
+      checks.${system}.logos = logos.config.system.build.toplevel;
+      formatter.${system} = pkgs.nixfmt-rfc-style;
+
+      devShells.${system}.default = pkgs.mkShell {
+        packages = with pkgs; [
+          openssl
+          pkg-config
+          sbcl
+          ecl
+        ];
+
+        shellHook = ''
+          export LD_LIBRARY_PATH=${
+            nixpkgs.lib.makeLibraryPath [
+              pkgs.openssl
+              pkgs.file
+            ]
+          }:$LD_LIBRARY_PATH
+        '';
+      };
     };
 }
