@@ -14,19 +14,35 @@ The installer ISO is written under `result/iso/`.
 
 ## Publish an installer release
 
-After this configuration is merged, push a tag beginning with `logos-`:
+After this configuration is merged, run the release helper from anywhere inside
+the repository:
 
 ```sh
-git tag logos-2026.07.1
-git push origin logos-2026.07.1
+./scripts/tag-logos-release.sh
 ```
 
-The **Publish Logos ISO** workflow automatically builds the installer and creates
-or updates the matching GitHub Release. The release contains directly
-downloadable assets, not an Actions ZIP:
+It fetches remote tags, requires a clean working tree, and creates the next
+available date-based tag:
 
-- `logos-nixos-2026.07.1.iso`
-- `logos-nixos-2026.07.1.iso.sha256`
+```text
+logos-2026.07.17
+logos-2026.07.17.2
+logos-2026.07.17.3
+```
+
+Use `--dry-run` to preview the next tag or `--yes` to skip confirmation:
+
+```sh
+./scripts/tag-logos-release.sh --dry-run
+./scripts/tag-logos-release.sh --yes
+```
+
+Pushing the tag starts the **Publish Logos ISO** workflow, which creates or
+updates the matching GitHub Release. The release contains directly downloadable
+assets, not an Actions ZIP:
+
+- `logos-nixos-2026.07.17.iso`
+- `logos-nixos-2026.07.17.iso.sha256`
 
 The workflow can also be run manually from GitHub Actions with a `logos-*`
 release tag.
