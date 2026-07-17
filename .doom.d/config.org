@@ -1737,7 +1737,7 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
 #+begin_src emacs-lisp
 (let ((temple "~/Temple/temple-loader.el"))
   (when (file-exists-p temple)
-    (run-with-idle-timer 10 nil #'load temple)))
+    (load temple)))
 #+end_src
 * Security
 ** Auth info source

@@ -1139,7 +1139,7 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
 
 (let ((temple "~/Temple/temple-loader.el"))
   (when (file-exists-p temple)
-    (run-with-idle-timer 10 nil #'load temple)))
+    (load temple)))
 
 (setq auth-sources '("~/.authinfo.gpg")
       auth-source-cache-expiry 1360)

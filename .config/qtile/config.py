@@ -357,9 +357,9 @@ focus_on_window_activation = "smart"
 reconfigure_screens = True
 auto_minimize = False
 
-follow_mouse_focus = True
+follow_mouse_focus = False
 bring_front_click = False
-cursor_warp = True # Keep mouse inside game window!
+cursor_warp = False # Keep mouse inside game window when set to true
 
 @hook.subscribe.client_new
 def _swallow(window):
