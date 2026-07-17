@@ -123,13 +123,18 @@ def organize_existing_windows(qtile):
     update_auto_layouts(qtile)
 
 
-def auto_group_button_text():
-    return "AUTO:ON" if auto_group_mode else "AUTO:OFF"
+def auto_group_button_colors():
+    if auto_group_mode:
+        return colors[0], colors[7]
+    return colors[5], colors[8]
 
 
 def update_auto_group_buttons():
+    foreground, background = auto_group_button_colors()
     for button in auto_group_buttons:
-        button.update(auto_group_button_text())
+        button.foreground = foreground
+        button.background = background
+        button.draw()
 
 
 @lazy.function
@@ -348,14 +353,15 @@ def sep(padding=10):
 
 
 def auto_group_button():
+    foreground, background = auto_group_button_colors()
     button = widget.TextBox(
         name=f"auto_group_mode_{len(auto_group_buttons)}",
-        text=auto_group_button_text(),
+        text="AUTO",
         font="Hack Nerd Regular",
         fontsize=12,
         padding=8,
-        foreground=colors[7],
-        background=colors[0],
+        foreground=foreground,
+        background=background,
         mouse_callbacks={"Button1": toggle_auto_group_mode},
     )
     auto_group_buttons.append(button)
