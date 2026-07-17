@@ -1,7 +1,11 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 {
-  imports = [ ./hardware-configuration.nix ];
+  imports = [
+    ./disk-layout.nix
+    ./hardware-configuration.nix
+    ./policy.nix
+  ];
 
   nixpkgs.config.allowUnfree = true;
 
@@ -18,9 +22,12 @@
     };
   };
 
-  boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
+  boot = {
+    kernelModules = lib.mkForce [ ];
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+    };
   };
 
   networking = {
@@ -106,6 +113,20 @@
       enableSSHSupport = true;
       pinentryPackage = pkgs.pinentry-qt;
     };
+  };
+
+  fileSystems."/home/unseen/share" = {
+    device = "//storage.lost.system/unseen";
+    fsType = "cifs";
+    options = [
+      "x-systemd.automount"
+      "noauto"
+      "x-systemd.idle-timeout=60"
+      "x-systemd.device-timeout=5s"
+      "x-systemd.mount-timeout=5s"
+      "uid=1000"
+      "credentials=/home/unseen/.config/smb-creds"
+    ];
   };
 
   environment.systemPackages = with pkgs; [

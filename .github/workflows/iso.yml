@@ -1,0 +1,54 @@
+name: Publish Logos ISO
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Git tag and release name, for example logos-2026.07.1
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+
+      - name: Build installer ISO
+        run: nix build .#logos-iso --print-build-logs
+
+      - name: Prepare release assets
+        id: assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_iso="$(find -L result/iso -maxdepth 1 -type f -name '*.iso' -print -quit)"
+          test -n "$source_iso"
+          asset="$RUNNER_TEMP/logos-installer-${GITHUB_SHA::7}.iso"
+          cp "$source_iso" "$asset"
+          sha256sum "$asset" > "$asset.sha256"
+          echo "iso=$asset" >> "$GITHUB_OUTPUT"
+          echo "checksum=$asset.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Publish raw ISO release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          ISO: ${{ steps.assets.outputs.iso }}
+          CHECKSUM: ${{ steps.assets.outputs.checksum }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$ISO" "$CHECKSUM" --clobber
+          else
+            gh release create "$RELEASE_TAG" \
+              "$ISO" "$CHECKSUM" \
+              --target "$GITHUB_SHA" \
+              --title "$RELEASE_TAG" \
+              --notes "Logos NixOS installer built from $GITHUB_SHA"
+          fi

@@ -16,25 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
-
-      - name: Check flake
-        id: check
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          nix flake check --show-trace 2>&1 | tee flake-check.log
-
-      - name: Upload check trace
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: flake-check-trace
-          path: flake-check.log
-
-      - name: Require successful check
-        if: steps.check.outcome == 'failure'
-        run: exit 1
-
-      - name: Build logos
-        run: nix build --no-link --print-build-logs
+      - run: nix flake check --show-trace
+      - run: nix build --no-link --print-build-logs
+      - run: nix build .#logos-iso --no-link --print-build-logs
