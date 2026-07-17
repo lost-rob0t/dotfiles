@@ -12,11 +12,24 @@ nix build .#logos-iso
 
 The installer ISO is written under `result/iso/`.
 
-## Publish an installer
+## Publish an installer release
 
-Run the **Publish Logos ISO** workflow manually and provide a release tag such
-as `logos-2026.07.1`. The workflow builds the ISO from that Git commit and
-attaches the raw `.iso` and its SHA-256 checksum to a GitHub Release.
+After this configuration is merged, push a tag beginning with `logos-`:
+
+```sh
+git tag logos-2026.07.1
+git push origin logos-2026.07.1
+```
+
+The **Publish Logos ISO** workflow automatically builds the installer and creates
+or updates the matching GitHub Release. The release contains directly
+downloadable assets, not an Actions ZIP:
+
+- `logos-nixos-<tag>.iso`
+- `logos-nixos-<tag>.iso.sha256`
+
+The workflow can also be run manually from GitHub Actions with a `logos-*`
+release tag.
 
 ## Install
 
