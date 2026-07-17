@@ -48,6 +48,7 @@ jobs:
           fi
 
           echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "version=${release_tag#logos-}" >> "$GITHUB_OUTPUT"
 
       - name: Build installer ISO
         run: nix build .#logos-iso --print-build-logs
@@ -56,14 +57,14 @@ jobs:
         id: assets
         shell: bash
         env:
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
 
           source_iso="$(find -L result/iso -maxdepth 1 -type f -name '*.iso' -print -quit)"
           test -n "$source_iso"
 
-          asset="$RUNNER_TEMP/logos-nixos-${RELEASE_TAG}.iso"
+          asset="$RUNNER_TEMP/logos-nixos-${RELEASE_VERSION}.iso"
           checksum="${asset}.sha256"
 
           cp "$source_iso" "$asset"
