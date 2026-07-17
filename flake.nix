@@ -7,6 +7,7 @@
     { self, nixpkgs }:
     let
       system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
 
       logos = nixpkgs.lib.nixosSystem {
         inherit system;
@@ -29,9 +30,10 @@
         default = logos.config.system.build.toplevel;
         logos = logos.config.system.build.toplevel;
         logos-iso = logosIso.config.system.build.isoImage;
+        actionlint = pkgs.actionlint;
       };
 
       checks.${system}.logos = logos.config.system.build.toplevel;
-      formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-rfc-style;
+      formatter.${system} = pkgs.nixfmt-rfc-style;
     };
 }
