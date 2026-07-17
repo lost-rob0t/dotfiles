@@ -108,6 +108,9 @@ def apply_auto_grouping(window):
 
     target = routed_group(window)
     if target and window.group.name != target:
+        source = window.group.name
+        from qtile_telemetry import telemetry_auto_route
+        telemetry_auto_route(window, source, target)
         window.togroup(target, switch_group=False)
 
     update_auto_layouts(window.qtile)
@@ -119,14 +122,14 @@ def organize_existing_windows(qtile):
         for window in tuple(group.windows):
             target = routed_group(window)
             if target and target != group_name:
+                from qtile_telemetry import telemetry_auto_route
+                telemetry_auto_route(window, group_name, target)
                 window.togroup(target, switch_group=False)
     update_auto_layouts(qtile)
 
 
 def auto_group_button_colors():
-    if auto_group_mode:
-        return colors[0], colors[7]
-    return colors[5], colors[8]
+    return "#000000", colors[7] if auto_group_mode else colors[8]
 
 
 def update_auto_group_buttons():
@@ -141,6 +144,8 @@ def update_auto_group_buttons():
 def toggle_auto_group_mode(qtile):
     global auto_group_mode
     auto_group_mode = not auto_group_mode
+    from qtile_telemetry import telemetry_event
+    telemetry_event("auto_mode_changed", enabled=auto_group_mode)
     if auto_group_mode:
         organize_existing_windows(qtile)
     update_auto_group_buttons()
@@ -419,3 +424,7 @@ floating_layout = layout.Floating(
     fullscreen_border_width=0,
     border_width=0,
 )
+
+
+from qtile_telemetry import install_telemetry
+install_telemetry(globals())
