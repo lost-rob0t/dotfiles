@@ -65,13 +65,13 @@ def move_window_screen(qtile, step):
     target = current + step
     if 0 <= target < len(qtile.screens):
         qtile.current_window.togroup(qtile.screens[target].group.name)
-        qtile.cmd_to_screen(target)
+        qtile.focus_screen(target)
 
 
 keys = [
     Key([mod], "f", lazy.window.toggle_fullscreen()),
-    Key([mod], "q", kill_focused_window()),
-    Key([mod, "shift"], "q", kill_focused_window()),
+    Key([mod], "q", kill_focused_window),
+    Key([mod, "shift"], "q", kill_focused_window),
     Key([mod, "shift"], "r", lazy.restart()),
     Key([mod], "n", lazy.layout.normalize()),
     Key([mod], "space", lazy.next_layout()),
