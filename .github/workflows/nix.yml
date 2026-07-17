@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
-      - run: nix shell .#actionlint -c actionlint .github/workflows/*.yml
+      - run: nix --quiet shell .#actionlint -c actionlint .github/workflows/*.yml
       - run: nix flake check --show-trace
       - run: nix build --no-link --print-build-logs
       - run: nix build .#logos-iso --no-link --print-build-logs
