@@ -25,8 +25,8 @@ The **Publish Logos ISO** workflow automatically builds the installer and create
 or updates the matching GitHub Release. The release contains directly
 downloadable assets, not an Actions ZIP:
 
-- `logos-nixos-<tag>.iso`
-- `logos-nixos-<tag>.iso.sha256`
+- `logos-nixos-2026.07.1.iso`
+- `logos-nixos-2026.07.1.iso.sha256`
 
 The workflow can also be run manually from GitHub Actions with a `logos-*`
 release tag.
