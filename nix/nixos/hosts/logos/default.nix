@@ -47,10 +47,10 @@
       enable = true;
       videoDrivers = [ "amdgpu" ];
       xkb.layout = "us";
+      displayManager.lightdm.enable = true;
       windowManager.qtile.enable = true;
     };
 
-    displayManager.lightdm.enable = true;
     libinput.enable = true;
 
     pipewire = {
