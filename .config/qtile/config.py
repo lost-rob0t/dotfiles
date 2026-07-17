@@ -33,6 +33,114 @@ colors = [
 ]
 
 
+group_names = list("1234567890")
+group_labels = ["", "", "", "", "", "", "", "", "", ""]
+default_group_layouts = {
+    name: "max" if name == "1" else "monadtall" for name in group_names
+}
+auto_group_routes = {
+    "1": {
+        "navigator",
+        "firefox",
+        "vivaldi-stable",
+        "vivaldi-snapshot",
+        "chromium",
+        "google-chrome",
+        "brave",
+        "brave-browser",
+    },
+    "2": {"emacs", "codium"},
+    "3": {"inkscape", "nomacs", "ristretto", "nitrogen", "feh", "gimp", "krita"},
+    "4": {"virt-manager", "virtual machine manager"},
+    "6": {"vlc", "mpv", "minecraft", "war thunder"},
+    "8": {
+        "thunar",
+        "nemo",
+        "caja",
+        "nautilus",
+        "org.gnome.nautilus",
+        "pcmanfm",
+        "pcmanfm-qt",
+    },
+    "9": {"evolution", "geary", "mail", "thunderbird"},
+}
+auto_group_mode = False
+auto_group_buttons = []
+
+groups = [
+    Group(name=name, label=label, layout=default_group_layouts[name])
+    for name, label in zip(group_names, group_labels)
+]
+
+
+def routed_group(window):
+    try:
+        wm_classes = window.window.get_wm_class() or ()
+    except AttributeError:
+        return None
+
+    normalized = {value.casefold() for value in wm_classes if value}
+    for group_name, classes in auto_group_routes.items():
+        if normalized & classes:
+            return group_name
+    return None
+
+
+def update_group_layout(group):
+    if group.name not in default_group_layouts:
+        return
+
+    desired = "max" if len(group.windows) > 3 else default_group_layouts[group.name]
+    if group.layout.name != desired:
+        group.setlayout(desired)
+
+
+def update_auto_layouts(qtile):
+    for group_name in group_names:
+        update_group_layout(qtile.groups_map[group_name])
+
+
+def apply_auto_grouping(window):
+    if not auto_group_mode or not getattr(window, "group", None):
+        return
+    if window.group.name not in group_names:
+        return
+
+    target = routed_group(window)
+    if target and window.group.name != target:
+        window.togroup(target, switch_group=False)
+
+    update_auto_layouts(window.qtile)
+
+
+def organize_existing_windows(qtile):
+    for group_name in group_names:
+        group = qtile.groups_map[group_name]
+        for window in tuple(group.windows):
+            target = routed_group(window)
+            if target and target != group_name:
+                window.togroup(target, switch_group=False)
+    update_auto_layouts(qtile)
+
+
+def auto_group_button_text():
+    return "AUTO:ON" if auto_group_mode else "AUTO:OFF"
+
+
+def update_auto_group_buttons():
+    for button in auto_group_buttons:
+        button.update(auto_group_button_text())
+
+
+@lazy.function
+def toggle_auto_group_mode(qtile):
+    global auto_group_mode
+    auto_group_mode = not auto_group_mode
+    if auto_group_mode:
+        organize_existing_windows(qtile)
+    update_auto_group_buttons()
+
+
 @hook.subscribe.startup_once
 def startup_once():
     subprocess.call([home + "/.config/qtile/scripts/autostart.sh"])
@@ -43,12 +151,22 @@ def startup():
     subprocess.Popen(["xsetroot", "-cursor_name", "left_ptr"])
 
 
-group_names = list("1234567890")
-group_labels = ["", "", "", "", "", "", "", "", "", ""]
-groups = [
-    Group(name=name, label=label, layout="max" if name == "1" else "monadtall")
-    for name, label in zip(group_names, group_labels)
-]
+@hook.subscribe.client_managed
+def auto_group_new_window(window):
+    if auto_group_mode:
+        window.qtile.call_soon(apply_auto_grouping, window)
+
+
+@hook.subscribe.group_window_add
+def enforce_auto_group(group, window):
+    if auto_group_mode and group.name in group_names:
+        group.qtile.call_soon(apply_auto_grouping, window)
+
+
+@hook.subscribe.client_killed
+def update_layout_after_close(window):
+    if auto_group_mode:
+        window.qtile.call_soon(update_auto_layouts, window.qtile)
 
 
 @lazy.function
@@ -143,6 +261,7 @@ keys.extend(
     ]
 )
 
+
 def dropdown(name, command, **kwargs):
     return DropDown(name, command, height=0.8, width=0.8, x=0.1, y=0.1, on_focus_lost_hide=False, **kwargs)
 
@@ -179,25 +298,6 @@ keys.extend(
 
 theme = {"margin": 5, "border_width": 2, "border_focus": colors[2], "border_normal": colors[1]}
 layouts = [layout.MonadTall(**theme), layout.MonadWide(**theme), layout.Matrix(**theme), layout.Bsp(**theme), layout.Floating(**theme), layout.RatioTile(**theme), layout.Max(**theme)]
-
-
-@hook.subscribe.client_new
-def assign_app_group(client):
-    routes = {
-        "1": {"navigator", "firefox", "vivaldi-stable", "vivaldi-snapshot", "chromium", "google-chrome", "brave", "brave-browser"},
-        "2": {"emacs", "codium"},
-        "3": {"inkscape", "nomacs", "ristretto", "nitrogen", "feh", "gimp", "krita"},
-        "4": {"virt-manager", "virtual machine manager"},
-        "6": {"vlc", "mpv", "minecraft", "war thunder"},
-        "8": {"thunar", "nemo", "caja", "nautilus", "org.gnome.nautilus", "pcmanfm", "pcmanfm-qt"},
-        "9": {"evolution", "geary", "mail", "thunderbird"},
-    }
-    wm_classes = client.window.get_wm_class() or ()
-    normalized = {value.casefold() for value in wm_classes if value}
-    for group_name, classes in routes.items():
-        if normalized & classes:
-            client.togroup(group_name, switch_group=True)
-            return
 
 
 auto_fullscreen = False
@@ -247,8 +347,25 @@ def sep(padding=10):
     return widget.Sep(linewidth=1, padding=padding, foreground=colors[2], background=colors[1])
 
 
+def auto_group_button():
+    button = widget.TextBox(
+        name=f"auto_group_mode_{len(auto_group_buttons)}",
+        text=auto_group_button_text(),
+        font="Hack Nerd Regular",
+        fontsize=12,
+        padding=8,
+        foreground=colors[7],
+        background=colors[0],
+        mouse_callbacks={"Button1": toggle_auto_group_mode},
+    )
+    auto_group_buttons.append(button)
+    return button
+
+
 def widgets():
     return [
+        auto_group_button(),
+        sep(5),
         widget.GroupBox(font="3270 Nerd Font", visible_groups=group_names, fontsize=18, margin_y=2, margin_x=2, padding_y=-6, padding_x=6, borderwidth=0, active=colors[9], inactive=colors[5], rounded=True, highlight_method="text", this_current_screen_border=colors[8], foreground=colors[2], background=colors[1]),
         sep(),
         widget.CurrentLayout(font="Hack Bold", foreground=colors[5], background=colors[1]),
