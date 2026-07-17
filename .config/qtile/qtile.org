@@ -7,6 +7,23 @@ This file previously duplicated the complete Python configuration and tangled it
 
 Edit =config.py= directly.
 
+* Automatic group mode
+The first button on each top bar displays either =AUTO:OFF= or =AUTO:ON=.
+
+Left-clicking the button enables or disables automatic group management.
+
+When enabled:
+- Existing mapped windows are immediately moved to their configured groups.
+- New mapped windows are moved to their configured groups.
+- Moving a mapped window to another normal group is automatically corrected.
+- Groups with more than three windows use the =max= layout.
+- Groups with three or fewer windows return to their configured default layout.
+- Scratchpad windows are excluded.
+
+When disabled, Qtile stops enforcing routes and layout thresholds. Existing windows and layouts are left in their current state so they can be rearranged manually.
+
+Application routes are configured in =auto_group_routes= in =config.py=.
+
 * Validation
 Run these checks after modifying the configuration:
 
