@@ -7,11 +7,62 @@ This file previously duplicated the complete Python configuration and tangled it
 
 Edit =config.py= directly.
 
+* Automatic group mode
+The first button on each top bar always displays =AUTO= in black text.
+
+Its background color indicates the current mode:
+- Green means automatic group management is enabled.
+- Pink/red means automatic group management is disabled.
+
+Left-clicking the button enables or disables automatic group management.
+
+When enabled:
+- Existing mapped windows are immediately moved to their configured groups.
+- New mapped windows are moved to their configured groups.
+- Moving a mapped window to another normal group is automatically corrected.
+- Groups with more than three windows use the =max= layout.
+- Groups with three or fewer windows return to their configured default layout.
+- Scratchpad windows are excluded.
+
+When disabled, Qtile stops enforcing routes and layout thresholds. Existing windows and layouts are left in their current state so they can be rearranged manually.
+
+Application routes are configured in =auto_group_routes= in =config.py=.
+
+* Usage telemetry
+Qtile appends structured JSONL events to:
+
+=~/.local/state/qtile/telemetry.jsonl=
+
+If =XDG_STATE_HOME= is set, the log is stored under =$XDG_STATE_HOME/qtile/= instead.
+
+The telemetry records:
+- the configured keymap at session start
+- actual keybind and key-chord usage
+- managed, focused, moved, routed, floating, and closed windows
+- window title, WM_CLASS, PID, geometry, group, screen, and layout
+- group additions and removals
+- layout changes and window counts
+- group and screen changes
+- AUTO mode changes
+- Qtile startup, restart, and shutdown events
+
+The log rotates at 25 MiB and retains four rotated files.
+
+Generate a compact JSON report for LLM analysis with:
+
+#+begin_src sh
+python ~/.config/qtile/scripts/qtile-telemetry-summary.py > ~/qtile-telemetry-report.json
+#+end_src
+
+The report ranks keybind use, focused and managed applications, unmatched applications, common group destinations, layout changes, automatic routes, and group or screen usage.
+
+The raw telemetry includes window titles. Browser page names, document names, terminal titles, and other private information may therefore appear in the JSONL files. Review the raw log or generated report before sharing it.
+
 * Validation
 Run these checks after modifying the configuration:
 
 #+begin_src sh
-python -m py_compile config.py
+python -m py_compile config.py qtile_telemetry.py scripts/qtile-telemetry-summary.py
 qtile check -c config.py
 #+end_src
 
