@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: star-define-actor
+# key: star-define-actor
+# --
+(define-actor (${1:*actor-name*} ${2:*sys*} :hook ${3:star:*actors-start-hook*})
+  (lambda (msg)
+    $0))

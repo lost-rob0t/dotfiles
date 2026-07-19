@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: star-with-pool
+# key: star-with-pool
+# --
+(anypool:with-connection (${1:conn} ${2:*pool*})
+  $0)

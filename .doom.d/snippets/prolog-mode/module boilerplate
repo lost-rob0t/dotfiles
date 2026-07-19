@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: module boilerplate
+# key: mod
+# --
+:- module(${1:module_name},
+    [
+        ${2:exported_predicate}/${3:arity}
+    ]).
+
+:- use_module(library(${4:library})).
+
+$0

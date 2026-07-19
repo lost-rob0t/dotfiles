@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: star-route-with-couchdb
+# key: star-route-with-couchdb
+# --
+(setf (ningle:route *app* "${1:/path}" :method :${2:get})
+      #'(lambda (params)
+          (set-default-headers)
+          (couchdb-handler (client *couchdb-pool*)
+            $0)))

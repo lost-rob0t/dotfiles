@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+# Temple Reading - Past/Present/Future tarot-style spread
+# Uses your sacred knowledge base for temporal divination
+
+set -euo pipefail
+
+TEMPLE_API="${TEMPLE_API:-temple-api}"
+
+# Default parameters
+OUTPUT_FORMAT="text"
+QUESTION=""
+
+usage() {
+    cat <<EOF
+Usage: temple-reading [options] "question"
+
+Perform a past/present/future temple reading using your sacred knowledge base.
+
+Options:
+    -f, --format <fmt>  Output format: text, org, json (default: text)
+    -h, --help         Show this help
+
+Examples:
+    temple-reading "What is my path forward?"
+    temple-reading -f org "How do I understand this situation?"
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -f|--format)
+            OUTPUT_FORMAT="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            QUESTION="$1"
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$QUESTION" ]]; then
+    echo "Error: Question required for reading" >&2
+    exit 1
+fi
+
+# Get exactly 3 meanings for past/present/future
+MEANINGS_RAW=$("$TEMPLE_API" meanings 3)
+AFFIRMATION_RAW=$("$TEMPLE_API" affirmation)
+
+# Parse the three meanings
+readarray -t PARSED_MEANINGS < <(echo "$MEANINGS_RAW" | tr -d '[]' | sed 's/,/\n/g')
+
+if [[ ${#PARSED_MEANINGS[@]} -ne 3 ]]; then
+    echo "Error: Expected exactly 3 meanings from oracle" >&2
+    exit 1
+fi
+
+# Extract individual components
+PAST_NUM=$(echo "${PARSED_MEANINGS[0]}" | cut -d'-' -f1)
+PAST_MEANING=$(echo "${PARSED_MEANINGS[0]}" | cut -d'-' -f2- | sed 's/_/ /g')
+
+PRESENT_NUM=$(echo "${PARSED_MEANINGS[1]}" | cut -d'-' -f1)
+PRESENT_MEANING=$(echo "${PARSED_MEANINGS[1]}" | cut -d'-' -f2- | sed 's/_/ /g')
+
+FUTURE_NUM=$(echo "${PARSED_MEANINGS[2]}" | cut -d'-' -f1)
+FUTURE_MEANING=$(echo "${PARSED_MEANINGS[2]}" | cut -d'-' -f2- | sed 's/_/ /g')
+
+AFFIRMATION=$(echo "$AFFIRMATION_RAW" | sed 's/^"//; s/"$//')
+
+TIMESTAMP=$(date '+%Y-%m-%d %a %H:%M')
+NUMBERS_SEQUENCE="$PAST_NUM → $PRESENT_NUM → $FUTURE_NUM"
+
+case "$OUTPUT_FORMAT" in
+    text)
+        echo "╔══════════════════════════════════════════════════════════╗"
+        echo "║              🕉️  TEMPLE TEMPORAL READING 🕉️                ║"
+        echo "╚══════════════════════════════════════════════════════════╝"
+        echo
+        echo "📅 Reading Time: $TIMESTAMP"
+        echo "❓ Question: $QUESTION"
+        echo "🔢 Numbers Drawn: $NUMBERS_SEQUENCE"
+        echo
+        echo "═══ TEMPORAL SPREAD ═══"
+        echo
+        echo "📜 PAST [$PAST_NUM]"
+        echo "   $PAST_MEANING"
+        echo "   What brought you to this moment"
+        echo
+        echo "⚡ PRESENT [$PRESENT_NUM]"
+        echo "   $PRESENT_MEANING"
+        echo "   Your current energetic state"
+        echo
+        echo "🔮 FUTURE [$FUTURE_NUM]"
+        echo "   $FUTURE_MEANING"
+        echo "   The potential path ahead"
+        echo
+        echo "═══ GUIDING AFFIRMATION ═══"
+        echo "💫 $AFFIRMATION"
+        echo
+        echo "═══ SYNTHESIS ═══"
+        echo "How does your past ($PAST_NUM) inform your present ($PRESENT_NUM)?"
+        echo "What does your present energy need to manifest the future ($FUTURE_NUM)?"
+
+        # Check for sacred numbers
+        if [[ "$PAST_NUM" == "12" || "$PRESENT_NUM" == "12" || "$FUTURE_NUM" == "12" ]]; then
+            echo
+            echo "🟢 SACRED ANCHOR: Number 12 (sobriety/habit_formation) guides this reading!"
+        fi
+        echo
+        ;;
+
+    org)
+        echo "* $QUESTION :temple:reading:"
+        echo "<$TIMESTAMP>"
+        echo
+        echo "** Numbers Drawn: $NUMBERS_SEQUENCE"
+        echo
+        echo "** Past [$PAST_NUM]"
+        echo "$PAST_MEANING"
+        echo
+        echo "** Present [$PRESENT_NUM]"
+        echo "$PRESENT_MEANING"
+        echo
+        echo "** Future [$FUTURE_NUM]"
+        echo "$FUTURE_MEANING"
+        echo
+        echo "** Affirmation"
+        echo "- $AFFIRMATION"
+        echo
+        echo "** Synthesis"
+        echo "#+begin_quote"
+        echo
+        echo "#+end_quote"
+        ;;
+
+    json)
+        jq -n \
+            --arg question "$QUESTION" \
+            --arg timestamp "$TIMESTAMP" \
+            --arg sequence "$NUMBERS_SEQUENCE" \
+            --arg past_num "$PAST_NUM" \
+            --arg past_meaning "$PAST_MEANING" \
+            --arg present_num "$PRESENT_NUM" \
+            --arg present_meaning "$PRESENT_MEANING" \
+            --arg future_num "$FUTURE_NUM" \
+            --arg future_meaning "$FUTURE_MEANING" \
+            --arg affirmation "$AFFIRMATION" \
+            '{
+                question: $question,
+                timestamp: $timestamp,
+                sequence: $sequence,
+                spread: {
+                    past: {number: ($past_num | tonumber), meaning: $past_meaning},
+                    present: {number: ($present_num | tonumber), meaning: $present_meaning},
+                    future: {number: ($future_num | tonumber), meaning: $future_meaning}
+                },
+                affirmation: $affirmation,
+                sacred_twelve_present: ([$past_num, $present_num, $future_num] | index("12") != null)
+            }'
+        ;;
+esac

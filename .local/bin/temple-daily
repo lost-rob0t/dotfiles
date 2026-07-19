@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# Temple Daily - Single number + meaning for status lines
+# Perfect for qtile, emacs modeline, or daily check-ins
+
+set -euo pipefail
+
+TEMPLE_API="${TEMPLE_API:-temple-api}"
+
+usage() {
+    cat <<EOF
+Usage: temple-daily [options]
+
+Get a daily temple number and meaning for status displays.
+
+Options:
+    -n, --number-only   Show only the number
+    -m, --meaning-only  Show only the meaning
+    -c, --compact       Ultra-compact format (N:meaning)
+    -s, --sacred        Only show if sacred number 12 appears
+    -f, --format <fmt>  Output format: text, json (default: text)
+    -h, --help          Show this help
+
+Examples:
+    temple-daily                    # "12: habit formation"
+    temple-daily -c                 # "12:habit_formation"
+    temple-daily -n                 # "12"
+    temple-daily -m                 # "habit formation"
+    temple-daily -s                 # Show only if 12 appears, else empty
+EOF
+}
+
+# Parse options
+NUMBER_ONLY=false
+MEANING_ONLY=false
+COMPACT=false
+SACRED_ONLY=false
+FORMAT="text"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -n|--number-only)
+            NUMBER_ONLY=true
+            shift
+            ;;
+        -m|--meaning-only)
+            MEANING_ONLY=true
+            shift
+            ;;
+        -c|--compact)
+            COMPACT=true
+            shift
+            ;;
+        -s|--sacred)
+            SACRED_ONLY=true
+            shift
+            ;;
+        -f|--format)
+            FORMAT="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            echo "Unexpected argument: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Get single meaning from sacred knowledge base
+MEANING_RAW=$("$TEMPLE_API" meanings 1)
+
+# Parse the single meaning
+NUMBER=$(echo "$MEANING_RAW" | tr -d '[]' | cut -d'-' -f1)
+MEANING=$(echo "$MEANING_RAW" | tr -d '[]' | cut -d'-' -f2- | sed 's/_/ /g')
+
+# Handle sacred-only mode
+if [[ "$SACRED_ONLY" == "true" && "$NUMBER" != "12" ]]; then
+    exit 0  # Silent exit if not sacred number
+fi
+
+# Output based on format and options
+if [[ "$FORMAT" == "json" ]]; then
+    jq -n \
+        --arg number "$NUMBER" \
+        --arg meaning "$MEANING" \
+        --arg is_sacred "$([ "$NUMBER" == "12" ] && echo true || echo false)" \
+        '{
+            number: ($number | tonumber),
+            meaning: $meaning,
+            is_sacred: ($is_sacred | fromjson),
+            compact: ($number + ":" + ($meaning | gsub(" "; "_"))),
+            timestamp: now
+        }'
+elif [[ "$NUMBER_ONLY" == "true" ]]; then
+    echo "$NUMBER"
+elif [[ "$MEANING_ONLY" == "true" ]]; then
+    echo "$MEANING"
+elif [[ "$COMPACT" == "true" ]]; then
+    echo "$NUMBER:$(echo "$MEANING" | sed 's/ /_/g')"
+else
+    # Standard format with sacred indicator
+    if [[ "$NUMBER" == "12" ]]; then
+        echo "🟢 $NUMBER: $MEANING"
+    else
+        echo "$NUMBER: $MEANING"
+    fi
+fi

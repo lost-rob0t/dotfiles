@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: star-rabbit-send
+# key: star-rabbit-send
+# --
+(with-rabbitmq (*rabbitmq-conn*)
+  (cl-rabbit:basic-publish *rabbitmq-conn* 1
+                           :routing-key "${1:routing.key}"
+                           :exchange "${2:documents}"
+                           :properties (list (cons :type "${3:type}"))
+                           :body ${4:body}))
+$0

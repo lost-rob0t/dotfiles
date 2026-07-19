@@ -1,0 +1,698 @@
+(defun android-p ()
+  "Return t if Emacs is running on Android, nil otherwise."
+  (or (eq system-type 'android)
+      (featurep 'android)))
+
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
+      (bootstrap-version 6))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+;; Install use-package via straight
+(straight-use-package 'use-package)
+
+;; Configure use-package to use straight.el by default
+(use-package straight
+  :custom
+  (straight-use-package-by-default t))
+
+(setq debug-on-error t)
+(setq message-log-max 10000)
+(setq
+ visible-bell t
+ inhibit-startup-message t)
+;;  Display Line numbers
+(global-display-line-numbers-mode 1)
+(setq inhibit-startup-screen t)
+(setq initial-scratch-message nil)
+(setq ring-bell-function 'ignore)
+(global-hl-line-mode 1)
+
+(unless (android-p)
+ (menu-bar-mode -1)  ; Leave this one on if you're a beginner!
+ (tool-bar-mode -1)
+ (scroll-bar-mode -1))
+
+(require 'package)
+(setq package-enable-at-startup nil)
+(setq package-archives
+      ;; Package archives
+      '(("MELPA Stable" . "https://stable.melpa.org/packages/") ("MELPA" . "https://melpa.org/packages/"))
+      ;; Prefer MELPA Stable over GNU over MELPA. IOW prefer MELPA's stable
+      ;; packages over everything and only fall back to GNU or MELPA if ;; necessary.
+      package-archive-priorities '(("MELPA Stable" . 10) ("GNU ELPA" . 5) ("MELPA" . 0))) (package-initialize)
+
+;; Bootstrap `use-package'
+(unless (package-installed-p 'use-package) (package-refresh-contents) (package-install 'use-package))
+
+(use-package evil
+  :ensure t
+  :init
+  (evil-mode 1)
+  )
+
+(use-package undo-tree :ensure t)
+(use-package undo-fu :ensure t)
+
+(column-number-mode)
+(global-display-line-numbers-mode t)
+
+;; Disable line numbers for some modes
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                eshell-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
+
+(use-package paredit
+  :ensure t
+  :hook ((emacs-lisp-mode lisp-mode scheme-mode clojure-mode) . paredit-mode)
+  :config
+  ;; Making paredit work with delete-selection-mode
+  (put 'paredit-forward-delete 'delete-selection 'supersede)
+  (put 'paredit-backward-delete 'delete-selection 'supersede)
+  (put 'paredit-open-round 'delete-selection t)
+  (put 'paredit-open-square 'delete-selection t)
+  (put 'paredit-doublequote 'delete-selection t)
+  (put 'paredit-newline 'delete-selection t))
+
+;; Highlight the sexp at point
+(use-package highlight-parentheses
+  :ensure t
+  :hook (prog-mode . highlight-parentheses-mode)
+  :config
+  (setq highlight-parentheses-colors '("#ff6c6b" "#98be65" "#da8548" "#51afef")))
+
+;; Show matching parens
+(use-package paren
+  :config
+  (setq show-paren-delay 0.0
+        show-paren-style 'mixed
+        show-paren-when-point-inside-paren t
+        show-paren-when-point-in-periphery t)
+  (show-paren-mode 1))
+
+;; Navigate by function
+(defun my/lisp-describe-thing-at-point ()
+  "Describe the Lisp thing at point."
+  (interactive)
+  (let ((symbol (symbol-at-point)))
+    (when symbol
+      (if (fboundp symbol)
+          (describe-function symbol)
+        (describe-variable symbol)))))
+
+;; Quick eval bindings
+(defun my/eval-and-replace ()
+  "Replace the preceding sexp with its value."
+  (interactive)
+  (backward-kill-sexp)
+  (condition-case nil
+      (prin1 (eval (read (current-kill 0)))
+             (current-buffer))
+    (error (message "Invalid expression")
+           (insert (current-kill 0)))))
+
+(use-package sly
+  :ensure t
+  :config
+  (setq inferior-lisp-program "sbcl")
+  
+  ;; SLY extensions
+  (use-package sly-asdf :ensure t)
+  (use-package sly-quicklisp :ensure t)
+  (use-package sly-repl-ansi-color :ensure t)
+  
+  (setq sly-complete-symbol-function 'sly-flex-completions))
+
+(use-package prolog
+  :ensure t
+  :mode (("\\.pl\\'" . prolog-mode)
+         ("\\.pro\\'" . prolog-mode))
+  :config
+  (setq prolog-system 'swi)  ; or 'gnu for GNU Prolog
+  (setq prolog-program-name "swipl")
+  
+  ;; Indentation
+  (setq prolog-indent-width 4)
+  
+  ;; Electric mode for auto-completion
+  (add-hook 'prolog-mode-hook 'prolog-electric-mode))
+
+;; Enhanced Prolog editing
+(use-package ediprolog
+  :ensure t
+  :after prolog
+  :config
+  (setq ediprolog-program "swipl"))
+
+(use-package macrostep
+  :ensure t
+  :after elisp-mode
+  :bind (:map emacs-lisp-mode-map
+              ("C-c e m" . macrostep-expand)))
+
+(use-package helpful
+  :ensure t
+  :config
+  ;; Keybindings
+  (global-set-key (kbd "C-h f") #'helpful-callable)
+  (global-set-key (kbd "C-h v") #'helpful-variable)
+  (global-set-key (kbd "C-h k") #'helpful-key)
+  (global-set-key (kbd "C-h x") #'helpful-command)
+  (global-set-key (kbd "C-c C-d") #'helpful-at-point))
+
+(use-package lispy
+  :ensure t
+  :hook ((emacs-lisp-mode lisp-mode scheme-mode clojure-mode) . lispy-mode)
+  :config
+  (setq lispy-compat '(edebug cider)))
+
+;; Extended navigation
+(use-package lispyville
+  :ensure t
+  :after (lispy evil)
+  :hook (lispy-mode . lispyville-mode)
+  :config
+  (lispyville-set-key-theme '(operators c-w additional)))
+
+;; Built-in hideshow
+(use-package hideshow
+  :hook (prog-mode . hs-minor-mode)
+  :config
+  (setq hs-hide-comments-when-hiding-all nil)
+  
+  ;; Better indicators
+  (defun my/display-code-line-counts (ov)
+    (when (eq 'code (overlay-get ov 'hs))
+      (overlay-put ov 'display
+                   (format " ... [%d lines]"
+                           (count-lines (overlay-start ov)
+                                        (overlay-end ov))))))
+  (setq hs-set-up-overlay 'my/display-code-line-counts))
+
+(use-package eldoc
+  :hook ((emacs-lisp-mode lisp-mode ielm-mode) . eldoc-mode)
+  :config
+  (setq eldoc-idle-delay 0.1)
+  (setq eldoc-echo-area-use-multiline-p t))
+
+;; Lisp evaluation bindings
+;; Make sure general.el is set up FIRST
+(use-package general
+  :ensure t
+  :config
+  (general-evil-setup)
+
+  ;; Set up SPC as the global leader key
+  (general-create-definer my/leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC")
+
+  ;; Set up , as the local leader key
+  (general-create-definer my/local-leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix ","
+    :global-prefix "C-,")
+
+  ;; NOW define your keybindings here, after my/leader-keys exists
+  ;; Lisp evaluation bindings
+  (my/leader-keys
+    "e" '(:ignore t :which-key "eval")
+    "e b" '(eval-buffer :which-key "eval buffer")
+    "e d" '(eval-defun :which-key "eval defun")
+    "e e" '(eval-last-sexp :which-key "eval sexp")
+    "e r" '(eval-region :which-key "eval region")
+    "e l" '(load-file :which-key "load file")
+    "e R" '(my/eval-and-replace :which-key "eval and replace"))
+
+  ;; Lisp navigation
+  (my/leader-keys
+    "j" '(:ignore t :which-key "jump")
+    "j f" '(find-function :which-key "find function")
+    "j v" '(find-variable :which-key "find variable")
+    "j l" '(find-library :which-key "find library"))
+
+  ;; OSINT tools
+  (my/leader-keys
+    "o" '(:ignore t :which-key "osint")
+    "o h" '(my/hash-region :which-key "hash region")
+    "o b" '(my/base64-encode-region :which-key "base64 encode")
+    "o B" '(my/base64-decode-region :which-key "base64 decode")
+    "o x" '(my/hex-encode-region :which-key "hex encode")
+    "o X" '(my/hex-decode-region :which-key "hex decode")
+    "o u" '(my/decode-url :which-key "decode URL")
+    "o U" '(my/encode-url :which-key "encode URL")
+    "o p" '(my/generate-password :which-key "generate password"))
+
+  ;; Network tools
+  (my/leader-keys
+    "n" '(:ignore t :which-key "network")
+    "n s" '(my/nmap-scan :which-key "nmap scan")
+    "n w" '(my/whois :which-key "whois")
+    "n d" '(my/dig :which-key "dig")
+    "n c" '(my/curl-headers :which-key "curl headers")
+    "n i" '(my/search-ip-addresses :which-key "find IPs")
+    "n e" '(my/search-emails :which-key "find emails")
+    "n u" '(my/search-urls :which-key "find URLs"))
+
+  ;; SLIME/SLY
+  (my/leader-keys
+    "s" '(:ignore t :which-key "SLIME/SLY")
+    "s s" '(slime :which-key "start SLIME")
+    "s c" '(slime-connect :which-key "connect")
+    "s e" '(slime-eval-last-expression :which-key "eval sexp")
+    "s r" '(slime-eval-region :which-key "eval region")
+    "s d" '(slime-compile-defun :which-key "compile defun")
+    "s l" '(slime-load-file :which-key "load file")
+    "s m" '(slime-macroexpand-1 :which-key "macroexpand-1")
+    "s M" '(slime-macroexpand-all :which-key "macroexpand-all"))
+
+  ;; Prolog
+  (my/leader-keys
+    "p" '(:ignore t :which-key "prolog")
+    "p c" '(prolog-consult-buffer :which-key "consult buffer")
+    "p r" '(prolog-consult-region :which-key "consult region")
+    "p p" '(run-prolog :which-key "run prolog"))
+
+  ;; Git (magit)
+  (my/leader-keys
+    "g" '(:ignore t :which-key "git")
+    "g g" '(magit-status :which-key "magit status")
+    "g s" '(magit-status :which-key "magit status")
+    "g b" '(magit-blame :which-key "magit blame")
+    "g c" '(magit-commit :which-key "magit commit")
+    "g d" '(magit-diff :which-key "magit diff")
+    "g D" '(magit-diff-buffer-file :which-key "diff buffer file")
+    "g f" '(magit-fetch :which-key "magit fetch")
+    "g F" '(magit-pull :which-key "magit pull")
+    "g l" '(magit-log :which-key "magit log")
+    "g L" '(magit-log-buffer-file :which-key "magit log buffer file")
+    "g p" '(magit-push :which-key "magit push")
+    "g r" '(magit-rebase :which-key "magit rebase")
+    "g R" '(magit-revert :which-key "magit revert")
+    "g t" '(magit-tag :which-key "magit tag")
+    "g T" '(magit-todos-list :which-key "list todos"))
+
+  ;; Code/quickrun
+  (my/leader-keys
+    "c" '(:ignore t :which-key "code")
+    "c r" '(quickrun :which-key "run code")
+    "c R" '(quickrun-region :which-key "run region")))
+
+;; Prettify symbols is built-in, don't try to install it
+;; (use-package prettify-symbols-mode
+;;   :ensure nil  ; This tells straight.el NOT to try installing it
+;;   :hook ((emacs-lisp-mode lisp-mode scheme-mode) . prettify-symbols-mode)
+;;   :config
+;;   (setq prettify-symbols-unprettify-at-point 'right-edge)
+
+;;   ;; Custom symbols
+;;   (defun my/add-pretty-lambda ()
+;;     (push '("lambda" . ?λ) prettify-symbols-alist)
+;;     (push '("defun" . ?ƒ) prettify-symbols-alist)
+;;     (push '("defmacro" . ?μ) prettify-symbols-alist))
+
+;;   (add-hook 'emacs-lisp-mode-hook 'my/add-pretty-lambda))
+
+(use-package quickrun
+  :ensure t
+  :config
+  (my/leader-keys
+    "c" '(:ignore t :which-key "code")
+    "c r" '(quickrun :which-key "run code")
+    "c R" '(quickrun-region :which-key "run region")))
+
+;; Better completion in REPL
+(use-package company
+  :ensure t
+  :hook ((sly-mrepl-mode ielm-mode) . company-mode)
+  :config
+  (setq company-idle-delay 0.1
+        company-minimum-prefix-length 2
+        company-tooltip-align-annotations t))
+
+;; IELM (Emacs Lisp REPL) improvements
+(defun my/ielm-config ()
+  (setq ielm-prompt "λ> ")
+  (eldoc-mode 1)
+  (rainbow-delimiters-mode 1)
+  (smartparens-strict-mode 1))
+
+(add-hook 'ielm-mode-hook 'my/ielm-config)
+
+;; Full Lisp editing setup
+(progn
+
+  ;; Core packages
+  (use-package smartparens :ensure t)
+  (use-package rainbow-delimiters :ensure t)
+  (use-package aggressive-indent :ensure t)
+  (use-package highlight-parentheses :ensure t)
+  
+  ;; Common Lisp
+
+  ;; Prolog
+  (use-package prolog :ensure t)
+  (use-package ediprolog :ensure t)
+  
+  ;; Enable for all Lisp modes
+  (dolist (mode '(emacs-lisp-mode-hook
+                  lisp-mode-hook
+                  scheme-mode-hook
+                  clojure-mode-hook))
+    (add-hook mode
+              (lambda ()
+                (smartparens-strict-mode 1)
+                (rainbow-delimiters-mode 1)
+                (aggressive-indent-mode 1)
+                (highlight-parentheses-mode 1)
+                (show-paren-mode 1)
+                (eldoc-mode 1)))))
+
+(evil-define-command +evil-window-vsplit-a (&optional count file)
+  "Same as `evil-window-split', but correctly updates the window history."
+  :repeat nil
+  (interactive "P<f>")
+  ;; HACK: This ping-ponging between the destination and source windows is to
+  ;;   update the window focus history, so that, if you close either split
+  ;;   afterwards you won't be sent to some random window.
+  (let ((origwin (selected-window))
+        window-selection-change-functions)
+    (select-window (split-window origwin count 'right))
+    (unless evil-vsplit-window-right
+      (select-window origwin)))
+  (run-hook-with-args 'window-selection-change-functions nil)
+  (recenter)
+  (when (and (not count) evil-auto-balance-windows)
+    (balance-windows (window-parent)))
+  (if file (evil-edit file)))
+
+(setq ivan/themes '(doom-gruvbox-light doom-outrun-electric))
+(setq ivan/themes-index 1)
+
+(defun ivan/cycle-theme ()
+  (interactive)
+  (setq ivan/themes-index (% (1+ ivan/themes-index) (length ivan/themes)))
+  (ivan/load-indexed-theme))
+
+(defun ivan/load-indexed-theme ()
+  (ivan/try-load-theme (nth ivan/themes-index ivan/themes)))
+
+(defun ivan/try-load-theme (theme)
+  (if (ignore-errors (load-theme theme :no-confirm))
+      (mapcar #'disable-theme (remove theme custom-enabled-themes))
+    (message "Unable to find theme file for ‘%s’" theme)))
+
+;; TODO Port map! over
+;; (map! :leader
+;;       (:prefix-map ("t" . "toggle")
+;;        :desc "Cycle The Theme" "T" #'ivan/cycle-theme))
+
+(setq display-line-numbers-type t)
+
+(setq frame-resize-pixelwise t)
+
+(add-to-list 'display-buffer-alist
+             (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
+
+(setq org-src-tab-acts-natively nil)
+
+(require 'epa-file)
+(epa-file-enable)
+
+(use-package all-the-icons
+  :ensure t
+  :if (display-graphic-p))
+
+(use-package doom-modeline
+  :ensure t
+  :init (doom-modeline-mode 1)
+  :config
+  (setq doom-modeline-height 25)
+  (setq doom-modeline-bar-width 3)
+  (setq doom-modeline-icon t)
+  (setq doom-modeline-major-mode-icon t)
+  (setq doom-modeline-major-mode-color-icon t)
+  (setq doom-modeline-buffer-state-icon t)
+  (setq doom-modeline-buffer-modification-icon t)
+  (setq doom-modeline-minor-modes nil)
+  (setq doom-modeline-enable-word-count nil)
+  (setq doom-modeline-buffer-encoding t)
+  (setq doom-modeline-indent-info nil)
+  (setq doom-modeline-checker-simple-format t)
+  (setq doom-modeline-vcs-max-length 12)
+  (setq doom-modeline-env-version t)
+  (setq doom-modeline-project-detection 'auto)
+  (setq doom-modeline-buffer-file-name-style 'relative-from-project))
+
+(use-package doom-themes
+  :ensure t
+  :custom
+  ;; Global settings (defaults)
+  (doom-themes-enable-bold t)   ; if nil, bold is universally disabled
+  (doom-themes-enable-italic t) ; if nil, italics is universally disabled
+  ;; for treemacs users
+  (doom-themes-treemacs-theme "doom-outrun-electric") ; use "doom-colors" for less minimal icon theme
+  :config
+  (load-theme 'doom-outrun-electric t)
+
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
+  ;; Enable custom neotree theme (nerd-icons must be installed!)
+  (doom-themes-neotree-config)
+  ;; or for treemacs users
+  (doom-themes-treemacs-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+
+(setq time-stamp-active t
+      time-stamp-start "#\\+LAST_MODIFIED:[ \t]*"
+      time-stamp-end "$"
+      time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
+(add-hook 'before-save-hook 'time-stamp nil)
+
+(use-package org-modern
+    :config
+    (setq
+     ;; Edit settings
+     org-auto-align-tags nil
+     org-tags-column 0
+     org-catch-invisible-edits 'show-and-error
+     org-special-ctrl-a/e t
+     org-insert-heading-respect-content t
+
+     ;; Org styling, hide markup etc.
+     org-hide-emphasis-markers t
+     org-pretty-entities t
+     org-ellipsis "…"
+
+     ;; Agenda styling
+     org-agenda-tags-column 0
+     org-agenda-block-separator ?─
+     org-agenda-time-grid
+     '((daily today require-timed)
+       (800 1000 1200 1400 1600 1800 2000)
+       " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
+     org-agenda-current-time-string
+     "◀── now ─────────────────────────────────────────────────")
+     (global-org-modern-mode 1))
+
+(use-package org-roam
+  :ensure t
+  :init
+  (setq org-roam-v2-ack t)
+  (setq org-roam-directory "~/Documents/Notes/org/roam/")
+  (setq org-roam-dailies-directory "daily")
+  (setq org-roam-complete-everywhere t)
+  (setq org-roam-capture-templates
+        '(
+          ("d" "default" plain "%?"
+           :target (file+head "%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n") :unnarrowed t)
+
+          ("s" "star intel" plain "*%? %^g"
+           :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("v" "Video" plain "*%? %^g"
+           :target (file+head "yt/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+
+          ("h" "hacking" plain "%?"
+           :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("a" "ai" plain "* {slug}\n%?"
+           :target (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("r" "Reading notes" plain "%?"
+           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          ("p" "Programming" plain "%?"
+           :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
+
+  ;; (map! :leader
+  ;;       :desc "Tangle a file"
+  ;;       "b t" #'org-babel-tangle)
+
+  ;; (map! :leader
+  ;;       :desc "Babel execute selected source block"
+  ;;       "c b" #'org-babel-execute-src-block)
+
+  ;; (map! :leader
+  ;;       :desc "Babel execute buffer"
+  ;;       "c B" #'org-babel-execute-buffer)
+
+(use-package ob-async
+  :ensure t)
+
+(use-package ob-prolog
+  :ensure t)
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((emacs-lisp . t) (shell . t) (lisp . t) (python . t) (prolog . t)))
+
+    (defun edit-src-block (src fn language)
+      "Replace SRC org-element's value property with the result of FN.
+    FN is a function that operates on org-element's value and returns a string.
+    LANGUAGE is a string referring to one of orb-babel's supported languages.
+    (https://orgmode.org/manual/Languages.html#Languages)"
+      (let ((src-language (org-element-property :language src))
+            (value (org-element-property :value src)))
+        (when (string= src-language language)
+          (let ((copy (org-element-copy src)))
+            (org-element-put-property copy :value
+                                      (funcall fn value))
+            (org-element-set-element src copy)))))
+
+    (defun format-elisp-string (string)
+      "Indents elisp buffer string and reformats dangling parens."
+      (with-temp-buffer
+        (let ((inhibit-message t))
+          (emacs-lisp-mode)
+          (insert
+           (replace-regexp-in-string "[[:space:]]*
+    [[:space:]]*)" ")" string))
+          (indent-region (point-min) (point-max))
+          (buffer-substring (point-min) (point-max)))))
+
+    (defun format-elisp-src-blocks ()
+      "Format Elisp src blocks in the current org buffer"
+      (interactive)
+      (save-mark-and-excursion
+        (let ((AST (org-element-parse-buffer)))
+          (org-element-map AST 'src-block
+            (lambda (element)
+              (edit-src-block element #'format-elisp-string "emacs-lisp")))
+          (delete-region (point-min) (point-max))
+           (insert (org-element-interpret-data AST)))))
+
+  ;; (map! :leader
+  ;;         :after org
+  ;;         :prefix ("b" . "org-babel-fomats")
+  ;;         :desc "format src" "f" #'format-elisp-src-blocks)
+
+(with-eval-after-load 'org
+  ;; is needed as of Org 9.2
+  (require 'org-tempo)
+  (add-to-list 'org-structure-template-alist '("sh" . "src shell"))
+  (add-to-list 'org-structure-template-alist '("py" . "src python"))
+  (add-to-list 'org-structure-template-alist '("php" . "src php"))
+  (add-to-list 'org-structure-template-alist '("jn" . "src json"))
+  (add-to-list 'org-structure-template-alist '("xm" . "src xml"))
+  (add-to-list 'org-structure-template-alist '("js" . "src js"))
+  (add-to-list 'org-structure-template-alist '("el" . "src emacs-lisp"))
+  (add-to-list 'org-structure-template-alist '("nim" . "src nim"))
+  (add-to-list 'org-structure-template-alist '("erl" . "src erlang"))
+  (add-to-list 'org-structure-template-alist '("ss" . "src scheme"))
+  (add-to-list 'org-structure-template-alist '("cl" . "src lisp"))
+  (add-to-list 'org-structure-template-alist '("nix" . "src nix")))
+
+(use-package which-key
+  :init (which-key-mode)
+  :diminish which-key-mode
+  :config
+  (setq which-key-idle-delay 0.3))
+
+(use-package general
+  :ensure t
+  :config
+  (general-evil-setup)
+  
+  ;; Set up SPC as the global leader key
+  (general-create-definer my/leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC")
+  
+  ;; Set up , as the local leader key
+  (general-create-definer my/local-leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix ","
+    :global-prefix "C-,"))
+
+(use-package ivy
+  :ensure t
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t)
+  (setq enable-recursive-minibuffers t))
+
+(use-package counsel
+  :ensure t
+  :after ivy
+  :config
+  (counsel-mode 1))
+
+(use-package ivy-rich
+  :ensure t
+  :after (ivy counsel)
+  :config
+  (ivy-rich-mode 1)
+  (setcdr (assq t ivy-format-functions-alist) #'ivy-format-function-line))
+
+(use-package helpful
+  :config
+  (global-set-key (kbd "C-h f") #'helpful-callable)
+ (global-set-key (kbd "C-h v") #'helpful-variable)
+ (global-set-key (kbd "C-h k") #'helpful-key)
+ (global-set-key (kbd "C-h x") #'helpful-command))
+
+(use-package projectile
+  :config
+  (setq projectile-project-search-path
+         '(("~/Documents/Projects" . 1))))
+
+(use-package json-mode
+  :ensure t)
+
+(use-package yaml-mode
+  :ensure t)  ; For config files
+
+;; Since you mentioned Prolog
+(use-package prolog
+  :ensure t
+  :mode ("\\.pl\\'" . prolog-mode))
+
+(use-package vterm
+  :ensure t
+  :config
+  (setq vterm-shell "/bin/bash"))
+
+(setq org-directory "~/Documents/Notes/org")
+
+(use-package mcp
+  :ensure t)

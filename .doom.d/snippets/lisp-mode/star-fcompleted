@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: star-fcompleted
+# key: star-fcompleted
+# --
+(future:fcompleted ${1:fut} (${2:result})
+  $0)

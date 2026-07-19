@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# Temple Number - Just the sacred numbers for minimal displays
+# Ultra-minimal for qtile widgets, tmux status, etc.
+
+set -euo pipefail
+
+TEMPLE_API="${TEMPLE_API:-temple-api}"
+
+usage() {
+    cat <<EOF
+Usage: temple-number [options]
+
+Get just the sacred numbers for minimal status displays.
+
+Options:
+    -c, --count <n>     Number of numbers to draw (default: 1)
+    -s, --separator <s> Separator between multiple numbers (default: " ")
+    -S, --sacred-only   Only show if sacred number 12 appears
+    -f, --format <fmt>  Output format: text, json (default: text)
+    -h, --help          Show this help
+
+Examples:
+    temple-number           # "12"
+    temple-number -c 3      # "12 7 23"
+    temple-number -c 3 -s → # "12→7→23"
+    temple-number -S        # "12" or nothing if 12 doesn't appear
+EOF
+}
+
+# Parse options
+COUNT=1
+SEPARATOR=" "
+SACRED_ONLY=false
+FORMAT="text"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -c|--count)
+            COUNT="$2"
+            shift 2
+            ;;
+        -s|--separator)
+            SEPARATOR="$2"
+            shift 2
+            ;;
+        -S|--sacred-only)
+            SACRED_ONLY=true
+            shift
+            ;;
+        -f|--format)
+            FORMAT="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            echo "Unexpected argument: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Validate count
+if ! [[ "$COUNT" =~ ^[0-9]+$ ]] || [[ "$COUNT" -lt 1 ]]; then
+    echo "Error: Count must be a positive number" >&2
+    exit 1
+fi
+
+# Get meanings from sacred knowledge base
+MEANINGS_RAW=$("$TEMPLE_API" meanings "$COUNT")
+
+# Extract just the numbers
+NUMBERS=($(echo "$MEANINGS_RAW" | tr -d '[]' | sed 's/[^0-9-]/\n/g' | grep '^[0-9]*-' | cut -d'-' -f1))
+
+# Handle sacred-only mode
+if [[ "$SACRED_ONLY" == "true" ]]; then
+    FOUND_SACRED=false
+    for num in "${NUMBERS[@]}"; do
+        if [[ "$num" == "12" ]]; then
+            FOUND_SACRED=true
+            break
+        fi
+    done
+    if [[ "$FOUND_SACRED" == "false" ]]; then
+        exit 0  # Silent exit if no sacred number
+    fi
+fi
+
+# Output based on format
+if [[ "$FORMAT" == "json" ]]; then
+    # Convert numbers array to JSON
+    numbers_json=$(printf '%s\n' "${NUMBERS[@]}" | jq -R 'tonumber' | jq -s .)
+
+    jq -n \
+        --argjson numbers "$numbers_json" \
+        --arg separator "$SEPARATOR" \
+        --arg display "$(IFS="$SEPARATOR"; echo "${NUMBERS[*]}")" \
+        '{
+            numbers: $numbers,
+            display: $display,
+            count: ($numbers | length),
+            sacred_present: ($numbers | index(12) != null),
+            timestamp: now
+        }'
+else
+    # Join numbers with separator
+    IFS="$SEPARATOR"
+    echo "${NUMBERS[*]}"
+fi

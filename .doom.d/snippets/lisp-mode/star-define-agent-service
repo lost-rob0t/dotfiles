@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: star-define-agent-service
+# key: star-define-agent-service
+# --
+(define-agent-service (${1:agent} ${2:actor-context}
+                       :actor-name "${3:service-name}"
+                       :dispatcher-id "${4:dispatcher}"
+                       :workers ${5:4}
+                       :strategy ${6::round-robin}
+                       :agent-state-fun ${7:#'identity})
+  $0)

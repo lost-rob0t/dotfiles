@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: star-couchdb-handler
+# key: star-couchdb-handler
+# --
+(couchdb-handler (${1:client} ${2:*couchdb-pool*})
+  $0)

@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Temple Reload - Reload facts.pl after tangling for seamless workflow
+# Call this after you update facts.pl with new tangled content
+
+set -euo pipefail
+
+TEMPLE_QUERY="${TEMPLE_QUERY:-temple-query}"
+
+usage() {
+    cat <<EOF
+Usage: temple-reload [options]
+
+Reload facts.pl after tangling new content to your sacred knowledge base.
+
+Options:
+    -v, --verbose    Show detailed reload process
+    -t, --test       Test the reload with a query after reloading
+    -h, --help       Show this help
+
+Examples:
+    temple-reload                    # Simple reload
+    temple-reload -v                 # Verbose reload
+    temple-reload -t                 # Reload and test with query
+
+This script calls the reload_tangle_facts/0 predicate in your sacred base.pl
+to cleanly reload facts.pl after you've tangled new content.
+EOF
+}
+
+VERBOSE=false
+TEST=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -t|--test)
+            TEST=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            echo "Unexpected argument: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+echo "🕉️ Temple Reload - Refreshing sacred knowledge base..."
+
+if [[ "$VERBOSE" == "true" ]]; then
+    echo "Calling reload_tangle_facts predicate..."
+fi
+
+# Call the reload predicate in your sacred knowledge base
+if "$TEMPLE_QUERY" "reload_tangle_facts"; then
+    echo "✅ Sacred knowledge base reloaded successfully"
+
+    if [[ "$TEST" == "true" ]]; then
+        echo ""
+        echo "🧪 Testing reload with sample queries..."
+
+        echo -n "Testing number meanings... "
+        if "$TEMPLE_QUERY" "number_meaning(12, M), write(M), nl, fail; true" >/dev/null 2>&1; then
+            echo "✅"
+        else
+            echo "❌"
+        fi
+
+        echo -n "Testing transformation paths... "
+        if "$TEMPLE_QUERY" "transformation_path(_, _, _, _, _)" >/dev/null 2>&1; then
+            echo "✅"
+        else
+            echo "⚪ (No transformation paths found)"
+        fi
+
+        echo ""
+        echo "🟢 Knowledge base ready for oracle consultations"
+    fi
+else
+    echo "❌ Failed to reload sacred knowledge base"
+    exit 1
+fi

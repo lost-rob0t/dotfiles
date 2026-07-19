@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: star-status-msg
+# key: star-status-msg
+# --
+(status-msg "${1:message}" '${2:error}${3: :info ${4:info}}${5: :traceback ${6:traceback}})
+$0

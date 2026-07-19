@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: star-package
+# key: star-package
+# --
+(uiop:define-package   :${1:star.${2:module}}
+  (:use       :cl${3: :star})${4:
+  (:nicknames :${5:nick})}${6:
+  (:export
+   ${7:#:export-symbol})}
+  (:documentation "${8:doc}"))
+$0

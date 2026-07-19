@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: star-defclass
+# key: star-defclass
+# --
+(defclass ${1:class-name} ()
+  ((${2:slot-name} :initarg :${2:$(yas-text)} :initform ${3:(error "${2:$(yas-text)} is required.")}))
+  (:documentation "${4:doc}"))
+$0
