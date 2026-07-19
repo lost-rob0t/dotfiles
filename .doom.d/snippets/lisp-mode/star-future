@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: star-future
+# key: star-future
+# --
+(future:with-fut
+  $0)

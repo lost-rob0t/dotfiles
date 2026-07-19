@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# Temple Query - Direct interface to your sacred Prolog knowledge base
+# Executes raw Prolog queries against your temple system
+
+set -euo pipefail
+
+# Configuration - uses your existing setup
+TEMPLE_ROOT="${TEMPLE_ROOT:-$HOME/Temple}"
+TEMPLE_KB="${TEMPLE_KB:-$TEMPLE_ROOT/kb/base.pl}"
+PROLOG_BIN="${PROLOG_BIN:-swipl}"
+
+# Backward-compatible fallback for older installs.
+if [[ ! -f "$TEMPLE_KB" ]]; then
+    LEGACY_TEMPLE_KB="$HOME/Documents/Notes/org/Temple/kb/base.pl"
+    if [[ -f "$LEGACY_TEMPLE_KB" ]]; then
+        TEMPLE_KB="$LEGACY_TEMPLE_KB"
+    fi
+fi
+
+# Validate sacred knowledge base exists
+if [[ ! -f "$TEMPLE_KB" ]]; then
+    echo "Error: Sacred temple knowledge base not found at $TEMPLE_KB" >&2
+    echo "Your temple must be properly loaded from base.pl" >&2
+    exit 1
+fi
+
+# Check Prolog availability
+if ! command -v "$PROLOG_BIN" >/dev/null 2>&1; then
+    echo "Error: SWI-Prolog not found" >&2
+    exit 1
+fi
+
+# Parse arguments
+INTERACTIVE=false
+TIMEOUT=30
+QUERY=""
+
+usage() {
+    cat <<EOF
+Usage: temple-query [options] "<prolog_query>"
+
+Execute raw Prolog queries against your sacred temple knowledge base.
+
+Options:
+    -i, --interactive    Interactive Prolog session
+    -t, --timeout <s>    Query timeout (default: 30)
+    -h, --help          Show this help
+
+Examples:
+    temple-query "number_meaning(12, M)"
+    temple-query "findall(N, number_meaning(N, sobriety), Numbers)"
+    temple-query "random_affirmation(Text)"
+    temple-query -i  # Interactive session
+
+Environment:
+    TEMPLE_ROOT        Path to Temple root (default: ~/Temple)
+    TEMPLE_KB          Path to your sacred base.pl
+    PROLOG_BIN         SWI-Prolog binary path
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -i|--interactive)
+            INTERACTIVE=true
+            shift
+            ;;
+        -t|--timeout)
+            TIMEOUT="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            QUERY="$1"
+            shift
+            ;;
+    esac
+done
+
+if [[ "$INTERACTIVE" == "true" ]]; then
+    echo "=== Temple Interactive Session ==="
+    echo "Your sacred knowledge base loaded from: $TEMPLE_KB"
+    echo "Type 'halt.' to exit"
+    echo "=================================="
+    "$PROLOG_BIN" -s "$TEMPLE_KB"
+else
+    if [[ -z "$QUERY" ]]; then
+        echo "Error: Query required (or use -i for interactive)" >&2
+        usage >&2
+        exit 1
+    fi
+
+    # Execute query with proper error handling
+    if timeout "$TIMEOUT" "$PROLOG_BIN" -q -s "$TEMPLE_KB" -g "$QUERY, halt." 2>/dev/null; then
+        exit 0
+    else
+        exit_code=$?
+        if [[ $exit_code -eq 124 ]]; then
+            echo "Error: Query timed out after ${TIMEOUT}s" >&2
+        else
+            echo "Error: Query failed" >&2
+        fi
+        exit $exit_code
+    fi
+fi

@@ -22,3 +22,8 @@ tmp/
 /.config/variety/ui.conf
 /.config/variety/variety_latest_default.conf
 /.config/variety/wallpaper/
+/.local/share/*
+/.claude/*
+/android/eln-cache/
+/android/straight/build/
+/android/straight/repos/

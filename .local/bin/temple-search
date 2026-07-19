@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+# Temple Search - Query your sacred knowledge base
+# Search through meanings, affirmations, and knowledge
+
+set -euo pipefail
+
+TEMPLE_API="${TEMPLE_API:-temple-api}"
+TEMPLE_QUERY="${TEMPLE_QUERY:-temple-query}"
+
+usage() {
+    cat <<EOF
+Usage: temple-search <type> <query>
+
+Search your sacred temple knowledge base.
+
+Types:
+    meanings <term>     Search for meaning containing term
+    number <n>          Get all meanings for specific number
+    affirmation <term>  Search affirmations containing term
+    all <term>          Search everything containing term
+
+Options:
+    -f, --format <fmt>  Output format: text, json (default: text)
+    -h, --help          Show this help
+
+Examples:
+    temple-search meanings habit
+    temple-search number 12
+    temple-search affirmation strength
+    temple-search all sobriety
+EOF
+}
+
+# Parse options
+FORMAT="text"
+SEARCH_TYPE=""
+QUERY_TERM=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -f|--format)
+            FORMAT="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            if [[ -z "$SEARCH_TYPE" ]]; then
+                SEARCH_TYPE="$1"
+            elif [[ -z "$QUERY_TERM" ]]; then
+                QUERY_TERM="$1"
+            else
+                QUERY_TERM="$QUERY_TERM $1"
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$SEARCH_TYPE" || -z "$QUERY_TERM" ]]; then
+    echo "Error: Both search type and query term required" >&2
+    usage >&2
+    exit 1
+fi
+
+# Execute search based on type
+case "$SEARCH_TYPE" in
+    meanings)
+        # Search for meanings containing term
+        prolog_query="findall(Num-Meaning, (number_meaning(Num, Meaning), atom_string(Meaning, MStr), sub_string(MStr, _, _, _, \"$QUERY_TERM\")), Results), write(Results)"
+        result=$("$TEMPLE_QUERY" "$prolog_query")
+
+        if [[ "$FORMAT" == "json" ]]; then
+            echo "$result" | sed 's/\[/["/; s/\]/"]/' | sed 's/,/","/g' | sed 's/-/":"/g' | jq .
+        else
+            echo "=== Meanings containing '$QUERY_TERM' ==="
+            echo "$result" | tr -d '[]' | sed 's/,/\n/g' | while IFS='-' read -r num meaning; do
+                echo "• $num: $(echo "$meaning" | sed 's/_/ /g')"
+            done
+        fi
+        ;;
+
+    number)
+        # Get all meanings for specific number
+        if ! [[ "$QUERY_TERM" =~ ^[0-9]+$ ]]; then
+            echo "Error: Number search requires numeric input" >&2
+            exit 1
+        fi
+
+        result=$("$TEMPLE_API" number "$QUERY_TERM")
+
+        if [[ "$FORMAT" == "json" ]]; then
+            echo "$result" | jq .
+        else
+            echo "=== All meanings for number $QUERY_TERM ==="
+            echo "$result" | tr -d '[]"' | sed 's/,/\n/g' | while read -r meaning; do
+                echo "• $(echo "$meaning" | sed 's/_/ /g')"
+            done
+        fi
+        ;;
+
+    affirmation)
+        # Search affirmations containing term
+        prolog_query="findall(Num-Text, (affirmation(Num, Text), sub_string(Text, _, _, _, \"$QUERY_TERM\")), Results), write(Results)"
+        result=$("$TEMPLE_QUERY" "$prolog_query")
+
+        if [[ "$FORMAT" == "json" ]]; then
+            echo "$result" | sed 's/\[/["/; s/\]/"]/' | sed 's/,/","/g' | sed 's/-/":"/g' | jq .
+        else
+            echo "=== Affirmations containing '$QUERY_TERM' ==="
+            echo "$result" | tr -d '[]' | sed 's/,[0-9]*-/\n/g' | while IFS='-' read -r num text; do
+                clean_text=$(echo "$text" | sed 's/^"//; s/"$//')
+                echo "• [$num] $clean_text"
+            done
+        fi
+        ;;
+
+    all)
+        echo "=== Comprehensive search for '$QUERY_TERM' ==="
+        echo
+
+        # Search meanings
+        echo "--- MEANINGS ---"
+        "$0" -f "$FORMAT" meanings "$QUERY_TERM" | tail -n +2
+        echo
+
+        # Search affirmations
+        echo "--- AFFIRMATIONS ---"
+        "$0" -f "$FORMAT" affirmation "$QUERY_TERM" | tail -n +2
+        echo
+        ;;
+
+    *)
+        echo "Error: Unknown search type '$SEARCH_TYPE'" >&2
+        echo "Valid types: meanings, number, affirmation, all" >&2
+        exit 1
+        ;;
+esac

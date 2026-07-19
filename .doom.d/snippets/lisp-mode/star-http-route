@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: star-http-route
+# key: star-http-route
+# --
+(setf (ningle:route *app* "${1:/path}" :method :${2:get})
+      #'(lambda (params)
+          (set-default-headers)
+          $0))

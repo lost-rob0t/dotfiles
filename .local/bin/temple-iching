@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+# Temple I-Ching - Ancient Chinese oracle for modern temple divination
+# Wrapper for the I-Ching Common Lisp oracle system
+
+set -euo pipefail
+
+# Configuration
+TEMPLE_DIR="${TEMPLE_DIR:-${TEMPLE_ROOT:-$HOME/Temple}}"
+ICHING_SCRIPT="$TEMPLE_DIR/foundation/iching.lisp"
+LISP_BIN="${LISP_BIN:-sbcl}"
+
+# Backward-compatible fallback for older installs.
+if [[ ! -f "$ICHING_SCRIPT" ]]; then
+    LEGACY_TEMPLE_DIR="$HOME/Documents/Notes/org/Temple"
+    if [[ -f "$LEGACY_TEMPLE_DIR/foundation/iching.lisp" ]]; then
+        TEMPLE_DIR="$LEGACY_TEMPLE_DIR"
+        ICHING_SCRIPT="$TEMPLE_DIR/foundation/iching.lisp"
+    elif [[ -f "$LEGACY_TEMPLE_DIR/iching.lisp" ]]; then
+        TEMPLE_DIR="$LEGACY_TEMPLE_DIR"
+        ICHING_SCRIPT="$TEMPLE_DIR/iching.lisp"
+    fi
+fi
+
+# Default parameters
+MODE="ask"
+QUESTION=""
+OUTPUT_FORMAT="text"
+TEMPLE_INTEGRATION=false
+
+usage() {
+    cat <<EOF
+Usage: temple-iching [options] [question]
+
+Consult the I-Ching oracle through your temple divination system.
+
+Modes:
+    ask <question>      Ask a specific question (default)
+    wisdom              Daily I-Ching wisdom
+    session            Interactive I-Ching session
+    quick [question]   Quick consultation
+    temple <number>    Integrate with temple number system
+
+Options:
+    -f, --format <fmt>    Output format: text, org (default: text)
+    -t, --temple         Enable temple number integration
+    -i, --interactive    Interactive session mode
+    -h, --help          Show this help
+
+Examples:
+    temple-iching "Should I pursue this path?"
+    temple-iching wisdom
+    temple-iching session
+    temple-iching -t temple 42
+    temple-iching -f org "What does today hold?"
+
+Environment:
+    TEMPLE_DIR         Path to temple directory (default: ~/Temple)
+    LISP_BIN          Common Lisp implementation (default: sbcl)
+EOF
+}
+
+# Validate environment
+if [[ ! -f "$ICHING_SCRIPT" ]]; then
+    echo "Error: I-Ching script not found at $ICHING_SCRIPT" >&2
+    echo "Your temple oracle must be properly installed" >&2
+    exit 1
+fi
+
+if ! command -v "$LISP_BIN" >/dev/null 2>&1; then
+    echo "Error: Common Lisp ($LISP_BIN) not found" >&2
+    echo "Install SBCL or set LISP_BIN environment variable" >&2
+    exit 1
+fi
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        ask)
+            MODE="ask"
+            shift
+            if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+                QUESTION="$1"
+                shift
+            fi
+            ;;
+        wisdom)
+            MODE="wisdom"
+            shift
+            ;;
+        session)
+            MODE="session"
+            shift
+            ;;
+        quick)
+            MODE="quick"
+            shift
+            if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+                QUESTION="$1"
+                shift
+            fi
+            ;;
+        temple)
+            MODE="temple"
+            shift
+            if [[ $# -gt 0 && ! "$1" =~ ^- ]]; then
+                TEMPLE_NUMBER="$1"
+                shift
+            fi
+            ;;
+        -f|--format)
+            OUTPUT_FORMAT="$2"
+            shift 2
+            ;;
+        -t|--temple)
+            TEMPLE_INTEGRATION=true
+            shift
+            ;;
+        -i|--interactive)
+            MODE="session"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            if [[ -z "$QUESTION" ]]; then
+                QUESTION="$1"
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Validate format
+case "$OUTPUT_FORMAT" in
+    text|org) ;;
+    *) echo "Error: Invalid format. Use text or org" >&2; exit 1 ;;
+esac
+
+# Function to execute Lisp with proper error handling
+execute_lisp() {
+    local lisp_code="$1"
+    local temp_file=$(mktemp)
+
+    cat > "$temp_file" << EOF
+(load "$ICHING_SCRIPT")
+$lisp_code
+(quit)
+EOF
+
+    if "$LISP_BIN" --script "$temp_file" 2>/dev/null; then
+        rm -f "$temp_file"
+        return 0
+    else
+        rm -f "$temp_file"
+        echo "Error: I-Ching oracle consultation failed" >&2
+        return 1
+    fi
+}
+
+# Function to format output for org-mode
+format_org_header() {
+    local question="$1"
+    local timestamp=$(date '+%Y-%m-%d %a %H:%M')
+
+    echo "* I-Ching Consultation :iching:temple:"
+    echo "<$timestamp>"
+    echo
+    echo "** Question: $question"
+    echo
+}
+
+# Execute based on mode
+case "$MODE" in
+    ask)
+        if [[ -z "$QUESTION" ]]; then
+            echo "Error: Question required for consultation" >&2
+            echo "Usage: temple-iching ask \"your question\"" >&2
+            exit 1
+        fi
+
+        if [[ "$OUTPUT_FORMAT" == "org" ]]; then
+            format_org_header "$QUESTION"
+            echo "#+begin_example"
+            execute_lisp "(ask \"$QUESTION\")"
+            echo "#+end_example"
+        else
+            execute_lisp "(ask \"$QUESTION\")"
+        fi
+        ;;
+
+    wisdom)
+        if [[ "$OUTPUT_FORMAT" == "org" ]]; then
+            format_org_header "What does today hold for me?"
+            echo "#+begin_example"
+            execute_lisp "(wisdom)"
+            echo "#+end_example"
+        else
+            execute_lisp "(wisdom)"
+        fi
+        ;;
+
+    session)
+        echo "Starting interactive I-Ching session..."
+        echo "The oracle awaits your questions."
+        echo
+        execute_lisp "(iching)"
+        ;;
+
+    quick)
+        local consultation_question="${QUESTION:-What guidance do you offer?}"
+
+        if [[ "$OUTPUT_FORMAT" == "org" ]]; then
+            format_org_header "$consultation_question"
+            echo "#+begin_example"
+            execute_lisp "(consult \"$consultation_question\")"
+            echo "#+end_example"
+        else
+            execute_lisp "(consult \"$consultation_question\")"
+        fi
+        ;;
+
+    temple)
+        if [[ -z "$TEMPLE_NUMBER" ]]; then
+            echo "Error: Temple number required for integration" >&2
+            echo "Usage: temple-iching temple <number>" >&2
+            exit 1
+        fi
+
+        if ! [[ "$TEMPLE_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Error: Temple number must be numeric" >&2
+            exit 1
+        fi
+
+        if [[ "$OUTPUT_FORMAT" == "org" ]]; then
+            format_org_header "Temple Number $TEMPLE_NUMBER Integration"
+            echo "#+begin_example"
+            execute_lisp "(temple-iching-integration $TEMPLE_NUMBER)"
+            echo "#+end_example"
+        else
+            execute_lisp "(temple-iching-integration $TEMPLE_NUMBER)"
+        fi
+        ;;
+
+    *)
+        echo "Error: Unknown mode: $MODE" >&2
+        usage >&2
+        exit 1
+        ;;
+esac
+
+# If temple integration is requested, add a follow-up
+if [[ "$TEMPLE_INTEGRATION" == "true" && "$MODE" != "temple" ]]; then
+    echo
+    echo "═══ TEMPLE INTEGRATION ═══"
+    # Get today's temple number
+    TODAY_NUM=$(date +%d)
+    execute_lisp "(format t \"Today's temple number (~D) resonates with this reading.~%\" $TODAY_NUM)"
+fi

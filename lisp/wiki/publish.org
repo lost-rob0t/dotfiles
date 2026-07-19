@@ -1,0 +1,77 @@
+#+Title: My Org wiki publish script
+#+property: header-args emacs-lisp: tangle: publish.el :tangle yes :results file
+
+
+* Load Reqruired Librarys
+#+Name:
+
+* Wiki Util functons
+#+begin_src emacs-lisp
+
+(defun nsa/wiki/publishable-p (file)
+  "Return t if FILE has :PUBLISH: t property at top level.
+FILE can be a filename or buffer."
+  (let ((buffer (if (bufferp file)
+                    file
+                  (find-file-noselect file))))
+    (with-current-buffer buffer
+      (save-excursion
+        (goto-char (point-min))
+        (string= "t" (org-entry-get (point) "PUBLISH"))))
+    (unless (bufferp file)
+      (kill-buffer buffer))))
+
+
+(defun nsa/wiki/toggle-publish (&optional file)
+  "Toggle :PUBLISH: property in org file.
+If FILE is provided, operate on that file, otherwise use current buffer."
+  (interactive)
+  (let ((buffer (if file
+                    (find-file-noselect file)
+                  (current-buffer))))
+    (with-current-buffer buffer
+      (save-excursion
+        (goto-char (point-min))
+        (if (org-entry-get (point) "PUBLISH")
+            (org-delete-property "PUBLISH")
+          (org-set-property "PUBLISH" "t")))
+      (unless (eq buffer (current-buffer))
+        (save-buffer)
+        (kill-buffer)))))
+
+(defun nsa/wiki/toggle-directory-publish (directory)
+  "Toggle :PUBLISH: property for all org files in DIRECTORY."
+  (interactive "DDirectory: ")
+  (let ((org-files (directory-files-recursively directory "\\.org$")))
+    (dolist (file org-files)
+      (nsa/wiki/toggle-publish file))
+    (message "Toggled publish state for %d org files" (length org-files))))
+
+(defun wiki/org-publish-to-html (plist filename pub-dir)
+  "Only Uplish when the file contains a publish param."
+  (when (publishp filename)
+    (org-html-publish-to-html plist filename pub-dir)))
+
+
+
+
+(defun nsa/wiki/show-publish-status (&optional directory)
+  "Show publishing status of all org files in DIRECTORY."
+  (interactive)
+  (let* ((search-dir (or directory org-roam-directory))
+         (publishable (nsa/wiki/find-publishable-files search-dir))
+         (unpublishable (nsa/wiki/find-unpublishable-files search-dir)))
+    (with-current-buffer (get-buffer-create "*Wiki Publish Status*")
+      (erase-buffer)
+      (org-mode)
+      (insert "* Wiki Publishing Status\n\n")
+      (insert (format "** Publishable Files (%d)\n" (length publishable)))
+      (dolist (file publishable)
+        (insert (format "- [[file:%s][%s]]\n" file (file-name-nondirectory file))))
+      (insert (format "\n** Unpublishable Files (%d)\n" (length unpublishable)))
+      (dolist (file unpublishable)
+        (insert (format "- [[file:%s][%s]]\n" file (file-name-nondirectory file))))
+      (goto-char (point-min))
+      (display-buffer (current-buffer)))))
+
+#+end_src

@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# opencode-sandbox.sh
+#
+# Copies your repo working tree into a temp dir, runs opencode there,
+# then rsyncs the resulting files back and stages the changes.
+#
+# Usage:
+#   ./opencode-sandbox.sh [opencode args...]
+#
+# Examples:
+#   ./opencode-sandbox.sh --model openai/gpt-4.1
+#   ./opencode-sandbox.sh --print-logs --log-level DEBUG
+#
+# Env toggles:
+#   KEEP_TMP=1        keep the temp dir (don’t delete on exit)
+#   NO_STAGE=1        don’t run git add -A at the end
+#   OPENCODE_NIXPKG=nixpkgs#opencode   override the nix target
+#   RSYNC_EXCLUDES=".git/ .direnv/ node_modules/ dist/"  override excludes (space-separated)
+
+set -euo pipefail
+
+OPENCODE_NIXPKG="${OPENCODE_NIXPKG:-nixpkgs#opencode}"
+RSYNC_EXCLUDES="${RSYNC_EXCLUDES:-.git/ .direnv/}"
+
+# Figure out project root (prefer git root)
+if git_root="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+  PROJ_ROOT="$git_root"
+else
+  PROJ_ROOT="$(pwd)"
+fi
+
+TMPDIR="$(mktemp -d -t opencode-sandbox-XXXXXXXX)"
+cleanup() {
+  if [[ "${KEEP_TMP:-0}" == "1" ]]; then
+    echo "[opencode-sandbox] keeping temp dir: $TMPDIR"
+  else
+    rm -rf "$TMPDIR"
+  fi
+}
+trap cleanup EXIT
+
+echo "[opencode-sandbox] project: $PROJ_ROOT"
+echo "[opencode-sandbox] temp:    $TMPDIR"
+
+# Build rsync exclude args
+exclude_args=()
+for pat in $RSYNC_EXCLUDES; do
+  exclude_args+=( "--exclude=$pat" )
+done
+
+# Copy project -> temp (clean mirror; safe because temp is fresh)
+echo "[opencode-sandbox] syncing to temp..."
+rsync -a "${exclude_args[@]}" --delete "$PROJ_ROOT"/ "$TMPDIR"/
+
+# Run opencode in temp
+echo "[opencode-sandbox] running opencode in temp..."
+pushd "$TMPDIR" >/dev/null
+nix run "$OPENCODE_NIXPKG" -- . "$@"
+popd >/dev/null
+
+# Sync temp -> project (NO --delete to avoid nuking local untracked stuff)
+echo "[opencode-sandbox] syncing back to project..."
+rsync -a "${exclude_args[@]}" "$TMPDIR"/ "$PROJ_ROOT"/
+
+# Stage changes
+if [[ "${NO_STAGE:-0}" != "1" ]] && [[ -d "$PROJ_ROOT/.git" ]]; then
+  echo "[opencode-sandbox] staging changes..."
+  (cd "$PROJ_ROOT" && git add -A)
+else
+  echo "[opencode-sandbox] skip staging (NO_STAGE=1 or not a git repo)"
+fi
+
+echo "[opencode-sandbox] done"

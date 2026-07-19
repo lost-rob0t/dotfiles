@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# Temple Status - Compact status info perfect for qtile/emacs modeline
+# Shows current temple state in minimal characters
+
+set -euo pipefail
+
+TEMPLE_API="${TEMPLE_API:-temple-api}"
+
+usage() {
+    cat <<EOF
+Usage: temple-status [options]
+
+Get compact temple status for modeline/statusbar integration.
+
+Options:
+    -s, --style <style>  Status style: minimal, compact, full (default: compact)
+    -f, --format <fmt>   Output format: text, json (default: text)
+    -h, --help           Show this help
+
+Styles:
+    minimal    Just number (e.g., "12")
+    compact    Number + icon (e.g., "🕉️12")
+    full       Number + meaning abbreviated (e.g., "🕉️12:habit")
+
+Examples:
+    temple-status                # "🕉️12:habit"
+    temple-status -s minimal     # "12"
+    temple-status -s full        # "🕉️12:habit_formation"
+EOF
+}
+
+# Parse options
+STYLE="compact"
+FORMAT="text"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -s|--style)
+            STYLE="$2"
+            shift 2
+            ;;
+        -f|--format)
+            FORMAT="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            echo "Unexpected argument: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Validate style
+case "$STYLE" in
+    minimal|compact|full) ;;
+    *) echo "Error: Invalid style. Use minimal, compact, or full" >&2; exit 1 ;;
+esac
+
+# Get single meaning from sacred knowledge base
+MEANING_RAW=$("$TEMPLE_API" meanings 1)
+
+# Parse the meaning
+NUMBER=$(echo "$MEANING_RAW" | tr -d '[]' | cut -d'-' -f1)
+MEANING=$(echo "$MEANING_RAW" | tr -d '[]' | cut -d'-' -f2-)
+
+# Generate status based on style
+case "$STYLE" in
+    minimal)
+        STATUS="$NUMBER"
+        ;;
+    compact)
+        if [[ "$NUMBER" == "12" ]]; then
+            STATUS="🟢$NUMBER"  # Sacred number gets special indicator
+        else
+            STATUS="🕉️$NUMBER"
+        fi
+        ;;
+    full)
+        # Abbreviate meaning for status line
+        MEANING_SHORT=$(echo "$MEANING" | sed 's/_/ /g' | cut -d' ' -f1)
+        if [[ "$NUMBER" == "12" ]]; then
+            STATUS="🟢$NUMBER:$MEANING_SHORT"
+        else
+            STATUS="🕉️$NUMBER:$MEANING_SHORT"
+        fi
+        ;;
+esac
+
+# Output based on format
+if [[ "$FORMAT" == "json" ]]; then
+    jq -n \
+        --arg status "$STATUS" \
+        --arg number "$NUMBER" \
+        --arg meaning "$(echo "$MEANING" | sed 's/_/ /g')" \
+        --arg style "$STYLE" \
+        --arg is_sacred "$([ "$NUMBER" == "12" ] && echo true || echo false)" \
+        '{
+            status: $status,
+            number: ($number | tonumber),
+            meaning: $meaning,
+            style: $style,
+            is_sacred: ($is_sacred | fromjson),
+            timestamp: now
+        }'
+else
+    echo "$STATUS"
+fi

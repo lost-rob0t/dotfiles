@@ -1,0 +1,202 @@
+#!/usr/bin/env bash
+# Temple API - Core interface to Prolog knowledge base
+# Part of the Temple divination suite
+
+set -euo pipefail
+
+# Configuration
+TEMPLE_ROOT="${TEMPLE_ROOT:-$HOME/Temple}"
+TEMPLE_KB="${TEMPLE_KB:-$TEMPLE_ROOT/kb/base.pl}"
+TEMPLE_CONFIG="${TEMPLE_CONFIG:-$HOME/.config/temple/config}"
+PROLOG_BIN="${PROLOG_BIN:-swipl}"
+
+# Load config if exists
+if [[ -f "$TEMPLE_CONFIG" ]]; then
+    source "$TEMPLE_CONFIG"
+fi
+
+# Backward-compatible fallback for older installs.
+if [[ ! -f "$TEMPLE_KB" ]]; then
+    LEGACY_TEMPLE_KB="$HOME/Documents/Notes/org/Temple/kb/base.pl"
+    if [[ -f "$LEGACY_TEMPLE_KB" ]]; then
+        TEMPLE_KB="$LEGACY_TEMPLE_KB"
+    fi
+fi
+
+# Ensure knowledge base exists
+if [[ ! -f "$TEMPLE_KB" ]]; then
+    echo "Error: Temple knowledge base not found at $TEMPLE_KB" >&2
+    echo "Set TEMPLE_KB environment variable or check your installation" >&2
+    exit 1
+fi
+
+# Check if SWI-Prolog is available
+if ! command -v "$PROLOG_BIN" >/dev/null 2>&1; then
+    echo "Error: SWI-Prolog not found. Install with 'nix-env -iA nixpkgs.swiProlog'" >&2
+    exit 1
+fi
+
+# Function to execute Prolog queries
+prolog_query() {
+    local query="$1"
+    local timeout="${2:-10}"
+
+    timeout "$timeout" "$PROLOG_BIN" -q -s "$TEMPLE_KB" -g "$query, halt." 2>/dev/null || {
+        echo "Error: Query failed or timed out: $query" >&2
+        return 1
+    }
+}
+
+# Function to get random meanings
+get_random_meanings() {
+    local count="${1:-3}"
+    prolog_query "random_meanings($count, Result), write(Result)"
+}
+
+# Function to get single random affirmation
+get_random_affirmation() {
+    prolog_query "random_affirmation(Text), write(Text)"
+}
+
+# Function to get meanings for specific number
+get_meanings_for_number() {
+    local number="$1"
+    prolog_query "meanings_for_number($number, Ms), write(Ms)"
+}
+
+# Function to get all numbers with meanings count
+get_frequency_data() {
+    prolog_query "findall(N-Count, (number_meaning(N, _), findall(X, number_meaning(N, X), Xs), length(Xs, Count)), Pairs), write(Pairs)"
+}
+
+# JSON output flag
+JSON_OUTPUT=false
+
+# Parse command line arguments
+usage() {
+    cat <<EOF
+Usage: temple-api <command> [options]
+
+Commands:
+    meanings <count>     Get random meanings (default: 3)
+    affirmation          Get random affirmation
+    number <n>           Get meanings for specific number
+    frequency            Get number frequency data
+    raw <query>          Execute raw Prolog query
+
+Options:
+    -j, --json          Output in JSON format
+    -t, --timeout <s>   Query timeout in seconds (default: 10)
+    -h, --help          Show this help
+
+Environment:
+    TEMPLE_ROOT        Path to Temple root (default: ~/Temple)
+    TEMPLE_KB          Path to Prolog knowledge base
+    TEMPLE_CONFIG      Path to config file
+    PROLOG_BIN         Path to SWI-Prolog binary
+EOF
+}
+
+# Parse options
+TIMEOUT=10
+COMMAND=""
+ARGS=()
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -j|--json)
+            JSON_OUTPUT=true
+            shift
+            ;;
+        -t|--timeout)
+            TIMEOUT="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+        *)
+            if [[ -z "$COMMAND" ]]; then
+                COMMAND="$1"
+            else
+                ARGS+=("$1")
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Execute command
+case "$COMMAND" in
+    meanings)
+        count="${ARGS[0]:-3}"
+        if ! [[ "$count" =~ ^[0-9]+$ ]]; then
+            echo "Error: Count must be a number" >&2
+            exit 1
+        fi
+        result=$(get_random_meanings "$count")
+        if [[ "$JSON_OUTPUT" == "true" ]]; then
+            echo "$result" | sed 's/\[/["/; s/\]/"]/' | sed 's/,/","/g' | sed 's/-/":"/g'
+        else
+            echo "$result"
+        fi
+        ;;
+    affirmation)
+        result=$(get_random_affirmation)
+        if [[ "$JSON_OUTPUT" == "true" ]]; then
+            printf '{"affirmation": "%s"}\n' "$(echo "$result" | sed 's/"/\\"/g')"
+        else
+            echo "$result"
+        fi
+        ;;
+    number)
+        if [[ ${#ARGS[@]} -eq 0 ]]; then
+            echo "Error: Number required" >&2
+            exit 1
+        fi
+        number="${ARGS[0]}"
+        if ! [[ "$number" =~ ^[0-9]+$ ]]; then
+            echo "Error: Invalid number: $number" >&2
+            exit 1
+        fi
+        result=$(get_meanings_for_number "$number")
+        if [[ "$JSON_OUTPUT" == "true" ]]; then
+            echo "$result" | sed 's/\[/["/; s/\]/"]/' | sed 's/,/","/g'
+        else
+            echo "$result"
+        fi
+        ;;
+    frequency)
+        result=$(get_frequency_data)
+        if [[ "$JSON_OUTPUT" == "true" ]]; then
+            echo "$result" | sed 's/\[/["/; s/\]/"]/' | sed 's/,/","/g' | sed 's/-/":"/g'
+        else
+            echo "$result"
+        fi
+        ;;
+    raw)
+        if [[ ${#ARGS[@]} -eq 0 ]]; then
+            echo "Error: Query required" >&2
+            exit 1
+        fi
+        query="${ARGS[*]}"
+        result=$(prolog_query "$query" "$TIMEOUT")
+        echo "$result"
+        ;;
+    "")
+        echo "Error: Command required" >&2
+        usage >&2
+        exit 1
+        ;;
+    *)
+        echo "Error: Unknown command: $COMMAND" >&2
+        usage >&2
+        exit 1
+        ;;
+esac

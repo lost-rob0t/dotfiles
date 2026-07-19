@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: star-query-view
+# key: star-query-view
+# --
+(query-view ${1:client} ${2:star:*couchdb-default-database*}
+            "${3:design-doc}" "${4:view-name}"
+            :include-docs ${5:t}
+            :key ${6:key}${7:
+            :limit ${8:50}}${9:
+            :descending ${10:nil}})
+$0

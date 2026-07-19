@@ -1,0 +1,9 @@
+- Main emacs is doom, its config is in .doom.d
+- android emacs which is the start of my own personal emacs for android, lives at /android in a literate config
+- Prefer literate org files that tangle to configs over just having config files
+- when writing vanniliaemacs code, try and follow doom emac standards
+- emacs lisp code for doom emacs goes in lisp standard gnu style lib/packages thats def not config goes into lisp/elisp/
+- this is currently a desktop running nixos with flakes
+- when making scripts ensure they are nixified if possible
+- test your code extensivly
+- query the user for use cases

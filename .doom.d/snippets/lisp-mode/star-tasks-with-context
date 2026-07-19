@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: star-tasks-with-context
+# key: star-tasks-with-context
+# --
+(tasks:with-context (${1:actor-context} ${2:dispatcher-id})
+  $0)

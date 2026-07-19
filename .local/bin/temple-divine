@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+# Temple Divine - Full ceremonial divination reading
+# Creates comprehensive oracle consultation using your sacred knowledge base
+
+set -euo pipefail
+
+# Configuration
+TEMPLE_API="${TEMPLE_API:-temple-api}"
+
+# Default parameters
+NUM_MEANINGS=3
+NUM_AFFIRMATIONS=2
+OUTPUT_FORMAT="text"
+QUESTION=""
+
+usage() {
+    cat <<EOF
+Usage: temple-divine [options] "question"
+
+Perform a full temple divination reading with your sacred knowledge base.
+
+Options:
+    -m, --meanings <n>      Number of meanings to draw (default: 3)
+    -a, --affirmations <n>  Number of affirmations (default: 2)
+    -f, --format <fmt>      Output format: text, org, json (default: text)
+    -h, --help             Show this help
+
+Examples:
+    temple-divine "What guidance do I need today?"
+    temple-divine -m 5 -a 3 "Should I pursue this path?"
+    temple-divine -f org "What is blocking my progress?"
+EOF
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -m|--meanings)
+            NUM_MEANINGS="$2"
+            shift 2
+            ;;
+        -a|--affirmations)
+            NUM_AFFIRMATIONS="$2"
+            shift 2
+            ;;
+        -f|--format)
+            OUTPUT_FORMAT="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            QUESTION="$1"
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$QUESTION" ]]; then
+    echo "Error: Question required for divination" >&2
+    exit 1
+fi
+
+# Validate format
+case "$OUTPUT_FORMAT" in
+    text|org|json) ;;
+    *) echo "Error: Invalid format. Use text, org, or json" >&2; exit 1 ;;
+esac
+
+# Get oracle data from your sacred knowledge base
+MEANINGS_RAW=$("$TEMPLE_API" meanings "$NUM_MEANINGS")
+AFFIRMATIONS_RAW=()
+
+for ((i=0; i<NUM_AFFIRMATIONS; i++)); do
+    AFFIRMATIONS_RAW+=("$("$TEMPLE_API" affirmation)")
+done
+
+# Extract numbers from meanings for pattern analysis
+NUMBERS=($(echo "$MEANINGS_RAW" | grep -o '[0-9]*-[^,]*' | cut -d'-' -f1))
+
+# Current timestamp
+TIMESTAMP=$(date '+%Y-%m-%d %a %H:%M')
+
+# Output based on format
+case "$OUTPUT_FORMAT" in
+    text)
+        echo "╔══════════════════════════════════════════════════════════╗"
+        echo "║                   🕉️  TEMPLE ORACLE 🕉️                     ║"
+        echo "╚══════════════════════════════════════════════════════════╝"
+        echo
+        echo "📅 Reading Time: $TIMESTAMP"
+        echo "❓ Question: $QUESTION"
+        echo
+        echo "🔢 Numbers Drawn: ${NUMBERS[*]}"
+        echo
+        echo "═══ NUMERIC ORACLE ═══"
+        # Parse and display meanings
+        echo "$MEANINGS_RAW" | tr -d '[]' | sed 's/,/\n/g' | while IFS='-' read -r num meaning; do
+            echo "• $num: $(echo "$meaning" | sed 's/_/ /g')"
+        done
+        echo
+        echo "═══ AFFIRMATIONS ═══"
+        for i in "${!AFFIRMATIONS_RAW[@]}"; do
+            # Clean up quotes from Prolog output
+            aff=$(echo "${AFFIRMATIONS_RAW[$i]}" | sed 's/^"//; s/"$//')
+            echo "• $aff"
+        done
+        echo
+        echo "═══ REFLECTION SPACE ═══"
+        echo "What patterns do you see in these numbers?"
+        echo "How do the affirmations connect to your question?"
+        echo "What is the oracle telling you to focus on?"
+        echo
+        echo "═══ SACRED NUMBER ANALYSIS ═══"
+        if [[ " ${NUMBERS[*]} " =~ " 12 " ]]; then
+            echo "🟢 Sacred number 12 (sobriety/habit_formation) appeared!"
+            echo "   The temple anchors you to your daily practice."
+        fi
+        echo
+        ;;
+
+    org)
+        echo "* $QUESTION :temple:"
+        echo "<$TIMESTAMP>"
+        echo
+        echo "** Raw Numbers: ${NUMBERS[*]}"
+        echo
+        echo "** Numeric Oracle"
+        echo "$MEANINGS_RAW" | tr -d '[]' | sed 's/,/\n/g' | while IFS='-' read -r num meaning; do
+            echo "- *$num*: $(echo "$meaning" | sed 's/_/ /g')"
+        done
+        echo
+        echo "** Affirmations"
+        for i in "${!AFFIRMATIONS_RAW[@]}"; do
+            aff=$(echo "${AFFIRMATIONS_RAW[$i]}" | sed 's/^"//; s/"$//')
+            echo "- $aff"
+        done
+        echo
+        echo "** Reflection"
+        echo "#+begin_quote"
+        echo
+        echo "#+end_quote"
+        ;;
+
+    json)
+        # Build JSON output
+        numbers_json=$(printf '%s\n' "${NUMBERS[@]}" | jq -R . | jq -s .)
+        meanings_json=$(echo "$MEANINGS_RAW" | tr -d '[]' | sed 's/,/\n/g' | while IFS='-' read -r num meaning; do
+            printf '{"number": %s, "meaning": "%s"}\n' "$num" "$(echo "$meaning" | sed 's/_/ /g')"
+        done | jq -s .)
+        affirmations_json=$(printf '%s\n' "${AFFIRMATIONS_RAW[@]}" | sed 's/^"//; s/"$//' | jq -R . | jq -s .)
+
+        jq -n \
+            --arg question "$QUESTION" \
+            --arg timestamp "$TIMESTAMP" \
+            --argjson numbers "$numbers_json" \
+            --argjson meanings "$meanings_json" \
+            --argjson affirmations "$affirmations_json" \
+            '{
+                question: $question,
+                timestamp: $timestamp,
+                numbers: $numbers,
+                meanings: $meanings,
+                affirmations: $affirmations,
+                sacred_twelve: ($numbers | index(12) != null)
+            }'
+        ;;
+esac

@@ -1,0 +1,281 @@
+#!/usr/bin/env bash
+# Temple Backup - Protect your sacred knowledge base
+# Backup and restore temple knowledge without touching the sacred originals
+
+set -euo pipefail
+
+# Configuration
+TEMPLE_ROOT="${TEMPLE_ROOT:-$HOME/Temple}"
+TEMPLE_KB_DIR="${TEMPLE_KB_DIR:-$TEMPLE_ROOT/kb}"
+BACKUP_DIR="${TEMPLE_BACKUP_DIR:-$HOME/.local/share/temple/backups}"
+
+# Backward-compatible fallback for older installs.
+if [[ ! -d "$TEMPLE_KB_DIR" ]]; then
+    LEGACY_TEMPLE_KB_DIR="$HOME/Documents/Notes/org/Temple/kb"
+    if [[ -d "$LEGACY_TEMPLE_KB_DIR" ]]; then
+        TEMPLE_KB_DIR="$LEGACY_TEMPLE_KB_DIR"
+    fi
+fi
+
+usage() {
+    cat <<EOF
+Usage: temple-backup <command> [options]
+
+Protect your sacred temple knowledge base with backups.
+
+Commands:
+    create [name]       Create backup (default name: timestamp)
+    list                List all backups
+    restore <name>      Restore from backup (creates .bak of current)
+    verify <name>       Verify backup integrity
+    cleanup <days>      Remove backups older than N days
+
+Options:
+    -v, --verbose       Verbose output
+    -h, --help          Show this help
+
+Examples:
+    temple-backup create                    # Create timestamped backup
+    temple-backup create pre-update         # Create named backup
+    temple-backup list                      # Show all backups
+    temple-backup restore 2024-01-15       # Restore specific backup
+    temple-backup cleanup 30               # Remove backups older than 30 days
+
+Environment:
+    TEMPLE_ROOT         Path to Temple root (default: ~/Temple)
+    TEMPLE_KB_DIR       Temple knowledge base directory
+    TEMPLE_BACKUP_DIR   Backup storage directory
+EOF
+}
+
+# Ensure backup directory exists
+mkdir -p "$BACKUP_DIR"
+
+# Verbose flag
+VERBOSE=false
+
+# Parse command
+COMMAND=""
+BACKUP_NAME=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            if [[ -z "$COMMAND" ]]; then
+                COMMAND="$1"
+            elif [[ -z "$BACKUP_NAME" ]]; then
+                BACKUP_NAME="$1"
+            else
+                echo "Unexpected argument: $1" >&2
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$COMMAND" ]]; then
+    echo "Error: Command required" >&2
+    usage >&2
+    exit 1
+fi
+
+# Logging function
+log() {
+    if [[ "$VERBOSE" == "true" ]]; then
+        echo "[$(date '+%H:%M:%S')] $*" >&2
+    fi
+}
+
+# Validate temple directory exists
+if [[ ! -d "$TEMPLE_KB_DIR" ]]; then
+    echo "Error: Temple knowledge base directory not found: $TEMPLE_KB_DIR" >&2
+    exit 1
+fi
+
+case "$COMMAND" in
+    create)
+        # Generate backup name if not provided
+        if [[ -z "$BACKUP_NAME" ]]; then
+            BACKUP_NAME=$(date '+%Y-%m-%d_%H-%M-%S')
+        fi
+
+        BACKUP_PATH="$BACKUP_DIR/${BACKUP_NAME}.tar.gz"
+
+        if [[ -f "$BACKUP_PATH" ]]; then
+            echo "Error: Backup '$BACKUP_NAME' already exists" >&2
+            exit 1
+        fi
+
+        log "Creating backup of sacred temple knowledge base..."
+        log "Source: $TEMPLE_KB_DIR"
+        log "Backup: $BACKUP_PATH"
+
+        # Create compressed backup of entire kb directory
+        if tar -czf "$BACKUP_PATH" -C "$TEMPLE_KB_DIR" . 2>/dev/null; then
+            # Verify the backup was created and has content
+            if [[ -s "$BACKUP_PATH" ]]; then
+                size=$(du -h "$BACKUP_PATH" | cut -f1)
+                echo "✅ Backup '$BACKUP_NAME' created successfully ($size)"
+                log "Backup size: $size"
+            else
+                rm -f "$BACKUP_PATH"
+                echo "Error: Backup created but appears empty" >&2
+                exit 1
+            fi
+        else
+            echo "Error: Failed to create backup" >&2
+            exit 1
+        fi
+        ;;
+
+    list)
+        echo "=== Temple Knowledge Base Backups ==="
+        if [[ ! "$(ls -A "$BACKUP_DIR"/*.tar.gz 2>/dev/null)" ]]; then
+            echo "No backups found in $BACKUP_DIR"
+            exit 0
+        fi
+
+        printf "%-25s %-10s %-15s\n" "Name" "Size" "Date"
+        printf "%-25s %-10s %-15s\n" "----" "----" "----"
+
+        for backup in "$BACKUP_DIR"/*.tar.gz; do
+            if [[ -f "$backup" ]]; then
+                name=$(basename "$backup" .tar.gz)
+                size=$(du -h "$backup" | cut -f1)
+                date=$(date -r "$backup" '+%Y-%m-%d %H:%M')
+                printf "%-25s %-10s %-15s\n" "$name" "$size" "$date"
+            fi
+        done
+        ;;
+
+    restore)
+        if [[ -z "$BACKUP_NAME" ]]; then
+            echo "Error: Backup name required for restore" >&2
+            exit 1
+        fi
+
+        BACKUP_PATH="$BACKUP_DIR/${BACKUP_NAME}.tar.gz"
+
+        if [[ ! -f "$BACKUP_PATH" ]]; then
+            echo "Error: Backup '$BACKUP_NAME' not found" >&2
+            echo "Available backups:"
+            "$0" list
+            exit 1
+        fi
+
+        echo "⚠️  WARNING: This will restore your temple knowledge base!"
+        echo "Current KB will be backed up as .bak before restoration."
+        read -p "Continue? (y/N): " -n 1 -r
+        echo
+
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Restore cancelled"
+            exit 0
+        fi
+
+        log "Backing up current temple knowledge base..."
+        CURRENT_BACKUP="$TEMPLE_KB_DIR.bak.$(date '+%Y%m%d_%H%M%S')"
+        if cp -r "$TEMPLE_KB_DIR" "$CURRENT_BACKUP"; then
+            log "Current KB backed up to: $CURRENT_BACKUP"
+        else
+            echo "Error: Failed to backup current KB" >&2
+            exit 1
+        fi
+
+        log "Restoring from backup: $BACKUP_PATH"
+
+        # Clear current directory and restore
+        if rm -rf "${TEMPLE_KB_DIR:?}"/* && tar -xzf "$BACKUP_PATH" -C "$TEMPLE_KB_DIR"; then
+            echo "✅ Restore completed successfully"
+            echo "Previous KB saved as: $CURRENT_BACKUP"
+        else
+            echo "Error: Restore failed" >&2
+            echo "Your current KB backup is safe at: $CURRENT_BACKUP"
+            exit 1
+        fi
+        ;;
+
+    verify)
+        if [[ -z "$BACKUP_NAME" ]]; then
+            echo "Error: Backup name required for verification" >&2
+            exit 1
+        fi
+
+        BACKUP_PATH="$BACKUP_DIR/${BACKUP_NAME}.tar.gz"
+
+        if [[ ! -f "$BACKUP_PATH" ]]; then
+            echo "Error: Backup '$BACKUP_NAME' not found" >&2
+            exit 1
+        fi
+
+        log "Verifying backup integrity..."
+
+        # Test the tar file
+        if tar -tzf "$BACKUP_PATH" >/dev/null 2>&1; then
+            file_count=$(tar -tzf "$BACKUP_PATH" | wc -l)
+            size=$(du -h "$BACKUP_PATH" | cut -f1)
+            echo "✅ Backup '$BACKUP_NAME' is valid"
+            echo "   Files: $file_count"
+            echo "   Size: $size"
+
+            if [[ "$VERBOSE" == "true" ]]; then
+                echo "   Contents:"
+                tar -tzf "$BACKUP_PATH" | head -10
+                if [[ $file_count -gt 10 ]]; then
+                    echo "   ... and $((file_count - 10)) more files"
+                fi
+            fi
+        else
+            echo "❌ Backup '$BACKUP_NAME' is corrupted or invalid" >&2
+            exit 1
+        fi
+        ;;
+
+    cleanup)
+        if [[ -z "$BACKUP_NAME" ]]; then
+            echo "Error: Number of days required for cleanup" >&2
+            exit 1
+        fi
+
+        if ! [[ "$BACKUP_NAME" =~ ^[0-9]+$ ]]; then
+            echo "Error: Days must be a number" >&2
+            exit 1
+        fi
+
+        DAYS="$BACKUP_NAME"
+        log "Cleaning up backups older than $DAYS days..."
+
+        removed_count=0
+        for backup in "$BACKUP_DIR"/*.tar.gz; do
+            if [[ -f "$backup" ]]; then
+                if [[ $(find "$backup" -mtime +$DAYS) ]]; then
+                    name=$(basename "$backup" .tar.gz)
+                    log "Removing old backup: $name"
+                    rm -f "$backup"
+                    ((removed_count++))
+                fi
+            fi
+        done
+
+        echo "Cleaned up $removed_count old backup(s)"
+        ;;
+
+    *)
+        echo "Error: Unknown command '$COMMAND'" >&2
+        echo "Valid commands: create, list, restore, verify, cleanup" >&2
+        exit 1
+        ;;
+esac

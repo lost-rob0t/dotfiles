@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: with-open-file
+# key: wof
+# expand-env: ((yas-indent-line 'fixed))
+# --
+(with-open-file (${1:stream} ${2:"path/to/file"}
+                 :direction :${3:input}
+                 ${4::if-exists :error}
+                 ${5::if-does-not-exist :error})
+  ${0})

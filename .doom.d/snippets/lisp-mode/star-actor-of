@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: star-actor-of
+# key: star-actor-of
+# --
+(actor-of ${1:*sys*}
+          :name "${2:actor-name}"
+          :receive (lambda (msg)
+                     $0))

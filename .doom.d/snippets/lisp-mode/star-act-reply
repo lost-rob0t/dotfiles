@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: star-act-reply
+# key: star-act-reply
+# --
+(act:reply ${1:result} ${2:*sender*})
+$0

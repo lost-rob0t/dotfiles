@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Temple Affirmation - Single affirmation for status lines
+# Perfect for daily motivation in qtile, emacs, or terminal
+
+set -euo pipefail
+
+TEMPLE_API="${TEMPLE_API:-temple-api}"
+
+usage() {
+    cat <<EOF
+Usage: temple-affirmation [options]
+
+Get a single affirmation from your sacred knowledge base for status displays.
+
+Options:
+    -l, --length <n>    Max character length (default: no limit)
+    -f, --format <fmt>  Output format: text, json (default: text)
+    -q, --quiet         No decorative elements
+    -h, --help          Show this help
+
+Examples:
+    temple-affirmation                      # "✨ I am strong and ready for change."
+    temple-affirmation -q                   # "I am strong and ready for change."
+    temple-affirmation -l 30                # Truncate to 30 chars
+    temple-affirmation -f json              # JSON output
+EOF
+}
+
+# Parse options
+MAX_LENGTH=""
+FORMAT="text"
+QUIET=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -l|--length)
+            MAX_LENGTH="$2"
+            shift 2
+            ;;
+        -f|--format)
+            FORMAT="$2"
+            shift 2
+            ;;
+        -q|--quiet)
+            QUIET=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+        *)
+            echo "Unexpected argument: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Get affirmation from sacred knowledge base
+AFFIRMATION_RAW=$("$TEMPLE_API" affirmation)
+AFFIRMATION=$(echo "$AFFIRMATION_RAW" | sed 's/^"//; s/"$//')
+
+# Apply length limit if specified
+if [[ -n "$MAX_LENGTH" ]]; then
+    if [[ ${#AFFIRMATION} -gt $MAX_LENGTH ]]; then
+        AFFIRMATION="${AFFIRMATION:0:$((MAX_LENGTH-3))}..."
+    fi
+fi
+
+# Output based on format
+if [[ "$FORMAT" == "json" ]]; then
+    jq -n \
+        --arg affirmation "$AFFIRMATION" \
+        --arg length "${#AFFIRMATION}" \
+        '{
+            affirmation: $affirmation,
+            length: ($length | tonumber),
+            timestamp: now
+        }'
+elif [[ "$QUIET" == "true" ]]; then
+    echo "$AFFIRMATION"
+else
+    echo "✨ $AFFIRMATION"
+fi

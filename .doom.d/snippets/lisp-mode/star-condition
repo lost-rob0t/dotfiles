@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: star-condition
+# key: star-condition
+# --
+(define-condition ${1:condition-name} ()
+  ()
+  (:documentation "${2:doc}"))
+$0

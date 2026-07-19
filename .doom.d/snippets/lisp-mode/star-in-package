@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: star-in-package
+# key: star-in-package
+# --
+(in-package :${1:star.${2:module}})
+$0

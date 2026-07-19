@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: star-with-agent
+# key: star-with-agent
+# --
+(with-agent (${1:agent} ${2:actor-context} :agent-state-fun ${3:#'identity})
+  $0)
