@@ -106,6 +106,20 @@
             ./nix/home-manager/systems/desktop/home.nix
           ];
         };
+        "unseen@flake" = home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          extraSpecialArgs = homeArgs;
+          modules = [
+            ./nix/home-manager/systems/desktop/home.nix
+          ];
+        };
+        "unseen@desktop" = home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          extraSpecialArgs = homeArgs;
+          modules = [
+            ./nix/home-manager/systems/desktop/home.nix
+          ];
+        };
         "unseen@hunter02" = home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
           extraSpecialArgs = homeArgs;
