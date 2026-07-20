@@ -6,11 +6,61 @@ NixOS 26.05 workstation and installer configuration for `logos`.
 
 ```sh
 nix flake check
-nix build
+nix build .#logos
 nix build .#logos-iso
+nix run .#install-logos -- --help
 ```
 
-The installer ISO is written under `result/iso/`.
+The graphical installer ISO is written under `result/iso/`.
+
+## Installer interface
+
+The ISO boots into an LXQt live desktop and automatically logs in as `nixos`.
+Open **Install Logos** from the desktop to select a disk, choose the flake,
+set the `unseen` user password, and start the installation.
+
+The same installer is available without a GUI:
+
+```sh
+install-logos --help
+sudo install-logos --disk /dev/nvme0n1
+```
+
+It can also run directly from a flake checkout:
+
+```sh
+sudo nix run .#install-logos -- --disk /dev/nvme0n1
+```
+
+To install another compatible Logos flake configuration:
+
+```sh
+sudo install-logos \
+  --flake /path/to/flake#logos \
+  --disk /dev/nvme0n1
+```
+
+Preview evaluation without modifying a disk:
+
+```sh
+install-logos --dry-run --disk /dev/nvme0n1
+```
+
+## Disk layout
+
+The installer uses Disko for one declarative format, mount, and NixOS install
+operation. The flake owns the disk layout instead of relying on a separate shell
+provisioning pass.
+
+The destructive format mode creates:
+
+- 1 GiB EFI system partition
+- one LUKS2 partition using all remaining space
+- one Btrfs filesystem inside LUKS
+- `@`, `@home`, `@nix`, `@log`, and `@snapshots` subvolumes
+
+Root, home, and the Nix store share one free-space pool instead of fixed-size
+partitions.
 
 ## Publish an installer release
 
@@ -46,78 +96,6 @@ assets, not an Actions ZIP:
 
 The workflow can also be run manually from GitHub Actions with a `logos-*`
 release tag.
-
-## Install
-
-The `logos-iso` is a graphical LXQt live image. Boot it in UEFI mode, log in as
-the live `nixos` user (autologin), connect to the network via NetworkManager,
-identify the target disk with `lsblk`, then either double-click the **Install
-Logos** launcher on the desktop or run from a terminal:
-
-```sh
-sudo install-logos /dev/nvme0n1
-```
-
-The wrapper is a thin layer over `disko-install` and owns argument parsing,
-safety checks, and confirmation. It can install **any** `nixosConfigurations`
-attr from the flake — not just `logos`. Run `sudo install-logos --help` for
-the full reference:
-
-```text
--s, --system ATTR       nixosConfigurations attr to install.
-                          Default: logos. Examples: logos, desktop, laptop.
--l, --list-systems      Print every installable system attr in the flake.
--f, --flake PATH        Flake path (without #attr). Final URL is PATH#ATTR.
-                          Default: /etc/logos on the ISO, or $LOGOS_FLAKE.
---disk NAME             disko disk name to overwrite (default: main).
--n, --dry-run           Evaluate and show the plan without writing.
---write-efi-boot-entries  Persist boot entry to host NVRAM (off by default).
---extra-args ARGS       Pass extra arguments verbatim to disko-install.
-```
-
-Install the default system (logos):
-
-```sh
-sudo install-logos /dev/nvme0n1
-```
-
-Install a different system, e.g. `desktop`:
-
-```sh
-sudo install-logos --system desktop /dev/nvme0n1
-```
-
-Discover what systems the flake exposes:
-
-```sh
-install-logos --list-systems
-```
-
-The command is destructive and requires typing `WIPE-LOGOS` before it modifies
-the disk. The LUKS passphrase is requested interactively at install time.
-
-After install completes, set a root password before rebooting:
-
-```sh
-nixos-enter --root /mnt -c 'passwd root'
-```
-
-### Disk layout
-
-The layout is now declared natively in `disk.nix` via
-[disko](https://github.com/nix-community/disko) instead of a hand-rolled bash
-provisioner. disko produces the `fileSystems` and `boot.initrd.luks.devices`
-entries directly, so buildability and installability share one source of truth:
-
-- 1 GiB EFI system partition (`/boot`, vfat)
-- one LUKS2 partition using all remaining space (mapper `cryptroot`)
-- one Btrfs filesystem inside LUKS, label `logos`
-- `@`, `@home`, `@nix`, `@log`, and `@snapshots` subvolumes
-
-Root, home, and the Nix store share the same free-space pool instead of being
-trapped in fixed-size partitions. Btrfs mount options
-(`compress=zstd:3,discard=async,noatime,space_cache=v2`) and LUKS
-`allowDiscards` are set on the disko declaration.
 
 The active host retains Docker and enforces assertions against libvirt, Steam,
 and Sunshine.

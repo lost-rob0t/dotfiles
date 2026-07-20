@@ -17,13 +17,46 @@
     }:
     let
       system = "x86_64-linux";
+      lib = nixpkgs.lib;
       pkgs = nixpkgs.legacyPackages.${system};
 
-      sharedArgs = {
-        inherit self disko;
+      sharedArgs = { inherit self disko; };
+
+      installLogos = pkgs.writeShellApplication {
+        name = "install-logos";
+        runtimeInputs = [
+          disko.packages.${system}.disko-install
+          pkgs.coreutils
+          pkgs.gnugrep
+          pkgs.jq
+          pkgs.openssl
+          pkgs.util-linux
+        ];
+        text = ''
+          export LOGOS_DEFAULT_FLAKE='${self.outPath}#logos'
+          export LOGOS_SOURCE='${self.outPath}'
+          export DISKO_INSTALL='${disko.packages.${system}.disko-install}/bin/disko-install'
+          exec '${pkgs.bash}/bin/bash' '${./scripts/install-logos.sh}' "$@"
+        '';
       };
 
-      logos = nixpkgs.lib.nixosSystem {
+      installLogosGui = pkgs.writeShellApplication {
+        name = "install-logos-gui";
+        runtimeInputs = [
+          installLogos
+          pkgs.coreutils
+          pkgs.jq
+          pkgs.lxqt.qterminal
+          pkgs.util-linux
+          pkgs.zenity
+        ];
+        text = ''
+          export LOGOS_DEFAULT_FLAKE='${self.outPath}#logos'
+          exec '${pkgs.bash}/bin/bash' '${./scripts/install-logos-gui.sh}' "$@"
+        '';
+      };
+
+      logos = lib.nixosSystem {
         inherit system;
         specialArgs = sharedArgs;
         modules = [
@@ -32,7 +65,7 @@
         ];
       };
 
-      logosIso = nixpkgs.lib.nixosSystem {
+      logosIso = lib.nixosSystem {
         inherit system;
         specialArgs = sharedArgs;
         modules = [ ./nix/nixos/installer/logos-iso.nix ];
@@ -59,13 +92,28 @@
         default = logos.config.system.build.toplevel;
         logos = logos.config.system.build.toplevel;
         logos-iso = logosIso.config.system.build.isoImage;
+        install-logos = installLogos;
+        install-logos-gui = installLogosGui;
         inherit flash-logos;
+      };
+
+      apps.${system} = {
+        install-logos = {
+          type = "app";
+          program = "${installLogos}/bin/install-logos";
+        };
+        install-logos-gui = {
+          type = "app";
+          program = "${installLogosGui}/bin/install-logos-gui";
+        };
       };
 
       checks.${system} = {
         logos = logos.config.system.build.toplevel;
         logos-iso = logosIso.config.system.build.isoImage;
+        install-logos = installLogos;
       };
+
       formatter.${system} = pkgs.nixfmt-rfc-style;
     };
 }

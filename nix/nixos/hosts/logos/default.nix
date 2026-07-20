@@ -1,10 +1,15 @@
-{ lib, pkgs, ... }:
+{
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
     ./disk.nix
     ./hardware-configuration.nix
     ./policy.nix
+    ../../mods/hibernation.nix
   ];
 
   nixpkgs.config.allowUnfree = true;
