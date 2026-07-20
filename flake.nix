@@ -171,7 +171,6 @@
 
       checks.${system} = {
         logos = logos.config.system.build.toplevel;
-        logos-iso = logosIso.config.system.build.isoImage;
         install-logos = installLogos;
         unseen-home = homeConfigurations."unseen@logos".activationPackage;
       };

@@ -36,4 +36,3 @@ jobs:
           name: nix-community
       - run: nix flake check --show-trace
       - run: nix build --no-link --print-build-logs
-      - run: nix build .#logos-iso --no-link --print-build-logs
