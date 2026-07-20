@@ -348,7 +348,8 @@ fi
 
 if [[ -n "$luks_password_file" ]]; then
   [[ -r "$luks_password_file" ]] || die "LUKS password file is not readable: $luks_password_file"
-  export LOGOS_LUKS_PASSWORD_FILE="$(readlink -f -- "$luks_password_file")"
+  LOGOS_LUKS_PASSWORD_FILE="$(readlink -f -- "$luks_password_file")"
+  export LOGOS_LUKS_PASSWORD_FILE
 fi
 
 # --- Build the ad-hoc system-config overlay ---------------------------------
@@ -387,9 +388,14 @@ if [[ "$dry_run" == false && "$set_user_password" == true ]]; then
 fi
 
 if $swap_enable; then
+  if $swap_hibernate; then
+    hibernate_flag=true
+  else
+    hibernate_flag=false
+  fi
   swap_json="$(jq -cn \
     --argjson enable true \
-    --argjson hibernate $($swap_hibernate && echo true || echo false) \
+    --argjson hibernate "$hibernate_flag" \
     --arg size "$swap_size" \
     '{logos:{disk:{swap:{enable:$enable, hibernate:$hibernate, size:$size}}}}')"
   if [[ -n "$system_config" ]]; then
@@ -477,12 +483,13 @@ fi
 
 if $run_home_manager; then
   printf '\n:: Activating home-manager for unseen on the target...\n'
-  nixos-enter --root "$mount_point" -- \
+  if ! nixos-enter --root "$mount_point" -- \
     su - unseen -c 'nix run --extra-experimental-features "nix-command flakes" \
       home-manager/release-24.11 -- switch \
-      --flake /etc/nixos#unseen' || \
-    printf ':: warning: home-manager activation failed; run manually after reboot:\n' \
-           '   su - unseen -c "nix run home-manager/release-24.11 -- switch --flake /etc/nixos#unseen"\n' >&2
+      --flake /etc/nixos#unseen'; then
+    printf ':: warning: home-manager activation failed; run manually after reboot:\n' >&2
+    printf '   su - unseen -c "nix run home-manager/release-24.11 -- switch --flake /etc/nixos#unseen"\n' >&2
+  fi
 fi
 
 printf '\nLogos installation completed.\n'
