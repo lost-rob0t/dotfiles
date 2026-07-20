@@ -20,6 +20,7 @@ Options:
       --mode MODE                disko-install mode: format or mount.
                                   Default: format
       --password-file PATH       Read the unseen user password from a file.
+      --luks-password-file PATH  Read the LUKS passphrase from a file.
       --no-user-password         Do not set a password during installation.
       --no-write-efi-entries     Do not write EFI NVRAM boot entries.
       --dry-run                  Build and print the install actions only.
@@ -67,6 +68,7 @@ assume_yes=false
 write_efi_entries=true
 show_trace=false
 password_file=""
+luks_password_file=""
 set_user_password=true
 
 while [[ $# -gt 0 ]]; do
@@ -107,6 +109,11 @@ while [[ $# -gt 0 ]]; do
     --password-file)
       require_value "$1" "${2-}"
       password_file="$2"
+      shift 2
+      ;;
+    --luks-password-file)
+      require_value "$1" "${2-}"
+      luks_password_file="$2"
       shift 2
       ;;
     --no-user-password)
@@ -195,6 +202,11 @@ EOF
   printf 'Type WIPE-LOGOS to destroy the disk: '
   read -r confirmation
   [[ "$confirmation" == "WIPE-LOGOS" ]] || die "aborted"
+fi
+
+if [[ -n "$luks_password_file" ]]; then
+  [[ -r "$luks_password_file" ]] || die "LUKS password file is not readable: $luks_password_file"
+  export LOGOS_LUKS_PASSWORD_FILE="$(readlink -f -- "$luks_password_file")"
 fi
 
 system_config=""
