@@ -50,9 +50,9 @@
     };
     programs.git = {
       enable = true;
-      settings = {
-        user.name = "N545PY"; # If you use my modules change this
-        user.email = "nsaspy@fedora.email";
+      userName = "N545PY"; # If you use my modules change this
+      userEmail = "nsaspy@fedora.email";
+      extraConfig = {
         merge = {
           conflictStyle = "diff3";
         };

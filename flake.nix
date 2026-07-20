@@ -7,6 +7,14 @@
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    home-manager = {
+      url = "github:nix-community/home-manager/release-25.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    zara.url = "github:lost-rob0t/zara";
+    org-vector.url = "github:lost-rob0t/org-vector";
+    bixby-studio.url = "github:lost-rob0t/org-vector";
+    mousetrap.url = "github:lost-rob0t/Mousetrap";
   };
 
   outputs =
@@ -14,13 +22,25 @@
       self,
       nixpkgs,
       disko,
+      home-manager,
+      zara,
+      org-vector,
+      bixby-studio,
+      mousetrap,
     }:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
       pkgs = nixpkgs.legacyPackages.${system};
 
-      sharedArgs = { inherit self disko; };
+      sharedArgs = {
+        inherit self disko;
+      };
+      homeArgs = {
+        inherit self;
+        inputs = self.inputs;
+        outputs = self.outputs;
+      };
 
       installLogos = pkgs.writeShellApplication {
         name = "install-logos";
@@ -61,6 +81,13 @@
         specialArgs = sharedArgs;
         modules = [
           disko.nixosModules.disko
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = homeArgs;
+            home-manager.users.unseen = import ./nix/home-manager/systems/desktop/home.nix;
+          }
           ./nix/nixos/hosts/logos
         ];
       };
@@ -69,6 +96,23 @@
         inherit system;
         specialArgs = sharedArgs;
         modules = [ ./nix/nixos/installer/logos-iso.nix ];
+      };
+
+      homeConfigurations = {
+        "unseen@logos" = home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          extraSpecialArgs = homeArgs;
+          modules = [
+            ./nix/home-manager/systems/desktop/home.nix
+          ];
+        };
+        "unseen@hunter02" = home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          extraSpecialArgs = homeArgs;
+          modules = [
+            ./nix/home-manager/systems/hunter02/home.nix
+          ];
+        };
       };
 
       flash-logos = pkgs.writeShellApplication {
@@ -88,6 +132,8 @@
         logos-iso = logosIso;
       };
 
+      inherit homeConfigurations;
+
       packages.${system} = {
         default = logos.config.system.build.toplevel;
         logos = logos.config.system.build.toplevel;
@@ -95,6 +141,7 @@
         install-logos = installLogos;
         install-logos-gui = installLogosGui;
         inherit flash-logos;
+        unseen-home = homeConfigurations."unseen@logos".activationPackage;
       };
 
       apps.${system} = {
@@ -112,6 +159,7 @@
         logos = logos.config.system.build.toplevel;
         logos-iso = logosIso.config.system.build.isoImage;
         install-logos = installLogos;
+        unseen-home = homeConfigurations."unseen@logos".activationPackage;
       };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;
