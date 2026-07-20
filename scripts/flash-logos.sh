@@ -233,9 +233,9 @@ fi
 
 # If we're already root, run dd directly. Otherwise escalate via sudo.
 if [[ $EUID -eq 0 ]]; then
-  dd_cmd=(dd if="$iso_file" of="$selected" bs=4M oflag=direct,sync conv=fsync status=progress)
+  dd_cmd=(dd if="$iso_file" of="$selected" bs=4M oflag="direct,sync" conv=fsync status=progress)
 else
-  dd_cmd=(sudo dd if="$iso_file" of="$selected" bs=4M oflag=direct,sync conv=fsync status=progress)
+  dd_cmd=(sudo dd if="$iso_file" of="$selected" bs=4M oflag="direct,sync" conv=fsync status=progress)
 fi
 
 # oflag=direct: bypass page cache for honest progress.
