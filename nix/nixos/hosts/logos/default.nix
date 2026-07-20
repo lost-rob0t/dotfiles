@@ -2,7 +2,7 @@
 
 {
   imports = [
-    ./disk-layout.nix
+    ./disk.nix
     ./hardware-configuration.nix
     ./policy.nix
   ];
