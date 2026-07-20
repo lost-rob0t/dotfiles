@@ -6,6 +6,7 @@ let
     "discard=async"
     "noatime"
   ];
+  luksPasswordFile = builtins.getEnv "LOGOS_LUKS_PASSWORD_FILE";
 in
 {
   disko.devices.disk.main = {
@@ -32,6 +33,7 @@ in
           content = {
             type = "luks";
             name = "cryptroot";
+            passwordFile = if luksPasswordFile == "" then null else luksPasswordFile;
             settings.allowDiscards = true;
             content = {
               type = "btrfs";
