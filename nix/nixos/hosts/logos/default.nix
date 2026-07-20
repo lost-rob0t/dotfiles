@@ -65,20 +65,8 @@
 
     # libinput (touchpad/mouse). The enable option moved from
     # services.xserver.libinput to services.libinput in nixpkgs 26.05.
-    libinput = {
-      enable = true;
-      touchpad = {
-        tapping = true;
-        tappingButtonMap = "lmr";
-        naturalScrolling = true;
-        clickMethod = "clickfinger";
-        middleEmulation = true;
-        disableWhileTyping = true;
-      };
-      mouse = {
-        middleEmulation = true;
-      };
-    };
+    # Let libinput/Intel defaults handle click behavior, tapping, etc.
+    libinput.enable = true;
 
     pipewire = {
       enable = true;
