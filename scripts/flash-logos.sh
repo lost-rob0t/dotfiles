@@ -40,6 +40,8 @@ Safety:
     (including the active root). Unmount first, or pick a different disk.
   - Three escalating confirmation prompts must all pass before dd runs.
   - dd uses oflag=direct,sync and bs=4M for a safe, verifiable write.
+  - nix build runs as the calling user; dd is escalated via sudo
+    automatically. Run 'nix run .#flash-logos' without sudo.
 EOF
 }
 
@@ -217,26 +219,38 @@ read -r -p "Type YES-I-AM-SURE to begin (3/3): " answer
   die "confirmation 3 failed: expected YES-I-AM-SURE"
 
 # --- 6. dd the ISO ------------------------------------------------------------
-
-[[ $EUID -eq 0 ]] || die "must run as root to write with dd"
+# dd needs root; nix build does not. We escalate only for the write step so
+# `nix run .#flash-logos` works without `sudo nix run` (which fails because
+# nix isn't in root's PATH).
 
 printf '\n:: Writing %s -> %s\n' "$iso_file" "$selected"
 
 if $dry_run; then
-  printf ':: [dry-run] would run: dd if=%s of=%s bs=4M oflag=direct,sync conv=fsync status=progress\n' \
+  printf ':: [dry-run] would run: sudo dd if=%s of=%s bs=4M oflag=direct,sync conv=fsync status=progress\n' \
     "$iso_file" "$selected"
   exit 0
+fi
+
+# If we're already root, run dd directly. Otherwise escalate via sudo.
+if [[ $EUID -eq 0 ]]; then
+  dd_cmd=(dd if="$iso_file" of="$selected" bs=4M oflag=direct,sync conv=fsync status=progress)
+else
+  dd_cmd=(sudo dd if="$iso_file" of="$selected" bs=4M oflag=direct,sync conv=fsync status=progress)
 fi
 
 # oflag=direct: bypass page cache for honest progress.
 # oflag=sync:  flush writes at the end.
 # conv=fsync:  also flush metadata.
 # bs=4M:       large block size for throughput on USB/NVMe.
-dd if="$iso_file" of="$selected" bs=4M oflag=direct,sync conv=fsync status=progress
+"${dd_cmd[@]}"
 
 # Make sure the kernel re-reads the new partition table.
 sync
-partprobe "$selected" 2>/dev/null || true
+if [[ $EUID -eq 0 ]]; then
+  partprobe "$selected" 2>/dev/null || true
+else
+  sudo partprobe "$selected" 2>/dev/null || true
+fi
 
 printf '\n:: Done. ISO written to %s.\n' "$selected"
 printf ':: You can now boot from %s (it will appear as a USB/NVMe device in your firmware boot menu).\n' \
