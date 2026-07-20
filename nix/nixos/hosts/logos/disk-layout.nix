@@ -5,53 +5,71 @@ let
     "compress=zstd:3"
     "discard=async"
     "noatime"
-    "space_cache=v2"
   ];
 in
 {
-  boot.initrd.luks.devices.cryptroot.device =
-    lib.mkForce "/dev/disk/by-partlabel/cryptroot";
+  disko.devices.disk.main = {
+    type = "disk";
+    device = lib.mkDefault "/dev/disk/by-id/LOGOS-INSTALL-TARGET";
+    content = {
+      type = "gpt";
+      partitions = {
+        ESP = {
+          label = "EFI";
+          size = "1G";
+          type = "EF00";
+          content = {
+            type = "filesystem";
+            format = "vfat";
+            mountpoint = "/boot";
+            mountOptions = [ "umask=0077" ];
+          };
+        };
 
-  fileSystems = {
-    "/" = lib.mkForce {
-      device = "/dev/mapper/cryptroot";
-      fsType = "btrfs";
-      options = btrfsOptions ++ [ "subvol=@" ];
-    };
+        cryptroot = {
+          label = "cryptroot";
+          size = "100%";
+          content = {
+            type = "luks";
+            name = "cryptroot";
+            settings.allowDiscards = true;
+            content = {
+              type = "btrfs";
+              extraArgs = [
+                "-f"
+                "-L"
+                "logos"
+              ];
+              subvolumes = {
+                "@" = {
+                  mountpoint = "/";
+                  mountOptions = btrfsOptions;
+                };
 
-    "/home" = lib.mkForce {
-      device = "/dev/mapper/cryptroot";
-      fsType = "btrfs";
-      options = btrfsOptions ++ [ "subvol=@home" ];
-    };
+                "@home" = {
+                  mountpoint = "/home";
+                  mountOptions = btrfsOptions;
+                };
 
-    "/nix" = lib.mkForce {
-      device = "/dev/mapper/cryptroot";
-      fsType = "btrfs";
-      options = btrfsOptions ++ [ "subvol=@nix" ];
-    };
+                "@nix" = {
+                  mountpoint = "/nix";
+                  mountOptions = btrfsOptions;
+                };
 
-    "/var/log" = lib.mkForce {
-      device = "/dev/mapper/cryptroot";
-      fsType = "btrfs";
-      options = btrfsOptions ++ [ "subvol=@log" ];
-    };
+                "@log" = {
+                  mountpoint = "/var/log";
+                  mountOptions = btrfsOptions;
+                };
 
-    "/.snapshots" = lib.mkForce {
-      device = "/dev/mapper/cryptroot";
-      fsType = "btrfs";
-      options = btrfsOptions ++ [ "subvol=@snapshots" ];
-    };
-
-    "/boot" = lib.mkForce {
-      device = "/dev/disk/by-partlabel/EFI";
-      fsType = "vfat";
-      options = [
-        "fmask=0077"
-        "dmask=0077"
-      ];
+                "@snapshots" = {
+                  mountpoint = "/.snapshots";
+                  mountOptions = btrfsOptions;
+                };
+              };
+            };
+          };
+        };
+      };
     };
   };
-
-  swapDevices = lib.mkForce [ ];
 }
