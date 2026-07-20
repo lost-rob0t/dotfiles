@@ -61,6 +61,13 @@ password_confirmation="$(zenity --password --title="Confirm Password" --text="En
 [[ "$password" == "$password_confirmation" ]] || fail_dialog "The passwords do not match."
 unset password_confirmation
 
+luks_password="$(zenity --password --title="Disk Encryption Passphrase" --text="Passphrase for the encrypted Logos disk:")" || exit 0
+[[ -n "$luks_password" ]] || fail_dialog "The disk-encryption passphrase cannot be empty."
+
+luks_password_confirmation="$(zenity --password --title="Confirm Disk Passphrase" --text="Enter the disk-encryption passphrase again:")" || exit 0
+[[ "$luks_password" == "$luks_password_confirmation" ]] || fail_dialog "The disk-encryption passphrases do not match."
+unset luks_password_confirmation
+
 summary="Target disk: $selected_disk
 Flake: $flake
 
@@ -76,10 +83,12 @@ zenity \
   --text="$summary" || exit 0
 
 password_file="$(mktemp --tmpdir="${XDG_RUNTIME_DIR:-/tmp}" logos-password.XXXXXX)"
-trap 'rm -f -- "$password_file"' EXIT
-chmod 600 "$password_file"
+luks_password_file="$(mktemp --tmpdir="${XDG_RUNTIME_DIR:-/tmp}" logos-luks-password.XXXXXX)"
+trap 'rm -f -- "$password_file" "$luks_password_file"' EXIT
+chmod 600 "$password_file" "$luks_password_file"
 printf '%s\n' "$password" > "$password_file"
-unset password
+printf '%s\n' "$luks_password" > "$luks_password_file"
+unset password luks_password
 
 install_command=(
   sudo
@@ -87,6 +96,7 @@ install_command=(
   --disk "$selected_disk"
   --flake "$flake"
   --password-file "$password_file"
+  --luks-password-file "$luks_password_file"
   --yes
 )
 
