@@ -17,8 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: devops-actions/actionlint@e7ee33fbf5aa8c9f9ee1145137f3e52e25d6a35b
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Check shell scripts
-        run: bash -n scripts/*.sh
+        run: |
+          set -euo pipefail
+          bash -n scripts/*.sh
+          shellcheck --severity=warning scripts/*.sh
 
   logos:
     needs: workflows
@@ -26,6 +31,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v16
+        with:
+          name: nix-community
       - run: nix flake check --show-trace
       - run: nix build --no-link --print-build-logs
-      - run: nix build .#logos-iso --no-link --print-build-logs

@@ -6,6 +6,7 @@
     ./desktop.nix
     ./display.nix
     ./fonts.nix
+    ./hibernation.nix
     ./self-hosted.nix
  ];
 

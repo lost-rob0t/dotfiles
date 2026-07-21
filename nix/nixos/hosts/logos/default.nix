@@ -1,10 +1,15 @@
-{ lib, pkgs, ... }:
+{
+  lib,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
-    ./disk-layout.nix
+    ./disk.nix
     ./hardware-configuration.nix
     ./policy.nix
+    ../../mods/hibernation.nix
   ];
 
   nixpkgs.config.allowUnfree = true;
@@ -58,6 +63,9 @@
       windowManager.qtile.enable = true;
     };
 
+    # libinput (touchpad/mouse). The enable option moved from
+    # services.xserver.libinput to services.libinput in nixpkgs 26.05.
+    # Let libinput/Intel defaults handle click behavior, tapping, etc.
     libinput.enable = true;
 
     pipewire = {
@@ -83,6 +91,10 @@
   security = {
     polkit.enable = true;
     rtkit.enable = true;
+    sudo = {
+      enable = true;
+      wheelNeedsPassword = true;
+    };
   };
 
   virtualisation.docker = {
