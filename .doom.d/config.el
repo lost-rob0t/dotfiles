@@ -269,6 +269,11 @@ The optional argument NEW-WINDOW is not used."
                   :todo ("DONE"))
            )))
 
+(setq initial-buffer-choice
+      (lambda ()
+        (org-agenda nil "a")
+        (get-buffer "*Org Agenda*")))
+
 (map! :leader
       :desc "Tangle a file"
       "b t" #'org-babel-tangle)
