@@ -25,8 +25,9 @@ Options:
   -f, --flake PATH               Flake path (without #attr). Final URL is
                                   PATH#ATTR. Default: \$LOGOS_DEFAULT_FLAKE
                                   or \$LOGOS_FLAKE or /etc/logos.
-      --copy-source PATH         Copy a flake/source tree to /etc/nixos on
-                                  the target. Default: \$LOGOS_SOURCE.
+      --copy-source PATH         Stage a flake/source tree at writable
+                                  /config, then copy it to /etc/nixos on the
+                                  target. Default: \$LOGOS_SOURCE.
       --no-copy-source           Do not copy installer source to /etc/nixos.
       --mount-point PATH         Temporary installation mount point.
                                   Default: /mnt
@@ -312,6 +313,27 @@ fi
 if [[ -n "$copy_source" ]]; then
   copy_source="$(readlink -f -- "$copy_source")"
   [[ -d "$copy_source" ]] || die "copy source is not a directory: $copy_source"
+fi
+
+# Flake sources packaged into the installer live in the immutable Nix store.
+# Stage the complete tree in /config before generating machine-specific files.
+if [[ "$dry_run" == false && -n "$copy_source" && "$copy_source" != "/config" ]]; then
+  source_path="$copy_source"
+  resolved_flake_path="$flake_path"
+  if [[ -d "$flake_path" ]]; then
+    resolved_flake_path="$(readlink -f -- "$flake_path")"
+  fi
+
+  printf ':: Copying installer configuration %s -> /config\n' "$source_path"
+  rm -rf -- /config
+  cp -aT -- "$source_path" /config
+  chmod -R u+w /config
+  copy_source="/config"
+
+  if [[ "$resolved_flake_path" == "$source_path" ]]; then
+    flake_path="/config"
+    flake="$flake_path#$flake_attr"
+  fi
 fi
 
 if [[ -e "$disk" ]]; then
