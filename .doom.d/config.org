@@ -564,7 +564,14 @@ I prefer being able to have different views within org agenda, so i can see what
            (:name "✅ Done"
                   :todo ("DONE"))
            )))
-
+#+end_src
+**** Open to agenda on startup
+By default doom opens to the =*scratch*= buffer. I want emacs to boot straight into my (super) agenda so the first thing I see is what needs doing today.
+#+begin_src emacs-lisp
+(setq initial-buffer-choice
+      (lambda ()
+        (org-agenda nil "a")
+        (get-buffer "*Org Agenda*")))
 #+end_src
 *** Babel
 Tangle a file
