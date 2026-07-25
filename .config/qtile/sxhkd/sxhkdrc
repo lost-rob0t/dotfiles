@@ -14,10 +14,10 @@ super + shift + v
 #################################################################
 
 super + F1
-	brave
+ 	brave
 
 super + F2
-	emacs
+ 	emacs
 
 super + F3
     inkscape
@@ -77,7 +77,7 @@ super + Escape
 
 #File-Manager
 super + shift + Return
-	thunar
+ 	thunar
 
 #Keyboard dependent
 #File-Manager
@@ -86,10 +86,10 @@ super + shift + Return
 
 #j4-dmenu
 super + d
-	j4-dmenu-desktop
+ 	j4-dmenu-desktop
 #reload sxhkd:
 super + shift + s
-	pkill -USR1 -x sxhkd
+ 	pkill -USR1 -x sxhkd
 
 #Keyboard dependent
 #super + shift + KP_Enter
@@ -188,9 +188,12 @@ alt + shift + u
 #     SCREENSHOTS
 #################################################################
 
-#Scrot
-alt + Print       exec flameshot full -p "~/Pictures/screenshots"
-alt + shift + Print exec flameshot gui -p "~/Pictures/screenshots"
+# Flameshot
+alt + Print
+    flameshot full -p "$HOME/Pictures/screenshots"
+
+alt + shift + Print
+    flameshot gui -p "$HOME/Pictures/screenshots"
 
 #screeenshooter
 ctrl + Print
