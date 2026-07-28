@@ -1,306 +1,200 @@
-;;; chat.el --- Enhanced AI/Chat interface with automatic summarization -*- lexical-binding: t -*-
+;;; chat.el --- Org-native gptel agent chat -*- lexical-binding: t; -*-
 
-;; Author: Your Name
-;; Version: 2.0
-;; Package-Requires: ((emacs "27.1") (gptel "0.1"))
-;; Keywords: ai, chat, llm
-
-;;; Commentary:
-
-;; Enhanced AI/Chat interface using gptel with org-mode.
-;; Features:
-;; - Auto-summarization using Claude Haiku after first exchange
-;; - Automatic buffer title updates
-;; - Clean token usage (removes wasteful insertions)
-;; - Auto-save as .org.llm files
-;; - Base tools integration
-;; - Auto-insert USER prompt after AI responses
-
-;;; Code:
-
+(require 'cl-lib)
 (require 'gptel)
 (require 'org)
+(require 'subr-x)
+(require 'ai)
+(require 'ai-agent)
 
-(let ((ai-lib (expand-file-name "ai.el"
-                                (file-name-directory (or load-file-name buffer-file-name)))))
-  (when (file-exists-p ai-lib)
-    (load ai-lib nil t)))
+(defgroup ai/chat nil
+  "Org-native gptel chat sessions."
+  :group 'ai/llm
+  :prefix "ai/chat-")
 
-;;; ============================================================================
-;;; Configuration Variables
-;;; ============================================================================
-
-(defcustom ai/chat-summary-backend nil
-  "Backend to use for summarization. If nil, creates Claude Haiku backend."
-  :type 'symbol
-  :group 'ai-chat)
-
-(defcustom ai/chat-save-directory (expand-file-name "~/Document/Notes/org/roam/llm/")
-  "Directory to save chat files."
+(defcustom ai/chat-save-directory
+  (expand-file-name "~/Documents/Notes/org/roam/llm/")
+  "Directory used for persistent Org chat files."
   :type 'directory
-  :group 'ai-chat)
+  :group 'ai/chat)
 
 (defcustom ai/chat-auto-save t
-  "Whether to auto-save chats after summarization."
+  "When non-nil, save chat buffers after each successful response."
   :type 'boolean
-  :group 'ai-chat)
+  :group 'ai/chat)
 
-;;; ============================================================================
-;;; Backend Setup
-;;; ============================================================================
+(defcustom ai/chat-auto-title t
+  "When non-nil, generate a title after the first response."
+  :type 'boolean
+  :group 'ai/chat)
 
-(defun ai/chat--get-summary-backend ()
-  "Get or create the OpenRouter backend for summarization."
-  (or ai/chat-summary-backend
-      (setq ai/chat-summary-backend
-            (ai/llm-openrouter-backend :stream nil :name "OpenRouterReWrite"))))
+(defcustom ai/chat-system-prompt ai/agent-system-prompt
+  "System message used for new agent chat buffers."
+  :type 'string
+  :group 'ai/chat)
 
-(defun ai/chat--get-main-backend ()
-  "Get the main chat backend."
-  (ai/llm-openrouter-backend :stream t :name "OpenRouter"))
+(defvar-local ai/chat--titled nil
+  "Non-nil after the current chat has received an automatic title.")
 
-;;; ============================================================================
-;;; Summarization Logic
-;;; ============================================================================
+(defvar-local ai/chat--session-id nil
+  "Stable identifier used for the current chat file.")
 
-(defvar ai/chat--first-exchange-done nil
-  "Buffer-local variable tracking if first exchange is complete.")
-(make-variable-buffer-local 'ai/chat--first-exchange-done)
+(defun ai/chat--slug (text)
+  "Return a filesystem-safe slug for TEXT."
+  (let* ((downcase (downcase (string-trim text)))
+         (clean (replace-regexp-in-string "[^[:alnum:]]+" "-" downcase)))
+    (string-trim clean "-+" "-+")))
 
-(defvar ai/chat--original-content nil
-  "Buffer-local variable storing original content before summarization.")
-(make-variable-buffer-local 'ai/chat--original-content)
+(defun ai/chat--session-id ()
+  "Return or create the current chat session identifier."
+  (or ai/chat--session-id
+      (setq ai/chat--session-id (format-time-string "%Y%m%dT%H%M%S"))))
 
-(defun ai/chat--extract-conversation ()
-  "Extract the conversation content from current buffer."
+(defun ai/chat--file (&optional title)
+  "Return the chat file path, optionally incorporating TITLE."
+  (let* ((slug (and title (ai/chat--slug title)))
+         (basename (if (and slug (not (string-empty-p slug)))
+                       (format "%s-%s.org" (ai/chat--session-id) slug)
+                     (format "%s-chat.org" (ai/chat--session-id)))))
+    (expand-file-name basename ai/chat-save-directory)))
+
+(defun ai/chat--ensure-header ()
+  "Ensure the current Org chat has persistent gptel metadata headers."
   (save-excursion
     (goto-char (point-min))
-    ;; Find first USER message
-    (when (re-search-forward "^\\*+ USER:" nil t)
-      (let ((start (match-beginning 0)))
-        (buffer-substring-no-properties start (point-max))))))
+    (unless (looking-at-p "#\\+title:")
+      (insert "#+title: LLM Chat\n"
+              "#+category: llm\n"
+              "#+filetags: :llm:gptel:\n\n"))))
 
-(defun ai/chat--summarize-async (conversation buffer-name callback)
-  "Summarize CONVERSATION using Claude Haiku.
-BUFFER-NAME is the chat buffer name for context.
-CALLBACK is called with (title summary) on success."
-  (let ((backend (ai/chat--get-summary-backend))
-        (prompt (format "Please analyze this conversation and provide:
-
-1. A concise title (max 60 chars) that captures the main topic/request
-2. A brief summary (2-3 sentences) of what was discussed and accomplished
-
-Format your response as:
-TITLE: [your title here]
-SUMMARY: [your summary here]
-
-Conversation:
-%s" conversation)))
-    
-    (gptel-request prompt
-      :backend backend
-      :model (ai/llm-resolve-model)
-      :callback
-      (lambda (response info)
-        (if response
-            (let ((title (ai/chat--extract-title response))
-                  (summary (ai/chat--extract-summary response)))
-              (funcall callback title summary))
-          (message "Failed to summarize: %s" (plist-get info :status)))))))
-
-(defun ai/chat--extract-title (response)
-  "Extract title from summarization RESPONSE."
-  (when (string-match "TITLE: *\\(.+\\)" response)
-    (string-trim (match-string 1 response))))
-
-(defun ai/chat--extract-summary (response)
-  "Extract summary from summarization RESPONSE."
-  (when (string-match "SUMMARY: *\\(.+\\)" response)
-    (string-trim (match-string 1 response))))
-
-;;; ============================================================================
-;;; Buffer Management
-;;; ============================================================================
-
-(defun ai/chat--update-buffer-header (title summary)
-  "Update buffer header with TITLE and SUMMARY."
+(defun ai/chat--conversation-text ()
+  "Return the current conversation without Org file metadata."
   (save-excursion
     (goto-char (point-min))
-    ;; Replace or add the header
-    (if (looking-at "^#\\+TITLE:")
-        ;; Replace existing header
-        (progn
-          (kill-line)
-          (kill-line) ; Remove description line if exists
-          (when (looking-at "^#\\+DESCRIPTION:")
-            (kill-line))
-          (when (looking-at "^$")
-            (kill-line))) ; Remove blank line
-      ;; Insert new header
-      (insert "\n")
-      (goto-char (point-min)))
-    
-    ;; Insert new header
-    (insert (format "#+TITLE: %s\n" title))
-    (insert (format "#+DESCRIPTION: %s\n\n" summary))))
+    (while (looking-at-p "#\\+") (forward-line 1))
+    (string-trim (buffer-substring-no-properties (point) (point-max)))))
 
-(defun ai/chat--save-buffer (buffer-name title)
-  "Save buffer to file with proper name based on TITLE."
+(defun ai/chat--summary-backend ()
+  "Return a non-streaming backend matching `ai/llm-provider'."
+  (pcase ai/llm-provider
+    ('zai (ai/llm-zai-backend :stream nil :name "Z.AI Summary"))
+    ('openai (ai/llm-openai-backend :stream nil :name "OpenAI Summary"))
+    ('openrouter (ai/llm-openrouter-backend :stream nil :name "OpenRouter Summary"))))
+
+(defun ai/chat--extract-field (field response)
+  "Extract FIELD from RESPONSE formatted as FIELD: value."
+  (when (string-match (format "^%s:[[:space:]]*\\(.+\\)$" (regexp-quote field))
+                      response)
+    (string-trim (match-string 1 response))))
+
+(defun ai/chat--set-title (title summary)
+  "Set Org TITLE and SUMMARY metadata and rename the buffer."
+  (save-excursion
+    (goto-char (point-min))
+    (if (re-search-forward "^#\\+title:.*$" nil t)
+        (replace-match (format "#+title: %s" title) t t)
+      (insert (format "#+title: %s\n" title)))
+    (goto-char (point-min))
+    (if (re-search-forward "^#\\+description:.*$" nil t)
+        (replace-match (format "#+description: %s" summary) t t)
+      (forward-line 1)
+      (insert (format "#+description: %s\n" summary))))
+  (rename-buffer (format "*LLM: %s*" title) t)
   (when ai/chat-auto-save
-    (let* ((safe-title (replace-regexp-in-string "[^a-zA-Z0-9-_ ]" "" title))
-           (filename (format "%s.org.llm" safe-title))
-           (filepath (expand-file-name filename ai/chat-save-directory)))
-      
-      ;; Ensure directory exists
-      (unless (file-exists-p ai/chat-save-directory)
-        (make-directory ai/chat-save-directory t))
-      
-      ;; Save buffer
-      (write-file filepath)
-      (message "Saved chat: %s" filepath))))
+    (let ((old-file buffer-file-name)
+          (new-file (ai/chat--file title)))
+      (make-directory ai/chat-save-directory t)
+      (set-visited-file-name new-file t)
+      (save-buffer)
+      (when (and old-file (not (equal old-file new-file)) (file-exists-p old-file))
+        (ignore-errors (delete-file old-file))))))
 
-;;; ============================================================================
-;;; Hook Functions
-;;; ============================================================================
+(defun ai/chat--title-async ()
+  "Generate and apply a title and summary for the current chat."
+  (let ((source-buffer (current-buffer))
+        (conversation (ai/chat--conversation-text)))
+    (unless (string-empty-p conversation)
+      (gptel-request
+       (format "Return exactly two single-line fields for this conversation:\nTITLE: a concrete title under 60 characters\nSUMMARY: one sentence describing the work\n\n%s"
+               conversation)
+       :backend (ai/chat--summary-backend)
+       :model (ai/llm-resolve-model)
+       :stream nil
+       :callback
+       (lambda (response info)
+         (when (and response (buffer-live-p source-buffer))
+           (let ((title (ai/chat--extract-field "TITLE" response))
+                 (summary (ai/chat--extract-field "SUMMARY" response)))
+             (when (and title summary)
+               (with-current-buffer source-buffer
+                 (setq ai/chat--titled t)
+                 (ai/chat--set-title title summary)))))
+         (unless response
+           (message "Chat title generation failed: %s" (plist-get info :status))))))))
 
-(defun ai/chat--auto-insert-user-prompt (start end)
-  "Auto-insert USER prompt after AI response.
-Called as a hook function with START and END positions of the AI response."
-  ;; Only run in LLM Chat buffers
-  (when (string-match-p "\\*LLM Chat\\*" (buffer-name))
-    (save-excursion
-      (goto-char end)
-      ;; Move past any trailing whitespace
-      (skip-chars-forward " \t\n")
-      ;; Check if we're not already at a USER prompt
-      (unless (looking-at "\\*+ USER:")
-        ;; Insert newline if not at beginning of line
-        (unless (bolp)
-          (insert "\n"))
-        ;; Insert the USER prompt with consistent level
-        (insert "\n*** USER: ")))))
+(defun ai/chat--save ()
+  "Persist the current chat buffer."
+  (when ai/chat-auto-save
+    (make-directory ai/chat-save-directory t)
+    (unless buffer-file-name
+      (set-visited-file-name (ai/chat--file) t))
+    (save-buffer)))
 
-(defun ai/chat--post-response-handler (start end)
-  "Handle post-response tasks including summarization.
-Called with START and END positions of the AI response."
-  (when (string-match-p "\\*LLM Chat\\*" (buffer-name))
-    ;; Insert user prompt first
-    (ai/chat--auto-insert-user-prompt start end)
-    
-    ;; Check if this is the first exchange completion
-    (unless ai/chat--first-exchange-done
-      (setq ai/chat--first-exchange-done t)
-      (setq ai/chat--original-content (buffer-string))
-      
-      ;; Start summarization process
-      (let ((conversation (ai/chat--extract-conversation))
-            (current-buffer (current-buffer))
-            (buffer-name (buffer-name)))
-        (when conversation
-          (ai/chat--summarize-async
-           conversation
-           buffer-name
-           (lambda (title summary)
-             (when (buffer-live-p current-buffer)
-               (with-current-buffer current-buffer
-                 (ai/chat--update-buffer-header title summary)
-                 (rename-buffer (format "*%s*" title))
-                 (ai/chat--save-buffer buffer-name title)
-                 (message "Chat summarized: %s" title))))))))))
-
-;;; ============================================================================
-;;; Main Interface
-;;; ============================================================================
+(defun ai/chat--after-response (_start _end)
+  "Post-response hook for persistence and one-time automatic titling."
+  (when (derived-mode-p 'org-mode)
+    (ai/chat--save)
+    (when (and ai/chat-auto-title (not ai/chat--titled))
+      (ai/chat--title-async))))
 
 ;;;###autoload
-(defun ai/chat ()
-  "Start an enhanced AI chat session with auto-summarization."
+(defun ai/chat (&optional name)
+  "Open a persistent Org agent chat named NAME.
+The default model is GLM-5.2; use gptel presets to switch per request."
   (interactive)
-  (let* ((buffer-name (read-string "Chat name: " "*LLM Chat*"))
-         (buffer (get-buffer-create buffer-name))
-         (backend (ai/chat--get-main-backend)))
-    
+  (let* ((name (or name (read-string "Chat name: " "LLM Chat")))
+         (buffer (generate-new-buffer (format "*%s*" name))))
     (with-current-buffer buffer
-      ;; Initialize org-mode and buffer state
-      (unless (eq major-mode 'org-mode)
-        (org-mode))
-      
-      ;; Clear buffer and start fresh
-      (erase-buffer)
-      
-      ;; Set up minimal initial content (no wasteful descriptions)
-      (insert "*** USER: ")
-      
-       ;; Configure gptel
-       (setq-local gptel-backend backend)
-       (setq-local gptel-model (ai/llm-resolve-model))
-       (setq-local gptel--system-message ai/todo-system-prompt)
-      
-      ;; Initialize buffer-local variables
-      (setq-local ai/chat--first-exchange-done nil)
-      (setq-local ai/chat--original-content nil)
-      
-      ;; Set up hooks
-      (add-hook 'gptel-post-response-functions #'ai/chat--post-response-handler nil t)
-      
-      ;; Activate gptel-mode
-      (gptel-mode 1))
-    
-    ;; Switch to buffer and position cursor
+      (org-mode)
+      (setq-local ai/chat--session-id (format-time-string "%Y%m%dT%H%M%S"))
+      (setq-local gptel-backend (ai/llm-backend))
+      (setq-local gptel-model (ai/llm-resolve-model))
+      (setq-local gptel-system-message ai/chat-system-prompt)
+      (setq-local gptel-tools ai/agent-tools)
+      (setq-local gptel-use-context 'system)
+      (setq-local gptel-track-media t)
+      (setq-local gptel-include-reasoning t)
+      (ai/chat--ensure-header)
+      (goto-char (point-max))
+      (insert "* User\n")
+      (add-hook 'gptel-post-response-functions #'ai/chat--after-response nil t)
+      (gptel-mode 1)
+      (ai/chat--save))
     (switch-to-buffer buffer)
-    (goto-char (point-max))
-    (message "Enhanced AI Chat started. First exchange will be auto-summarized.")))
-
-;;; ============================================================================
-;;; Utility Functions
-;;; ============================================================================
+    (goto-char (point-max))))
 
 ;;;###autoload
 (defun ai/chat-list-saved ()
-  "List all saved chat files."
+  "Open a Dired buffer containing saved LLM chats."
   (interactive)
-  (if (file-exists-p ai/chat-save-directory)
-      (let ((files (directory-files ai/chat-save-directory nil "\\.org\\.llm$")))
-        (if files
-            (progn
-              (with-current-buffer (get-buffer-create "*Saved Chats*")
-                (erase-buffer)
-                (insert "# Saved AI Chats\n\n")
-                (dolist (file files)
-                  (insert (format "- [[file:%s][%s]]\n" 
-                                  (expand-file-name file ai/chat-save-directory)
-                                  (file-name-sans-extension file))))
-                (org-mode)
-                (goto-char (point-min)))
-              (switch-to-buffer "*Saved Chats*"))
-          (message "No saved chats found")))
-    (message "Chat directory doesn't exist: %s" ai/chat-save-directory)))
+  (make-directory ai/chat-save-directory t)
+  (dired ai/chat-save-directory))
 
 ;;;###autoload
-(defun ai/chat-open-saved (filename)
-  "Open a saved chat file."
+(defun ai/chat-resume (file)
+  "Resume saved gptel chat FILE."
   (interactive
-   (list (completing-read "Open chat: "
-                          (when (file-exists-p ai/chat-save-directory)
-                            (directory-files ai/chat-save-directory nil "\\.org\\.llm$")))))
-  (let ((filepath (expand-file-name filename ai/chat-save-directory)))
-    (if (file-exists-p filepath)
-        (find-file filepath)
-      (error "Chat file not found: %s" filepath))))
-
-;;;###autoload
-(defun ai/chat-clean-directory ()
-  "Clean up old chat files (interactive selection)."
-  (interactive)
-  (when (file-exists-p ai/chat-save-directory)
-    (let ((files (directory-files ai/chat-save-directory nil "\\.org\\.llm$")))
-      (when files
-        (let ((to-delete (completing-read-multiple "Delete chats: " files)))
-          (dolist (file to-delete)
-            (when (y-or-n-p (format "Really delete %s? " file))
-              (delete-file (expand-file-name file ai/chat-save-directory))
-              (message "Deleted: %s" file))))))))
+   (list (read-file-name "Chat file: " ai/chat-save-directory nil t nil
+                         (lambda (path)
+                           (or (file-directory-p path)
+                               (string-match-p "\\.org\\'" path))))))
+  (find-file file)
+  (org-mode)
+  (setq-local gptel-backend (ai/llm-backend))
+  (setq-local gptel-model (ai/llm-resolve-model))
+  (setq-local gptel-tools ai/agent-tools)
+  (add-hook 'gptel-post-response-functions #'ai/chat--after-response nil t)
+  (gptel-mode 1))
 
 (provide 'chat)
-
 ;;; chat.el ends here
