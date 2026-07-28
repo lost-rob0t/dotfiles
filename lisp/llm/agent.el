@@ -68,7 +68,14 @@
  "MultiEdit" #'ai/agent-multi-edit "filesystem"
  "Apply multiple exact edits to one file as one validated atomic transaction."
  '((:name "path" :type string :description "File path")
-   (:name "edits" :type array :description "Objects with old_text, new_text, and optional replace_all")
+   (:name "edits" :type array
+          :items (:type object
+                  :properties (:old_text (:type string :description "Exact text to replace")
+                               :new_text (:type string :description "Replacement text")
+                               :replace_all (:type boolean :description "Replace all exact matches"))
+                  :required ["old_text" "new_text"]
+                  :additionalProperties :json-false)
+          :description "Ordered exact-match edits")
    (:name "preview" :type boolean :optional t :description "Return diff without writing"))
  t)
 
@@ -164,7 +171,13 @@
  '((:name "url" :type string :description "HTTP or HTTPS URL")
    (:name "method" :type string :optional t :enum ["GET" "POST" "PUT" "PATCH" "DELETE"]
           :description "HTTP method")
-   (:name "headers" :type array :optional t :description "Header objects with name and value")
+   (:name "headers" :type array :optional t
+          :items (:type object
+                  :properties (:name (:type string :description "Header name")
+                               :value (:type string :description "Header value"))
+                  :required ["name" "value"]
+                  :additionalProperties :json-false)
+          :description "HTTP headers")
    (:name "body" :type string :optional t :description "Request body"))
  t)
 
