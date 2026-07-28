@@ -2,6 +2,44 @@
 
 (require 'ai-agent-core)
 
+(defun ai/agent--patch-paths (patch)
+  "Return every non-null path referenced by unified PATCH headers."
+  (with-temp-buffer
+    (insert patch)
+    (goto-char (point-min))
+    (let (paths)
+      (while (re-search-forward
+              "^\\(?:---\\|+++\\) \\(?:[ab]/\\)?\\([^\t\n]+\\)" nil t)
+        (let ((path (match-string 1)))
+          (unless (string= path "/dev/null")
+            (push path paths))))
+      (delete-dups (nreverse paths)))))
+
+(defun ai/agent--run-process (program arguments &optional directory timeout)
+  "Run PROGRAM with ARGUMENTS in DIRECTORY with TIMEOUT seconds."
+  (let* ((buffer (generate-new-buffer " *ai-agent-process*"))
+         (default-directory (or directory default-directory))
+         (deadline (+ (float-time) (or timeout ai/agent-command-timeout)))
+         (process (make-process :name "ai-agent-process"
+                                :buffer buffer
+                                :command (cons program arguments)
+                                :connection-type 'pipe
+                                :noquery t))
+         timed-out)
+    (unwind-protect
+        (progn
+          (while (and (process-live-p process) (< (float-time) deadline))
+            (accept-process-output process 0.1))
+          (when (process-live-p process)
+            (setq timed-out t)
+            (delete-process process))
+          (while (accept-process-output process 0.05))
+          (with-current-buffer buffer
+            (list :exit-code (unless timed-out (process-exit-status process))
+                  :timed-out timed-out
+                  :output (buffer-substring-no-properties (point-min) (point-max)))))
+      (kill-buffer buffer))))
+
 (defun ai/agent--register (name function category description &optional args confirm aliases)
   "Register a gptel tool and optional ALIASES."
   (dolist (tool-name (cons name aliases))
@@ -52,7 +90,8 @@
 (ai/agent--register
  "FileStat" #'ai/agent-file-stat "filesystem"
  "Return type, size, modification time, and modes for a path."
- '((:name "path" :type string :description "Project-relative path")))
+ '((:name "path" :type string :description "Project-relative path"))
+ nil nil)
 
 (ai/agent--register
  "Edit" #'ai/agent-edit-file "filesystem"
@@ -77,7 +116,7 @@
                   :additionalProperties :json-false)
           :description "Ordered exact-match edits")
    (:name "preview" :type boolean :optional t :description "Return diff without writing"))
- t)
+ t nil)
 
 (ai/agent--register
  "Write" #'ai/agent-write-file "filesystem"
@@ -98,7 +137,7 @@
 (ai/agent--register
  "Mkdir" #'ai/agent-make-directory "filesystem"
  "Create a directory and missing parents."
- '((:name "path" :type string :description "Directory path")) t)
+ '((:name "path" :type string :description "Directory path")) t nil)
 
 (ai/agent--register
  "Move" #'ai/agent-move-path "filesystem"
@@ -128,7 +167,8 @@
  "Return a bounded Git diff."
  '((:name "cached" :type boolean :optional t :description "Show staged changes")
    (:name "ref" :type string :optional t :description "Commit or branch to compare")
-   (:name "path" :type string :optional t :description "Restrict to a path")))
+   (:name "path" :type string :optional t :description "Restrict to a path"))
+ nil nil)
 (ai/agent--register
  "DiffFiles" #'ai/agent-diff-files "filesystem"
  "Show a unified diff between two files."
@@ -179,7 +219,7 @@
                   :additionalProperties :json-false)
           :description "HTTP headers")
    (:name "body" :type string :optional t :description "Request body"))
- t)
+ t nil)
 
 (ai/agent--register "ListContext" #'ai/agent-list-context "context"
                     "List files below the project's .context directory." nil nil '("list_context_files"))
@@ -194,7 +234,7 @@
  '((:name "path" :type string :description "Path relative to .context")
    (:name "content" :type string :description "Complete content")
    (:name "overwrite" :type boolean :optional t :description "Permit replacement"))
- t)
+ t nil)
 
 (setq ai/agent-tools
       '("Read" "Glob" "Grep" "LS" "FileStat"
