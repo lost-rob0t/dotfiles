@@ -325,7 +325,14 @@ The patch is never run against the actual Org file."
  "todo_multi_edit" #'ai/todo-multi-edit
  "Apply multiple exact edits to one todo subtree as one transaction."
  '((:name "title" :type string :description "Exact heading title")
-   (:name "edits" :type array :description "Objects with old_text, new_text, optional replace_all")
+   (:name "edits" :type array
+          :items (:type object
+                  :properties (:old_text (:type string :description "Exact text to replace")
+                               :new_text (:type string :description "Replacement text")
+                               :replace_all (:type boolean :description "Replace all exact matches"))
+                  :required ["old_text" "new_text"]
+                  :additionalProperties :json-false)
+          :description "Ordered exact-match edits")
    (:name "file" :type string :optional t :description "Todo Org file")
    (:name "preview" :type boolean :optional t :description "Return diff without writing")) t)
 
@@ -341,14 +348,26 @@ The patch is never run against the actual Org file."
  "apply_todo_line_changes" #'ai/todo-apply-line-changes
  "Compatibility line-number editor. Prefer todo_multi_edit."
  '((:name "title" :type string :description "Exact heading title")
-   (:name "updates" :type array :description "Objects with absolute line and content")
+   (:name "updates" :type array
+          :items (:type object
+                  :properties (:line (:type integer :description "Absolute line number")
+                               :content (:type string :description "Complete replacement line"))
+                  :required ["line" "content"]
+                  :additionalProperties :json-false)
+          :description "Absolute line replacements")
    (:name "file" :type string :optional t :description "Todo Org file")) t)
 
 (ai/todo-edit--register
  "preview_todo_changes" #'ai/todo-preview-line-changes
  "Preview compatibility line-number changes."
  '((:name "title" :type string :description "Exact heading title")
-   (:name "updates" :type array :description "Objects with absolute line and content")
+   (:name "updates" :type array
+          :items (:type object
+                  :properties (:line (:type integer :description "Absolute line number")
+                               :content (:type string :description "Complete replacement line"))
+                  :required ["line" "content"]
+                  :additionalProperties :json-false)
+          :description "Absolute line replacements")
    (:name "file" :type string :optional t :description "Todo Org file")))
 
 (ai/todo-edit--register
