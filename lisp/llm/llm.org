@@ -1,0 +1,94 @@
+#+title: Emacs LLM and gptel configuration
+#+author: nsaspy
+#+startup: overview
+#+property: header-args:emacs-lisp :results none :lexical yes
+
+* Defaults
+
+The local gptel stack defaults to Z.AI =glm-5.2=.  OpenAI
+=gpt-5.6-sol= is available as a first-class Responses API backend.
+
+API keys are resolved from environment variables first and then
+=auth-source=:
+
+- =ZAI_API_KEY= or host =api.z.ai=
+- =OPENAI_API_KEY= or host =api.openai.com=
+- =OPENROUTER_API_KEY= or host =openrouter.ai=
+
+A Coding Plan endpoint can be selected without changing Lisp:
+
+#+begin_src shell
+export ZAI_API_ENDPOINT=/api/coding/paas/v4/chat/completions
+#+end_src
+
+* Loading
+
+Doom autoloads the stack after gptel is loaded.  It can also be loaded
+explicitly:
+
+#+begin_src emacs-lisp
+(require 'ai-init)
+(ai/llm-apply-defaults)
+#+end_src
+
+* Model switching
+
+#+begin_src emacs-lisp
+(ai/llm-use-glm-5.2)
+(ai/llm-use-gpt-5.6-sol)
+#+end_src
+
+The same switches are exposed as =M-x +llm/use-glm-5.2= and
+=M-x +llm/use-gpt-5.6-sol=.  A prefix argument makes the selection
+buffer-local.
+
+Available presets:
+
+- =@glm-5.2=
+- =@gpt-5.6-sol=
+- =@agent= — GLM-5.2 with the project agent tools
+- =@agent-gpt-5.6-sol= — GPT-5.6 Sol with the same tools
+
+* Agent file tools
+
+The enabled agent surface is intentionally small and Claude Code-like:
+
+- =Read=, =Glob=, =Grep=, =LS=, =FileStat=
+- =Edit=, =MultiEdit=, =Write=, =ApplyPatch=
+- =Mkdir=, =Move=, =Delete=
+- =Bash=, =GitStatus=, =GitDiff=, =DiffFiles=
+- buffer, Emacs introspection, web fetch, and project-context tools
+
+Mutations are project-confined by default, writes are atomic, exact edits
+fail on ambiguous matches, command output is bounded, and unified patches
+are validated before =git apply=.  Historical tool names remain registered
+for old prompts but are not enabled in the default agent preset.
+
+* Org todo editing
+
+The old subtree patch path has been replaced by transactional tools:
+
+- =todo_read=
+- =todo_edit=
+- =todo_multi_edit=
+- =todo_replace_subtree=
+- =apply_todo_patch=
+
+Raw patches are applied only to an isolated temporary subtree copy.  The
+actual Org buffer is changed only after the patch succeeds.
+
+* Persistent chat
+
+=M-x +llm/chat= opens an Org-native gptel chat using the active backend,
+agent tool set, response autosave, and one-time automatic title generation.
+Chats are stored below =~/Documents/Notes/org/roam/llm/=.
+
+* Source files
+
+#+INCLUDE: "ai.el" src emacs-lisp
+#+INCLUDE: "agent-core.el" src emacs-lisp
+#+INCLUDE: "agent.el" src emacs-lisp
+#+INCLUDE: "../../.doom.d/autoload/llm.el" src emacs-lisp
+#+INCLUDE: "chat.el" src emacs-lisp
+#+INCLUDE: "todo-diff.el" src emacs-lisp
+#+INCLUDE: "init.el" src emacs-lisp
