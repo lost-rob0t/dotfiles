@@ -60,10 +60,24 @@
 
 ;;;###autoload
 (defun +llm/use-gpt-5.6-sol (&optional local)
-  "Switch to OpenAI GPT-5.6 Sol."
+  "Switch to OpenAI API GPT-5.6 Sol."
   (interactive "P")
   (require 'ai)
   (ai/llm-use-gpt-5.6-sol local))
+
+;;;###autoload
+(defun +llm/use-openai-oauth (&optional local)
+  "Switch to GPT-5.6 Sol through OpenAI subscription OAuth."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-openai-oauth local))
+
+;;;###autoload
+(defun +llm/openai-login ()
+  "Authenticate the OpenAI subscription backend."
+  (interactive)
+  (require 'ai)
+  (ai/llm-openai-oauth-login))
 
 ;;;###autoload
 (defun +llm/agent-context ()
