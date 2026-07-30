@@ -1,4 +1,4 @@
-;;; ai.el --- Shared gptel backend and model configuration -*- lexical-binding: t; -*-
+;;; ai.el --- Shared modern gptel backend configuration -*- lexical-binding: t; -*-
 
 (require 'auth-source)
 (require 'cl-lib)
@@ -12,9 +12,10 @@
 
 (defcustom ai/llm-provider 'zai
   "Default LLM provider.
-Supported values are `zai', `openai', and `openrouter'."
-  :type '(choice (const :tag "Z.AI" zai)
-                 (const :tag "OpenAI" openai)
+Supported values are `zai', `openai', `openai-oauth', and `openrouter'."
+  :type '(choice (const :tag "Z.AI API" zai)
+                 (const :tag "OpenAI API" openai)
+                 (const :tag "OpenAI subscription OAuth" openai-oauth)
                  (const :tag "OpenRouter" openrouter))
   :group 'ai/llm)
 
@@ -36,55 +37,46 @@ Supported values are `zai', `openai', and `openrouter'."
 (defcustom ai/llm-zai-models
   '((glm-5.2
      :description "Z.AI flagship model for long-horizon coding and agent work"
-     :capabilities (tool json)
+     :capabilities (reasoning tool-use json)
      :context-window 1000
      :request-params (:thinking (:type "enabled")))
     (|glm-5.2[1m]|
-     :description "GLM-5.2 Coding Plan model with explicit one-million-token context"
-     :capabilities (tool json)
+     :description "GLM-5.2 Coding Plan model with one-million-token context"
+     :capabilities (reasoning tool-use json)
      :context-window 1000
      :request-params (:thinking (:type "enabled")))
-    (glm-5.1 :capabilities (tool json))
-    (glm-5 :capabilities (tool json) :context-window 200))
+    (glm-5.1
+     :capabilities (reasoning tool-use json)
+     :context-window 200
+     :request-params (:thinking (:type "enabled")))
+    (glm-5
+     :capabilities (reasoning tool-use json)
+     :context-window 200
+     :request-params (:thinking (:type "enabled"))))
   "Models advertised by the Z.AI backend."
   :type '(repeat sexp)
   :group 'ai/llm)
 
 (defcustom ai/llm-openai-models
-  '((gpt-5.6-sol
-     :description "OpenAI frontier model for complex reasoning and coding"
-     :capabilities (media tool json url)
-     :mime-types ("image/jpeg" "image/png" "image/gif" "image/webp")
-     :context-window 1050
-     :input-cost 5
-     :output-cost 30
-     :cutoff-date "2026-02")
-    (gpt-5.6
-     :description "Alias that routes to GPT-5.6 Sol"
-     :capabilities (media tool json url)
-     :mime-types ("image/jpeg" "image/png" "image/gif" "image/webp")
-     :context-window 1050)
-    (gpt-5.6-terra
-     :capabilities (media tool json url)
-     :mime-types ("image/jpeg" "image/png" "image/gif" "image/webp")
-     :context-window 1050
-     :input-cost 2.5
-     :output-cost 15)
-    (gpt-5.6-luna
-     :capabilities (media tool json url)
-     :mime-types ("image/jpeg" "image/png" "image/gif" "image/webp")
-     :context-window 1050
-     :input-cost 1
-     :output-cost 6))
-  "Models advertised by the OpenAI Responses backend."
-  :type '(repeat sexp)
+  '(gpt-5.6-sol gpt-5.6-terra gpt-5.6-luna)
+  "OpenAI model IDs exposed by the local model switcher.
+Metadata is supplied by current gptel instead of being duplicated here."
+  :type '(repeat symbol)
   :group 'ai/llm)
 
 (defcustom ai/llm-openrouter-models
-  '((z-ai/glm-5.2 :capabilities (tool json) :context-window 1000)
-    (openai/gpt-5.6-sol :capabilities (media tool json url) :context-window 1050)
-    (openai/gpt-5.6-terra :capabilities (media tool json url) :context-window 1050)
-    (openai/gpt-5.6-luna :capabilities (media tool json url) :context-window 1050))
+  '((z-ai/glm-5.2
+     :capabilities (reasoning tool-use json)
+     :context-window 1000)
+    (openai/gpt-5.6-sol
+     :capabilities (reasoning media tool-use json url)
+     :context-window 1050)
+    (openai/gpt-5.6-terra
+     :capabilities (reasoning media tool-use json url)
+     :context-window 1050)
+    (openai/gpt-5.6-luna
+     :capabilities (reasoning media tool-use json url)
+     :context-window 1050))
   "Models advertised by the OpenRouter backend."
   :type '(repeat sexp)
   :group 'ai/llm)
@@ -94,7 +86,8 @@ Supported values are `zai', `openai', and `openrouter'."
 
 (defun ai/llm--auth-source-secret (host)
   "Return a secret from auth-source for HOST, or nil."
-  (when-let* ((match (car (auth-source-search :host host :max 1 :require '(:secret))))
+  (when-let* ((match (car (auth-source-search :host host :max 1
+                                               :require '(:secret))))
               (secret (plist-get match :secret)))
     (if (functionp secret) (funcall secret) secret)))
 
@@ -118,13 +111,14 @@ Environment variables are preferred, then auth-source is consulted."
          (and (fboundp 'nsa/auth-source-get)
               (ignore-errors (nsa/auth-source-get :host "openrouter.ai")))
          (ai/llm--auth-source-secret "openrouter.ai")))
-    (_ (error "Unsupported LLM provider: %S" provider))))
+    (_ (error "Unsupported API-key LLM provider: %S" provider))))
 
 (defun ai/llm--require-api-key (provider)
   "Return PROVIDER's API key or signal a useful error."
   (or (ai/llm--api-key provider)
-      (user-error "No API key for %s; configure auth-source or the provider environment variable"
-                  provider)))
+      (user-error
+       "No API key for %s; configure auth-source or its environment variable"
+       provider)))
 
 (cl-defun ai/llm-zai-backend (&key (stream t) (name "Z.AI"))
   "Return a Z.AI OpenAI-compatible backend.
@@ -137,15 +131,19 @@ STREAM controls response streaming and NAME is the backend display name."
     :models ai/llm-zai-models))
 
 (cl-defun ai/llm-openai-backend (&key (stream t) (name "OpenAI"))
-  "Return an OpenAI backend with GPT-5.6 family support."
+  "Return the current gptel OpenAI Responses API backend."
   (gptel-make-openai name
-    :host "api.openai.com"
     :stream stream
-    :key (lambda () (ai/llm--require-api-key 'openai))
-    :models ai/llm-openai-models))
+    :key (lambda () (ai/llm--require-api-key 'openai))))
+
+(cl-defun ai/llm-openai-oauth-backend
+    (&key (stream t) (name "OpenAI Subscription"))
+  "Return gptel's OpenAI subscription OAuth backend."
+  (require 'gptel-openai-oauth)
+  (gptel-make-openai-oauth name :stream stream))
 
 (cl-defun ai/llm-openrouter-backend (&key (stream t) (name "OpenRouter"))
-  "Return an OpenRouter backend."
+  "Return an OpenRouter chat-completions backend."
   (gptel-make-openai name
     :host "openrouter.ai"
     :endpoint "/api/v1/chat/completions"
@@ -157,12 +155,14 @@ STREAM controls response streaming and NAME is the backend display name."
   "Return the backend for PROVIDER.
 PROVIDER defaults to `ai/llm-provider'.  When REFRESH is non-nil, rebuild it."
   (let ((provider (or provider ai/llm-provider)))
-    (when refresh (remhash provider ai/llm--backends))
+    (when refresh
+      (remhash provider ai/llm--backends))
     (or (gethash provider ai/llm--backends)
         (puthash provider
                  (pcase provider
                    ('zai (ai/llm-zai-backend))
                    ('openai (ai/llm-openai-backend))
+                   ('openai-oauth (ai/llm-openai-oauth-backend))
                    ('openrouter (ai/llm-openrouter-backend))
                    (_ (error "Unsupported LLM provider: %S" provider)))
                  ai/llm--backends))))
@@ -171,38 +171,47 @@ PROVIDER defaults to `ai/llm-provider'.  When REFRESH is non-nil, rebuild it."
   "Return MODEL when provided, otherwise `ai/llm-model'."
   (or model ai/llm-model))
 
+(defun ai/llm--model-name (spec)
+  "Return the model symbol represented by SPEC."
+  (if (consp spec) (car spec) spec))
+
 (defun ai/llm-models-for-provider (&optional provider)
-  "Return configured models for PROVIDER."
+  "Return configured model symbols for PROVIDER."
   (pcase (or provider ai/llm-provider)
-    ('zai (mapcar (lambda (spec) (if (consp spec) (car spec) spec)) ai/llm-zai-models))
-    ('openai (mapcar (lambda (spec) (if (consp spec) (car spec) spec)) ai/llm-openai-models))
-    ('openrouter (mapcar (lambda (spec) (if (consp spec) (car spec) spec)) ai/llm-openrouter-models))
+    ('zai (mapcar #'ai/llm--model-name ai/llm-zai-models))
+    ((or 'openai 'openai-oauth) ai/llm-openai-models)
+    ('openrouter (mapcar #'ai/llm--model-name ai/llm-openrouter-models))
     (_ nil)))
 
 (defun ai/llm-use (provider model &optional local)
   "Switch gptel to PROVIDER and MODEL.
 With LOCAL non-nil, only change the current buffer."
   (interactive
-   (let* ((provider (intern
-                     (completing-read "Provider: " '("zai" "openai" "openrouter")
-                                      nil t nil nil (symbol-name ai/llm-provider))))
-          (models (mapcar #'symbol-name (ai/llm-models-for-provider provider)))
-          (model (intern (completing-read "Model: " models nil t nil nil
-                                          (symbol-name
-                                           (if (memq ai/llm-model
-                                                     (ai/llm-models-for-provider provider))
-                                               ai/llm-model
-                                             (car (ai/llm-models-for-provider provider))))))))
+   (let* ((provider
+           (intern
+            (completing-read
+             "Provider: " '("zai" "openai" "openai-oauth" "openrouter")
+             nil t nil nil (symbol-name ai/llm-provider))))
+          (available (ai/llm-models-for-provider provider))
+          (default (if (memq ai/llm-model available)
+                       ai/llm-model
+                     (car available)))
+          (model
+           (intern
+            (completing-read "Model: " (mapcar #'symbol-name available)
+                             nil t nil nil (symbol-name default)))))
      (list provider model current-prefix-arg)))
-  (if local
-      (progn
-        (setq-local gptel-backend (ai/llm-backend provider))
-        (setq-local gptel-model model))
-    (setq ai/llm-provider provider
-          ai/llm-model model
-          gptel-backend (ai/llm-backend provider)
-          gptel-model model))
-  (message "gptel: %s / %s%s" provider model (if local " (buffer-local)" "")))
+  (let ((backend (ai/llm-backend provider)))
+    (if local
+        (progn
+          (setq-local gptel-backend backend)
+          (setq-local gptel-model model))
+      (setq ai/llm-provider provider
+            ai/llm-model model
+            gptel-backend backend
+            gptel-model model)))
+  (message "gptel: %s / %s%s"
+           provider model (if local " (buffer-local)" "")))
 
 (defun ai/llm-use-glm-5.2 (&optional local)
   "Use GLM-5.2 through Z.AI.
@@ -211,39 +220,64 @@ With prefix argument LOCAL, apply only in the current buffer."
   (ai/llm-use 'zai 'glm-5.2 local))
 
 (defun ai/llm-use-gpt-5.6-sol (&optional local)
-  "Use GPT-5.6 Sol through OpenAI.
+  "Use GPT-5.6 Sol through the OpenAI API.
 With prefix argument LOCAL, apply only in the current buffer."
   (interactive "P")
   (ai/llm-use 'openai 'gpt-5.6-sol local))
 
+(defun ai/llm-use-openai-oauth (&optional local)
+  "Use GPT-5.6 Sol through an OpenAI subscription OAuth session.
+With prefix argument LOCAL, apply only in the current buffer."
+  (interactive "P")
+  (ai/llm-use 'openai-oauth 'gpt-5.6-sol local))
+
+(defun ai/llm-openai-oauth-login ()
+  "Authenticate gptel's OpenAI subscription backend."
+  (interactive)
+  (require 'gptel-openai-oauth)
+  (gptel-openai-oauth-login (ai/llm-backend 'openai-oauth)))
+
 (defun ai/llm-apply-defaults ()
-  "Apply shared modern gptel defaults."
+  "Apply shared defaults for current gptel."
   (setq gptel-backend (ai/llm-backend ai/llm-provider)
         gptel-model ai/llm-model
         gptel-default-mode 'org-mode
+        gptel-stream t
+        gptel-use-curl t
         gptel-use-tools t
-        gptel-confirm-tool-calls t
-        gptel-include-reasoning t
-        gptel-org-branching-context t
+        gptel-confirm-tool-calls 'auto
+        gptel-include-tool-results 'auto
+        gptel-use-context 'system
+        gptel-include-reasoning 'ignore
         gptel-track-response t
-        gptel-use-header-line t
-        gptel-context-restrict-to-project-files t))
+        gptel-org-convert-response t
+        gptel-org-branching-context t
+        gptel-use-header-line t))
 
 (ai/llm-apply-defaults)
 
 (gptel-make-preset 'glm-5.2
-  :description "GLM-5.2 with Z.AI, one-million-token model option available."
+  :description "GLM-5.2 through Z.AI with thinking and tool use."
   :backend (ai/llm-backend 'zai)
   :model 'glm-5.2
   :stream t
-  :include-reasoning t)
+  :include-reasoning 'ignore)
 
 (gptel-make-preset 'gpt-5.6-sol
-  :description "OpenAI GPT-5.6 Sol for complex reasoning and coding."
+  :description "GPT-5.6 Sol through the OpenAI Responses API."
   :backend (ai/llm-backend 'openai)
   :model 'gpt-5.6-sol
   :stream t
-  :include-reasoning t)
+  :request-params '(:reasoning (:effort "high" :summary "auto"))
+  :include-reasoning 'ignore)
+
+(gptel-make-preset 'gpt-5.6-sol-oauth
+  :description "GPT-5.6 Sol through OpenAI subscription OAuth."
+  :backend (ai/llm-backend 'openai-oauth)
+  :model 'gpt-5.6-sol
+  :stream t
+  :request-params '(:reasoning (:effort "high" :summary "auto"))
+  :include-reasoning 'ignore)
 
 (provide 'ai)
 ;;; ai.el ends here
