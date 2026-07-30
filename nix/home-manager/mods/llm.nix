@@ -18,7 +18,8 @@
       inputs.org-vector.packages.${stdenv.hostPlatform.system}.org-vector
       nodejs_22
 
-      # LLM tooling
+      # LLM Editors
+      opencode
       claude-code
       playerctl
       pavucontrol
