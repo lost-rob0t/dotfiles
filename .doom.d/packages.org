@@ -129,7 +129,7 @@ GPTEL supports MCP.
 #+end_src
 * Development
 ** envrc
-A GNU Emacs library which uses direnv to set environment variables on a per-buffer basis. This means that when you work across multiple projects which have .envrc files, all processes launched from the buffers "in" those projects will be executed with the environment variables specified in their files. This allows different versions of linters and other tools to be used in each project if desired.
+A GNU Emacs library which uses direnv to set environment variables on a per-buffer basis. This means that when you work across multiple projects which have .envrc files, all processes launched from the buffers "in" those projects will be executed with the environment variables specified in those files. This allows different versions of linters and other tools to be used in each project if desired.
 
 #+begin_src emacs-lisp
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
@@ -208,7 +208,7 @@ paste your buffer to a pastebin like service.
 (package! webpaste :recipe (:type git :host github :repo "etu/webpaste.el"))
 #+end_src
 ** Burly
-This package provides tools to save and restore frame and window configurations in Emacs, including buffers that may not be live anymore. In this way, it’s like a lightweight “workspace” manager, allowing you to easily restore one or more frames, including their windows’ layout, and their buffers.
+This package provides tools to save and restore frame and window configurations in Emacs, including buffers that may not be live anymore. In this way, it’s like a lightweight “workspace” manager, allowing you to easily restore one or more frames, including their windows, the windows’ layout, and their buffers.
 
 #+begin_src emacs-lisp
 (package! burly :recipe (:type git :host github :repo "alphapapa/burly.el"))
@@ -225,7 +225,7 @@ A major mode for view pcap capture files
 (package! pcap-mode.el :recipe (:type git :host github :repo "orgcandman/pcap-mode"))
 #+end_src
 ** exec-path-from-shell
-A GNU Emacs library to ensure environment variables inside Emacs look the same as the user's shell.
+A GNU Emacs library to ensure environment variables inside Emacs look the same as in the user’s shell.
 #+begin_src emacs-lisp
 (package! exec-path-from-shell  :recipe (:type git :host github :repo "purcell/exec-path-from-shell"))
 #+end_src
