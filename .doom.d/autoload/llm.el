@@ -1,9 +1,40 @@
 ;;; llm.el --- Doom autoloads for the local gptel stack -*- lexical-binding: t; -*-
 
+(defcustom +llm/proxmox-config-file
+  (expand-file-name "~/.config/proxmox-mcp/config.json")
+  "JSON configuration used by the Emacs Proxmox MCP server."
+  :type 'file
+  :group 'applications)
+
+(defun +llm/proxmox-register ()
+  "Register the local Proxmox MCP launcher with mcp.el."
+  (unless (file-readable-p +llm/proxmox-config-file)
+    (user-error "Missing Proxmox MCP config: %s" +llm/proxmox-config-file))
+  (unless (executable-find "proxmox-mcp-launcher")
+    (user-error "proxmox-mcp-launcher is not on exec-path; apply Home Manager first"))
+  (setq mcp-hub-servers
+        (cons '("proxmox" . (:command "proxmox-mcp-launcher"))
+              (assoc-delete-all "proxmox" mcp-hub-servers))))
+
+;;;###autoload
+(defun +llm/proxmox-connect ()
+  "Register and connect the Proxmox MCP tools to gptel."
+  (interactive)
+  (require 'gptel-integrations)
+  (require 'mcp-hub)
+  (+llm/proxmox-register)
+  (gptel-mcp-connect '("proxmox")))
+
 ;;;###autoload
 (with-eval-after-load 'gptel
   (require 'ai)
   (require 'ai-agent))
+
+;;;###autoload
+(with-eval-after-load 'mcp-hub
+  (when (and (file-readable-p +llm/proxmox-config-file)
+             (executable-find "proxmox-mcp-launcher"))
+    (+llm/proxmox-register)))
 
 ;;;###autoload
 (defun +llm/load ()
