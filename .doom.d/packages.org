@@ -225,7 +225,7 @@ A major mode for view pcap capture files
 (package! pcap-mode.el :recipe (:type git :host github :repo "orgcandman/pcap-mode"))
 #+end_src
 ** exec-path-from-shell
-A GNU Emacs library to ensure environment variables inside Emacs look the same as in the user’s shell.
+A GNU Emacs library to ensure environment variables inside Emacs look the same as in the user's shell.
 #+begin_src emacs-lisp
 (package! exec-path-from-shell  :recipe (:type git :host github :repo "purcell/exec-path-from-shell"))
 #+end_src
