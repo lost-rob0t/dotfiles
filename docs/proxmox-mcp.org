@@ -1,0 +1,121 @@
+#+title: ProxmoxMCP-Plus Setup & Blockers
+#+property: header-args:shell :eval no
+
+This documents the ProxmoxMCP-Plus integration added to these dotfiles, and
+lists the manual steps the user must complete themselves (the agent cannot
+safely do them because they touch real Proxmox credentials / reboots).
+
+* What was configured
+
+- Repo cloned to =~/git/ProxmoxMCP-Plus= (kept as a local checkout; the
+  launcher runs it directly with =uvx --from <checkout>=).
+- New nix module =nix/home-manager/mods/proxmox-mcp.nix= providing a
+  =proxmox-mcp-launcher= wrapper. It sources
+  =~/.config/proxmox-mcp/proxmox-mcp.env= (kept *outside* git) and then runs
+  =uvx proxmox-mcp-plus= (preferring the local checkout).
+- Enabled in =nix/home-manager/systems/desktop/home.nix= via
+  =proxmox-mcp.enable = true;=.
+- Doom Emacs MCP server "proxmox" added in =.doom.d/config.org= (and the
+  tangled =.doom.d/config.el=) using =sh -c "exec proxmox-mcp-launcher"=.
+- OpenCode MCP server "proxmox-mcp-plus" added in
+  =~/.config/opencode/opencode.jsonc= using the same launcher.
+
+* Blockers you must do yourself
+
+These steps require secrets or environment changes the agent should not make
+automatically.
+
+** 1. Create a Proxmox API token
+
+In Proxmox VE, create an API token for the user you want the MCP server to act
+as, scoped to only the permissions your workflows need. See the upstream
+[[https://github.com/RekklesNA/ProxmoxMCP-Plus/wiki/Security-Guide][Security Guide]].
+
+You need:
+- =user= e.g. =root@pam= (or a dedicated =mcp@pve=)
+- =token_name= e.g. =mcp-token=
+- =token_value= (the secret shown once at creation time)
+
+** 2. Fill in the credential env file
+
+Edit =~/.config/proxmox-mcp/proxmox-mcp.env= (a placeholder copy already
+exists) and replace the placeholder values:
+
+#+begin_src shell
+export PROXMOX_HOST=your-proxmox-host
+export PROXMOX_PORT=8006
+export PROXMOX_USER=user@pam
+export PROXMOX_TOKEN_NAME=your-token-name
+export PROXMOX_TOKEN_VALUE=your-token-secret-value
+export PROXMOX_VERIFY_SSL=true
+export PROXMOX_SERVICE=PVE
+export LOG_LEVEL=INFO
+#+end_src
+
+For a self-signed lab certificate set *both*:
+#+begin_src shell
+export PROXMOX_VERIFY_SSL=false
+export PROXMOX_DEV_MODE=true
+#+end_src
+
+This file is intentionally outside any git repo — never commit it.
+
+** 3. Apply the home-manager generation
+
+The launcher is nix-managed, so apply the new generation once the PR is merged:
+
+#+begin_src shell
+home-manager switch --flake ~/.dotfiles#unseen@logos
+# or, from the dotfiles dir:
+nix run .#home-manager -- switch --flake .#unseen@logos
+#+end_src
+
+Then confirm the launcher is on PATH:
+
+#+begin_src shell
+command -v proxmox-mcp-launcher
+proxmox-mcp-launcher   # should print the credential-missing error until step 2 is done
+#+end_src
+
+** 4. Restart OpenCode
+
+OpenCode loads config once at startup. Quit and restart it so the new
+=proxmox-mcp-plus= MCP server is picked up. Verify read-only tools appear
+(=get_nodes=, =get_vms=, =get_containers=, =get_storage=).
+
+** 5. Reload Doom Emacs
+
+Run =doom sync= (or =M-x nsa/config-sync=) so the tangling + =mcp-hub=
+server list updates, then restart Emacs. Connect via gptel and confirm the
+=proxmox= server shows tools.
+
+** 6. (Optional) SSH for container command execution
+
+=execute_container_command= only appears if you add an =ssh= section to a
+ProxmoxMCP-Plus config file. The env-var path used here does not configure
+SSH. If you want it, create =~/git/ProxmoxMCP-Plus/proxmox-config/config.json=
+from =config.example.json=, fill the =ssh= block, and point the launcher at it
+by adding =PROXMOX_MCP_CONFIG=/home/unseen/git/ProxmoxMCP-Plus/proxmox-config/config.json=
+to =~/.config/proxmox-mcp/proxmox-mcp.env=.
+
+* Verification
+
+After steps 1–5:
+
+#+begin_src shell
+# launcher should now start the stdio server (it exits on stdin EOF)
+echo '{}' | proxmox-mcp-launcher | head
+#+end_src
+
+In OpenCode, ask the agent to list Proxmox nodes; in Emacs, use gptel with the
+=proxmox= MCP server connected.
+
+* Files changed
+
+- =nix/home-manager/mods/proxmox-mcp.nix= (new)
+- =nix/home-manager/mods/default.nix= (import)
+- =nix/home-manager/systems/desktop/home.nix= (enable)
+- =scripts/proxmox-mcp.env.example= (new)
+- =.doom.d/config.org= and =.doom.d/config.el= (proxmox MCP server)
+- =~/.config/opencode/opencode.jsonc= (outside this repo)
+- =~/.config/proxmox-mcp/proxmox-mcp.env= (outside this repo, untracked)
