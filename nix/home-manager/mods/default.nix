@@ -13,5 +13,6 @@
     ./media.nix
     ./pentesting.nix
     ./llm.nix
+    ./proxmox-mcp.nix
   ];
 }
