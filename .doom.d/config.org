@@ -1403,27 +1403,24 @@ Start a todo chat with tools needed
 #+end_src
 *** MCP Configuration
 
-Proxmox VE is exposed via the [[https://github.com/RekklesNA/ProxmoxMCP-Plus][ProxmoxMCP-Plus]] server. It is launched through the nixified =proxmox-mcp-launcher= wrapper (see =nix/home-manager/mods/proxmox-mcp.nix=) so credentials stay out of this public repo. The wrapper sources =~/.config/proxmox-mcp/proxmox-mcp.env= and then runs =uvx= against the local checkout at =~/git/ProxmoxMCP-Plus=. See [[ProxmoxMCP-Plus blockers][docs/proxmox-mcp.org]] for the manual setup steps.
 
 #+begin_src emacs-lisp
  (use-package! mcp
-   :after gptel
-   :commands (mcp-hub-start-all-server gptel-mcp-connect)
-   :custom (mcp-hub-servers
-            `(
+  :after gptel
+  :commands (mcp-hub-start-all-server gptel-mcp-connect)
+  :custom (mcp-hub-servers
+           `(
              
-             ("proxmox" . (:command "sh"
-                                    :args ("-c" "exec proxmox-mcp-launcher")))
              ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
              ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
                                                     ,(expand-file-name "~/Documents/Projects")
                                                     ,(expand-file-name "~/common-lisp")
                                                     ,(expand-file-name "~/.dotfiles"))))))
              
-   :config
-   (require 'gptel-integrations)
-   (require 'mcp-hub)
-   (gptel-mcp-connect))
+  :config
+  (require 'gptel-integrations)
+  (require 'mcp-hub)
+  (gptel-mcp-connect))
 #+end_src
 
 *** Keybinds
