@@ -16,6 +16,12 @@
         (cons '("proxmox" . (:command "proxmox-mcp-launcher"))
               (assoc-delete-all "proxmox" mcp-hub-servers))))
 
+(defun +llm/apply-final-defaults ()
+  "Make the shared gptel configuration authoritative after package setup."
+  (when (featurep 'gptel)
+    (require 'ai)
+    (ai/llm-apply-defaults)))
+
 ;;;###autoload
 (defun +llm/proxmox-connect ()
   "Register and connect the Proxmox MCP tools to gptel."
@@ -28,7 +34,9 @@
 ;;;###autoload
 (with-eval-after-load 'gptel
   (require 'ai)
-  (require 'ai-agent))
+  (require 'ai-agent)
+  ;; Run after every `eval-after-load' and `use-package!' callback for gptel.
+  (run-at-time 0 nil #'+llm/apply-final-defaults))
 
 ;;;###autoload
 (with-eval-after-load 'mcp-hub
