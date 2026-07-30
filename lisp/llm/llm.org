@@ -31,6 +31,10 @@ explicitly:
 (ai/llm-apply-defaults)
 #+end_src
 
+The public =ai-agent= and =ai-agent-core= features use matching loader
+filenames.  Their implementations remain split into =agent.el= and
+=agent-core.el=.
+
 * Model switching
 
 #+begin_src emacs-lisp
@@ -104,7 +108,9 @@ Chats are stored below =~/Documents/Notes/org/roam/llm/=.
 * Source files
 
 #+INCLUDE: "ai.el" src emacs-lisp
+#+INCLUDE: "ai-agent-core.el" src emacs-lisp
 #+INCLUDE: "agent-core.el" src emacs-lisp
+#+INCLUDE: "ai-agent.el" src emacs-lisp
 #+INCLUDE: "agent.el" src emacs-lisp
 #+INCLUDE: "../../.doom.d/autoload/llm.el" src emacs-lisp
 #+INCLUDE: "chat.el" src emacs-lisp
