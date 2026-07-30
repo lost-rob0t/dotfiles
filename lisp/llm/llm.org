@@ -49,6 +49,24 @@ Available presets:
 - =@agent= — GLM-5.2 with the project agent tools
 - =@agent-gpt-5.6-sol= — GPT-5.6 Sol with the same tools
 
+* Proxmox MCP
+
+Proxmox runs inside the Emacs stack through =gptel= and =mcp.el=.  There is no
+OpenCode dependency or OpenCode configuration.
+
+Apply Home Manager, initialize the secret JSON file, edit it, and connect:
+
+#+begin_src shell
+home-manager switch --flake ~/.dotfiles#unseen@logos
+proxmox-mcp-init
+$EDITOR ~/.config/proxmox-mcp/config.json
+#+end_src
+
+The generated template includes API-token authentication, SSH node mappings,
+and a deny-all command policy.  Keep the real =config.json= outside Git.  In
+Emacs, run =M-x +llm/proxmox-connect=.  Once the config exists, normal gptel
+startup also registers the server automatically.
+
 * Agent file tools
 
 The enabled agent surface is intentionally small and Claude Code-like:
