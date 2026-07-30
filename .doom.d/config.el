@@ -925,15 +925,13 @@ strings."
  :commands (mcp-hub-start-all-server gptel-mcp-connect)
  :custom (mcp-hub-servers
           `(
-
-           ("proxmox" . (:command "sh"
-                                  :args ("-c" "exec proxmox-mcp-launcher")))
-           ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
-           ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
-                                                  ,(expand-file-name "~/Documents/Projects")
-                                                  ,(expand-file-name "~/common-lisp")
-                                                  ,(expand-file-name "~/.dotfiles"))))))
-
+            
+            ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
+            ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
+                                                   ,(expand-file-name "~/Documents/Projects")
+                                                   ,(expand-file-name "~/common-lisp")
+                                                   ,(expand-file-name "~/.dotfiles"))))))
+            
  :config
  (require 'gptel-integrations)
  (require 'mcp-hub)
