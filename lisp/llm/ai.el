@@ -248,6 +248,7 @@ With prefix argument LOCAL, apply only in the current buffer."
         gptel-confirm-tool-calls 'auto
         gptel-include-tool-results 'auto
         gptel-use-context 'system
+        gptel-context-restrict-to-project-files t
         gptel-include-reasoning 'ignore
         gptel-track-response t
         gptel-org-convert-response t
