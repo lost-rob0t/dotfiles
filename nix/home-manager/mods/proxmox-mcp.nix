@@ -1,17 +1,14 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, inputs, ... }:
 
 let
   cfg = config.proxmox-mcp;
 
   proxmoxEnvFile = "${config.home.homeDirectory}/.config/proxmox-mcp/proxmox-mcp.env";
-  proxmoxRepo = "${config.home.homeDirectory}/git/ProxmoxMCP-Plus";
 
-  # A nixified launcher that sources the user's Proxmox credentials from an
-  # env file kept *outside* version control, then runs the MCP server.
-  #
-  # It prefers a local source checkout at ~/git/ProxmoxMCP-Plus so edits to
-  # the cloned repo are picked up immediately, and falls back to the PyPI
-  # package when the checkout is absent.
+  # Pinned source checkout provided by the flake input. This makes the
+  # launcher reproducible without depending on a manual ~/git clone.
+  proxmoxSrc = inputs.proxmox-mcp-plus.outPath;
+
   proxmox-mcp-launcher = pkgs.writeShellApplication {
     name = "proxmox-mcp-launcher";
     runtimeInputs = with pkgs; [
@@ -34,12 +31,8 @@ let
         exit 1
       fi
 
-      # Prefer the local source checkout when present, else fall back to PyPI.
-      if [ -d "${proxmoxRepo}/src/proxmox_mcp" ]; then
-        exec uvx --from "${proxmoxRepo}" proxmox-mcp-plus
-      else
-        exec uvx proxmox-mcp-plus
-      fi
+      # Run the MCP server from the flake-pinned source checkout.
+      exec uvx --from "${proxmoxSrc}" proxmox-mcp-plus
     '';
   };
 in

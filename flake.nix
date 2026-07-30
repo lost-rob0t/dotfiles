@@ -15,6 +15,10 @@
     org-vector.url = "github:lost-rob0t/org-vector";
     bixby-studio.url = "github:lost-rob0t/org-vector";
     mousetrap.url = "github:lost-rob0t/Mousetrap";
+    proxmox-mcp-plus = {
+      url = "github:RekklesNA/ProxmoxMCP-Plus";
+      flake = false;
+    };
   };
 
   outputs =
@@ -27,6 +31,7 @@
       org-vector,
       bixby-studio,
       mousetrap,
+      proxmox-mcp-plus,
     }:
     let
       system = "x86_64-linux";

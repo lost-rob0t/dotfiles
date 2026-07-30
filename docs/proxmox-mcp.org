@@ -7,12 +7,15 @@ safely do them because they touch real Proxmox credentials / reboots).
 
 * What was configured
 
-- Repo cloned to =~/git/ProxmoxMCP-Plus= (kept as a local checkout; the
-  launcher runs it directly with =uvx --from <checkout>=).
+- ProxmoxMCP-Plus pinned as a flake input (=proxmox-mcp-plus= in
+  =flake.nix=, =flake = false= so the raw source is used). The launcher
+  runs =uvx --from <flake source> proxmox-mcp-plus=, so the build is
+  reproducible and =flake.lock= pins the exact revision. No manual
+  =~/git= clone is required.
 - New nix module =nix/home-manager/mods/proxmox-mcp.nix= providing a
   =proxmox-mcp-launcher= wrapper. It sources
-  =~/.config/proxmox-mcp/proxmox-mcp.env= (kept *outside* git) and then runs
-  =uvx proxmox-mcp-plus= (preferring the local checkout).
+  =~/.config/proxmox-mcp/proxmox-mcp.env= (kept *outside* git) and then
+  runs =uvx= against the flake-pinned source.
 - Enabled in =nix/home-manager/systems/desktop/home.nix= via
   =proxmox-mcp.enable = true;=.
 - Doom Emacs MCP server "proxmox" added in =.doom.d/config.org= (and the
@@ -117,5 +120,6 @@ In OpenCode, ask the agent to list Proxmox nodes; in Emacs, use gptel with the
 - =nix/home-manager/systems/desktop/home.nix= (enable)
 - =scripts/proxmox-mcp.env.example= (new)
 - =.doom.d/config.org= and =.doom.d/config.el= (proxmox MCP server)
+- =flake.nix= (new =proxmox-mcp-plus= input)
 - =~/.config/opencode/opencode.jsonc= (outside this repo)
 - =~/.config/proxmox-mcp/proxmox-mcp.env= (outside this repo, untracked)
