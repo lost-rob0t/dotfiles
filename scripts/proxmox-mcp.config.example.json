@@ -1,0 +1,70 @@
+{
+  "proxmox": {
+    "host": "your-proxmox-host-ip",
+    "port": 8006,
+    "timeout": 30,
+    "verify_ssl": true,
+    "service": "PVE"
+  },
+  "api_tunnel": null,
+  "auth": {
+    "user": "mcp@pve",
+    "token_name": "emacs",
+    "token_value": "your-token-value"
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": null
+  },
+  "mcp": {
+    "host": "127.0.0.1",
+    "port": 8000,
+    "transport": "STDIO",
+    "dns_rebinding_protection": null,
+    "allowed_hosts": [],
+    "allowed_origins": []
+  },
+  "security": {
+    "dev_mode": false
+  },
+  "jobs": {
+    "sqlite_path": "proxmox-jobs.sqlite3"
+  },
+  "command_policy": {
+    "mode": "deny_all",
+    "allow_patterns": [],
+    "deny_patterns": [
+      "(^|\\s)rm\\s+-rf(\\s|$)",
+      ":\\(\\)\\{:\\|:\\&\\};:"
+    ],
+    "require_approval_token": false,
+    "approval_token": null,
+    "high_risk_mode": "audit_only",
+    "high_risk_operations": [
+      "delete_vm",
+      "delete_container",
+      "delete_snapshot",
+      "rollback_snapshot",
+      "restore_backup",
+      "delete_backup",
+      "delete_iso",
+      "update_container_ssh_keys"
+    ],
+    "high_risk_require_approval_token": false,
+    "high_risk_approval_token": null
+  },
+  "ssh": {
+    "user": "mcp-agent",
+    "port": 22,
+    "key_file": "~/.ssh/proxmox_key",
+    "password": null,
+    "host_overrides": {
+      "pve": "your-proxmox-node-ip-or-ssh-alias"
+    },
+    "use_sudo": true,
+    "known_hosts_file": "~/.ssh/known_hosts",
+    "strict_host_key_checking": true,
+    "prefer_ssh_client": true
+  }
+}
