@@ -44,6 +44,72 @@
              (executable-find "proxmox-mcp-launcher"))
     (+llm/proxmox-register)))
 
+(defcustom +llm/discord-auth-host "discord"
+  "auth-source host used to look up the Discord bot token."
+  :type 'string
+  :group 'applications)
+
+(defcustom +llm/discord-auth-user "bot"
+  "auth-source user used to look up the Discord bot token."
+  :type 'string
+  :group 'applications)
+
+(defun +llm/discord-token ()
+  "Return the Discord bot token from auth-source, or nil.
+The token is read from the auth-source entry whose host matches
+`+llm/discord-auth-host' and user `+llm/discord-auth-user'.  Add
+the entry to `~/.authinfo.gpg' as:
+
+    machine discord login bot password TOKEN"
+  (when-let* ((entry (car (auth-source-search
+                           :host +llm/discord-auth-host
+                           :user +llm/discord-auth-user
+                           :max 1)))
+              (secret (plist-get entry :secret)))
+    (if (functionp secret)
+        (funcall secret)
+      secret)))
+
+;;;###autoload
+(defun +llm/discord-register (&optional noerror)
+  "Register the local Discord MCP launcher with mcp.el.
+The launcher is provided by Home Manager and runs the nix-built
+discordmcp server.  The DISCORD_TOKEN env var is injected from
+auth-source so the token never lives in the dotfiles repository.
+
+With optional NOERROR non-nil, skip silently when the launcher or
+token are unavailable instead of signaling a `user-error'."
+  (interactive)
+  (cond
+   ((and (not noerror) (not (executable-find "discord-mcp-launcher")))
+    (user-error "discord-mcp-launcher is not on exec-path; apply Home Manager first"))
+   ((not (executable-find "discord-mcp-launcher"))
+    (message "Discord MCP: launcher not found on exec-path; skipping"))
+   (t
+    (let ((token (+llm/discord-token)))
+      (cond
+       ((and token (not (string-empty-p token)))
+        (setq mcp-hub-servers
+              (cons `("discord" . (:command "discord-mcp-launcher"
+                                    :env (:DISCORD_TOKEN ,token)))
+                    (assoc-delete-all "discord" mcp-hub-servers)))
+        (message "Discord MCP: registered discord-mcp-launcher"))
+       (noerror
+        (message "Discord MCP: no token in auth-source (host=%s user=%s); skipping"
+                  +llm/discord-auth-host +llm/discord-auth-user))
+       (t
+        (user-error "No Discord token in auth-source (host=%s user=%s); add it to ~/.authinfo.gpg"
+                    +llm/discord-auth-host +llm/discord-auth-user)))))))
+
+;;;###autoload
+(defun +llm/discord-connect ()
+  "Register and connect the Discord MCP tools to gptel."
+  (interactive)
+  (require 'gptel-integrations)
+  (require 'mcp-hub)
+  (+llm/discord-register)
+  (gptel-mcp-connect '("discord")))
+
 ;;;###autoload
 (defun +llm/load ()
   "Load the complete local LLM configuration."

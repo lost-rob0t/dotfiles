@@ -24,6 +24,10 @@
     enable = true;
   };
 
+  discordMcp = {
+    enable = true;
+  };
+
   emacs = {
     enable = true;
     # I mostly use magit hence configured in the ./nixos/mods/emacs.nix module

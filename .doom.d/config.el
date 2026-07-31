@@ -935,6 +935,9 @@ strings."
   :config
   (require 'gptel-integrations)
   (require 'mcp-hub)
+  ;; Register launcher-backed MCP servers.  Discord reads its token
+  ;; from auth-source; it is a no-op until the launcher exists.
+  (+llm/discord-register 'noerror)
   (gptel-mcp-connect))
 
 (map!
