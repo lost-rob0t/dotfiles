@@ -46,7 +46,10 @@
 
 (package! org-drill)
 
-(package! gptel :recipe (:nonrecursive t))
+(unpin! gptel)
+(package! gptel
+  :recipe (:host github :repo "karthink/gptel"
+           :files ("*.el")))
 
 (package! mcp :recipe (:type git :host github :repo "lizqwerscott/mcp.el"))
 

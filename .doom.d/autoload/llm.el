@@ -16,6 +16,12 @@
         (cons '("proxmox" . (:command "proxmox-mcp-launcher"))
               (assoc-delete-all "proxmox" mcp-hub-servers))))
 
+(defun +llm/apply-final-defaults ()
+  "Make the shared gptel configuration authoritative after package setup."
+  (when (featurep 'gptel)
+    (require 'ai)
+    (ai/llm-apply-defaults)))
+
 ;;;###autoload
 (defun +llm/proxmox-connect ()
   "Register and connect the Proxmox MCP tools to gptel."
@@ -28,7 +34,9 @@
 ;;;###autoload
 (with-eval-after-load 'gptel
   (require 'ai)
-  (require 'ai-agent))
+  (require 'ai-agent)
+  ;; Run after every `eval-after-load' and `use-package!' callback for gptel.
+  (run-at-time 0 nil #'+llm/apply-final-defaults))
 
 ;;;###autoload
 (with-eval-after-load 'mcp-hub
@@ -60,10 +68,24 @@
 
 ;;;###autoload
 (defun +llm/use-gpt-5.6-sol (&optional local)
-  "Switch to OpenAI GPT-5.6 Sol."
+  "Switch to OpenAI API GPT-5.6 Sol."
   (interactive "P")
   (require 'ai)
   (ai/llm-use-gpt-5.6-sol local))
+
+;;;###autoload
+(defun +llm/use-openai-oauth (&optional local)
+  "Switch to GPT-5.6 Sol through OpenAI subscription OAuth."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-openai-oauth local))
+
+;;;###autoload
+(defun +llm/openai-login ()
+  "Authenticate the OpenAI subscription backend."
+  (interactive)
+  (require 'ai)
+  (ai/llm-openai-oauth-login))
 
 ;;;###autoload
 (defun +llm/agent-context ()

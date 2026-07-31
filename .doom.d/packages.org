@@ -113,10 +113,14 @@ Create Flashcards from
 
 * AI
 ** gptel
-Interact with LLM from orgmode
-GPTEL now supports agent like workflows via tools
+Interact with LLMs from Org mode and expose current tool, reasoning, Responses
+API, and OpenAI subscription OAuth support.  Track upstream gptel instead of
+Doom's older package pin.
 #+begin_src emacs-lisp
-(package! gptel :recipe (:nonrecursive t))
+(unpin! gptel)
+(package! gptel
+  :recipe (:host github :repo "karthink/gptel"
+           :files ("*.el")))
 #+end_src
 ** MCP Services
 GPTEL supports MCP.
