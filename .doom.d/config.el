@@ -39,11 +39,11 @@
 
 (setq frame-resize-pixelwise t)
 
-;(setq
-; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
-; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
-; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
-; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
+                                        ;(setq
+                                        ; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+                                        ; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
+                                        ; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+                                        ; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
 
 (add-to-list 'display-buffer-alist
              (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
@@ -669,14 +669,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;        (dme:w3m-textarea-mode))
 ;;      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
 
-;; (after! vterm
-;;   (setq vterm-environment '("TERM=xterm-256color"))
-;;   (defun vterm--rename-buffer-as-title (title)
-;;     (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
-;;       (cd-absolute dir)
-;;       (rename-buffer (format "term %s" title))))
-;;   (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
-;;   (setq vterm-shell "/run/current-system/sw/bin/bash"))
+ ;; (after! vterm
+ ;;   (setq vterm-environment '("TERM=xterm-256color"))
+ ;;   (defun vterm--rename-buffer-as-title (title)
+ ;;     (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
+ ;;       (cd-absolute dir)
+ ;;       (rename-buffer (format "term %s" title))))
+ ;;   (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+ ;;   (setq vterm-shell "/run/current-system/sw/bin/bash"))
 
 (after! vterm
   (defun nsa/tmux-vterm (arg)
@@ -920,22 +920,22 @@ strings."
           :desc "Vector menu" "m" #'org-vector-transient
           :desc "Kill all" "k" #'org-vector-stop-all))))
 
-(use-package! mcp
- :after gptel
- :commands (mcp-hub-start-all-server gptel-mcp-connect)
- :custom (mcp-hub-servers
-          `(
-            
-            ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
-            ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
-                                                   ,(expand-file-name "~/Documents/Projects")
-                                                   ,(expand-file-name "~/common-lisp")
-                                                   ,(expand-file-name "~/.dotfiles"))))))
-            
- :config
- (require 'gptel-integrations)
- (require 'mcp-hub)
- (gptel-mcp-connect))
+ (use-package! mcp
+  :after gptel
+  :commands (mcp-hub-start-all-server gptel-mcp-connect)
+  :custom (mcp-hub-servers
+           `(
+             
+             ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
+             ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
+                                                    ,(expand-file-name "~/Documents/Projects")
+                                                    ,(expand-file-name "~/common-lisp")
+                                                    ,(expand-file-name "~/.dotfiles"))))))
+             
+  :config
+  (require 'gptel-integrations)
+  (require 'mcp-hub)
+  (gptel-mcp-connect))
 
 (map!
  :leader
@@ -1020,13 +1020,13 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
 
 (run-with-idle-timer 3 nil #'envrc-global-mode)
 
-;(require 'lsp-mode)
-;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
-;(lsp-register-client
-; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
-;                  :major-modes '(nim-mode)
-;                  :server-id 'nimlsp))
-;(add-hook 'nim-mode-hook #'lsp)
+                                        ;(require 'lsp-mode)
+                                        ;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
+                                        ;(lsp-register-client
+                                        ; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
+                                        ;                  :major-modes '(nim-mode)
+                                        ;                  :server-id 'nimlsp))
+                                        ;(add-hook 'nim-mode-hook #'lsp)
 
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 
@@ -1157,7 +1157,7 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
   (map! :leader
         :desc "Run Project Task" "p r" #'project-tasks))
 
-;(require 'persp-mode)
+                                        ;(require 'persp-mode)
 
 (defun ezf-default (filename)
   "EZF completion with your default completion system."
