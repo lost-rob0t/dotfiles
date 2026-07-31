@@ -1404,6 +1404,20 @@ Start a todo chat with tools needed
 *** MCP Configuration
 
 
+The =mcp= package ([[https://github.com/lizqwerscott/mcp.el][lizqwerscott/mcp.el]]) wires MCP servers into gptel.  The built-in servers are declared via =:custom=; launcher-backed servers (Proxmox, Discord) register themselves through autoloads in =autoload/llm.el= so their secrets stay out of the repo.
+
+**** Discord MCP
+
+The Discord MCP server ([[https://github.com/v-3/discordmcp][v-3/discordmcp]]) is built by Home Manager as a nix derivation ([[../nix/home-manager/mods/discord-mcp.nix][discord-mcp.nix]]) and exposed on =exec-path= as =discord-mcp-launcher=.  It talks stdio and exposes =send-message= / =read-messages= tools.
+
+The =DISCORD_TOKEN= is injected from [[https://www.gnu.org/software/emacs/manual/html_mono/auth.html][auth-source]] (kept in =~/.authinfo.gpg=) so the bot token never lands in version control.  Add the entry once:
+
+#+begin_example
+machine discord login bot password YOUR_BOT_TOKEN_HERE
+#+end_example
+
+The host and user are customizable via =+llm/discord-auth-host= and =+llm/discord-auth-user=.  Registration is deferred to =mcp-hub= load time and skipped (non-fatal) when the launcher or token are missing, so a fresh checkout still boots.
+
 #+begin_src emacs-lisp
  (use-package! mcp
   :after gptel
@@ -1420,6 +1434,9 @@ Start a todo chat with tools needed
   :config
   (require 'gptel-integrations)
   (require 'mcp-hub)
+  ;; Register launcher-backed MCP servers.  Discord reads its token
+  ;; from auth-source; it is a no-op until the launcher exists.
+  (+llm/discord-register 'noerror)
   (gptel-mcp-connect))
 #+end_src
 

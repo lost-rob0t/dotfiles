@@ -4,6 +4,7 @@
 *.log
 tmp/
 *discord*
+!nix/home-manager/mods/discord-mcp.nix
 *.pyc
 *;;
 .config/starintel/*.ini

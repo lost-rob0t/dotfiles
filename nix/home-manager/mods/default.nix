@@ -14,5 +14,6 @@
     ./pentesting.nix
     ./llm.nix
     ./proxmox-mcp.nix
+    ./discord-mcp.nix
   ];
 }
