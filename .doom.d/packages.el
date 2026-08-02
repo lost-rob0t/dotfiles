@@ -89,7 +89,7 @@
 
 (package! podman.el :recipe (:type git :host github :repo "akirak/podman.el"))
 
-(package! pcap-mode.el :recipe (:type git :host github :repo "orgcandman/pcap-mode.el"))
+(package! pcap-mode.el :recipe (:type git :host github :repo "orgcandman/pcap-mode"))
 
 (package! exec-path-from-shell  :recipe (:type git :host github :repo "purcell/exec-path-from-shell"))
 
@@ -123,7 +123,7 @@
 
 (package! org-contrib)
 
-(package! ppcre2el :recipe (:type git :host github :repo "joddie/ppcre2el"))
+(package! ppcre2el :recipe (:type git :host github :repo "joddie/pcre2el"))
 
 (package! rx)
 
