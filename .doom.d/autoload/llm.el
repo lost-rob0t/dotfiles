@@ -1,9 +1,19 @@
 ;;; llm.el --- Doom autoloads for the local gptel stack -*- lexical-binding: t; -*-
 
+(require 'auth-source)
+(require 'subr-x)
+
+;;;###autoload
 (defcustom +llm/proxmox-config-file
   (expand-file-name "~/.config/proxmox-mcp/config.json")
   "JSON configuration used by the Emacs Proxmox MCP server."
   :type 'file
+  :group 'applications)
+
+;;;###autoload
+(defcustom +llm/mcp-auto-connect t
+  "When non-nil, start configured MCP servers after gptel loads."
+  :type 'boolean
   :group 'applications)
 
 (defun +llm/proxmox-register ()
@@ -20,6 +30,7 @@
   "Make the shared gptel configuration authoritative after package setup."
   (when (featurep 'gptel)
     (require 'ai)
+    (require 'ai-agent nil t)
     (ai/llm-apply-defaults)))
 
 ;;;###autoload
@@ -32,23 +43,12 @@
   (gptel-mcp-connect '("proxmox")))
 
 ;;;###autoload
-(with-eval-after-load 'gptel
-  (require 'ai)
-  (require 'ai-agent)
-  ;; Run after every `eval-after-load' and `use-package!' callback for gptel.
-  (run-at-time 0 nil #'+llm/apply-final-defaults))
-
-;;;###autoload
-(with-eval-after-load 'mcp-hub
-  (when (and (file-readable-p +llm/proxmox-config-file)
-             (executable-find "proxmox-mcp-launcher"))
-    (+llm/proxmox-register)))
-
 (defcustom +llm/discord-auth-host "discord"
   "auth-source host used to look up the Discord bot token."
   :type 'string
   :group 'applications)
 
+;;;###autoload
 (defcustom +llm/discord-auth-user "bot"
   "auth-source user used to look up the Discord bot token."
   :type 'string
@@ -96,7 +96,7 @@ token are unavailable instead of signaling a `user-error'."
         (message "Discord MCP: registered discord-mcp-launcher"))
        (noerror
         (message "Discord MCP: no token in auth-source (host=%s user=%s); skipping"
-                  +llm/discord-auth-host +llm/discord-auth-user))
+                 +llm/discord-auth-host +llm/discord-auth-user))
        (t
         (user-error "No Discord token in auth-source (host=%s user=%s); add it to ~/.authinfo.gpg"
                     +llm/discord-auth-host +llm/discord-auth-user)))))))
@@ -111,11 +111,53 @@ token are unavailable instead of signaling a `user-error'."
   (gptel-mcp-connect '("discord")))
 
 ;;;###autoload
+(defun +llm/mcp-connect-all (&optional noerror)
+  "Start configured MCP servers and add their tools to gptel.
+With optional NOERROR non-nil, report startup failures without aborting Emacs."
+  (interactive)
+  (condition-case err
+      (progn
+        (require 'gptel-integrations)
+        (require 'mcp-hub)
+        (+llm/discord-register 'noerror)
+        (when (and (boundp '+llm/proxmox-config-file)
+                   (file-readable-p +llm/proxmox-config-file)
+                   (executable-find "proxmox-mcp-launcher"))
+          (+llm/proxmox-register))
+        ;; Current gptel starts inactive servers before registering their tools.
+        (gptel-mcp-connect)
+        t)
+    (error
+     (if noerror
+         (progn
+           (message "MCP startup skipped: %s" (error-message-string err))
+           nil)
+       (signal (car err) (cdr err))))))
+
+;;;###autoload
+(with-eval-after-load 'gptel
+  ;; Run after every `eval-after-load' and `use-package!' callback for gptel.
+  ;; This defeats older config fragments that still set OpenRouter as default.
+  (run-at-time 0 nil #'+llm/apply-final-defaults)
+  (when (bound-and-true-p +llm/mcp-auto-connect)
+    (run-at-time 0.75 nil #'+llm/mcp-connect-all 'noerror)))
+
+;;;###autoload
+(with-eval-after-load 'mcp-hub
+  ;; Guard the variable because this form is copied into Doom's generated
+  ;; autoload file and may run before this source file itself is loaded.
+  (when (and (boundp '+llm/proxmox-config-file)
+             (file-readable-p +llm/proxmox-config-file)
+             (executable-find "proxmox-mcp-launcher"))
+    (+llm/proxmox-register)))
+
+;;;###autoload
 (defun +llm/load ()
   "Load the complete local LLM configuration."
   (interactive)
   (require 'ai-init)
   (ai/llm-apply-defaults)
+  (+llm/mcp-connect-all 'noerror)
   (message "LLM stack loaded: %s / %s" ai/llm-provider ai/llm-model))
 
 ;;;###autoload
@@ -138,6 +180,20 @@ token are unavailable instead of signaling a `user-error'."
   (interactive "P")
   (require 'ai)
   (ai/llm-use-gpt-5.6-sol local))
+
+;;;###autoload
+(defun +llm/use-gpt-luna (&optional local)
+  "Switch to OpenAI API GPT-5.6 Luna."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-gpt-luna local))
+
+;;;###autoload
+(defun +llm/use-fable (&optional local)
+  "Switch to Anthropic Claude Fable 5."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-fable local))
 
 ;;;###autoload
 (defun +llm/use-openai-oauth (&optional local)
