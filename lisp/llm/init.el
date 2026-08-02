@@ -5,6 +5,11 @@
 (require 'ai-mcp)
 (require 'chat)
 
+;; Override values left bound by an older loaded copy of this configuration.
+(setq ai/llm-provider 'openrouter
+      ai/llm-model 'z-ai/glm-5.2)
+(ai/llm-apply-defaults)
+
 ;; `agent.el' historically used direct provider backends.  Re-register the
 ;; public presets after it loads so all normal agent traffic stays on OpenRouter.
 (gptel-make-preset 'agent
