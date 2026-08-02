@@ -112,6 +112,13 @@ Create Flashcards from
 #+end_src
 
 * AI
+** transient
+Current gptel requires a modern Transient.  Track it with gptel so Dirvish and
+gptel are rebuilt against the same EIEIO class definitions.
+#+begin_src emacs-lisp
+(unpin! transient)
+(package! transient :recipe (:host github :repo "magit/transient"))
+#+end_src
 ** gptel
 Interact with LLMs from Org mode and expose current tool, reasoning, Responses
 API, and OpenAI subscription OAuth support.  Track upstream gptel instead of

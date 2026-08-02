@@ -3,6 +3,8 @@
 (require 'auth-source)
 (require 'cl-lib)
 (require 'gptel)
+(require 'gptel-anthropic)
+(require 'gptel-openai-extras)
 (require 'subr-x)
 
 (defgroup ai/llm nil
@@ -12,10 +14,12 @@
 
 (defcustom ai/llm-provider 'zai
   "Default LLM provider.
-Supported values are `zai', `openai', `openai-oauth', and `openrouter'."
+Supported values are `zai', `openai', `openai-oauth', `anthropic',
+and `openrouter'."
   :type '(choice (const :tag "Z.AI API" zai)
                  (const :tag "OpenAI API" openai)
                  (const :tag "OpenAI subscription OAuth" openai-oauth)
+                 (const :tag "Anthropic API" anthropic)
                  (const :tag "OpenRouter" openrouter))
   :group 'ai/llm)
 
@@ -30,7 +34,7 @@ Supported values are `zai', `openai', `openai-oauth', and `openrouter'."
   :group 'ai/llm)
 
 (defcustom ai/llm-zai-endpoint "/api/paas/v4/chat/completions"
-  "OpenAI-compatible Z.AI chat-completions endpoint."
+  "Z.AI chat-completions endpoint."
   :type 'string
   :group 'ai/llm)
 
@@ -64,6 +68,13 @@ Metadata is supplied by current gptel instead of being duplicated here."
   :type '(repeat symbol)
   :group 'ai/llm)
 
+(defcustom ai/llm-anthropic-models
+  '(claude-fable-5 claude-sonnet-5 claude-opus-4-8)
+  "Anthropic model IDs exposed by the local model switcher.
+Metadata is supplied by current gptel."
+  :type '(repeat symbol)
+  :group 'ai/llm)
+
 (defcustom ai/llm-openrouter-models
   '((z-ai/glm-5.2
      :capabilities (reasoning tool-use json)
@@ -75,7 +86,7 @@ Metadata is supplied by current gptel instead of being duplicated here."
      :capabilities (reasoning media tool-use json url)
      :context-window 1050)
     (openai/gpt-5.6-luna
-     :capabilities (reasoning media tool-use json url)
+     :capabilities (media tool-use json url)
      :context-window 1050))
   "Models advertised by the OpenRouter backend."
   :type '(repeat sexp)
@@ -106,6 +117,11 @@ Environment variables are preferred, then auth-source is consulted."
          (and (fboundp 'nsa/auth-source-get)
               (ignore-errors (nsa/auth-source-get :host "api.openai.com")))
          (ai/llm--auth-source-secret "api.openai.com")))
+    ('anthropic
+     (or (getenv "ANTHROPIC_API_KEY")
+         (and (fboundp 'nsa/auth-source-get)
+              (ignore-errors (nsa/auth-source-get :host "api.anthropic.com")))
+         (ai/llm--auth-source-secret "api.anthropic.com")))
     ('openrouter
      (or (getenv "OPENROUTER_API_KEY")
          (and (fboundp 'nsa/auth-source-get)
@@ -121,9 +137,9 @@ Environment variables are preferred, then auth-source is consulted."
        provider)))
 
 (cl-defun ai/llm-zai-backend (&key (stream t) (name "Z.AI"))
-  "Return a Z.AI OpenAI-compatible backend.
+  "Return a current gptel Z.AI backend.
 STREAM controls response streaming and NAME is the backend display name."
-  (gptel-make-openai name
+  (gptel-make-deepseek name
     :host ai/llm-zai-host
     :endpoint (or (getenv "ZAI_API_ENDPOINT") ai/llm-zai-endpoint)
     :stream stream
@@ -141,6 +157,12 @@ STREAM controls response streaming and NAME is the backend display name."
   "Return gptel's OpenAI subscription OAuth backend."
   (require 'gptel-openai-oauth)
   (gptel-make-openai-oauth name :stream stream))
+
+(cl-defun ai/llm-anthropic-backend (&key (stream t) (name "Anthropic"))
+  "Return the current gptel Anthropic Messages API backend."
+  (gptel-make-anthropic name
+    :stream stream
+    :key (lambda () (ai/llm--require-api-key 'anthropic))))
 
 (cl-defun ai/llm-openrouter-backend (&key (stream t) (name "OpenRouter"))
   "Return an OpenRouter chat-completions backend."
@@ -163,6 +185,7 @@ PROVIDER defaults to `ai/llm-provider'.  When REFRESH is non-nil, rebuild it."
                    ('zai (ai/llm-zai-backend))
                    ('openai (ai/llm-openai-backend))
                    ('openai-oauth (ai/llm-openai-oauth-backend))
+                   ('anthropic (ai/llm-anthropic-backend))
                    ('openrouter (ai/llm-openrouter-backend))
                    (_ (error "Unsupported LLM provider: %S" provider)))
                  ai/llm--backends))))
@@ -180,6 +203,7 @@ PROVIDER defaults to `ai/llm-provider'.  When REFRESH is non-nil, rebuild it."
   (pcase (or provider ai/llm-provider)
     ('zai (mapcar #'ai/llm--model-name ai/llm-zai-models))
     ((or 'openai 'openai-oauth) ai/llm-openai-models)
+    ('anthropic ai/llm-anthropic-models)
     ('openrouter (mapcar #'ai/llm--model-name ai/llm-openrouter-models))
     (_ nil)))
 
@@ -190,7 +214,8 @@ With LOCAL non-nil, only change the current buffer."
    (let* ((provider
            (intern
             (completing-read
-             "Provider: " '("zai" "openai" "openai-oauth" "openrouter")
+             "Provider: "
+             '("zai" "openai" "openai-oauth" "anthropic" "openrouter")
              nil t nil nil (symbol-name ai/llm-provider))))
           (available (ai/llm-models-for-provider provider))
           (default (if (memq ai/llm-model available)
@@ -225,6 +250,18 @@ With prefix argument LOCAL, apply only in the current buffer."
   (interactive "P")
   (ai/llm-use 'openai 'gpt-5.6-sol local))
 
+(defun ai/llm-use-gpt-luna (&optional local)
+  "Use GPT-5.6 Luna through the OpenAI Responses API.
+With prefix argument LOCAL, apply only in the current buffer."
+  (interactive "P")
+  (ai/llm-use 'openai 'gpt-5.6-luna local))
+
+(defun ai/llm-use-fable (&optional local)
+  "Use Claude Fable 5 through Anthropic.
+With prefix argument LOCAL, apply only in the current buffer."
+  (interactive "P")
+  (ai/llm-use 'anthropic 'claude-fable-5 local))
+
 (defun ai/llm-use-openai-oauth (&optional local)
   "Use GPT-5.6 Sol through an OpenAI subscription OAuth session.
 With prefix argument LOCAL, apply only in the current buffer."
@@ -243,6 +280,7 @@ With prefix argument LOCAL, apply only in the current buffer."
         gptel-model ai/llm-model
         gptel-default-mode 'org-mode
         gptel-stream t
+        gptel-temperature nil
         gptel-use-curl t
         gptel-use-tools t
         gptel-confirm-tool-calls 'auto
@@ -250,7 +288,9 @@ With prefix argument LOCAL, apply only in the current buffer."
         gptel-use-context 'system
         gptel-context-restrict-to-project-files t
         gptel-include-reasoning 'ignore
+        gptel-track-media t
         gptel-track-response t
+        gptel-cache '(system tool)
         gptel-org-convert-response t
         gptel-org-branching-context t
         gptel-use-header-line t))
@@ -272,12 +312,26 @@ With prefix argument LOCAL, apply only in the current buffer."
   :request-params '(:reasoning (:effort "high" :summary "auto"))
   :include-reasoning 'ignore)
 
+(gptel-make-preset 'gpt-5.6-luna
+  :description "GPT-5.6 Luna through the OpenAI Responses API."
+  :backend (ai/llm-backend 'openai)
+  :model 'gpt-5.6-luna
+  :stream t
+  :include-reasoning 'ignore)
+
 (gptel-make-preset 'gpt-5.6-sol-oauth
   :description "GPT-5.6 Sol through OpenAI subscription OAuth."
   :backend (ai/llm-backend 'openai-oauth)
   :model 'gpt-5.6-sol
   :stream t
   :request-params '(:reasoning (:effort "high" :summary "auto"))
+  :include-reasoning 'ignore)
+
+(gptel-make-preset 'claude-fable-5
+  :description "Claude Fable 5 through Anthropic."
+  :backend (ai/llm-backend 'anthropic)
+  :model 'claude-fable-5
+  :stream t
   :include-reasoning 'ignore)
 
 (provide 'ai)

@@ -46,6 +46,11 @@
 
 (package! org-drill)
 
+;; Current gptel requires a modern Transient.  Keep Transient and Dirvish on
+;; the same rebuild path to avoid EIEIO class/slot ABI mismatches.
+(unpin! transient)
+(package! transient :recipe (:host github :repo "magit/transient"))
+
 (unpin! gptel)
 (package! gptel
   :recipe (:host github :repo "karthink/gptel"
