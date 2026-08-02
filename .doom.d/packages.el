@@ -111,7 +111,7 @@
 
 (package! dash :recipe (:type git :host github :repo "magnars/dash.el"))
 
-(package! s.el :recipe (:type git :host github :repo "magnars/s.el"))
+(package! s :recipe (:type git :host github :repo "magnars/s.el"))
 
 (package! alert :recipe (:type git :host github :repo "jwiegley/alert"))
 
