@@ -26,6 +26,7 @@
         (cons '("proxmox" . (:command "proxmox-mcp-launcher"))
               (assoc-delete-all "proxmox" mcp-hub-servers))))
 
+;;;###autoload
 (defun +llm/apply-final-defaults ()
   "Make the shared gptel configuration authoritative after package setup."
   (when (featurep 'gptel)
