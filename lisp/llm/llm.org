@@ -6,20 +6,23 @@
 * Defaults
 
 The local gptel stack defaults to Z.AI =glm-5.2=.  OpenAI
-=gpt-5.6-sol= is available through both the OpenAI Responses API and gptel's
-OpenAI subscription OAuth backend.
+=gpt-5.6-sol= and =gpt-5.6-luna= are available through the OpenAI Responses
+API.  =claude-fable-5= is available through Anthropic.  GPT-5.6 Sol is also
+available through gptel's OpenAI subscription OAuth backend.
 
 The configuration tracks current upstream gptel instead of Doom's older pin.
 Modern defaults enable streaming, curl transport, tool use, per-tool automatic
-confirmation, automatic tool-result retention, Org response conversion,
-branching Org context, response tracking, and reasoning blocks that are shown
-but excluded from subsequent prompts.
+confirmation, automatic tool-result retention, media tracking, prompt caching
+where supported, Org response conversion, branching Org context, response
+tracking, and reasoning blocks that are shown but excluded from subsequent
+prompts.
 
 API keys are resolved from environment variables first and then
 =auth-source=:
 
 - =ZAI_API_KEY= or host =api.z.ai=
 - =OPENAI_API_KEY= or host =api.openai.com=
+- =ANTHROPIC_API_KEY= or host =api.anthropic.com=
 - =OPENROUTER_API_KEY= or host =openrouter.ai=
 
 A Coding Plan endpoint can be selected without changing Lisp:
@@ -42,30 +45,39 @@ The public =ai-agent= and =ai-agent-core= features use matching loader
 filenames.  Their implementations remain split into =agent.el= and
 =agent-core.el=.
 
-After pulling this configuration, update gptel and regenerate Doom's package
-state:
+After pulling this configuration, update gptel and rebuild Transient and
+Dirvish together:
 
 #+begin_src shell
 doom sync -u
 #+end_src
+
+If Emacs was running while Transient changed, fully restart Emacs after the
+sync.  A stale in-memory Transient class definition cannot be repaired by
+reloading Dirvish alone.
 
 * Model switching
 
 #+begin_src emacs-lisp
 (ai/llm-use-glm-5.2)
 (ai/llm-use-gpt-5.6-sol)
+(ai/llm-use-gpt-luna)
+(ai/llm-use-fable)
 (ai/llm-use-openai-oauth)
 #+end_src
 
 The same switches are exposed as =M-x +llm/use-glm-5.2=,
-=M-x +llm/use-gpt-5.6-sol=, and =M-x +llm/use-openai-oauth=.  A prefix
-argument makes the selection buffer-local.
+=M-x +llm/use-gpt-5.6-sol=, =M-x +llm/use-gpt-luna=,
+=M-x +llm/use-fable=, and =M-x +llm/use-openai-oauth=.  A prefix argument
+makes the selection buffer-local.
 
 Available presets:
 
 - =@glm-5.2=
 - =@gpt-5.6-sol=
+- =@gpt-5.6-luna=
 - =@gpt-5.6-sol-oauth=
+- =@claude-fable-5=
 - =@agent= — GLM-5.2 with the project agent tools
 - =@agent-gpt-5.6-sol= — GPT-5.6 Sol with the same tools
 
@@ -82,6 +94,24 @@ M-x +llm/use-openai-oauth
 The normal browser authorization-code flow is used locally.  Over SSH, set
 =gptel-openai-oauth-login-method= to =device= before logging in.
 
+* MCP startup
+
+Configured MCP servers are started after gptel loads, and their tools are
+registered with the active gptel session.  Optional launcher-backed servers are
+non-fatal when their executable, config, or secret is absent.
+
+Useful commands:
+
+#+begin_src emacs-lisp
+M-x +llm/mcp-connect-all
+M-x +llm/proxmox-connect
+M-x +llm/discord-connect
+#+end_src
+
+The generated Doom autoloads now define the MCP customization variables before
+any deferred callback reads them.  This prevents the former
+=void-variable +llm/proxmox-config-file= startup failure.
+
 * Proxmox MCP
 
 Proxmox runs inside the Emacs stack through =gptel= and =mcp.el=.  There is no
@@ -96,9 +126,9 @@ $EDITOR ~/.config/proxmox-mcp/config.json
 #+end_src
 
 The generated template includes API-token authentication, SSH node mappings,
-and a deny-all command policy.  Keep the real =config.json= outside Git.  In
-Emacs, run =M-x +llm/proxmox-connect=.  Once the config exists, normal gptel
-startup also registers the server automatically.
+and a deny-all command policy.  Keep the real =config.json= outside Git.  Once
+the config and launcher exist, normal gptel startup registers the server
+automatically.
 
 * Agent file tools
 
