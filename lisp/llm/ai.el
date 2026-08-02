@@ -86,11 +86,8 @@ Metadata is supplied by current gptel."
      :capabilities (reasoning media tool-use json url)
      :context-window 1050)
     (openai/gpt-5.6-luna
-     :capabilities (reasoning media tool-use json url)
-     :context-window 1050)
-    (anthropic/claude-fable-5
-     :capabilities (media tool-use cache)
-     :context-window 1000))
+     :capabilities (media tool-use json url)
+     :context-window 1050))
   "Models advertised by the OpenRouter backend."
   :type '(repeat sexp)
   :group 'ai/llm)
@@ -320,7 +317,6 @@ With prefix argument LOCAL, apply only in the current buffer."
   :backend (ai/llm-backend 'openai)
   :model 'gpt-5.6-luna
   :stream t
-  :request-params '(:reasoning (:effort "medium" :summary "auto"))
   :include-reasoning 'ignore)
 
 (gptel-make-preset 'gpt-5.6-sol-oauth
