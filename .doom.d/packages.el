@@ -46,6 +46,11 @@
 
 (package! org-drill)
 
+;; Current gptel requires a modern Transient.  Keep Transient and Dirvish on
+;; the same rebuild path to avoid EIEIO class/slot ABI mismatches.
+(unpin! transient)
+(package! transient :recipe (:host github :repo "magit/transient"))
+
 (unpin! gptel)
 (package! gptel
   :recipe (:host github :repo "karthink/gptel"
@@ -84,7 +89,7 @@
 
 (package! podman.el :recipe (:type git :host github :repo "akirak/podman.el"))
 
-(package! pcap-mode.el :recipe (:type git :host github :repo "orgcandman/pcap-mode"))
+(package! pcap-mode.el :recipe (:type git :host github :repo "orgcandman/pcap-mode.el"))
 
 (package! exec-path-from-shell  :recipe (:type git :host github :repo "purcell/exec-path-from-shell"))
 
@@ -106,7 +111,7 @@
 
 (package! dash :recipe (:type git :host github :repo "magnars/dash.el"))
 
-(package! s :recipe (:type git :host github :repo "magnars/s.el"))
+(package! s.el :recipe (:type git :host github :repo "magnars/s.el"))
 
 (package! alert :recipe (:type git :host github :repo "jwiegley/alert"))
 
@@ -118,7 +123,7 @@
 
 (package! org-contrib)
 
-(package! ppcre2el :recipe (:type git :host github :repo "joddie/pcre2el"))
+(package! ppcre2el :recipe (:type git :host github :repo "joddie/ppcre2el"))
 
 (package! rx)
 
