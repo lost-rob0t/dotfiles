@@ -27,6 +27,20 @@
   (ai/mcp-connect-all noerror))
 
 ;;;###autoload
+(defun +llm/proxmox-register (&optional noerror)
+  "Register the Proxmox MCP server."
+  (interactive)
+  (require 'ai-mcp)
+  (ai/mcp-register-proxmox noerror))
+
+;;;###autoload
+(defun +llm/discord-register (&optional noerror)
+  "Register the Discord MCP server."
+  (interactive)
+  (require 'ai-mcp)
+  (ai/mcp-register-discord noerror))
+
+;;;###autoload
 (defun +llm/proxmox-connect ()
   "Connect the Proxmox MCP server."
   (interactive)
