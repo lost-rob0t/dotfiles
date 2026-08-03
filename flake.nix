@@ -48,6 +48,7 @@
           disko.packages.${system}.disko-install
           pkgs.coreutils
           pkgs.gnugrep
+          pkgs.gnused
           pkgs.jq
           pkgs.openssl
           pkgs.util-linux
@@ -56,7 +57,7 @@
           export LOGOS_DEFAULT_FLAKE='${self.outPath}#logos'
           export LOGOS_SOURCE='${self.outPath}'
           export DISKO_INSTALL='${disko.packages.${system}.disko-install}/bin/disko-install'
-          exec '${pkgs.bash}/bin/bash' '${./scripts/install-logos.sh}' "$@"
+          exec '${pkgs.bash}/bin/bash' '${./scripts/install-logos-useen.sh}' "$@"
         '';
       };
 
