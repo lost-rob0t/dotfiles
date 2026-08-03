@@ -86,7 +86,7 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = homeArgs;
-            home-manager.users.unseen = import ./nix/home-manager/systems/desktop/home.nix;
+            home-manager.users.useen = import ./nix/home-manager/systems/logos/home.nix;
           }
           ./nix/nixos/hosts/logos
         ];
@@ -99,11 +99,11 @@
       };
 
       homeConfigurations = {
-        "unseen@logos" = home-manager.lib.homeManagerConfiguration {
+        "useen@logos" = home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
           extraSpecialArgs = homeArgs;
           modules = [
-            ./nix/home-manager/systems/desktop/home.nix
+            ./nix/home-manager/systems/logos/home.nix
           ];
         };
         "unseen@flake" = home-manager.lib.homeManagerConfiguration {
@@ -155,7 +155,7 @@
         install-logos = installLogos;
         install-logos-gui = installLogosGui;
         inherit flash-logos;
-        unseen-home = homeConfigurations."unseen@logos".activationPackage;
+        useen-home = homeConfigurations."useen@logos".activationPackage;
       };
 
       apps.${system} = {
@@ -172,7 +172,7 @@
       checks.${system} = {
         logos = logos.config.system.build.toplevel;
         install-logos = installLogos;
-        unseen-home = homeConfigurations."unseen@logos".activationPackage;
+        useen-home = homeConfigurations."useen@logos".activationPackage;
       };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;
