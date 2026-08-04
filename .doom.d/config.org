@@ -578,7 +578,7 @@ Tangle a file
 #+begin_src emacs-lisp
 (map! :leader
       :desc "Tangle a file"
-      "o b t" #'org-babel-tangle)
+      "b t" #'org-babel-tangle)
 #+end_src
 
 Execute the selected source block (used for literate programming)
@@ -644,7 +644,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (map! :leader
       :after org
       :desc "Format Org Babel source blocks"
-      "o b f" #'format-elisp-src-blocks)
+      "b f" #'format-elisp-src-blocks)
 #+end_src
 *** Org Tempo templates
 I used to use some of these

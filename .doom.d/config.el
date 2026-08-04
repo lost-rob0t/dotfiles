@@ -276,7 +276,7 @@ The optional argument NEW-WINDOW is not used."
 
 (map! :leader
       :desc "Tangle a file"
-      "o b t" #'org-babel-tangle)
+      "b t" #'org-babel-tangle)
 
 (map! :leader
       :desc "Babel execute selected source block"
@@ -329,7 +329,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (map! :leader
       :after org
       :desc "Format Org Babel source blocks"
-      "o b f" #'format-elisp-src-blocks)
+      "b f" #'format-elisp-src-blocks)
 
 (with-eval-after-load 'org
   (require 'org-tempo)
