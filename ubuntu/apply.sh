@@ -7,6 +7,7 @@ readonly ACTION=${1:-apply}
 case "$ACTION" in
   apply)
     bash "$ROOT/apply-outrun.sh" apply
+    bash "$ROOT/fix-keyboard-icons.sh"
     bash "$ROOT/fix-transparent-sidebar.sh"
     ;;
   restore)

@@ -20,7 +20,7 @@ Run from the dotfiles checkout while logged into Ubuntu GNOME:
 bash ~/.dotfiles/ubuntu/apply.sh apply
 ```
 
-The wrapper applies the main theme and then removes sidebar fills so Settings and other libadwaita applications inherit the window background. Selected sidebar rows keep the neon accent.
+The wrapper applies the main theme, restores GNOME-compatible keyboard/system icon rendering, and removes sidebar fills so Settings and other libadwaita applications inherit the window background. Selected sidebar rows keep the neon accent.
 
 The script changes the current user's GNOME/Ubuntu settings only. It creates a timestamped backup under:
 
@@ -34,7 +34,8 @@ It configures:
 - transparent application sidebars with accented active rows
 - GNOME Shell panels, menus, quick settings, notifications, overview, and dash
 - Yaru dark base theme with pink/purple accent selection where supported
-- Hack/Hack Nerd Font UI and terminal fonts when installed
+- Ubuntu Sans/Cantarell for GNOME interface text and Hack/Hack Nerd Font for monospace text when installed
+- a complete Yaru or Adwaita icon theme for keyboard and system glyph coverage
 - GNOME Terminal's full 16-color palette
 - a generated 4K Outrun wallpaper and lock-screen background
 - a compact translucent Ubuntu Dock
@@ -47,15 +48,21 @@ sudo apt install gnome-shell-extensions
 
 Then log out and back in after applying the theme.
 
-## Patch an existing application
+## Patch an existing installation
 
-When the main theme is already applied, update only the sidebar CSS:
+When the main theme is already applied, repair missing keyboard/system icons without rebuilding the theme:
+
+```bash
+bash ~/.dotfiles/ubuntu/fix-keyboard-icons.sh
+```
+
+Update only the sidebar CSS with:
 
 ```bash
 bash ~/.dotfiles/ubuntu/fix-transparent-sidebar.sh
 ```
 
-Close and reopen Settings afterward.
+Close and reopen Settings afterward. Log out and back in after the icon repair so GNOME Shell reloads its stylesheet and font choices.
 
 ## Restore
 
