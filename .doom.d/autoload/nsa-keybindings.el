@@ -38,4 +38,6 @@
         "s s" #'nsa/swiper-search))
 
 ;;;###autoload
-(add-hook 'doom-after-init-hook #'nsa/restore-doom-buffer-bindings)
+(progn
+  (add-hook 'after-init-hook #'nsa/restore-doom-buffer-bindings)
+  (add-hook 'doom-after-init-hook #'nsa/restore-doom-buffer-bindings))
