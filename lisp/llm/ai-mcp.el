@@ -19,6 +19,13 @@
   :type 'file
   :group 'ai/mcp)
 
+(defcustom ai/mcp-proxmox-env-file
+  (expand-file-name "~/.config/proxmox-mcp/proxmox-mcp.env")
+  "Shell env file sourced by the Proxmox MCP launcher before uvx.
+When readable, it is exported to the launcher via PROXMOX_MCP_ENV."
+  :type 'file
+  :group 'ai/mcp)
+
 (defcustom ai/mcp-discord-auth-host "discord"
   "auth-source host used to look up the Discord bot token."
   :type 'string
@@ -42,18 +49,22 @@
   "Register the local Proxmox MCP launcher.
 With NOERROR, return nil instead of signaling when unavailable."
   (cond
-   ((not (file-readable-p ai/mcp-proxmox-config-file))
+   ((not (or (file-readable-p ai/mcp-proxmox-config-file)
+             (file-readable-p ai/mcp-proxmox-env-file)))
     (unless noerror
-      (user-error "Missing Proxmox MCP config: %s"
-                  ai/mcp-proxmox-config-file)))
+      (user-error "Missing Proxmox MCP config: %s or %s"
+                  ai/mcp-proxmox-config-file ai/mcp-proxmox-env-file)))
    ((not (executable-find "proxmox-mcp-launcher"))
     (unless noerror
       (user-error "proxmox-mcp-launcher is not on exec-path")))
    (t
-    (setq mcp-hub-servers
-          (cons '("proxmox" . (:command "proxmox-mcp-launcher"))
-                (assoc-delete-all "proxmox" mcp-hub-servers)))
-    t)))
+    (let ((env (and (file-readable-p ai/mcp-proxmox-env-file)
+                    `(:PROXMOX_MCP_ENV ,ai/mcp-proxmox-env-file))))
+      (setq mcp-hub-servers
+            (cons `("proxmox" . (:command "proxmox-mcp-launcher"
+                                   ,@(when env (list :env env))))
+                  (assoc-delete-all "proxmox" mcp-hub-servers)))
+      t))))
 
 (defun ai/mcp-register-discord (&optional noerror)
   "Register the local Discord MCP launcher.

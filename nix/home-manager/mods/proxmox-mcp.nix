@@ -12,45 +12,48 @@ let
       uv
     ];
     text = ''
+      env_file="''${PROXMOX_MCP_ENV:-${cfg.envFile}}"
+      if [ -r "$env_file" ]; then
+        set -a
+        # shellcheck disable=SC1090
+        . "$env_file"
+        set +a
+      fi
+
       config_file="''${PROXMOX_MCP_CONFIG:-${cfg.configFile}}"
 
-      if [ ! -r "$config_file" ]; then
-        echo "proxmox-mcp-launcher: configuration is missing or unreadable: $config_file" >&2
-        echo "Run proxmox-mcp-init, then replace the placeholder host and API token." >&2
-        exit 1
-      fi
+      if [ -r "$config_file" ]; then
+        host="$(jq -r '.proxmox.host // empty' "$config_file")"
+        user="$(jq -r '.auth.user // empty' "$config_file")"
+        token_name="$(jq -r '.auth.token_name // empty' "$config_file")"
+        token_value="$(jq -r '.auth.token_value // empty' "$config_file")"
+        transport="$(jq -r '.mcp.transport // "STDIO"' "$config_file")"
 
-      if ! jq -e 'type == "object" and (.proxmox | type == "object") and (.auth | type == "object")' \
-        "$config_file" >/dev/null; then
-        echo "proxmox-mcp-launcher: invalid Proxmox MCP JSON: $config_file" >&2
-        exit 1
-      fi
-
-      host="$(jq -r '.proxmox.host // empty' "$config_file")"
-      user="$(jq -r '.auth.user // empty' "$config_file")"
-      token_name="$(jq -r '.auth.token_name // empty' "$config_file")"
-      token_value="$(jq -r '.auth.token_value // empty' "$config_file")"
-      transport="$(jq -r '.mcp.transport // "STDIO"' "$config_file")"
-
-      if [ -z "$host" ] || [ "$host" = "your-proxmox-host-ip" ]; then
-        echo "proxmox-mcp-launcher: set proxmox.host in $config_file" >&2
-        exit 1
-      fi
-
-      if [ -z "$user" ] || [ -z "$token_name" ]; then
-        echo "proxmox-mcp-launcher: set auth.user and auth.token_name in $config_file" >&2
-        exit 1
-      fi
-
-      case "$token_value" in
-        "" | "your-token-value" | "replace-me")
-          echo "proxmox-mcp-launcher: set auth.token_value in $config_file" >&2
+        if [ -z "$host" ] || [ "$host" = "your-proxmox-host-ip" ]; then
+          echo "proxmox-mcp-launcher: set proxmox.host in $config_file" >&2
           exit 1
-          ;;
-      esac
+        fi
 
-      if [ "$transport" != "STDIO" ]; then
-        echo "proxmox-mcp-launcher: mcp.transport must be STDIO for Emacs mcp.el" >&2
+        if [ -z "$user" ] || [ -z "$token_name" ]; then
+          echo "proxmox-mcp-launcher: set auth.user and auth.token_name in $config_file" >&2
+          exit 1
+        fi
+
+        case "$token_value" in
+          "" | "your-token-value" | "replace-me")
+            echo "proxmox-mcp-launcher: set auth.token_value in $config_file" >&2
+            exit 1
+            ;;
+        esac
+
+        if [ "$transport" != "STDIO" ]; then
+          echo "proxmox-mcp-launcher: mcp.transport must be STDIO for Emacs mcp.el" >&2
+          exit 1
+        fi
+      elif [ -z "''${PROXMOX_HOST:-}" ] || [ -z "''${PROXMOX_TOKEN_VALUE:-}" ]; then
+        echo "proxmox-mcp-launcher: no readable config at $config_file" >&2
+        echo "and env vars PROXMOX_HOST/PROXMOX_TOKEN_VALUE are unset." >&2
+        echo "Run proxmox-mcp-init, or fill in $env_file." >&2
         exit 1
       fi
 
@@ -92,6 +95,12 @@ in
       type = lib.types.str;
       default = "${config.home.homeDirectory}/.config/proxmox-mcp/config.json";
       description = "Secret Proxmox MCP JSON configuration kept outside the dotfiles repository.";
+    };
+
+    envFile = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/.config/proxmox-mcp/proxmox-mcp.env";
+      description = "Optional shell env file sourced before launching the server.";
     };
   };
 
