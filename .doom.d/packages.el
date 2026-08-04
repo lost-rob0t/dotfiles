@@ -123,7 +123,7 @@
 
 (package! org-contrib)
 
-(package! ppcre2el :recipe (:type git :host github :repo "joddie/pcre2el"))
+(package! ppcre2el :recipe (:type git :host github :repo "joddie/ppcre2el"))
 
 (package! rx)
 
@@ -143,3 +143,5 @@
 ;(package! perspective-exwm)
 
 ;(package! )
+
+(package! swiper)
