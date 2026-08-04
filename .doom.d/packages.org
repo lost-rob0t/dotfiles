@@ -203,21 +203,6 @@ Org babel functions for prolog.
 #+end_src
 
 * utilities
-** Swiper
-Install Swiper and keep the leader binding in the literate source.
-#+begin_src emacs-lisp
-(package! swiper)
-#+end_src
-
-#+begin_src emacs-lisp :tangle ./autoload/swiper.el
-;;; swiper.el -*- lexical-binding: t; -*-
-
-;;;###autoload
-(map! :leader
-      :desc "Swiper search buffer"
-      "s s" #'swiper-isearch)
-#+end_src
-
 ** Hack mode
 Hack banks from emacs
 jk, package full of utilities for pentesting
