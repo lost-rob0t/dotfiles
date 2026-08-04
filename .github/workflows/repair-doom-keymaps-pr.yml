@@ -17,11 +17,8 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: Apply registered repair
-        shell: bash
-        run: |
-          ruby -ryaml -e 'puts YAML.load_file(".github/workflows/repair-doom-keymaps.yml").fetch("jobs").fetch("repair").fetch("steps")[1].fetch("run")' > /tmp/repair-doom-keymaps.sh
-          bash /tmp/repair-doom-keymaps.sh
+      - name: Apply Doom keymap repair
+        run: python3 .github/scripts/repair-doom-keymaps.py
 
       - name: Verify and push repair branch
         run: |
