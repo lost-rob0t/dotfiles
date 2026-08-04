@@ -20,15 +20,8 @@ jobs:
       - name: Apply registered repair
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          from textwrap import dedent
-
-          workflow = Path('.github/workflows/repair-doom-keymaps.yml').read_text()
-          marker = "python3 - <<'PY'\n"
-          script = workflow.split(marker, 1)[1].split("\n          PY", 1)[0]
-          exec(compile(dedent(script), 'repair-doom-keymaps.py', 'exec'))
-          PY
+          ruby -ryaml -e 'puts YAML.load_file(".github/workflows/repair-doom-keymaps.yml").fetch("jobs").fetch("repair").fetch("steps")[1].fetch("run")' > /tmp/repair-doom-keymaps.sh
+          bash /tmp/repair-doom-keymaps.sh
 
       - name: Verify and push repair branch
         run: |
