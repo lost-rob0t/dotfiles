@@ -1,0 +1,106 @@
+name: Patch GPTEL config.org
+
+on:
+  push:
+    branches:
+      - fix-gptel-config-org-defaults
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix-gptel-config-org-defaults
+          fetch-depth: 0
+
+      - name: Patch config.org
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('.doom.d/config.org')
+          source = path.read_text()
+
+          old = '''#+begin_src emacs-lisp
+          (use-package! gptel
+            :commands (gptel gptel-add gptel-add-file gptel-abort gptel-menu
+                       gptel-complete gptel-send gptel-set-topic)
+            :config
+
+            (setq! gptel-model 'openai/gpt-5-mini
+                   gptel-backend (gptel-make-openai "OpenRouter"       ;Any name you want
+              :host "openrouter.ai"
+              :endpoint "/api/v1/chat/completions"
+              :stream t
+              :key #'(lambda () (nsa/auth-source-get :host "openrouter.ai")) ;can be a function that returns the key
+              :models '(openai/gpt-5.2-codex
+                        openai/gpt-5-mini
+                        moonshotai/kimi-k2.5))
+                   gptel-directives
+          '''
+
+          new = '''#+begin_src emacs-lisp
+          (defvar nsa/gptel-openrouter-gpt-backend nil
+            "OpenRouter backend exposing GPT Luna, Terra, and Sol.")
+
+          (use-package! gptel
+            :commands (gptel gptel-add gptel-add-file gptel-abort gptel-menu
+                       gptel-complete gptel-send gptel-set-topic)
+            :config
+
+            (setq nsa/gptel-openrouter-gpt-backend
+                  (gptel-make-openai "OpenRouter GPT"
+                    :host "openrouter.ai"
+                    :endpoint "/api/v1/chat/completions"
+                    :stream t
+                    :key (lambda () (nsa/auth-source-get :host "openrouter.ai"))
+                    :models '(openai/gpt-5.6-luna
+                              openai/gpt-5.6-terra
+                              openai/gpt-5.6-sol)))
+
+            (setq! gptel-model 'z-ai/glm-5.2
+                   gptel-backend
+                   (gptel-make-openai "OpenRouter GLM"
+                     :host "openrouter.ai"
+                     :endpoint "/api/v1/chat/completions"
+                     :stream t
+                     :key (lambda () (nsa/auth-source-get :host "openrouter.ai"))
+                     :models '(z-ai/glm-5.2))
+                   gptel-directives
+          '''
+
+          if source.count(old) != 1:
+              raise SystemExit(f'expected one GPTEL block, found {source.count(old)}')
+
+          updated = source.replace(old, new)
+          required = (
+              "gptel-model 'z-ai/glm-5.2",
+              'gptel-make-openai "OpenRouter GLM"',
+              'gptel-make-openai "OpenRouter GPT"',
+              'openai/gpt-5.6-luna',
+              'openai/gpt-5.6-terra',
+              'openai/gpt-5.6-sol',
+          )
+          if not all(item in updated for item in required):
+              raise SystemExit('patched GPTEL block failed validation')
+
+          path.write_text(updated)
+          PY
+
+          git diff --check
+          git diff -- .doom.d/config.org
+
+      - name: Commit patch and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/patch-gptel-config.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .doom.d/config.org .github/workflows/patch-gptel-config.yml
+          git commit -m "Set GPTEL OpenRouter defaults in config.org"
+          git push origin HEAD:fix-gptel-config-org-defaults
