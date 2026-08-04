@@ -2,7 +2,7 @@ name: Run Doom keymap repair
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, synchronize]
 
 permissions:
   contents: write
@@ -22,15 +22,12 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          from textwrap import dedent
 
           workflow = Path('.github/workflows/repair-doom-keymaps.yml').read_text()
           marker = "python3 - <<'PY'\n"
           script = workflow.split(marker, 1)[1].split("\n          PY", 1)[0]
-          script = '\n'.join(
-              line[10:] if line.startswith('          ') else line
-              for line in script.splitlines()
-          )
-          exec(compile(script, 'repair-doom-keymaps.py', 'exec'))
+          exec(compile(dedent(script), 'repair-doom-keymaps.py', 'exec'))
           PY
 
       - name: Verify and push repair branch
