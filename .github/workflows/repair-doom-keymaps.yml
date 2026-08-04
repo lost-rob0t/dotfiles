@@ -1,3 +1,4 @@
+# Triggered after workflow registration on master.
 name: Repair Doom keymaps
 
 on:
@@ -39,7 +40,6 @@ jobs:
               replace_once(org_path, old, new)
               replace_once(el_path, old, new)
 
-          # Restore Doom-native completion and buffer modules.
           replace_once(
               org_path,
               '       ;;ivy               ; a search engine for love and life\n'
@@ -65,7 +65,6 @@ jobs:
               '       ibuffer           ; interactive buffer management',
           )
 
-          # Never define private prefix maps on Doom-owned leader namespaces.
           replace_in_config(
               '''(map! :leader
       (:prefix-map ("t" . "toggle")
@@ -205,7 +204,6 @@ jobs:
       "s c" #'cheat-sh)''',
           )
 
-          # Remove the failed manual-repair layer.
           for path in (
               root / '.doom.d/keybindings.org',
               root / '.doom.d/autoload/nsa-keybindings.el',
