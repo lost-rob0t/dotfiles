@@ -1,20 +1,20 @@
 name: Fix Doom Babel bindings
 
 on:
-  push:
-    branches:
-      - agent/fix-doom-babel-bindings
+  pull_request:
+    types: [opened, synchronize]
 
 permissions:
   contents: write
 
 jobs:
   fix:
+    if: github.head_ref == 'agent/fix-doom-babel-bindings'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/fix-doom-babel-bindings
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
 
       - name: Restore original Babel bindings
@@ -43,4 +43,4 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .doom.d/config.org .doom.d/config.el
           git commit -m "Restore original Doom Babel bindings"
-          git push origin HEAD:agent/fix-doom-babel-bindings
+          git push origin HEAD:${{ github.head_ref }}
