@@ -1425,24 +1425,31 @@ machine discord login bot password YOUR_BOT_TOKEN_HERE
 The host and user are customizable via =+llm/discord-auth-host= and =+llm/discord-auth-user=.  Registration is deferred to =mcp-hub= load time and skipped (non-fatal) when the launcher or token are missing, so a fresh checkout still boots.
 
 #+begin_src emacs-lisp
- (use-package! mcp
+(use-package! mcp
   :after gptel
   :commands (mcp-hub-start-all-server gptel-mcp-connect)
-  :custom (mcp-hub-servers
-           `(
-             
-             ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
-             ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
-                                                    ,(expand-file-name "~/Documents/Projects")
-                                                    ,(expand-file-name "~/common-lisp")
-                                                    ,(expand-file-name "~/.dotfiles"))))))
-             
+  :custom
+  (mcp-hub-servers
+   `(("fetch" . (:command "npx" :args ("mcp-fetch-server")))
+     ("filesystem" . (:command "npx"
+                      :args ("-y" "@modelcontextprotocol/server-filesystem"
+                             ,(expand-file-name "~/Documents/Projects")
+                             ,(expand-file-name "~/common-lisp")
+                             ,(expand-file-name "~/.dotfiles"))))))
   :config
   (require 'gptel-integrations)
   (require 'mcp-hub)
-  ;; Register launcher-backed MCP servers.  Discord reads its token
-  ;; from auth-source; it is a no-op until the launcher exists.
-  (+llm/discord-register 'noerror)
+  (let ((discord-launcher (executable-find "discord-mcp-launcher"))
+        (discord-token
+         (ignore-errors
+           (nsa/auth-source-get :host "discord" :user "bot" :max 1))))
+    (when (and discord-launcher
+               (stringp discord-token)
+               (> (length discord-token) 0))
+      (add-to-list
+       'mcp-hub-servers
+       `("discord" . (:command ,discord-launcher
+                      :env (:DISCORD_TOKEN ,discord-token))))))
   (gptel-mcp-connect))
 #+end_src
 
