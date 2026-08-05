@@ -25,7 +25,8 @@ This section tangles the init file
 ;;      documentation. There you'll find a link to Doom's Module Index where all
 ;;      of our modules are listed, including what flags they support.
 
-;; NOTE Move your cursor over a module's name (or 'C-c c k' for non-vim users) to view its documentation. This works on
+;; NOTE Move your cursor over a module's name (or its flags) and press 'K' (or
+;;      'C-c c k' for non-vim users) to view its documentation. This works on
 ;;      flags as well (those symbols that start with a plus).
 ;;
 ;;      Alternatively, press 'gd' (or 'C-c c d') on a module to browse its
@@ -49,7 +50,7 @@ This section tangles the init file
        ;;deft              ; notational velocity for Emacs
        doom              ; what makes DOOM look the way it does
        ;;doom-dashboard    ; a nifty splash screen for Emacs
-       ;;doom-quit         ; Doom quit-message prompts when you quit Emacs
+       ;;doom-quit         ; DOOM quit-message prompts when you quit Emacs
        (emoji +unicode)  ; 🙂
        hl-todo           ; highlight TODO/FIXME/NOTE/DEPRECATED/HACK/REVIEW
        ;;hydra
@@ -80,7 +81,7 @@ This section tangles the init file
                                         ;multiple-cursors  ; editing in many places at once
        ;;objed             ; text object editing for the innocent
        parinfer          ; turn lisp into python, sort of
-       ;;rotate-text      ; cycle region at point between text candidates
+       ;;rotate-text       ; cycle region at point between text candidates
        snippets          ; my elves. They type so I don't have to
        word-wrap         ; soft wrapping with language-aware indent
 
@@ -109,7 +110,7 @@ This section tangles the init file
        direnv
        docker                                 ;docker
        editorconfig      ; let someone else argue about tabs vs spaces
-       ;;ein               ; tame Jupyter notebooks with Emacs
+       ;;ein               ; tame Jupyter notebooks with emacs
        (eval +overlay)     ; run code, run (also, repls)
                                         ;gist              ; interacting with github gists
        lookup              ; navigate your code and its documentation
@@ -120,7 +121,7 @@ This section tangles the init file
        pdf               ; pdf enhancements
        ;;prodigy           ; FIXME managing external services & code builders
        rgb               ; creating color strings
-                                        ;taskrunner        ; running project tasks
+                                        ;taskrunner        ; taskrunner for all your projects
                                         ;terraform         ; infrastructure as code
                                         ;tmux              ; an API for interacting with tmux
       ;tree-sitter       ; syntax and parsing, sitting in a tree...
@@ -137,7 +138,7 @@ This section tangles the init file
        ;;clojure           ; java with a lisp
        common-lisp       ; if you've seen one lisp, you've seen them all
        ;;coq               ; proofs-as-programs
-       ;;crystal           ; ruby with speed
+       ;;crystal           ; ruby at the speed of c
        ;;csharp            ; unity, .NET, and mono shenanigans
        data              ; config/data formats
        ;;(dart +flutter)   ; paint ui and not much else
@@ -146,7 +147,7 @@ This section tangles the init file
        ;;elm               ; care for a cup of TEA?
        emacs-lisp        ; drown in parentheses
        ;;erlang            ; an elegant language for a more civilized age
-       ;;ess               ; Emacs speaks statistics
+       ;;ess               ; emacs speaks statistics
        ;;factor
        ;;faust             ; dsp, but you get to keep your soul
        ;;fortran           ; in FORTRAN, GOD is REAL (unless declared INTEGER)
@@ -204,7 +205,7 @@ This section tangles the init file
        ;;emms
        everywhere        ; *leave* Emacs!? You must be joking
        ;;irc               ; how neckbeards socialize
-       (rss +org)        ; Emacs as an RSS reader
+       (rss +org)        ; emacs as an RSS reader
        ;;twitter           ; twitter client https://twitter.com/vnought
 
        :config
@@ -333,7 +334,7 @@ Define a open in brave function
    ("." . browse-url-brave)))
 #+end_src
 ** Libvirt
-Manage virtual machines from Emacs
+Manage virtual machines from emacs
 #+begin_src emacs-lisp
 (use-package! libvirt
   :commands (libvirt))
@@ -355,7 +356,7 @@ i needed this to keep track of when i modify an org roam file so when i export i
 (add-hook 'before-save-hook 'time-stamp nil)
 #+end_src
 *** org capture
-Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][source.]].
+Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][source.]]
 #+begin_src emacs-lisp
 (defun org-ask-location ()
   (let* ((org-refile-targets '((nil :maxlevel . 9)))
@@ -565,7 +566,7 @@ I prefer being able to have different views within org agenda, so i can see what
            )))
 #+end_src
 **** Open to agenda on startup
-By default doom opens to the =*scratch*= buffer. I want Emacs to boot straight into my (super) agenda so the first thing I see is what needs doing today.
+By default doom opens to the =*scratch*= buffer. I want emacs to boot straight into my (super) agenda so the first thing I see is what needs doing today.
 #+begin_src emacs-lisp
 (setq initial-buffer-choice
       (lambda ()
@@ -1007,7 +1008,7 @@ Show todos!
   (use-package! magit-todos))
 #+end_src
 *** Magit Forges
-Magit forges allow you to interact with the online repositoes like github, gitea and gitlab. They are named "forges".
+Magit forges allow you to interact with the online git repositoes like github, gitea and gitlab. They are named "forges".
 #+begin_src emacs-lisp
 (after! magit
   (use-package! forge))
@@ -1190,7 +1191,7 @@ a better dired
 ;;   (setq tramp-use-ssh-controlmaster-options nil))
 #+end_src
 ** Atomic Chrome/Firefox
-Edit text areas in your web browser within Emacs!
+Edit text areas in your web browser within emacs!
 
 I want it to open a new frame
 #+begin_src emacs-lisp
@@ -1199,7 +1200,7 @@ I want it to open a new frame
   :config
   (setq! atomic-chrome-buffer-open-style 'frame))
 #+end_src
-Make sure to start atomic chrome at Emacs startup.
+Make sure to start atomic chrome at emacs startup.
 #+begin_src emacs-lisp
 (after! atomic-chrome
   (run-with-idle-timer 5 nil #'atomic-chrome-start-server))
@@ -1212,7 +1213,7 @@ Here I bind it to a key.
 (bind-key "M-&" #'nsa/async-shell-command-alert)
 #+end_src
 ** Eshell
-Eshell is a Emacs lisp based shell, which is powerful. After vterm broke on my nixos dotfiles i have now fully commited to eshell.
+Eshell is a emacs lisp based shell, which is powerful. After vterm broke on my nixos dotfiles i have now fully commited to eshell.
 If i cant run it in eshell i have a terminal dropdown for it.
 
 Set the aliases file. Doom already sets this but i will do so again incase i want to change it.
@@ -1227,7 +1228,7 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
 #+end_src
 ** Tramp
 ** Alert
-Send Alerts from Emacs
+Send Alerts from emacs
 
 You must set the command, it is nil be default
 I use dunst as my notification system, here is a config to set that up
@@ -1346,7 +1347,7 @@ Skeletor is a project template package.
 
  Never apologize.  Ask questions when unsure.")
            (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
-           (lisper . "You are a carful common lisper and sly Emacs user. Provide code and only code as output without any additional text, prompt or note.")
+           (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
            (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
            (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
            (time-boxer . "You are a time-boxing specialist. Convert vague tasks into specific, timed work blocks. Consider context switching costs. Suggest productive time boundaries. Account for hyperfocus protection.")
@@ -1424,31 +1425,24 @@ machine discord login bot password YOUR_BOT_TOKEN_HERE
 The host and user are customizable via =+llm/discord-auth-host= and =+llm/discord-auth-user=.  Registration is deferred to =mcp-hub= load time and skipped (non-fatal) when the launcher or token are missing, so a fresh checkout still boots.
 
 #+begin_src emacs-lisp
-(use-package! mcp
+ (use-package! mcp
   :after gptel
   :commands (mcp-hub-start-all-server gptel-mcp-connect)
-  :custom
-  (mcp-hub-servers
-   `(("fetch" . (:command "npx" :args ("mcp-fetch-server")))
-     ("filesystem" . (:command "npx"
-                      :args ("-y" "@modelcontextprotocol/server-filesystem"
-                             ,(expand-file-name "~/Documents/Projects")
-                             ,(expand-file-name "~/common-lisp")
-                             ,(expand-file-name "~/.dotfiles"))))))
+  :custom (mcp-hub-servers
+           `(
+             
+             ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
+             ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
+                                                    ,(expand-file-name "~/Documents/Projects")
+                                                    ,(expand-file-name "~/common-lisp")
+                                                    ,(expand-file-name "~/.dotfiles"))))))
+             
   :config
   (require 'gptel-integrations)
   (require 'mcp-hub)
-  (let ((discord-launcher (executable-find "discord-mcp-launcher"))
-        (discord-token
-         (ignore-errors
-           (nsa/auth-source-get :host "discord" :user "bot" :max 1))))
-    (when (and discord-launcher
-               (stringp discord-token)
-               (not (string-empty-p discord-token)))
-      (add-to-list
-       'mcp-hub-servers
-       `("discord" . (:command ,discord-launcher
-                      :env (:DISCORD_TOKEN ,discord-token))))))
+  ;; Register launcher-backed MCP servers.  Discord reads its token
+  ;; from auth-source; it is a no-op until the launcher exists.
+  (+llm/discord-register 'noerror)
   (gptel-mcp-connect))
 #+end_src
 
@@ -1486,11 +1480,12 @@ Gptel keys, could add more commands though.[fn:6]
 #+end_src
 *** spell-fu
 Fast spell checker
+
 #+begin_src emacs-lisp
 ;; Disabled with Doom's spell module for faster startup.
 #+end_src
 ** Consult Omni
-Powerful omni search in Emacs
+Powerful omni search in emacs
 Consulti multiple sources and have them in a dropdown.
 #+begin_src emacs-lisp
 ;; (use-package! consult-omni
@@ -1538,7 +1533,7 @@ Consulti multiple sources and have them in a dropdown.
 #+end_src
 * Libraries :lib::programming::lisp:
 *** f.el :lisp:
-Much inspired by @magnarss excellent f.el, f.el is a modern API for working with files.
+Much inspired by @magnarss excellent s.el and dash.el, f.el is a modern API for working with files and directories in Emacs.
 #+begin_src emacs-lisp
 (use-package! f
   :defer t)
@@ -1552,7 +1547,6 @@ A modern list API for Emacs. No 'cl required.
 #+end_src
 *** s.el :lisp:
 The long lost Emacs string manipulation library.
-
 #+begin_src emacs-lisp
 (use-package! s
   :defer t)
@@ -1705,7 +1699,7 @@ I only use it on the desktop so only load it there.
 It also serves as a way for people to know i indeed am alive.
 
 ** Midnight mode
-Clean up Emacs overnight
+Clean up emacs overnight
 Set the time to 7 am local
 Ensure a desktop notification is made indicating that the buffers will be cleared as a result of midnight mode being ran.
 *** Clean Buffers List config
@@ -1802,8 +1796,8 @@ Only load when its actually exwm
 #+begin_src emacs-lisp
                                         ;(require 'persp-mode)
 #+end_src
-** EZF fzf but Emacs
-I really like fzf but i also want the options to use Emacs when I can.[fn:5]
+** EZF fzf but emacs
+I really like fzf but i also want the options to use emacs when I can.[fn:5]
 #+begin_src emacs-lisp
 (defun ezf-default (filename)
   "EZF completion with your default completion system."
