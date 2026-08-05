@@ -1,0 +1,89 @@
+name: Patch Discord MCP config
+
+on:
+  push:
+    paths:
+      - .github/workflows/patch-discord-mcp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Patch config.org
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path(".doom.d/config.org")
+          text = path.read_text()
+          old = '''#+begin_src emacs-lisp
+           (use-package! mcp
+            :after gptel
+            :commands (mcp-hub-start-all-server gptel-mcp-connect)
+            :custom (mcp-hub-servers
+                     `(
+                       
+                       ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
+                       ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
+                                                              ,(expand-file-name "~/Documents/Projects")
+                                                              ,(expand-file-name "~/common-lisp")
+                                                              ,(expand-file-name "~/.dotfiles"))))))
+                       
+            :config
+            (require 'gptel-integrations)
+            (require 'mcp-hub)
+            ;; Register launcher-backed MCP servers.  Discord reads its token
+            ;; from auth-source; it is a no-op until the launcher exists.
+            (+llm/discord-register 'noerror)
+            (gptel-mcp-connect))
+          #+end_src'''.replace("          ", "", 1)
+          new = '''#+begin_src emacs-lisp
+          (use-package! mcp
+            :after gptel
+            :commands (mcp-hub-start-all-server gptel-mcp-connect)
+            :custom
+            (mcp-hub-servers
+             `(("fetch" . (:command "npx" :args ("mcp-fetch-server")))
+               ("filesystem" . (:command "npx"
+                                :args ("-y" "@modelcontextprotocol/server-filesystem"
+                                       ,(expand-file-name "~/Documents/Projects")
+                                       ,(expand-file-name "~/common-lisp")
+                                       ,(expand-file-name "~/.dotfiles"))))))
+            :config
+            (require 'gptel-integrations)
+            (require 'mcp-hub)
+            (let ((discord-launcher (executable-find "discord-mcp-launcher"))
+                  (discord-token
+                   (ignore-errors
+                     (nsa/auth-source-get :host "discord" :user "bot" :max 1))))
+              (when (and discord-launcher
+                         (stringp discord-token)
+                         (> (length discord-token) 0))
+                (add-to-list
+                 'mcp-hub-servers
+                 `("discord" . (:command ,discord-launcher
+                                :env (:DISCORD_TOKEN ,discord-token))))))
+            (gptel-mcp-connect))
+          #+end_src'''.replace("          ", "", 1)
+
+          if text.count(old) != 1:
+              raise SystemExit(f"expected one MCP block, found {text.count(old)}")
+
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+      - name: Commit patch and remove workflow
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .doom.d/config.org
+          git rm .github/workflows/patch-discord-mcp.yml
+          git commit -m "Fix Discord MCP registration in config.org"
+          git push origin HEAD:master
