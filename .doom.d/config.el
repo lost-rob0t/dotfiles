@@ -914,24 +914,31 @@ strings."
         :desc "Vector menu" "n v m" #'org-vector-transient
         :desc "Kill all vector services" "n v k" #'org-vector-stop-all))
 
- (use-package! mcp
+(use-package! mcp
   :after gptel
   :commands (mcp-hub-start-all-server gptel-mcp-connect)
-  :custom (mcp-hub-servers
-           `(
-             
-             ("fetch" . (:command "npx" :args ("mcp-fetch-server")))
-             ("filesystem" . (:command "npx" :args ("-y" "@modelcontextprotocol/server-filesystem"
-                                                    ,(expand-file-name "~/Documents/Projects")
-                                                    ,(expand-file-name "~/common-lisp")
-                                                    ,(expand-file-name "~/.dotfiles"))))))
-             
+  :custom
+  (mcp-hub-servers
+   `(("fetch" . (:command "npx" :args ("mcp-fetch-server")))
+     ("filesystem" . (:command "npx"
+                      :args ("-y" "@modelcontextprotocol/server-filesystem"
+                             ,(expand-file-name "~/Documents/Projects")
+                             ,(expand-file-name "~/common-lisp")
+                             ,(expand-file-name "~/.dotfiles"))))))
   :config
   (require 'gptel-integrations)
   (require 'mcp-hub)
-  ;; Register launcher-backed MCP servers.  Discord reads its token
-  ;; from auth-source; it is a no-op until the launcher exists.
-  (+llm/discord-register 'noerror)
+  (let ((discord-launcher (executable-find "discord-mcp-launcher"))
+        (discord-token
+         (ignore-errors
+           (nsa/auth-source-get :host "discord" :user "bot" :max 1))))
+    (when (and discord-launcher
+               (stringp discord-token)
+               (not (string-empty-p discord-token)))
+      (add-to-list
+       'mcp-hub-servers
+       `("discord" . (:command ,discord-launcher
+                      :env (:DISCORD_TOKEN ,discord-token))))))
   (gptel-mcp-connect))
 
 (map! :leader
