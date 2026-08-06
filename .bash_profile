@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 
-# write content below into ~/.profile, or ~/.bash_profile
+if [[ -f "$HOME/.bashrc" ]]; then
+    source "$HOME/.bashrc"
+fi
 
-# if running bash
-if [ -n "$BASH_VERSION" ]; then
-    # include .bashrc if it exists
-    if [ -f "$HOME/.bashrc" ]; then
-        . "$HOME/.bashrc"
-    fi
+# Start the X11 Qtile session after logging in on the first virtual terminal.
+if [[ -z "${DISPLAY:-}" && -z "${WAYLAND_DISPLAY:-}" ]]; then
+    case "$(tty)" in
+        /dev/tty1)
+            exec startx
+            ;;
+    esac
 fi
