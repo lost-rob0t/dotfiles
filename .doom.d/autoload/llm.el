@@ -4,6 +4,11 @@
 (autoload #'ai/chat "chat" "Create and open a persistent Org agent chat." t)
 
 ;;;###autoload
+(map! :leader
+      :desc "Agent chat"
+      :n "y y" #'ai/chat)
+
+;;;###autoload
 (with-eval-after-load 'gptel
   ;; Load real implementations from `lisp/llm' instead of scheduling a
   ;; function whose autoload points back into this compiled autoload file.
