@@ -4,9 +4,16 @@
 (autoload #'ai/chat "chat" "Create and open a persistent Org agent chat." t)
 
 ;;;###autoload
+(autoload #'ai/meme-generate "meme" "Generate a meme from a region or prompt." t)
+
+;;;###autoload
 (defun +llm/bind-keys ()
-  "Bind the local agent chat entrypoint after Doom finishes loading."
+  "Bind the local LLM entrypoints after Doom finishes loading."
   (map! :leader
+        :desc "Generate meme"
+        :n "y m" #'ai/meme-generate
+        :desc "Generate meme from region"
+        :v "y m" #'ai/meme-generate
         :desc "Agent chat"
         :n "y y" #'ai/chat))
 
