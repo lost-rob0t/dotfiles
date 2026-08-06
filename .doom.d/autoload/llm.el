@@ -1,6 +1,9 @@
 ;;; llm.el --- Doom autoload entrypoints for the local gptel stack -*- lexical-binding: t; -*-
 
 ;;;###autoload
+(autoload #'ai/chat "chat" "Create and open a persistent Org agent chat." t)
+
+;;;###autoload
 (with-eval-after-load 'gptel
   ;; Load real implementations from `lisp/llm' instead of scheduling a
   ;; function whose autoload points back into this compiled autoload file.
@@ -58,7 +61,6 @@
 (defun +llm/chat ()
   "Open a persistent Org gptel agent chat."
   (interactive)
-  (require 'chat)
   (call-interactively #'ai/chat))
 
 ;;;###autoload
