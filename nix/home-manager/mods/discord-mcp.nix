@@ -20,7 +20,7 @@ let
 
   discordMcpLauncher = pkgs.writeShellApplication {
     name = "discord-mcp-launcher";
-    runtimeInputs = [ pkgs.nodejs_22 ];
+    runtimeInputs = [ pkgs.nodejs_24 ];
     text = ''
       if [ -z "''${DISCORD_TOKEN:-}" ]; then
         echo "discord-mcp-launcher: DISCORD_TOKEN is not set in the environment." >&2
