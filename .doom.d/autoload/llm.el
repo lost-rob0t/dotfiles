@@ -9,21 +9,15 @@
 ;;;###autoload
 (defun +llm/bind-keys ()
   "Bind the local LLM entrypoints after Doom finishes loading."
-  (map! :leader
-        :desc "Generate meme"
-        :n "y m" #'ai/meme-generate
-        :desc "Generate meme from region"
-        :v "y m" #'ai/meme-generate
-        :desc "Agent chat"
-        :n "y y" #'ai/chat))
+  (define-key doom-leader-map (kbd "y m") #'ai/meme-generate)
+  (define-key doom-leader-map (kbd "y y") #'ai/chat))
 
 ;;;###autoload
 (add-hook 'doom-after-init-hook #'+llm/bind-keys)
 
 ;;;###autoload
 (with-eval-after-load 'gptel
-  ;; Load real implementations from `lisp/llm' instead of scheduling a
-  ;; function whose autoload points back into this compiled autoload file.
+  ;; Run after gptel's package callbacks so the local defaults remain final.
   (run-at-time
    0 nil
    (lambda ()
