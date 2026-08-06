@@ -4,9 +4,14 @@
 (autoload #'ai/chat "chat" "Create and open a persistent Org agent chat." t)
 
 ;;;###autoload
-(map! :leader
-      :desc "Agent chat"
-      :n "y y" #'ai/chat)
+(defun +llm/bind-keys ()
+  "Bind the local agent chat entrypoint after Doom finishes loading."
+  (map! :leader
+        :desc "Agent chat"
+        :n "y y" #'ai/chat))
+
+;;;###autoload
+(add-hook 'doom-after-init-hook #'+llm/bind-keys)
 
 ;;;###autoload
 (with-eval-after-load 'gptel
