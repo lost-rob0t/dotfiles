@@ -16,7 +16,6 @@
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-dictate
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-prolog
       inputs.org-vector.packages.${stdenv.hostPlatform.system}.org-vector
-      nodejs_24
 
       # LLM Editors
       opencode
