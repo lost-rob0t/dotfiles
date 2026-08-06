@@ -30,6 +30,10 @@
   :backend (ai/llm-backend 'openrouter)
   :model 'openai/gpt-5.6-sol)
 
+(map! :leader
+      :desc "Agent chat"
+      :n "y y" #'ai/chat)
+
 (with-eval-after-load 'org-ql
   (require 'todo nil t))
 
