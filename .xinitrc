@@ -20,4 +20,8 @@ if command -v dbus-update-activation-environment >/dev/null 2>&1; then
         DESKTOP_SESSION
 fi
 
+if command -v gnome-keyring-daemon >/dev/null 2>&1; then
+    gnome-keyring-daemon --start --components=secrets
+fi
+
 exec qtile start
