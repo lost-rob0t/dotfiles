@@ -16,6 +16,7 @@
     nyxt
     # Development
     gitRepo
+    nodejs_24
     sqlitebrowser
     vim
     direnv
