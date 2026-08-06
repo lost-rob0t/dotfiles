@@ -1,64 +1,75 @@
-{ lib, pkgs, config, ... }: {
-
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
+{
   options = with lib; {
     emacs = {
       enable = mkOption {
-      type = types.bool;
-      description = "Enable emacs";
-      default = true;
-    };
+        type = types.bool;
+        description = "Enable emacs";
+        default = true;
+      };
       package = mkOption {
         type = types.package;
         default = pkgs.emacs;
         description = "Which emacs package to use?";
       };
-    gitUser = mkOption {
-      type = types.string;
-      default = home.user;
-      description = "Configure Git to use this username";
-    };
-    gitEmail = mkOption {
-      type = types.string;
-      description = "Configure Git to use this email.";
-    };
-    diredXDG = {
-      enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Create XDG associations for file management via dired.";
+      gitUser = mkOption {
+        type = types.string;
+        default = config.home.username;
+        description = "Configure Git to use this username";
       };
+      gitEmail = mkOption {
+        type = types.string;
+        description = "Configure Git to use this email.";
+      };
+      diredXDG = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Create XDG associations for file management via dired.";
+        };
 
-      pkg = mkOption {
-        type = types.package;
-        description = "Desktop/XDG association for files in emacs.";
+        pkg = mkOption {
+          type = types.package;
+          description = "Desktop/XDG association for files in emacs.";
+        };
       };
-    };
-    extraPackages = mkOption {
+      extraPackages = mkOption {
         type = types.listOf types.package;
-        default = [];
+        default = [ ];
         description = "Extra packages to install ontop of the base ones included with this module";
       };
+    };
   };
-  };
+
   config = with lib; mkIf config.emacs.enable {
     emacs.diredXDG.pkg = pkgs.makeDesktopItem {
       name = "dired";
       desktopName = "Dired";
       exec = "emacsclient --eval \"(dired \"%f\")\"";
       terminal = false;
-      mimeTypes = [ "application/x-directory" "inode/directory" ];
+      mimeTypes = [
+        "application/x-directory"
+        "inode/directory"
+      ];
     };
+
     programs.git = {
       enable = true;
-      userName = "N545PY"; # If you use my modules change this
-      userEmail = "nsaspy@fedora.email";
-      extraConfig = {
-        merge = {
-          conflictStyle = "diff3";
+      settings = {
+        user = {
+          name = config.emacs.gitUser;
+          email = config.emacs.gitEmail;
         };
+        merge.conflictStyle = "diff3";
       };
     };
-    #programs.gpg.enable = true;
+
+    # programs.gpg.enable = true;
     programs.emacs = {
       enable = true;
       package = config.emacs.package;
@@ -77,8 +88,8 @@
         pkgs.libnotify # for alert.el
         pkgs.xdotool # for emacs everywhere
         pkgs.ffmpegthumbnailer # Video thumbnails
-        pkgs.imagemagick #photo thumbnails
-        pkgs.mediainfo #audio previews
+        pkgs.imagemagick # photo thumbnails
+        pkgs.mediainfo # audio previews
         pkgs.mpv # for bongo
         pkgs.pyright
         # TODO we need a single source of truth for python versions!
@@ -97,7 +108,7 @@
         pkgs.xdotool
         pkgs.fd
       ];
-};
+    };
 
     xdg = mkIf config.emacs.diredXDG.enable {
       mimeApps = {
@@ -106,11 +117,11 @@
           "application/x-directory" = [ "$config.emacs.diredXDG.pkg" ];
           "inode/directory" = [ "$config.emacs.diredXDG.pkg" ];
         };
-    defaultApplications = {
-      "application/x-directory" = [ "$config.emacs.diredXDG.pkg" ];
-      "inode/directory" = [ "$config.emacs.diredXDG.pkg" ];
-    };
-  };
+        defaultApplications = {
+          "application/x-directory" = [ "$config.emacs.diredXDG.pkg" ];
+          "inode/directory" = [ "$config.emacs.diredXDG.pkg" ];
+        };
+      };
     };
   };
 }
