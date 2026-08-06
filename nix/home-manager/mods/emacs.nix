@@ -18,12 +18,12 @@
         description = "Which emacs package to use?";
       };
       gitUser = mkOption {
-        type = types.string;
+        type = types.str;
         default = config.home.username;
         description = "Configure Git to use this username";
       };
       gitEmail = mkOption {
-        type = types.string;
+        type = types.str;
         description = "Configure Git to use this email.";
       };
       diredXDG = {
