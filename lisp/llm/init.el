@@ -1,6 +1,7 @@
 ;;; init.el --- Load the Emacs LLM stack -*- lexical-binding: t; -*-
 
 (require 'ai)
+(require 'meme)
 (require 'ai-agent)
 (require 'ai-mcp)
 (require 'chat)
@@ -31,8 +32,9 @@
   :model 'openai/gpt-5.6-sol)
 
 (map! :leader
-      :desc "Agent chat"
-      :n "y y" #'ai/chat)
+      :desc "Generate meme" :n "y m" #'ai/meme-generate
+      :desc "Generate meme from region" :v "y m" #'ai/meme-generate
+      :desc "Agent chat" :n "y y" #'ai/chat)
 
 (with-eval-after-load 'org-ql
   (require 'todo nil t))
