@@ -1201,7 +1201,32 @@ If COMPLETING-FN is nil default to `ezf-default'."
   (dolist (symbol '(dslide-next-child dslide-previous-child))
     (when (and (fboundp symbol) (not (cl-generic-p symbol)))
       (fmakunbound symbol)))
-  (require 'dslide))
+  (require 'dslide)
+  (setq dslide-slide-in-effect t
+        dslide-animation-duration 0.25
+        dslide-slide-in-blank-lines 8
+        dslide-default-actions
+        '(dslide-action-hide-markup
+          dslide-action-propertize
+          dslide-action-kmacro
+          dslide-action-babel
+          dslide-action-image
+          dslide-action-item-reveal)))
+
+(defun +dslide/insert-state ()
+  "Keep Dslide presentation buffers in Evil insert state."
+  (when (fboundp 'evil-insert-state)
+    (evil-insert-state)))
+
+(defun +dslide/setup-effects ()
+  "Apply presentation-only spacing and cursor behavior."
+  (setq-local line-spacing 0.2)
+  (setq-local cursor-type nil)
+  (+dslide/insert-state))
+
+(add-hook 'dslide-start-hook #'+dslide/setup-effects)
+(add-hook 'dslide-develop-hook #'+dslide/setup-effects)
+(add-hook 'dslide-present-hook #'+dslide/setup-effects)
 
 (defun +dslide/start ()
   "Start the current Org document as a Dslide deck."
