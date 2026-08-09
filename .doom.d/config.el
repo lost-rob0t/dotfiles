@@ -1193,3 +1193,10 @@ If COMPLETING-FN is nil default to `ezf-default'."
 
 ;; (after! vterm
 ;;   (setq vterm-shell-args '("-c" "STARSHIP_CONFIG=~/.config/starship-plain.toml exec bash")))
+
+;; StarIntel Social: optional external editorial workstation.
+(let ((root (getenv "STARINTEL_SOCIAL_ROOT")))
+  (when (and root (not (string= root "")))
+    (let ((entry (expand-file-name "elisp/starintel-social.el" root)))
+      (when (file-readable-p entry)
+        (load entry nil 'nomessage)))))
