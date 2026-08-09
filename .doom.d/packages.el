@@ -52,6 +52,8 @@
 (package! transient :recipe (:host github :repo "magit/transient"))
 
 (unpin! gptel)
+(package! dslide :recipe (:type git :host github :repo "positron-solutions/dslide"))
+
 (package! gptel
   :recipe (:host github :repo "karthink/gptel"
            :files ("*.el")))

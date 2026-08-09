@@ -111,6 +111,13 @@ Create Flashcards from
 (package! org-drill)
 #+end_src
 
+** dslide
+Programmable Org-mode presentations.  This is the actual Dslide runtime; the
+StarIntel presentation source is opened with `M-x dslide-deck-start` or `F5`.
+#+begin_src emacs-lisp
+(package! dslide :recipe (:type git :host github :repo "positron-solutions/dslide"))
+#+end_src
+
 * AI
 ** transient
 Current gptel requires a modern Transient.  Track it with gptel so Dirvish and

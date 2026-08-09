@@ -1194,6 +1194,18 @@ If COMPLETING-FN is nil default to `ezf-default'."
 ;; (after! vterm
 ;;   (setq vterm-shell-args '("-c" "STARSHIP_CONFIG=~/.config/starship-plain.toml exec bash")))
 
+;; Dslide: F5 starts any Org source as a slide deck.
+(use-package! dslide
+  :commands (dslide-deck-start dslide-deck-develop dslide-deck-present)
+  :init
+  (map! :map org-mode-map
+        "<f5>" #'dslide-deck-start)
+  :config
+  (map! :leader
+        :desc "Start Dslide deck" "o d s" #'dslide-deck-start
+        :desc "Develop Dslide deck" "o d d" #'dslide-deck-develop
+        :desc "Present Dslide deck" "o d p" #'dslide-deck-present))
+
 ;; StarIntel Social: optional external editorial workstation.
 (let ((root (getenv "STARINTEL_SOCIAL_ROOT")))
   (when (and root (not (string= root "")))
