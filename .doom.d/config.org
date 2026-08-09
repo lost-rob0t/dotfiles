@@ -1903,17 +1903,39 @@ When the variable is unset, empty, or the checkout is absent, this config does
 nothing. The package exposes its command surface through =M-x starintel-social-menu=.
 
 #+begin_src emacs-lisp
-;; Dslide: F5 starts any Org source as a slide deck.
-(use-package! dslide
-  :commands (dslide-deck-start dslide-deck-develop dslide-deck-present)
-  :init
-  (map! :map org-mode-map
-        "<f5>" #'dslide-deck-start)
-  :config
-  (map! :leader
-        :desc "Start Dslide deck" "o d s" #'dslide-deck-start
-        :desc "Develop Dslide deck" "o d d" #'dslide-deck-develop
-        :desc "Present Dslide deck" "o d p" #'dslide-deck-present))
+;; Dslide: clear stale pre-generic API cells before loading the current package.
+(defun +dslide/require ()
+  "Load Dslide without mixing it with the pre-generic implementation."
+  (require 'cl-generic)
+  (dolist (symbol '(dslide-next-child dslide-previous-child))
+    (when (and (fboundp symbol) (not (cl-generic-p symbol)))
+      (fmakunbound symbol)))
+  (require 'dslide))
+
+(defun +dslide/start ()
+  "Start the current Org document as a Dslide deck."
+  (interactive)
+  (+dslide/require)
+  (dslide-deck-start))
+
+(defun +dslide/develop ()
+  "Open the current Org document in Dslide's development layout."
+  (interactive)
+  (+dslide/require)
+  (dslide-deck-develop))
+
+(defun +dslide/present ()
+  "Present the current Org document through Dslide."
+  (interactive)
+  (+dslide/require)
+  (dslide-deck-present))
+
+(map! :map org-mode-map
+      "<f5>" #'+dslide/start
+      :leader
+      :desc "Start Dslide deck" "o D" #'+dslide/start
+      :desc "Develop Dslide deck" "o C" #'+dslide/develop
+      :desc "Present Dslide deck" "o V" #'+dslide/present)
 
 ;; StarIntel Social: optional external editorial workstation.
 (let ((root (getenv "STARINTEL_SOCIAL_ROOT")))
