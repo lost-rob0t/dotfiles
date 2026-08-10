@@ -14,7 +14,6 @@
 The runtime directory is added to `load-path' before loading `mara.el' so
 Mara's internal `require' forms resolve their dependencies themselves.  Do
 not load every file in the runtime directory individually."
-  (interactive)
   (let ((entry (expand-file-name "mara.el" fren-loader-emacs-directory)))
     (cond
      ((not (file-directory-p fren-loader-emacs-directory))
@@ -28,8 +27,6 @@ not load every file in the runtime directory individually."
       (add-to-list 'load-path fren-loader-emacs-directory)
       ;; Load only the entry feature.  `mara.el' owns the dependency graph.
       (require 'mara)
-      (when (called-interactively-p 'interactive)
-        (message "fren-loader: loaded Mara from %s" entry))
       t))))
 
 (fren-loader-load)
