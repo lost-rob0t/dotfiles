@@ -5,20 +5,38 @@
 (require 'ai-image)
 (require 'meme)
 (require 'ai-agent)
+(require 'ai-image-tools)
 (require 'ai-mcp)
 (require 'chat)
 
-;; Override values left bound by an older loaded copy of this configuration.
+(unless (assq 'openai/gpt-5.6-sol-pro:exacto ai/llm-openrouter-models)
+  (push '(openai/gpt-5.6-sol-pro:exacto
+          :description "GPT-5.6 Sol Pro through OpenRouter Exacto"
+          :capabilities (reasoning media tool-use json url)
+          :context-window 1050)
+        ai/llm-openrouter-models))
+
 (setq ai/llm-provider 'openrouter
-      ai/llm-model 'z-ai/glm-5.2)
+      ai/llm-model 'openai/gpt-5.6-sol-pro:exacto)
+(ai/llm-backend 'openrouter t)
 (ai/llm-apply-defaults)
 
-;; `agent.el' historically used direct provider backends.  Re-register the
-;; public presets after it loads so all normal agent traffic stays on OpenRouter.
-(gptel-make-preset 'agent
-  :description "GLM-5.2 project agent through OpenRouter."
+(ai/image-register-gptel-tools)
+(unless (string-match-p "Image and prompt-template rules:" ai/agent-system-prompt)
+  (setq ai/agent-system-prompt
+        (concat ai/agent-system-prompt ai/image-agent-instructions)))
+
+(gptel-make-preset 'gpt-5.6-sol-pro
+  :description "GPT-5.6 Sol Pro through OpenRouter Exacto."
   :backend (ai/llm-backend 'openrouter)
-  :model 'z-ai/glm-5.2
+  :model 'openai/gpt-5.6-sol-pro:exacto
+  :stream t
+  :include-reasoning 'ignore)
+
+(gptel-make-preset 'agent
+  :description "GPT-5.6 Sol Pro project agent through OpenRouter Exacto."
+  :backend (ai/llm-backend 'openrouter)
+  :model 'openai/gpt-5.6-sol-pro:exacto
   :system ai/agent-system-prompt
   :tools ai/agent-tools
   :stream t
