@@ -37,6 +37,7 @@
 
       jq
       curl
+      ffmpeg
       openai-whisper
     ];
 
