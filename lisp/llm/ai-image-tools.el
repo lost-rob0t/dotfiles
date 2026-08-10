@@ -3,6 +3,7 @@
 (require 'ai-image)
 (require 'cl-lib)
 (require 'gptel)
+(require 'subr-x)
 
 (defconst ai/image-agent-instructions
   "
@@ -18,6 +19,22 @@ Image and prompt-template rules:
   (when (fboundp 'gptel-get-tool)
     (ignore-errors (setf (gptel-get-tool name) nil))))
 
+(defun ai/image-chat-generate (prompt callback)
+  "Validate PROMPT, then generate an image and invoke CALLBACK."
+  (if (string-empty-p (string-trim (or prompt "")))
+      (funcall callback "ERROR: Image prompt is empty")
+    (ai/image-tool-generate prompt callback)))
+
+(defun ai/image-chat-edit (file prompt callback)
+  "Validate FILE and PROMPT, then edit the image and invoke CALLBACK."
+  (cond
+   ((string-empty-p (string-trim (or prompt "")))
+    (funcall callback "ERROR: Image edit prompt is empty"))
+   ((not (file-readable-p (expand-file-name file)))
+    (funcall callback (format "ERROR: Image is not readable: %s" file)))
+   (t
+    (ai/image-tool-edit (expand-file-name file) prompt callback))))
+
 (defun ai/image-register-gptel-tools ()
   "Register image generation, editing, and prompt-template tools with gptel."
   (dolist (name '("GenerateImage" "EditImage"
@@ -26,7 +43,7 @@ Image and prompt-template rules:
 
   (gptel-make-tool
    :name "GenerateImage"
-   :function #'ai/image-tool-generate
+   :function #'ai/image-chat-generate
    :category "image"
    :description
    "Generate a finished image from a complete prompt with GPT Image 2 through OpenRouter. Returns an Org file link that must be included verbatim in the final response."
@@ -38,7 +55,7 @@ Image and prompt-template rules:
 
   (gptel-make-tool
    :name "EditImage"
-   :function #'ai/image-tool-edit
+   :function #'ai/image-chat-edit
    :category "image"
    :description
    "Edit a local PNG, JPEG, or WebP from a complete edit instruction using GPT Image 2 through OpenRouter. Returns an Org file link that must be included verbatim in the final response."
