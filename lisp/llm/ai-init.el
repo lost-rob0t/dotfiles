@@ -25,6 +25,7 @@
 (unless (string-match-p "Image and prompt-template rules:" ai/agent-system-prompt)
   (setq ai/agent-system-prompt
         (concat ai/agent-system-prompt ai/image-agent-instructions)))
+(setq ai/chat-system-prompt ai/agent-system-prompt)
 
 (gptel-make-preset 'gpt-5.6-sol-pro
   :description "GPT-5.6 Sol Pro through OpenRouter Exacto."
