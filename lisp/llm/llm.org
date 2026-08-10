@@ -5,10 +5,11 @@
 
 * Defaults
 
-The local gptel stack defaults to Z.AI =glm-5.2=.  OpenAI
-=gpt-5.6-sol= and =gpt-5.6-luna= are available through the OpenAI Responses
-API.  =claude-fable-5= is available through Anthropic.  GPT-5.6 Sol is also
-available through gptel's OpenAI subscription OAuth backend.
+The local gptel stack defaults to Claude Opus 5 through OpenRouter Exacto with
+maximum reasoning effort.  OpenRouter is the authoritative provider for normal
+chat, agent, and image-generation traffic.  GPT-5.6 Sol remains available as
+an alternate agent model, and GPT-5.6 Sol is also available through gptel's
+OpenAI subscription OAuth backend.
 
 The configuration tracks current upstream gptel instead of Doom's older pin.
 Modern defaults enable streaming, curl transport, tool use, per-tool automatic
@@ -24,6 +25,9 @@ API keys are resolved from environment variables first and then
 - =OPENAI_API_KEY= or host =api.openai.com=
 - =ANTHROPIC_API_KEY= or host =api.anthropic.com=
 - =OPENROUTER_API_KEY= or host =openrouter.ai=
+
+Normal chat and image generation require only the OpenRouter credential.
+Direct-provider credentials remain available for explicit provider switching.
 
 A Coding Plan endpoint can be selected without changing Lisp:
 
@@ -71,15 +75,16 @@ The same switches are exposed as =M-x +llm/use-glm-5.2=,
 =M-x +llm/use-fable=, and =M-x +llm/use-openai-oauth=.  A prefix argument
 makes the selection buffer-local.
 
-Available presets:
+Available presets include:
 
+- =@claude-opus-5= — Claude Opus 5 through OpenRouter Exacto at max reasoning
 - =@glm-5.2=
 - =@gpt-5.6-sol=
 - =@gpt-5.6-luna=
 - =@gpt-5.6-sol-oauth=
 - =@claude-fable-5=
-- =@agent= — GLM-5.2 with the project agent tools
-- =@agent-gpt-5.6-sol= — GPT-5.6 Sol with the same tools
+- =@agent= — Claude Opus 5 Exacto with project and image tools
+- =@agent-gpt-5.6-sol= — GPT-5.6 Sol with the same tool suite
 
 * Reusable prompt templates
 
@@ -104,20 +109,17 @@ M-x ai/prompt-template-edit
 
 Doom binds =SPC y p= to the prompt/image Transient menu.
 
-* OpenAI image tools
+* OpenRouter image tools
 
-=image-generation= calls use the hosted OpenAI Responses API image tool instead
-of routing through OpenRouter.  They therefore require =OPENAI_API_KEY= or an
-=auth-source= entry for =api.openai.com=.  Image requests run asynchronously
-through Emacs =url.el=; the API key is sent as an HTTP header rather than being
-placed in a shell command line.
+Image generation uses OpenRouter's dedicated =/api/v1/images= endpoint with
+=openai/gpt-image-2= as the default image model.  Generation and editing use
+the same =OPENROUTER_API_KEY= / OpenRouter =auth-source= credential as normal
+chat.  Requests run asynchronously through Emacs =url.el=; API keys are sent in
+HTTP headers rather than placed on a shell command line.
 
-The defaults use =gpt-5.2= to invoke the hosted tool and =gpt-image-2= as the
-image model.  Both are customizable with =ai/image-responses-model= and
-=ai/image-model=.
-
-Generated files default to =~/Pictures/ai/= and open automatically when the
-request completes.
+Generated files default to =~/Pictures/ai/=.  In Org buffers the resulting
+=[[file:...]]= link is inserted and rendered inline.  Outside Org buffers the
+interactive command can open the generated file in another window.
 
 #+begin_src emacs-lisp
 M-x ai/image-generate
@@ -127,13 +129,38 @@ M-x ai/image-edit
 
 =ai/image-generate= uses the active region as the prompt when a region is
 selected.  =ai/image-generate-template= fills one of the reusable templates and
-sends the rendered prompt directly to the image tool.  =ai/image-edit= sends a
-local PNG, JPEG, or WebP as an image input and requests an edit with high input
-fidelity.
+sends the rendered prompt directly to GPT Image 2.  =ai/image-edit= sends a
+local PNG, JPEG, or WebP as an OpenRouter reference image.
 
 Doom binds =SPC y i= directly to image generation.  The =SPC y p= Transient
 also exposes generation from a raw prompt, generation from a template, and
 image editing.
+
+** Image generation inside chat
+
+The Org chat registers four gptel tools:
+
+- =GenerateImage= — generate an image from a complete prompt
+- =EditImage= — edit a local image from a complete instruction
+- =ListPromptTemplates= — enumerate reusable =.prompt= templates
+- =ReadPromptTemplate= — load a named template verbatim
+
+When a chat request asks for an image, the agent can call =GenerateImage= or
+=EditImage= directly.  Image tool results are always retained in the Org chat,
+contain a local =[[file:...]]= link, and are rendered inline after the response.
+The agent is instructed to repeat that exact link in its final answer as well.
+This makes image generation part of the normal =M-x +llm/chat= flow rather
+than a separate command-only workflow.
+
+A named design prompt can therefore be used conversationally, for example:
+
+#+begin_example
+Use starintel-visual and generate an infographic for the actor system.
+#+end_example
+
+The agent can read =starintel-visual.prompt=, compose the final image prompt,
+call GPT Image 2 through OpenRouter, and place the generated image directly in
+the chat transcript.
 
 * OpenAI subscription OAuth
 
@@ -193,6 +220,7 @@ The enabled agent surface is intentionally small and Claude Code-like:
 - =Mkdir=, =Move=, =Delete=
 - =Bash=, =GitStatus=, =GitDiff=, =DiffFiles=
 - buffer, Emacs introspection, web fetch, and project-context tools
+- image generation, image editing, and reusable prompt-template lookup
 
 Mutations are project-confined by default, writes are atomic, exact edits
 fail on ambiguous matches, command output is bounded, and unified patches
@@ -214,15 +242,17 @@ actual Org buffer is changed only after the patch succeeds.
 
 * Persistent chat
 
-=M-x +llm/chat= opens an Org-native gptel chat using the active backend,
-agent tool set, response autosave, and one-time automatic title generation.
-Chats are stored below =~/Documents/Notes/org/roam/llm/=.
+=M-x +llm/chat= opens an Org-native gptel chat using Claude Opus 5 Exacto by
+default, with the project agent tools, image tools, response autosave, inline
+image rendering, and one-time automatic title generation.  Chats are stored
+below =~/Documents/Notes/org/roam/llm/=.
 
 * Source files
 
 #+INCLUDE: "ai.el" src emacs-lisp
 #+INCLUDE: "ai-prompts.el" src emacs-lisp
 #+INCLUDE: "ai-image.el" src emacs-lisp
+#+INCLUDE: "ai-image-tools.el" src emacs-lisp
 #+INCLUDE: "ai-agent-core.el" src emacs-lisp
 #+INCLUDE: "agent-core.el" src emacs-lisp
 #+INCLUDE: "ai-agent.el" src emacs-lisp
