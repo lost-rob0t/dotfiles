@@ -26,6 +26,7 @@
       #codex
       espeak-ng
       sox
+      ffmpeg
       alsa-utils
 
       # GUI and notification utilities
