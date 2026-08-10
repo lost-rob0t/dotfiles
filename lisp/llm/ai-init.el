@@ -8,6 +8,7 @@
 (require 'ai-image-tools)
 (require 'ai-mcp)
 (require 'chat)
+(require 'fren-loader)
 
 (unless (assq 'openrouter/auto ai/llm-openrouter-models)
   (push '(openrouter/auto
