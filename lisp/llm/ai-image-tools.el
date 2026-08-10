@@ -19,13 +19,13 @@ Image and prompt-template rules:
   (when (fboundp 'gptel-get-tool)
     (ignore-errors (setf (gptel-get-tool name) nil))))
 
-(defun ai/image-chat-generate (prompt callback)
+(defun ai/image-chat-generate (callback prompt)
   "Validate PROMPT, then generate an image and invoke CALLBACK."
   (if (string-empty-p (string-trim (or prompt "")))
       (funcall callback "ERROR: Image prompt is empty")
     (ai/image-tool-generate prompt callback)))
 
-(defun ai/image-chat-edit (file prompt callback)
+(defun ai/image-chat-edit (callback file prompt)
   "Validate FILE and PROMPT, then edit the image and invoke CALLBACK."
   (cond
    ((string-empty-p (string-trim (or prompt "")))
@@ -89,7 +89,7 @@ Image and prompt-template rules:
     (dolist (name '("GenerateImage" "EditImage"
                     "ListPromptTemplates" "ReadPromptTemplate"))
       (cl-pushnew name ai/agent-tools :test #'equal)))
-  ai/agent-tools)
+  (and (boundp 'ai/agent-tools) ai/agent-tools))
 
 (provide 'ai-image-tools)
 ;;; ai-image-tools.el ends here
