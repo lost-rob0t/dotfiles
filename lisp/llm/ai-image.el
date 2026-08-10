@@ -23,7 +23,7 @@
   :type 'string
   :group 'ai/image)
 
-(defcustom ai/image-model "gpt-image-1.5"
+(defcustom ai/image-model "gpt-image-2"
   "Image model passed to the OpenAI image-generation tool."
   :type 'string
   :group 'ai/image)
