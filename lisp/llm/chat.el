@@ -168,6 +168,7 @@
   (setq-local gptel-system-message ai/chat-system-prompt)
   (setq-local gptel-tools (ai/chat--agent-tools))
   (setq-local gptel-use-tools t)
+  (setq-local gptel-include-tool-results t)
   (setq-local gptel-use-context 'system)
   (setq-local gptel-track-media t)
   (setq-local gptel-include-reasoning t)
