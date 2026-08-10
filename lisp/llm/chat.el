@@ -145,12 +145,37 @@
       (set-visited-file-name (ai/chat--file "chat") t))
     (save-buffer)))
 
-(defun ai/chat--after-response (_start _end)
-  "Persist the response and optionally generate a title."
+(defun ai/chat--display-inline-images ()
+  "Render local Org image links in the current chat buffer."
   (when (derived-mode-p 'org-mode)
+    (condition-case nil
+        (org-display-inline-images)
+      (error nil))))
+
+(defun ai/chat--after-response (_start _end)
+  "Persist the response, render images, and optionally generate a title."
+  (when (derived-mode-p 'org-mode)
+    (ai/chat--display-inline-images)
     (ai/chat--save)
     (when (and ai/chat-auto-title (not ai/chat--titled))
       (ai/chat--title-async))))
+
+(defun ai/chat--configure-buffer ()
+  "Configure the current Org buffer as an image-capable gptel chat."
+  (org-mode)
+  (setq-local gptel-backend (ai/llm-backend))
+  (setq-local gptel-model (ai/llm-resolve-model))
+  (setq-local gptel-system-message ai/chat-system-prompt)
+  (setq-local gptel-tools (ai/chat--agent-tools))
+  (setq-local gptel-use-tools t)
+  (setq-local gptel-include-tool-results t)
+  (setq-local gptel-use-context 'system)
+  (setq-local gptel-track-media t)
+  (setq-local gptel-include-reasoning t)
+  (setq-local org-startup-with-inline-images t)
+  (gptel-mode 1)
+  (add-hook 'gptel-post-response-functions #'ai/chat--after-response nil t)
+  (ai/chat--display-inline-images))
 
 ;;;###autoload
 (defun ai/chat (&optional name)
@@ -158,29 +183,19 @@
 
 The file is created immediately under `ai/chat-directory' as
 YYYY-MM-DD_HH-MM-SS_slug.org.  The buffer enables the local Emacs agent
-tools together with any globally active MCP tools."
+tools together with any globally active MCP and image tools."
   (interactive)
   (let* ((input (or name (read-string "Chat name: " "chat")))
          (name (if (string-empty-p (string-trim input)) "chat" input))
          (buffer (generate-new-buffer (format "*LLM: %s*" name))))
     (with-current-buffer buffer
-      (org-mode)
       (setq-local ai/chat--session-id (format-time-string "%Y-%m-%d_%H-%M-%S"))
-      (setq-local gptel-backend (ai/llm-backend))
-      (setq-local gptel-model (ai/llm-resolve-model))
-      (setq-local gptel-system-message ai/chat-system-prompt)
-      (setq-local gptel-tools (ai/chat--agent-tools))
-      (setq-local gptel-use-tools t)
-      (setq-local gptel-use-context 'system)
-      (setq-local gptel-track-media t)
-      (setq-local gptel-include-reasoning t)
       (make-directory ai/chat-directory t)
       (set-visited-file-name (ai/chat--file name) t)
+      (ai/chat--configure-buffer)
       (ai/chat--ensure-header name)
       (goto-char (point-max))
       (insert "* User\n")
-      (add-hook 'gptel-post-response-functions #'ai/chat--after-response nil t)
-      (gptel-mode 1)
       (ai/chat--save))
     (switch-to-buffer buffer)
     (goto-char (point-max))))
@@ -201,17 +216,7 @@ tools together with any globally active MCP tools."
                            (or (file-directory-p path)
                                (string-match-p "\\.org\\'" path))))))
   (find-file file)
-  (org-mode)
-  (setq-local gptel-backend (ai/llm-backend))
-  (setq-local gptel-model (ai/llm-resolve-model))
-  (setq-local gptel-system-message ai/chat-system-prompt)
-  (setq-local gptel-tools (ai/chat--agent-tools))
-  (setq-local gptel-use-tools t)
-  (setq-local gptel-use-context 'system)
-  (setq-local gptel-track-media t)
-  (setq-local gptel-include-reasoning t)
-  (add-hook 'gptel-post-response-functions #'ai/chat--after-response nil t)
-  (gptel-mode 1))
+  (ai/chat--configure-buffer))
 
 (provide 'chat)
 ;;; chat.el ends here
