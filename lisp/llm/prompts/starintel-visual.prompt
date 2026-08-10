@@ -1,0 +1,138 @@
+Create a polished technical product infographic using the following visual system.
+
+STYLE / BRAND
+- Premium cyber-intelligence / distributed-systems aesthetic.
+- Near-black matte background (#050606 to #0A0A09).
+- Metallic gold as the primary accent: warm yellow-gold, roughly #EAB52E / #F1BD38.
+- White and very light gray for secondary text.
+- Extremely subtle dark gray grid texture in the background.
+- Sparse graph/network visualization around the outer edges:
+  - small circular nodes
+  - thin connecting lines
+  - occasional gold-highlighted nodes and edges
+  - low opacity so the graph never competes with the content.
+- The overall appearance should feel like distributed systems architecture + intelligence graph + premium engineering documentation.
+- Serious, technical, restrained.
+- No generic neon cyberpunk.
+- No blue/purple gradients.
+- No excessive glow.
+- No fake 3D dashboards.
+- No stock-photo imagery.
+
+CANVAS
+- Square social-media infographic.
+- Approximately 1:1 aspect ratio.
+- High resolution.
+- Generous margins.
+- Strong vertical hierarchy.
+- Keep all important text comfortably inside the safe area.
+
+HEADER
+- Huge uppercase product name: "{{PRODUCT_NAME|STARINTEL}}"
+- Heavy geometric condensed sans-serif.
+- Metallic/brushed gold appearance with subtle texture.
+- Wide tracking.
+- Centered.
+- Under the title, add a thin horizontal gold rule.
+- Break the rule at the center with a small four-point star / diamond glyph.
+- Below that, use a smaller uppercase white section heading: "{{SECTION_TITLE|WHAT IT IS}}"
+- Section heading should use widely spaced characters.
+
+CONTENT CARDS
+Create four vertically stacked rounded rectangular cards.
+
+Each card:
+- Black / charcoal interior.
+- Very thin gold outline.
+- Rounded corners, but not overly soft.
+- Large icon area on the left.
+- Thin vertical gold divider after the icon.
+- Text content on the right.
+- Consistent card height, spacing, alignment, and padding.
+
+ICON STYLE
+- Custom-looking technical line icons.
+- Gold outline.
+- Minimal, geometric, monoline construction.
+- Icons should visually match each feature rather than using generic symbols.
+
+CARD TYPOGRAPHY
+Feature title:
+- Gold.
+- Bold condensed sans-serif.
+- Large but smaller than the main title.
+- Sentence case.
+
+Feature description:
+- White/light gray.
+- Narrow sans-serif.
+- One or two short lines.
+- High readability.
+- Avoid marketing fluff.
+- Describe concrete system behavior.
+
+CARD CONTENT
+
+1.
+Title: {{FEATURE_1_TITLE|Actor-model distributed system}}
+Description: {{FEATURE_1_DESCRIPTION|Decentralized actors collaborate and exchange messages across a dynamic graph.}}
+Icon concept: {{FEATURE_1_ICON|actor/message graph}}
+
+2.
+Title: {{FEATURE_2_TITLE|Structured intelligence documents}}
+Description: {{FEATURE_2_DESCRIPTION|Typed, linked documents capture context, observations, and relationships.}}
+Icon concept: {{FEATURE_2_ICON|linked document}}
+
+3.
+Title: {{FEATURE_3_TITLE|Storage and search}}
+Description: {{FEATURE_3_DESCRIPTION|Durable storage with rich indexing for fast, relational discovery.}}
+Icon concept: {{FEATURE_3_ICON|search and index}}
+
+4.
+Title: {{FEATURE_4_TITLE|External actor services}}
+Description: {{FEATURE_4_DESCRIPTION|Plug-in collectors, analyzers, and tools extend system capabilities.}}
+Icon concept: {{FEATURE_4_ICON|distributed service}}
+
+BOTTOM SECTION
+Below the feature cards, add a centered technical tagline:
+"{{TAGLINE|Framework first. Interface evolving.}}"
+
+Place small gold code-bracket / terminal-style glyphs on both sides of the tagline.
+
+Then add one final compact outlined status/product card:
+- Gold thin outline.
+- Dark interior.
+- Small gold line icon on left.
+- Product/component name in bold gold.
+- Status/description in white.
+
+Text:
+"{{COMPONENT_NAME|Quasar}}: {{COMPONENT_STATUS|POC operator workspace}}"
+
+BACKGROUND COMPOSITION
+- Put the most visible network graph clusters in the top-right and bottom-left corners.
+- Allow a few nodes to extend partially off-canvas.
+- Use faint dotted matrices or tiny dot patterns in otherwise empty corners.
+- Add barely visible engineering grid lines behind the central content.
+- The background should imply a much larger graph continuing outside the poster.
+
+COMPOSITION RULES
+- Symmetrical central layout.
+- Very clean alignment.
+- High information density without clutter.
+- Gold is reserved for hierarchy, borders, icons, and highlighted graph relationships.
+- White is reserved for explanatory text.
+- Dark gray is reserved for decorative/background information.
+- Keep visual noise away from text.
+- Strong contrast.
+- Technical, credible, architectural.
+- Make it look suitable for LinkedIn, project documentation, GitHub announcements, and engineering launch material.
+
+IMPORTANT
+- Preserve exact supplied wording.
+- Spell all technical terms correctly.
+- Do not invent additional claims or capabilities.
+- Do not add call-to-action marketing copy.
+- Do not add random UI windows.
+- Do not turn this into a generic SaaS advertisement.
+- The framework/system architecture is the subject.

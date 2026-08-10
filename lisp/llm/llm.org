@@ -81,6 +81,60 @@ Available presets:
 - =@agent= — GLM-5.2 with the project agent tools
 - =@agent-gpt-5.6-sol= — GPT-5.6 Sol with the same tools
 
+* Reusable prompt templates
+
+Reusable plain-text prompts live under =lisp/llm/prompts/= with a =.prompt=
+extension.  Fields use ={{NAME}}= syntax.  Defaults use
+={{NAME|default value}}=.  Repeated fields are asked once and reused anywhere
+that field appears in the template.
+
+The included =starintel-visual.prompt= captures the black/gold StarIntel
+infographic design language as a reusable design-system prompt.
+
+Useful commands:
+
+#+begin_src emacs-lisp
+M-x ai/prompt-menu
+M-x ai/prompt-template-render
+M-x ai/prompt-template-copy
+M-x ai/prompt-template-insert
+M-x ai/prompt-template-new
+M-x ai/prompt-template-edit
+#+end_src
+
+Doom binds =SPC y p= to the prompt/image Transient menu.
+
+* OpenAI image tools
+
+=image-generation= calls use the hosted OpenAI Responses API image tool instead
+of routing through OpenRouter.  They therefore require =OPENAI_API_KEY= or an
+=auth-source= entry for =api.openai.com=.  Image requests run asynchronously
+through Emacs =url.el=; the API key is sent as an HTTP header rather than being
+placed in a shell command line.
+
+The defaults use =gpt-5.2= to invoke the hosted tool and =gpt-image-1.5= as the
+image model.  Both are customizable with =ai/image-responses-model= and
+=ai/image-model=.
+
+Generated files default to =~/Pictures/ai/= and open automatically when the
+request completes.
+
+#+begin_src emacs-lisp
+M-x ai/image-generate
+M-x ai/image-generate-template
+M-x ai/image-edit
+#+end_src
+
+=ai/image-generate= uses the active region as the prompt when a region is
+selected.  =ai/image-generate-template= fills one of the reusable templates and
+sends the rendered prompt directly to the image tool.  =ai/image-edit= sends a
+local PNG, JPEG, or WebP as an image input and requests an edit with high input
+fidelity.
+
+Doom binds =SPC y i= directly to image generation.  The =SPC y p= Transient
+also exposes generation from a raw prompt, generation from a template, and
+image editing.
+
 * OpenAI subscription OAuth
 
 Current gptel can authenticate a ChatGPT subscription without storing an API
@@ -167,6 +221,8 @@ Chats are stored below =~/Documents/Notes/org/roam/llm/=.
 * Source files
 
 #+INCLUDE: "ai.el" src emacs-lisp
+#+INCLUDE: "ai-prompts.el" src emacs-lisp
+#+INCLUDE: "ai-image.el" src emacs-lisp
 #+INCLUDE: "ai-agent-core.el" src emacs-lisp
 #+INCLUDE: "agent-core.el" src emacs-lisp
 #+INCLUDE: "ai-agent.el" src emacs-lisp

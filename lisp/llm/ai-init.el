@@ -1,6 +1,8 @@
 ;;; ai-init.el --- Load the Emacs LLM stack -*- lexical-binding: t; -*-
 
 (require 'ai)
+(require 'ai-prompts)
+(require 'ai-image)
 (require 'meme)
 (require 'ai-agent)
 (require 'ai-mcp)
