@@ -5,11 +5,12 @@
 
 * Defaults
 
-The local gptel stack defaults to Claude Opus 5 through OpenRouter Exacto with
-maximum reasoning effort.  OpenRouter is the authoritative provider for normal
-chat, agent, and image-generation traffic.  GPT-5.6 Sol remains available as
-an alternate agent model, and GPT-5.6 Sol is also available through gptel's
-OpenAI subscription OAuth backend.
+The local gptel stack defaults to OpenRouter's =openrouter/auto= router with
+=cost_quality_tradeoff= pinned to =0=, its pure-quality setting.  OpenRouter
+selects the most capable model for each prompt without optimizing for cost.
+OpenRouter is the authoritative provider for normal chat, agent, and
+image-generation traffic.  Claude Opus 5 Exacto and GPT-5.6 Sol remain
+available as fixed-model agent presets.
 
 The configuration tracks current upstream gptel instead of Doom's older pin.
 Modern defaults enable streaming, curl transport, tool use, per-tool automatic
@@ -77,14 +78,16 @@ makes the selection buffer-local.
 
 Available presets include:
 
+- =@best= — OpenRouter Auto Router with pure-quality routing
 - =@claude-opus-5= — Claude Opus 5 through OpenRouter Exacto at max reasoning
 - =@glm-5.2=
 - =@gpt-5.6-sol=
 - =@gpt-5.6-luna=
 - =@gpt-5.6-sol-oauth=
 - =@claude-fable-5=
-- =@agent= — Claude Opus 5 Exacto with project and image tools
-- =@agent-gpt-5.6-sol= — GPT-5.6 Sol with the same tool suite
+- =@agent= — pure-quality OpenRouter routing with project and image tools
+- =@agent-claude-opus-5= — fixed Claude Opus 5 Exacto with the same tool suite
+- =@agent-gpt-5.6-sol= — fixed GPT-5.6 Sol with the same tool suite
 
 * Reusable prompt templates
 
@@ -242,10 +245,10 @@ actual Org buffer is changed only after the patch succeeds.
 
 * Persistent chat
 
-=M-x +llm/chat= opens an Org-native gptel chat using Claude Opus 5 Exacto by
-default, with the project agent tools, image tools, response autosave, inline
-image rendering, and one-time automatic title generation.  Chats are stored
-below =~/Documents/Notes/org/roam/llm/=.
+=M-x +llm/chat= opens an Org-native gptel chat using OpenRouter's pure-quality
+Auto Router by default, with the project agent tools, image tools, response
+autosave, inline image rendering, and one-time automatic title generation.
+Chats are stored below =~/Documents/Notes/org/roam/llm/=.
 
 * Source files
 
