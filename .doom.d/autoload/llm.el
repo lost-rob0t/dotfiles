@@ -22,6 +22,9 @@
 (autoload #'ai/image-edit "ai-image" "Edit an image with OpenAI's image tool." t)
 
 ;;;###autoload
+(autoload #'mara "mara" "Open the local Mara runtime." t)
+
+;;;###autoload
 (defun +llm/bind-keys ()
   "Bind the local LLM entrypoints after Doom finishes loading."
   (define-key doom-leader-map (kbd "y i") #'+llm/image-generate)
