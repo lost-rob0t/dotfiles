@@ -49,21 +49,21 @@
   (with-temp-buffer
     (insert-file-contents file)
     (let* ((data (json-parse-buffer
-                  :object-type 'alist
+                  :object-type 'hash-table
                   :array-type 'list
                   :null-object nil
                   :false-object nil))
-           (events (alist-get 'events data))
+           (events (gethash "events" data))
            chunks
            previous)
       (dolist (event events)
-        (let* ((segments (alist-get 'segs event))
+        (let* ((segments (gethash "segs" event))
                (chunk
                 (and segments
                      (ai/youtube--normalize-text
                       (mapconcat
                        (lambda (segment)
-                         (or (alist-get 'utf8 segment) ""))
+                         (or (gethash "utf8" segment) ""))
                        segments "")))))
           (when (and chunk
                      (not (string-empty-p chunk))
