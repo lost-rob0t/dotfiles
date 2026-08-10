@@ -24,9 +24,15 @@
   :type 'string
   :group 'ai/youtube-context)
 
+(defun ai/youtube--clipboard-text ()
+  "Return text from the system clipboard or current kill."
+  (or (and (fboundp 'gui-get-selection)
+           (ignore-errors (gui-get-selection 'CLIPBOARD 'STRING)))
+      (ignore-errors (current-kill 0 t))))
+
 (defun ai/youtube--clipboard-url ()
-  "Return an HTTP URL from the current kill, or nil."
-  (when-let* ((text (ignore-errors (current-kill 0 t)))
+  "Return an HTTP URL from the clipboard, or nil."
+  (when-let* ((text (ai/youtube--clipboard-text))
               (url (string-trim text))
               ((string-match-p "\\`https?://" url)))
     url))
@@ -129,7 +135,7 @@
                 "--sub-format" "json3/vtt/best"
                 "--output" "%(id)s.%(ext)s"
                 url)))
-          (unless (zerop status)
+          (unless (eq status 0)
             (error "yt-dlp failed: %s" (ai/youtube--process-output buffer)))
           (or (ai/youtube--best-subtitle directory)
               (error "yt-dlp found no English subtitles for this video")))
@@ -139,13 +145,14 @@
   "Return the title for URL using PROGRAM, or nil on failure."
   (let ((buffer (generate-new-buffer " *yt-dlp-title*")))
     (unwind-protect
-        (when (zerop
+        (when (eq
                (process-file
                 program nil buffer nil
                 "--skip-download"
                 "--no-playlist"
                 "--print" "%(title)s"
-                url))
+                url)
+               0)
           (car (split-string (ai/youtube--process-output buffer) "\n" t)))
       (kill-buffer buffer))))
 
@@ -153,7 +160,7 @@
 (defun ai/youtube-context (url)
   "Fetch URL subtitles with yt-dlp and copy plain transcript context.
 
-The prompt defaults to an HTTP URL currently in the kill ring.  The copied
+The prompt defaults to an HTTP URL currently in the clipboard.  The copied
 packet contains the video title, URL, and normalized transcript text."
   (interactive
    (list
@@ -178,6 +185,8 @@ packet contains the video title, URL, and normalized transcript text."
             (when (string-empty-p transcript)
               (user-error "Downloaded subtitles contained no transcript text"))
             (kill-new context)
+            (when (fboundp 'gui-set-selection)
+              (ignore-errors (gui-set-selection 'CLIPBOARD context)))
             (message "Copied YouTube context: %d words from %s" words title))
         (delete-directory directory t)))))
 
