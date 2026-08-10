@@ -86,13 +86,6 @@
       (forward-line 1))
     (string-trim (buffer-substring-no-properties (point) (point-max)))))
 
-(defun ai/chat--summary-backend ()
-  "Return a non-streaming backend matching `ai/llm-provider'."
-  (pcase ai/llm-provider
-    ('zai (ai/llm-zai-backend :stream nil :name "Z.AI Summary"))
-    ('openai (ai/llm-openai-backend :stream nil :name "OpenAI Summary"))
-    ('openrouter (ai/llm-openrouter-backend :stream nil :name "OpenRouter Summary"))))
-
 (defun ai/chat--extract-field (field response)
   "Extract FIELD from RESPONSE formatted as FIELD: value."
   (when (string-match (format "^%s:[[:space:]]*\\(.+\\)$" (regexp-quote field))
@@ -119,23 +112,27 @@
   (let ((source-buffer (current-buffer))
         (conversation (ai/chat--conversation-text)))
     (unless (string-empty-p conversation)
-      (gptel-request
-       (format "Return exactly two single-line fields for this conversation:\nTITLE: a concrete title under 60 characters\nSUMMARY: one sentence describing the work\n\n%s"
-               conversation)
-       :backend (ai/chat--summary-backend)
-       :model (ai/llm-resolve-model)
-       :stream nil
-       :callback
-       (lambda (response info)
-         (when (and response (buffer-live-p source-buffer))
-           (let ((title (ai/chat--extract-field "TITLE" response))
-                 (summary (ai/chat--extract-field "SUMMARY" response)))
-             (when (and title summary)
-               (with-current-buffer source-buffer
-                 (setq ai/chat--titled t)
-                 (ai/chat--set-title title summary)))))
-         (unless response
-           (message "Chat title generation failed: %s" (plist-get info :status))))))))
+      (let ((gptel-stream nil)
+            (gptel-use-tools nil)
+            (gptel-tools nil)
+            (gptel-use-context nil))
+        (gptel-request
+         (format "Return exactly two single-line fields for this conversation:\nTITLE: a concrete title under 60 characters\nSUMMARY: one sentence describing the work\n\n%s"
+                 conversation)
+         :stream nil
+         :context nil
+         :callback
+         (lambda (response info)
+           (when (and response (buffer-live-p source-buffer))
+             (let ((title (ai/chat--extract-field "TITLE" response))
+                   (summary (ai/chat--extract-field "SUMMARY" response)))
+               (when (and title summary)
+                 (with-current-buffer source-buffer
+                   (setq ai/chat--titled t)
+                   (ai/chat--set-title title summary)))))
+           (unless response
+             (message "Chat title generation failed: %s"
+                      (plist-get info :status)))))))))
 
 (defun ai/chat--save ()
   "Persist the current chat buffer."
