@@ -7,9 +7,13 @@
 (autoload #'ai/meme-generate "meme" "Generate a meme from a region or prompt." t)
 
 ;;;###autoload
+(autoload #'ai/youtube-context "youtube-context" "Copy yt-dlp transcript context." t)
+
+;;;###autoload
 (defun +llm/bind-keys ()
   "Bind the local LLM entrypoints after Doom finishes loading."
   (define-key doom-leader-map (kbd "y m") #'ai/meme-generate)
+  (define-key doom-leader-map (kbd "y v") #'+llm/youtube-context)
   (define-key doom-leader-map (kbd "y y") #'ai/chat))
 
 ;;;###autoload
@@ -73,6 +77,14 @@
   "Open a persistent Org gptel agent chat."
   (interactive)
   (call-interactively #'ai/chat))
+
+;;;###autoload
+(defun +llm/youtube-context ()
+  "Fetch a video transcript with yt-dlp and copy it as LLM context."
+  (interactive)
+  (call-interactively #'ai/youtube-context))
+
+(defalias '+llm/yt-dlp-context #'+llm/youtube-context)
 
 ;;;###autoload
 (defun +llm/use-glm-5.2 (&optional local)
