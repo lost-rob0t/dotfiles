@@ -10,9 +10,23 @@
 (autoload #'ai/youtube-context "youtube-context" "Copy yt-dlp transcript context." t)
 
 ;;;###autoload
+(autoload #'ai/prompt-menu "ai-prompts" "Open reusable prompt and image commands." t)
+
+;;;###autoload
+(autoload #'ai/image-generate "ai-image" "Generate an image with OpenAI's image tool." t)
+
+;;;###autoload
+(autoload #'ai/image-generate-template "ai-image" "Generate an image from a reusable prompt template." t)
+
+;;;###autoload
+(autoload #'ai/image-edit "ai-image" "Edit an image with OpenAI's image tool." t)
+
+;;;###autoload
 (defun +llm/bind-keys ()
   "Bind the local LLM entrypoints after Doom finishes loading."
+  (define-key doom-leader-map (kbd "y i") #'+llm/image-generate)
   (define-key doom-leader-map (kbd "y m") #'ai/meme-generate)
+  (define-key doom-leader-map (kbd "y p") #'+llm/prompt-menu)
   (define-key doom-leader-map (kbd "y v") #'+llm/youtube-context)
   (define-key doom-leader-map (kbd "y y") #'ai/chat))
 
@@ -85,6 +99,34 @@
   (call-interactively #'ai/youtube-context))
 
 (defalias '+llm/yt-dlp-context #'+llm/youtube-context)
+
+;;;###autoload
+(defun +llm/prompt-menu ()
+  "Open the reusable prompt-template and image-generation menu."
+  (interactive)
+  (require 'ai-prompts)
+  (ai/prompt-menu))
+
+;;;###autoload
+(defun +llm/image-generate ()
+  "Generate an image from the active region or a minibuffer prompt."
+  (interactive)
+  (require 'ai-image)
+  (call-interactively #'ai/image-generate))
+
+;;;###autoload
+(defun +llm/image-generate-template ()
+  "Generate an image from a reusable prompt template."
+  (interactive)
+  (require 'ai-image)
+  (call-interactively #'ai/image-generate-template))
+
+;;;###autoload
+(defun +llm/image-edit ()
+  "Edit an image using OpenAI's image-generation tool."
+  (interactive)
+  (require 'ai-image)
+  (call-interactively #'ai/image-edit))
 
 ;;;###autoload
 (defun +llm/use-glm-5.2 (&optional local)
