@@ -112,7 +112,7 @@ of routing through OpenRouter.  They therefore require =OPENAI_API_KEY= or an
 through Emacs =url.el=; the API key is sent as an HTTP header rather than being
 placed in a shell command line.
 
-The defaults use =gpt-5.2= to invoke the hosted tool and =gpt-image-1.5= as the
+The defaults use =gpt-5.2= to invoke the hosted tool and =gpt-image-2= as the
 image model.  Both are customizable with =ai/image-responses-model= and
 =ai/image-model=.
 
