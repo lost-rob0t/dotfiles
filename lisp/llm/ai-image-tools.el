@@ -46,7 +46,7 @@ Image and prompt-template rules:
    :function #'ai/image-chat-generate
    :category "image"
    :description
-   "Generate a finished image from a complete prompt with GPT Image 2 through OpenRouter. Returns an Org file link that must be included verbatim in the final response."
+   "Generate a finished image from a complete prompt with the configured OpenRouter image model. Returns an Org file link that must be included verbatim in the final response."
    :args '((:name "prompt"
             :type string
             :description "Complete image-generation prompt"))
@@ -58,7 +58,7 @@ Image and prompt-template rules:
    :function #'ai/image-chat-edit
    :category "image"
    :description
-   "Edit a local PNG, JPEG, or WebP from a complete edit instruction using GPT Image 2 through OpenRouter. Returns an Org file link that must be included verbatim in the final response."
+   "Edit a local PNG, JPEG, or WebP from a complete edit instruction using the configured OpenRouter image model. Returns an Org file link that must be included verbatim in the final response."
    :args '((:name "file"
             :type string
             :description "Absolute or expanded local image path")
@@ -79,7 +79,7 @@ Image and prompt-template rules:
    :name "ReadPromptTemplate"
    :function #'ai/image-tool-read-template
    :category "image"
-   :description "Read one reusable .prompt template verbatim before composing an image prompt."
+   :description "Read one reusable prompt template verbatim before composing an image prompt."
    :args '((:name "name"
             :type string
             :description "Template name without the .prompt extension"))
