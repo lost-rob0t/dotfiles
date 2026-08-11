@@ -1,6 +1,6 @@
 # Logos Home Manager bootstrap
 
-This repository exposes `logos` as a NixOS host and `useen@logos` as the standalone Home Manager configuration.
+This repository exposes `logos` as a NixOS host and `unseen@logos` as the standalone Home Manager configuration.
 
 ## Existing Nix install
 
@@ -9,28 +9,28 @@ If Nix is already installed on a non-NixOS machine, clone the repository and act
 ```bash
 git clone git@github.com:lost-rob0t/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
-nix run github:nix-community/home-manager/release-26.05 -- switch --flake .#useen@logos
+nix run github:nix-community/home-manager/release-26.05 -- switch --flake '.#unseen@logos'
 ```
 
 A global `home-manager` command is not required for the first activation.
 
-## Important username assumption
+## Username
 
-`nix/home-manager/systems/logos/home.nix` currently forces:
+The Logos configuration targets the normal `unseen` account:
 
 ```nix
-home.username = "useen";
-home.homeDirectory = "/home/useen";
+home.username = "unseen";
+home.homeDirectory = "/home/unseen";
 ```
 
-Before activating `useen@logos`, verify the laptop account is actually `useen`:
+Confirm the local account before activation:
 
 ```bash
 whoami
 printf '%s\n' "$HOME"
 ```
 
-If the laptop account is `unseen`, use an `unseen@...` profile or change the Logos Home Manager module rather than activating a configuration pointed at `/home/useen`.
+Expected output is `unseen` and `/home/unseen`.
 
 ## Inspect available outputs
 
@@ -39,10 +39,10 @@ cd ~/.dotfiles
 nix flake show
 ```
 
-Relevant outputs currently include:
+Relevant outputs include:
 
 - `nixosConfigurations.logos`
-- `homeConfigurations."useen@logos"`
+- `homeConfigurations."unseen@logos"`
 - `homeConfigurations."unseen@desktop"`
 - `homeConfigurations."unseen@hunter02"`
 
