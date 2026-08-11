@@ -57,7 +57,7 @@
           export LOGOS_DEFAULT_FLAKE='${self.outPath}#logos'
           export LOGOS_SOURCE='${self.outPath}'
           export DISKO_INSTALL='${disko.packages.${system}.disko-install}/bin/disko-install'
-          exec '${pkgs.bash}/bin/bash' '${./scripts/install-logos-useen.sh}' "$@"
+          exec '${pkgs.bash}/bin/bash' '${./scripts/install-logos.sh}' "$@"
         '';
       };
 
@@ -87,7 +87,7 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = homeArgs;
-            home-manager.users.useen = import ./nix/home-manager/systems/logos/home.nix;
+            home-manager.users.unseen = import ./nix/home-manager/systems/logos/home.nix;
           }
           ./nix/nixos/hosts/logos
         ];
@@ -100,7 +100,7 @@
       };
 
       homeConfigurations = {
-        "useen@logos" = home-manager.lib.homeManagerConfiguration {
+        "unseen@logos" = home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
           extraSpecialArgs = homeArgs;
           modules = [
@@ -156,7 +156,7 @@
         install-logos = installLogos;
         install-logos-gui = installLogosGui;
         inherit flash-logos;
-        useen-home = homeConfigurations."useen@logos".activationPackage;
+        unseen-home = homeConfigurations."unseen@logos".activationPackage;
       };
 
       apps.${system} = {
@@ -173,7 +173,7 @@
       checks.${system} = {
         logos = logos.config.system.build.toplevel;
         install-logos = installLogos;
-        useen-home = homeConfigurations."useen@logos".activationPackage;
+        unseen-home = homeConfigurations."unseen@logos".activationPackage;
       };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;
