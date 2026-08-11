@@ -54,10 +54,10 @@ flake="$(
 
 [[ "$flake" == *#* ]] || fail_dialog "The flake must include a configuration fragment, such as /etc/logos#logos."
 
-password="$(zenity --password --title="Logos User Password" --text="Password for the useen user:")" || exit 0
+password="$(zenity --password --title="Logos User Password" --text="Password for the unseen user:")" || exit 0
 [[ -n "$password" ]] || fail_dialog "The password cannot be empty."
 
-password_confirmation="$(zenity --password --title="Confirm Password" --text="Enter the useen user password again:")" || exit 0
+password_confirmation="$(zenity --password --title="Confirm Password" --text="Enter the unseen user password again:")" || exit 0
 [[ "$password" == "$password_confirmation" ]] || fail_dialog "The passwords do not match."
 unset password_confirmation
 

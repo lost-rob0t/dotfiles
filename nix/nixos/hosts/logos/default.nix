@@ -102,9 +102,9 @@
     autoPrune.enable = true;
   };
 
-  users.users.useen = {
+  users.users.unseen = {
     isNormalUser = true;
-    description = "useen";
+    description = "unseen";
     extraGroups = [
       "wheel"
       "networkmanager"
@@ -127,7 +127,7 @@
     };
   };
 
-  fileSystems."/home/useen/share" = {
+  fileSystems."/home/unseen/share" = {
     device = "//storage.lost.system/unseen";
     fsType = "cifs";
     options = [
@@ -137,7 +137,7 @@
       "x-systemd.device-timeout=5s"
       "x-systemd.mount-timeout=5s"
       "uid=1000"
-      "credentials=/home/useen/.config/smb-creds"
+      "credentials=/home/unseen/.config/smb-creds"
     ];
   };
 
