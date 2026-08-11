@@ -33,17 +33,34 @@
 (ai/llm-apply-defaults)
 
 (defun ai/llm-configure-mara ()
-  "Bind Mara's gptel provider to the active `ai/llm' defaults."
-  (when (boundp 'mara-gptel-backend)
-    (setq mara-gptel-backend (ai/llm-backend ai/llm-provider)))
-  (when (boundp 'mara-gptel-model)
-    (setq mara-gptel-model (ai/llm-resolve-model))))
+  "Bind Mara's provider settings to the active `ai/llm' defaults."
+  (let ((backend (ai/llm-backend ai/llm-provider))
+        (model (ai/llm-resolve-model)))
+    ;; Keep gptel's defaults usable outside dedicated ai/chat buffers too.
+    (set-default-toplevel-value 'gptel-backend backend)
+    (set-default-toplevel-value 'gptel-model model)
+    (when (boundp 'mara-gptel-backend)
+      (setq mara-gptel-backend backend))
+    (when (boundp 'mara-gptel-model)
+      (setq mara-gptel-model model))))
+
+(defun ai/llm-configure-mara-buffer ()
+  "Give the current Mara buffer the active `ai/llm' backend and model."
+  (setq-local gptel-backend (ai/llm-backend ai/llm-provider)
+              gptel-model (ai/llm-resolve-model)))
 
 (with-eval-after-load 'mara-provider-gptel
   (ai/llm-configure-mara))
 
+(with-eval-after-load 'mara-ui
+  (add-hook 'mara-mode-hook #'ai/llm-configure-mara-buffer))
+
 (when (featurep 'mara-provider-gptel)
   (ai/llm-configure-mara))
+
+(when (and (featurep 'mara-ui)
+           (boundp 'mara-mode-hook))
+  (add-hook 'mara-mode-hook #'ai/llm-configure-mara-buffer))
 
 (ai/image-register-gptel-tools)
 (unless (string-match-p "Image and prompt-template rules:" ai/agent-system-prompt)
