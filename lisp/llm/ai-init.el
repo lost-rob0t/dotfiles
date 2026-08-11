@@ -32,6 +32,19 @@
 (ai/llm-backend 'openrouter t)
 (ai/llm-apply-defaults)
 
+(defun ai/llm-configure-mara ()
+  "Bind Mara's gptel provider to the active `ai/llm' defaults."
+  (when (boundp 'mara-gptel-backend)
+    (setq mara-gptel-backend (ai/llm-backend ai/llm-provider)))
+  (when (boundp 'mara-gptel-model)
+    (setq mara-gptel-model (ai/llm-resolve-model))))
+
+(with-eval-after-load 'mara-provider-gptel
+  (ai/llm-configure-mara))
+
+(when (featurep 'mara-provider-gptel)
+  (ai/llm-configure-mara))
+
 (ai/image-register-gptel-tools)
 (unless (string-match-p "Image and prompt-template rules:" ai/agent-system-prompt)
   (setq ai/agent-system-prompt
