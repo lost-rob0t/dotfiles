@@ -28,7 +28,8 @@
 (defun +llm/bind-keys ()
   "Bind the local LLM entrypoints after Doom finishes loading."
   (define-key doom-leader-map (kbd "y i") #'+llm/image-generate)
-  (define-key doom-leader-map (kbd "y m") #'ai/meme-generate)
+  ;; Keep `y m' available as an MCP prefix in the main Doom config.
+  (define-key doom-leader-map (kbd "y m g") #'ai/meme-generate)
   (define-key doom-leader-map (kbd "y p") #'+llm/prompt-menu)
   (define-key doom-leader-map (kbd "y v") #'+llm/youtube-context)
   (define-key doom-leader-map (kbd "y y") #'ai/chat))
