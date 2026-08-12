@@ -2,7 +2,7 @@
 
 let
   system = pkgs.stdenv.hostPlatform.system;
-  unstable = inputs.nixpkgs-unstable.legacyPackages.${system};
+  unstable = (builtins.getFlake "github:NixOS/nixpkgs/8e2eeb9477c9d40009a5bd51cd3eef2f5abb26f1").legacyPackages.${system};
   comfyui = unstable.comfyui.override { withManager = true; };
 in
 {
