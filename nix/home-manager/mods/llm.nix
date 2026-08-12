@@ -20,6 +20,10 @@
       # LLM Editors
       opencode
       claude-code
+
+      # Local generative AI
+      (comfyui.override { withManager = true; })
+
       playerctl
       pavucontrol
       pulseaudio
@@ -40,6 +44,19 @@
       curl
       openai-whisper
     ];
+
+    # ComfyUI from nixpkgs uses a writable XDG data directory instead of the
+    # immutable Nix store. Keep downloaded models and generated media here.
+    home.activation.comfyuiDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      $DRY_RUN_CMD mkdir -p \
+        "$HOME/.local/share/comfyui/models/diffusion_models" \
+        "$HOME/.local/share/comfyui/models/text_encoders" \
+        "$HOME/.local/share/comfyui/models/vae" \
+        "$HOME/.local/share/comfyui/custom_nodes" \
+        "$HOME/.local/share/comfyui/input" \
+        "$HOME/.local/share/comfyui/output" \
+        "$HOME/.local/share/comfyui/user"
+    '';
 
     # Environment variables for MCP
 
