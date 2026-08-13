@@ -1,0 +1,50 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+set -euo pipefail
+
+OWNER="${STAR_GITHUB_OWNER:-lost-rob0t}"
+ROOT="${STAR_AUTO_RESEARCH_ROOT:-${HOME}/src/auto-research}"
+DOTFILES="${STAR_DOTFILES_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+
+require() {
+    command -v "$1" >/dev/null 2>&1 || {
+        printf 'missing required command: %s\n' "$1" >&2
+        exit 127
+    }
+}
+
+sync_repo() {
+    local repository="$1"
+    local destination="$2"
+
+    if [[ -d "${destination}/.git" ]]; then
+        printf '==> pull %s\n' "${repository}"
+        git -C "${destination}" pull --ff-only
+        return
+    fi
+
+    printf '==> clone %s\n' "${repository}"
+    gh repo clone "${repository}" "${destination}"
+}
+
+require git
+require gh
+
+mkdir -p "${ROOT}"
+
+if [[ -d "${DOTFILES}/.git" ]]; then
+    printf '==> pull %s/dotfiles\n' "${OWNER}"
+    git -C "${DOTFILES}" pull --ff-only
+fi
+
+while IFS= read -r name; do
+    [[ -n "${name}" ]] || continue
+    sync_repo "${OWNER}/${name}" "${ROOT}/${name}"
+done < <(
+    gh repo list "${OWNER}" \
+        --limit 1000 \
+        --json name,isArchived \
+        --jq '.[] | select(.isArchived == false) | select(.name | test("auto-research"; "i")) | .name'
+)
+
+printf '==> sync complete\n'
