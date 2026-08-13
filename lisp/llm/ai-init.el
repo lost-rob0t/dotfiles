@@ -6,6 +6,7 @@
 (require 'meme)
 (require 'ai-agent)
 (require 'ai-image-tools)
+(require 'ai-prolog-rlm)
 (require 'ai-mcp)
 (require 'chat)
 (require 'fren-loader)
@@ -63,9 +64,13 @@
   (add-hook 'mara-mode-hook #'ai/llm-configure-mara-buffer))
 
 (ai/image-register-gptel-tools)
+(ai/prolog-rlm-register-gptel-tool)
 (unless (string-match-p "Image and prompt-template rules:" ai/agent-system-prompt)
   (setq ai/agent-system-prompt
         (concat ai/agent-system-prompt ai/image-agent-instructions)))
+(unless (string-match-p "Prolog RLM rules:" ai/agent-system-prompt)
+  (setq ai/agent-system-prompt
+        (concat ai/agent-system-prompt ai/prolog-rlm-agent-instructions)))
 (setq ai/chat-system-prompt ai/agent-system-prompt)
 
 (gptel-make-preset 'best
