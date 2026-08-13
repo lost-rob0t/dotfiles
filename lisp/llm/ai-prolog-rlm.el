@@ -24,7 +24,7 @@
   :group 'ai/prolog-rlm)
 
 (defcustom ai/prolog-rlm-max-context-bytes (* 8 1024 1024)
-  "Maximum UTF-8 file payload accepted by one PrologRLM tool call."
+  "Maximum UTF-8 context payload accepted by one PrologRLM call."
   :type 'integer
   :group 'ai/prolog-rlm)
 
@@ -68,7 +68,7 @@ The trusted Prolog bridge applies its own hard upper bound as well."
   "System-prompt fragment describing appropriate PrologRLM use.")
 
 (defun ai/prolog-rlm--error-result (kind message &optional details)
-  "Return a canonical gptel tool result for KIND, MESSAGE and DETAILS."
+  "Return canonical gptel tool-result text for KIND, MESSAGE and DETAILS."
   (ai/agent--tool-result
    (ai/agent--object
     "ok" :json-false
@@ -85,7 +85,7 @@ The trusted Prolog bridge applies its own hard upper bound as well."
     root))
 
 (defun ai/prolog-rlm--read-context-file (path)
-  "Read PATH as bounded text using the agent's filesystem policy."
+  "Read PATH as bounded text using the agent filesystem policy."
   (let* ((file (ai/agent--resolve-path path))
          (attributes (file-attributes file 'string)))
     (unless attributes
@@ -112,12 +112,14 @@ The trusted Prolog bridge applies its own hard upper bound as well."
     (cond
      ((and has-path has-context)
       (error "PrologRLM accepts exactly one of path or context"))
-     (has-path (ai/prolog-rlm--read-context-file path))
+     (has-path
+      (ai/prolog-rlm--read-context-file path))
      (has-context
       (when (> (string-bytes context) ai/prolog-rlm-max-context-bytes)
         (error "Inline context exceeds %d bytes" ai/prolog-rlm-max-context-bytes))
       context)
-     (t (error "PrologRLM requires exactly one of path or context")))))
+     (t
+      (error "PrologRLM requires exactly one of path or context")))))
 
 (defun ai/prolog-rlm--budget ()
   "Return the host-requested RLM budget as JSON-compatible data."
@@ -161,6 +163,8 @@ The trusted Prolog bridge applies its own hard upper bound as well."
   (when (> (string-bytes raw) ai/prolog-rlm-max-result-bytes)
     (error "Prolog RLM response exceeded %d bytes"
            ai/prolog-rlm-max-result-bytes))
+  (when (string-empty-p (string-trim raw))
+    (error "Prolog RLM bridge returned no JSON"))
   (let ((parsed
          (json-parse-string
           (string-trim raw)
@@ -170,105 +174,107 @@ The trusted Prolog bridge applies its own hard upper bound as well."
           :false-object :json-false)))
     (ai/agent--tool-result parsed)))
 
+(defun ai/prolog-rlm--start-ready (callback request swipl key)
+  "Start SWIPL for REQUEST using KEY and invoke CALLBACK exactly once."
+  (let* ((stdout (generate-new-buffer " *prolog-rlm-out*"))
+         (stderr (generate-new-buffer " *prolog-rlm-err*"))
+         (request-text (ai/agent--tool-result request))
+         (finished nil)
+         (timer nil)
+         (process nil)
+         (host-timeout (+ (max 1.0 (min 120.0 ai/prolog-rlm-time-limit))
+                          (max 0.0 ai/prolog-rlm-host-timeout-slack))))
+    (cl-labels
+        ((cleanup ()
+           (when (timerp timer)
+             (cancel-timer timer))
+           (when (buffer-live-p stdout)
+             (kill-buffer stdout))
+           (when (buffer-live-p stderr)
+             (kill-buffer stderr)))
+         (finish (result)
+           (unless finished
+             (setq finished t)
+             (unwind-protect
+                 (funcall callback result)
+               (cleanup))))
+         (fail (kind message &optional details)
+           (finish (ai/prolog-rlm--error-result kind message details)))
+         (sentinel (proc _event)
+           (when (memq (process-status proc) '(exit signal))
+             (let ((status (process-exit-status proc))
+                   (errtext (ai/prolog-rlm--stderr-text stderr)))
+               (if (not (zerop status))
+                   (fail "process_error"
+                         (format "Prolog RLM bridge exited with status %d" status)
+                         errtext)
+                 (condition-case err
+                     (let ((raw
+                            (when (buffer-live-p stdout)
+                              (with-current-buffer stdout
+                                (buffer-substring-no-properties
+                                 (point-min) (point-max))))))
+                       (finish (ai/prolog-rlm--bridge-output (or raw ""))))
+                   (error
+                    (fail "protocol_error"
+                          (error-message-string err)
+                          errtext))))))))
+      (let ((process-environment (copy-sequence process-environment)))
+        (setenv "OPENROUTER_API_KEY" key)
+        (setq process
+              (make-process
+               :name (generate-new-buffer-name "prolog-rlm")
+               :buffer stdout
+               :stderr stderr
+               :command (list swipl "-q" "-s" ai/prolog-rlm--bridge-file)
+               :coding 'utf-8-unix
+               :connection-type 'pipe
+               :noquery t
+               :sentinel #'sentinel)))
+      (setq timer
+            (run-at-time
+             host-timeout nil
+             (lambda ()
+               (unless finished
+                 (setq finished t)
+                 (when (process-live-p process)
+                   (delete-process process))
+                 (unwind-protect
+                     (funcall callback
+                              (ai/prolog-rlm--error-result
+                               "host_timeout"
+                               (format "PrologRLM exceeded %.1f seconds"
+                                       host-timeout)))
+                   (cleanup))))))
+      (process-send-string process request-text)
+      (process-send-eof process)
+      process)))
+
 (defun ai/prolog-rlm--start (callback request)
-  "Run REQUEST through the trusted SWI bridge and invoke CALLBACK once."
-  (unless (executable-find "swipl")
-    (funcall callback
-             (ai/prolog-rlm--error-result
-              "configuration_error" "swipl is not on exec-path"))
-    (cl-return-from ai/prolog-rlm--start nil))
-  (unless (file-readable-p ai/prolog-rlm--bridge-file)
-    (funcall callback
-             (ai/prolog-rlm--error-result
-              "configuration_error"
-              (format "Prolog RLM bridge is not readable: %s"
-                      ai/prolog-rlm--bridge-file)))
-    (cl-return-from ai/prolog-rlm--start nil))
-  (let ((key (ai/llm--api-key 'openrouter)))
-    (unless (and (stringp key) (not (string-empty-p key)))
+  "Run REQUEST through the trusted SWI bridge and invoke CALLBACK."
+  (let ((swipl (executable-find "swipl"))
+        (key (ai/llm--api-key 'openrouter)))
+    (cond
+     ((not swipl)
+      (funcall callback
+               (ai/prolog-rlm--error-result
+                "configuration_error" "swipl is not on exec-path"))
+      nil)
+     ((not (file-readable-p ai/prolog-rlm--bridge-file))
+      (funcall callback
+               (ai/prolog-rlm--error-result
+                "configuration_error"
+                (format "Prolog RLM bridge is not readable: %s"
+                        ai/prolog-rlm--bridge-file)))
+      nil)
+     ((not (and (stringp key) (not (string-empty-p key))))
       (funcall callback
                (ai/prolog-rlm--error-result
                 "configuration_error"
                 "No OpenRouter credential is available to PrologRLM"))
-      (cl-return-from ai/prolog-rlm--start nil))
-    (let* ((stdout (generate-new-buffer " *prolog-rlm-out*"))
-           (stderr (generate-new-buffer " *prolog-rlm-err*"))
-           (request-text (ai/agent--tool-result request))
-           (finished nil)
-           (timer nil)
-           (process nil)
-           (host-timeout (+ (max 1.0 (min 120.0 ai/prolog-rlm-time-limit))
-                            (max 0.0 ai/prolog-rlm-host-timeout-slack))))
-      (cl-labels
-          ((cleanup ()
-             (when (timerp timer)
-               (cancel-timer timer))
-             (when (buffer-live-p stdout)
-               (kill-buffer stdout))
-             (when (buffer-live-p stderr)
-               (kill-buffer stderr)))
-           (finish (result)
-             (unless finished
-               (setq finished t)
-               (unwind-protect
-                   (funcall callback result)
-                 (cleanup))))
-           (fail (kind message &optional details)
-             (finish (ai/prolog-rlm--error-result kind message details)))
-           (sentinel (proc _event)
-             (when (memq (process-status proc) '(exit signal))
-               (let ((status (process-exit-status proc))
-                     (errtext (ai/prolog-rlm--stderr-text stderr)))
-                 (if (not (zerop status))
-                     (fail "process_error"
-                           (format "Prolog RLM bridge exited with status %d" status)
-                           errtext)
-                   (condition-case err
-                       (let ((raw
-                              (when (buffer-live-p stdout)
-                                (with-current-buffer stdout
-                                  (buffer-substring-no-properties
-                                   (point-min) (point-max))))))
-                         (if (string-empty-p (or (string-trim (or raw "")) ""))
-                             (fail "protocol_error"
-                                   "Prolog RLM bridge returned no JSON"
-                                   errtext)
-                           (finish (ai/prolog-rlm--bridge-output raw))))
-                     (error
-                      (fail "protocol_error"
-                            (error-message-string err)
-                            errtext))))))))
-        (let ((process-environment (copy-sequence process-environment)))
-          (setenv "OPENROUTER_API_KEY" key)
-          (setq process
-                (make-process
-                 :name (generate-new-buffer-name "prolog-rlm")
-                 :buffer stdout
-                 :stderr stderr
-                 :command (list (executable-find "swipl")
-                                "-q" "-s" ai/prolog-rlm--bridge-file)
-                 :coding 'utf-8-unix
-                 :connection-type 'pipe
-                 :noquery t
-                 :sentinel #'sentinel)))
-        (setq timer
-              (run-at-time
-               host-timeout nil
-               (lambda ()
-                 (unless finished
-                   (setq finished t)
-                   (when (process-live-p process)
-                     (delete-process process))
-                   (unwind-protect
-                       (funcall callback
-                                (ai/prolog-rlm--error-result
-                                 "host_timeout"
-                                 (format "PrologRLM exceeded %.1f seconds"
-                                         host-timeout)))
-                     (cleanup))))))
-        (process-send-string process request-text)
-        (process-send-eof process)
-        process))))
+      nil)
+     (t
+      (ai/prolog-rlm--start-ready callback request swipl key)))))
 
 (defun ai/prolog-rlm-chat (callback query &optional path context)
   "Run QUERY through prolog-rlm over PATH or inline CONTEXT.
