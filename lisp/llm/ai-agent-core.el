@@ -26,17 +26,18 @@ escape an allowed root."
     (nreverse result)))
 
 (defun ai/agent--tool-result (value)
-  "Return VALUE as JSON text suitable for a gptel tool result.
+  "Return VALUE as canonical multibyte JSON text for a gptel tool result.
 
 `json-serialize' returns UTF-8 bytes in a unibyte string on Emacs 30 and
 newer.  A gptel tool result is message text, not final wire JSON, so decode
-those bytes back into an Emacs Unicode string before gptel serializes the
-provider request."
-  (decode-coding-string
-   (json-serialize value
-                   :null-object nil
-                   :false-object :json-false)
-   'utf-8 t))
+those bytes before gptel serializes the provider request.  Canonicalize even
+ASCII-only results as multibyte text so the adapter has one representation."
+  (string-to-multibyte
+   (decode-coding-string
+    (json-serialize value
+                    :null-object nil
+                    :false-object :json-false)
+    'utf-8 t)))
 
 (defun ai/agent--json (&rest pairs)
   "Return alternating key/value PAIRS as gptel-safe JSON text."
