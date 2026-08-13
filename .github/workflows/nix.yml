@@ -25,6 +25,20 @@ jobs:
           bash -n scripts/*.sh
           shellcheck --severity=warning scripts/*.sh
 
+  image-progress-tests:
+    needs: workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Emacs
+        run: sudo apt-get update && sudo apt-get install -y emacs-nox
+      - name: Run image progress ERT tests
+        run: >-
+          emacs -Q --batch
+          -L lisp/llm
+          -l lisp/llm/ai-image-progress-test.el
+          -f ert-run-tests-batch-and-exit
+
   logos:
     needs: workflows
     runs-on: ubuntu-latest
