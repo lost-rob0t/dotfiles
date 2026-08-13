@@ -1,10 +1,36 @@
-#+title: Android config
+#+title: Android Emacs Research Reader
 #+author: nsaspy
+#+startup: showall
 
-#+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
-#+startup: org-startup-folded: showall
-#+disable_spellchecker: t
-#+begin_src emacs-lisp;; -*- lexical-binding: t -*-
-#+end_src
-* about
-this is the android specific config that will make andeoid on termux slightly better amd also not be a large config.
+* Purpose
+
+The canonical Android configuration lives in =../android/= and is deliberately
+separate from the full Doom desktop configuration.
+
+The default native Android Emacs profile is a read-first StarIntel research
+client.  It provides:
+
+- synchronization of every non-archived =lost-rob0t= repository whose name
+  contains =auto-research=;
+- the shared desktop gptel OpenRouter configuration and gptel personas without
+  loading the desktop agent/image/MCP stack;
+- a touch-first text toolbar;
+- an unreviewed-document dashboard sorted newest first;
+- a newest-first indexes section;
+- Org-roam through =starintel-auto-research/lisp/starintel/second-brain.el=.
+
+The old Temple Android configuration remains available through the existing
+=temple= Chemacs profile, which sets =TEMPLE_MODE=active=.  Normal Android
+sessions do not load Temple, Evil, Prolog, Magit, vterm, or other development
+packages.
+
+* Canonical files
+
+- [[file:../android/early-init.el][android/early-init.el]]
+- [[file:../android/init.el][android/init.el]]
+- [[file:../android/lisp/star-android-reader.el][android/lisp/star-android-reader.el]]
+- [[file:../android/bin/sync-auto-research][android/bin/sync-auto-research]]
+- [[file:../android/README.org][android/README.org]]
+
+Do not tangle this file into the Doom desktop =config.el=.  It documents the
+Android boundary and points at the actual standalone profile.
