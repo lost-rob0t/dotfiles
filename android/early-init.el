@@ -1,46 +1,42 @@
-;;; early-init.el --- Android Emacs early initialization -*- lexical-binding: t; -*-
+;;; early-init.el --- Native Android Emacs early init -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Early initialization for Android Emacs app
-;; Provides Termux integration and performance optimizations
+;; Keep startup cheap and expose the paired Termux toolchain to native Emacs.
+;; Do not set LD_LIBRARY_PATH: Android Emacs and Termux manage their own native
+;; library lookup and only executable discovery is shared here.
 
 ;;; Code:
 
-;; Android detection
 (defun android-p ()
-  "Return t if Emacs is running on Android, nil otherwise."
+  "Return non-nil when Emacs is running as the native Android port."
   (or (eq system-type 'android)
       (featurep 'android)))
 
-;; Termux integration - Add Termux binaries to PATH
+(defconst star/android-termux-prefix "/data/data/com.termux/files/usr")
+
 (when (android-p)
-  (setenv "PATH" (format "%s:%s" "/data/data/com.termux/files/usr/bin"
-                         (getenv "PATH")))
-  (push "/data/data/com.termux/files/usr/bin" exec-path)
+  (let ((bin (expand-file-name "bin" star/android-termux-prefix)))
+    (setenv "PATH" (concat bin path-separator (or (getenv "PATH") "")))
+    (add-to-list 'exec-path bin))
 
-  ;; Android-specific optimizations
-  (setq android-use-legacy-external-storage nil)
-  (setq touch-screen-display-keyboard t)
+  (setq android-use-legacy-external-storage nil
+        touch-screen-display-keyboard t
+        read-process-output-max (* 1024 1024)
+        gc-cons-threshold (* 64 1024 1024)
+        gc-cons-percentage 0.2
+        package-enable-at-startup nil
+        frame-inhibit-implied-resize t
+        inhibit-startup-message t
+        inhibit-startup-screen t
+        initial-scratch-message nil)
 
-  ;; Performance optimizations for mobile
-  (setq gc-cons-threshold (* 50 1000 1000))  ; 50MB
-  (setq read-process-output-max (* 1024 1024)) ; 1MB
-
-  ;; Reduce startup time
-  (setq package-enable-at-startup nil)
-  (setq file-name-handler-alist-original file-name-handler-alist)
-  (setq file-name-handler-alist nil)
-
-  ;; Restore after startup
-  (add-hook 'emacs-startup-hook
-            (lambda ()
-              (setq file-name-handler-alist file-name-handler-alist-original)
-              (setq gc-cons-threshold (* 2 1000 1000))))) ; 2MB
-
-;; Set user-emacs-directory to point to dotfiles repo
-(when (android-p)
-  (let ((dotfiles-android-path "/storage/emulated/0/Android/data/com.termux/files/dotfiles/android/temple"))
-    (when (file-directory-p dotfiles-android-path)
-      (setq user-emacs-directory (file-name-as-directory dotfiles-android-path)))))
+  (let ((handlers file-name-handler-alist))
+    (setq file-name-handler-alist nil)
+    (add-hook
+     'emacs-startup-hook
+     (lambda ()
+       (setq file-name-handler-alist handlers
+             gc-cons-threshold (* 16 1024 1024)
+             gc-cons-percentage 0.1)))))
 
 ;;; early-init.el ends here

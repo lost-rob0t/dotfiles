@@ -1,0 +1,56 @@
+name: Android Emacs
+
+on:
+  pull_request:
+    paths:
+      - "android/**"
+      - ".doom.d/android.org"
+      - ".github/workflows/android-emacs.yml"
+  push:
+    branches:
+      - master
+      - "agent/**"
+    paths:
+      - "android/**"
+      - ".doom.d/android.org"
+      - ".github/workflows/android-emacs.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  reader-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install validation tools
+        run: sudo apt-get update && sudo apt-get install -y emacs-nox shellcheck
+
+      - name: Check Elisp structure
+        run: |
+          set -euo pipefail
+          emacs -Q --batch --eval '
+            (dolist (file (list "android/early-init.el"
+                                "android/init.el"
+                                "android/lisp/star-android-reader.el"
+                                "android/tests/star-android-reader-test.el"))
+              (with-temp-buffer
+                (insert-file-contents file)
+                (emacs-lisp-mode)
+                (check-parens)))'
+
+      - name: Run reader ERT tests
+        run: |
+          set -euo pipefail
+          emacs -Q --batch \
+            -L android/lisp \
+            -L android/tests \
+            -l android/tests/star-android-reader-test.el \
+            -f ert-run-tests-batch-and-exit
+
+      - name: Check sync helper
+        run: |
+          set -euo pipefail
+          bash -n android/bin/sync-auto-research
+          shellcheck --severity=warning android/bin/sync-auto-research
