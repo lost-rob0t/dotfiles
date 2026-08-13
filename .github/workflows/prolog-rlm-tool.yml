@@ -48,7 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           nix shell \
-            github:NixOS/nixpkgs/nixos-26.05#swiProlog \
+            github:NixOS/nixpkgs/nixos-26.05#swi-prolog \
             --command bash -euo pipefail -c '
               request=$(printf "{\"operation\":\"status\",\"root\":\"%s\"}" "$PWD/.ci/prolog-rlm")
               response=$(printf "%s" "$request" | swipl -q -s lisp/llm/prolog-rlm-bridge.pl)
@@ -67,7 +67,7 @@ jobs:
           set -euo pipefail
           nix shell \
             github:NixOS/nixpkgs/nixos-26.05#emacs-nox \
-            github:NixOS/nixpkgs/nixos-26.05#swiProlog \
+            github:NixOS/nixpkgs/nixos-26.05#swi-prolog \
             --command emacs -Q --batch \
               -L .ci/gptel \
               -L lisp/llm \
