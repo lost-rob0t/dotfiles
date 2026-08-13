@@ -1,0 +1,117 @@
+#+title: Native Android Emacs Research Reader
+
+* Scope
+
+This profile exists for reading and reviewing StarIntel Org documents on a
+phone.  It intentionally does not mirror the full desktop Doom configuration.
+
+Default startup loads only the built-in Org stack plus two external packages:
+=org-roam= and =gptel=.  Org-roam, the shared gptel backend configuration, and
+network synchronization remain lazy until used.
+
+* Layout
+
+#+begin_example
+android/
+├── early-init.el
+├── init.el
+├── bin/sync-auto-research
+├── lisp/star-android-reader.el
+└── tests/star-android-reader-test.el
+#+end_example
+
+* Termux tools
+
+Use the paired native Android Emacs and Termux builds that can access the same
+Android application data.  In Termux install the command-line side:
+
+#+begin_src sh
+pkg update
+pkg install git gh openssh ripgrep fd sqlite curl jq gnupg
+
+gh auth login
+gh auth setup-git
+#+end_src
+
+Clone dotfiles into the Termux home:
+
+#+begin_src sh
+git clone https://github.com/lost-rob0t/dotfiles.git ~/.dotfiles
+#+end_src
+
+Point the native Emacs init directory at =~/.dotfiles/android= using the paired
+build's shared filesystem arrangement.  The profile itself uses the explicit
+Termux path =/data/data/com.termux/files/home= when available, so Git, =gh=,
+and research repositories are visible to native Emacs.
+
+* Research repositories
+
+The toolbar =Sync= action calls =bin/sync-auto-research=.  It updates the
+current dotfiles checkout and asks =gh= for every non-archived repository owned
+by =lost-rob0t= whose name contains =auto-research=.  Existing clones receive a
+fast-forward-only pull; missing repositories are cloned under:
+
+#+begin_example
+~/src/auto-research/
+#+end_example
+
+Override locations when needed:
+
+#+begin_src sh
+export STAR_AUTO_RESEARCH_ROOT="$HOME/research"
+export STAR_DOTFILES_ROOT="$HOME/.dotfiles"
+export STAR_GITHUB_OWNER="lost-rob0t"
+#+end_src
+
+* Dashboard
+
+Startup opens =*Star Research*=.  It scans only the first 32 KiB of each Org
+file for metadata and sorts by =#+last_modified=, =#+updated=, =#+created=, or
+filesystem modification time.
+
+The first section contains documents not in a terminal reviewed state.  The
+second section contains every document under =roam/indexes/=, newest first.
+
+Reviewed terminal states are currently:
+
+#+begin_example
+APPROVED
+IMPLEMENTED
+REJECTED
+ARCHIVED
+#+end_example
+
+* Org-roam
+
+=Roam= does not invent a second Org-roam layout.  It loads the canonical
+=starintel-auto-research/lisp/starintel/second-brain.el= and calls
+=starintel-second-brain-configure= against that repository.
+
+* GPTel
+
+=GPT= loads only the shared =lisp/llm/ai.el= backend layer and
+=lisp/llm/gptel-personas.el=.  It mirrors the desktop =ai-init.el= default of
+OpenRouter Auto Router in pure-quality mode while avoiding the desktop agent,
+image-generation, MCP, Mara, and other heavy modules.
+
+Secrets remain in the existing auth-source/OpenRouter setup.  No API keys are
+stored in the Android configuration.
+
+* Touch controls
+
+The native tool bar is placed at the bottom and rendered as text for reliable
+touch targets:
+
+#+begin_example
+Dash   Sync   Roam   GPT   Prev   Next
+#+end_example
+
+The native modifier bar and pixel-precision scrolling are enabled when the
+running Emacs exposes them.
+
+* Temple compatibility
+
+The existing Chemacs =temple= profile sets =TEMPLE_MODE=active=.  In that mode
+=android/init.el= dispatches directly to =android/temple/init.el=.  The minimal
+research reader is therefore the normal Android default without deleting the
+older Temple environment.
