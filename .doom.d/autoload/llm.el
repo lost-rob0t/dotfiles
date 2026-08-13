@@ -25,6 +25,9 @@
 (autoload #'mara "mara" "Open the local Mara runtime." t)
 
 ;;;###autoload
+(autoload #'seductress "gptel-personas" "Open a dedicated Seductress gptel chat." t)
+
+;;;###autoload
 (defun +llm/bind-keys ()
   "Bind the local LLM entrypoints after Doom finishes loading."
   (define-key doom-leader-map (kbd "y i") #'+llm/image-generate)
@@ -44,14 +47,18 @@
    0 nil
    (lambda ()
      (require 'ai-init)
-     (ai/llm-apply-defaults))))
+     (require 'gptel-personas)
+     (ai/llm-apply-defaults)
+     (ai/gptel-apply-directives))))
 
 ;;;###autoload
 (defun +llm/load ()
   "Load the complete local LLM configuration."
   (interactive)
   (require 'ai-init)
+  (require 'gptel-personas)
   (ai/llm-apply-defaults)
+  (ai/gptel-apply-directives)
   (ai/mcp-connect-all 'noerror)
   (message "LLM stack loaded: %s / %s" ai/llm-provider ai/llm-model))
 
