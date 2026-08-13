@@ -25,6 +25,23 @@ escape an allowed root."
         (push (cons (if (symbolp key) key (intern key)) value) result)))
     (nreverse result)))
 
+(defun ai/agent--tool-result (value)
+  "Return VALUE as JSON text suitable for a gptel tool result.
+
+`json-serialize' returns UTF-8 bytes in a unibyte string on Emacs 30 and
+newer.  A gptel tool result is message text, not final wire JSON, so decode
+those bytes back into an Emacs Unicode string before gptel serializes the
+provider request."
+  (decode-coding-string
+   (json-serialize value
+                   :null-object nil
+                   :false-object :json-false)
+   'utf-8 t))
+
+(defun ai/agent--json (&rest pairs)
+  "Return alternating key/value PAIRS as gptel-safe JSON text."
+  (ai/agent--tool-result (apply #'ai/agent--object pairs)))
+
 (defun ai/agent--path-allowed-p (path project-root)
   "Return non-nil when PATH is inside PROJECT-ROOT or an allowed root."
   (or (ai/agent--inside-p path project-root)
