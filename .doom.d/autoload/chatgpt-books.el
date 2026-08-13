@@ -1,5 +1,7 @@
 ;;; chatgpt-books.el --- Doom entrypoint for chatgpt-books -*- lexical-binding: t; -*-
 
+(require 'seq)
+
 (defgroup +chatgpt-books nil
   "Integration for the local chatgpt-books checkout."
   :group 'org)
