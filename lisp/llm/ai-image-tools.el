@@ -1,6 +1,7 @@
 ;;; ai-image-tools.el --- gptel tools for inline image generation -*- lexical-binding: t; -*-
 
 (require 'ai-image)
+(require 'ai-image-progress)
 (require 'cl-lib)
 (require 'gptel)
 (require 'subr-x)
