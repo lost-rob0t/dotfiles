@@ -27,6 +27,7 @@ tmp/
 /.local/state/
 /.claude/*
 /android/eln-cache/
+/android/org-roam.db
 /android/straight/build/
 /android/straight/repos/
 /lisp/mara
