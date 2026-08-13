@@ -1,0 +1,48 @@
+name: gptel tool results
+
+on:
+  pull_request:
+    paths:
+      - "lisp/llm/agent-core.el"
+      - "lisp/llm/ai-agent-core.el"
+      - "lisp/llm/agent.el"
+      - "lisp/llm/ai-agent-tool-result-test.el"
+      - ".github/workflows/gptel-tool-results.yml"
+  push:
+    branches:
+      - master
+      - "agent/**"
+    paths:
+      - "lisp/llm/agent-core.el"
+      - "lisp/llm/ai-agent-core.el"
+      - "lisp/llm/agent.el"
+      - "lisp/llm/ai-agent-tool-result-test.el"
+      - ".github/workflows/gptel-tool-results.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tool-result-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out tested gptel revision
+        uses: actions/checkout@v4
+        with:
+          repository: karthink/gptel
+          ref: dc0280821c344ec10547e13179ea2095f6165f05
+          path: .ci/gptel
+
+      - uses: cachix/install-nix-action@v31
+
+      - name: Run Emacs 30 tool-result ERT tests
+        run: |
+          set -euo pipefail
+          nix shell github:NixOS/nixpkgs/nixos-26.05#emacs-nox --command \
+            emacs -Q --batch \
+              -L .ci/gptel \
+              -L lisp/llm \
+              -l lisp/llm/ai-agent-tool-result-test.el \
+              -f ert-run-tests-batch-and-exit
