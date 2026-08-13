@@ -7,6 +7,7 @@ on:
       - "lisp/llm/prolog-rlm-bridge.pl"
       - "lisp/llm/ai-prolog-rlm-test.el"
       - "lisp/llm/ai-init.el"
+      - ".github/scripts/check-prolog-rlm-bridge.sh"
       - ".github/workflows/prolog-rlm-tool.yml"
   push:
     branches:
@@ -17,6 +18,7 @@ on:
       - "lisp/llm/prolog-rlm-bridge.pl"
       - "lisp/llm/ai-prolog-rlm-test.el"
       - "lisp/llm/ai-init.el"
+      - ".github/scripts/check-prolog-rlm-bridge.sh"
       - ".github/workflows/prolog-rlm-tool.yml"
 
 permissions:
@@ -49,18 +51,7 @@ jobs:
           set -euo pipefail
           nix shell \
             github:NixOS/nixpkgs/nixos-26.05#swi-prolog \
-            --command bash -euo pipefail -c '
-              request=$(printf "{\"operation\":\"status\",\"root\":\"%s\"}" "$PWD/.ci/prolog-rlm")
-              response=$(printf "%s" "$request" | swipl -q -s lisp/llm/prolog-rlm-bridge.pl)
-              RESPONSE="$response" python3 - <<"PY"
-          import json, os
-          value = json.loads(os.environ["RESPONSE"])
-          assert value["ok"] is True, value
-          assert value["ready"] is True, value
-          assert value["version"], value
-          print("prolog-rlm bridge status:", value["version"])
-          PY
-            '
+            --command bash .github/scripts/check-prolog-rlm-bridge.sh
 
       - name: Run Emacs 30 adapter ERT tests
         run: |
