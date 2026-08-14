@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Steam
+Comment=Application for managing and playing games on Steam
+Exec=/home/unseen/.local/bin/steam %U
+Icon=steam
+Terminal=false
+Type=Application
+Categories=Game;
+MimeType=x-scheme-handler/steam;
+StartupNotify=true
+StartupWMClass=Steam
+PrefersNonDefaultGPU=true
