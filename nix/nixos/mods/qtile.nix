@@ -24,7 +24,6 @@
       qtile = super.qtile.unwrapped.override (old: {
         propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ (config.desktop.fonts) ++ (config.desktop.qtile.extraPkgs or [ ]) ++ (with self.python3Packages; [
           requests
-          pkgs.sxhkd
           pkgs.j4-dmenu-desktop
           pkgs.dmenu
           pkgs.brave

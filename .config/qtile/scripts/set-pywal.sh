@@ -32,10 +32,11 @@ usage() {
 	echo "    -v, --version     display version information and exit"
 	echo
 	echo "These options can be passed to the script:"
+	echo "    -t,     trash"
 	echo "    -f,     favorite"
 	echo "    -p,     previous"
 	echo "    -n,     next"
-  echo "    -u,     update"
+	echo "    -u,     update"
 }
 
 version() {
@@ -63,35 +64,34 @@ if ! type "wal" >> /dev/null 2>&1 || ! type "variety" >> /dev/null 2>&1  ; then
     exit
 fi
 
-find-wallpaper(){
-	current_wallpaper=$(cat $HOME/.config/variety/wallpaper/wallpaper.jpg.txt)
+find-wallpaper() {
+	current_wallpaper=$(<"$HOME/.config/variety/wallpaper/wallpaper.jpg.txt")
 }
 
 set-variety() {
 	case "$1" in
+		-t) variety -t ;;
 		-f) variety -f ;;
 		-p) variety -p ;;
 		-n) variety -n ;;
 	esac
 }
 
-set-wal(){
-	wal -i $current_wallpaper
+set-wal() {
+	wal -i "$current_wallpaper"
 }
 
 setwal() {
 	case "$1" in
-		-f) set-variety -f && find-wallpaper && sleep 1 && set-wal && exit;;
-		-p) set-variety -p && find-wallpaper && sleep 1 && set-wal && exit;;
-		-n) set-variety -n && find-wallpaper && sleep 1 && set-wal && exit;;
+		-t|-f|-p|-n) set-variety "$1" && find-wallpaper && sleep 1 && set-wal ;;
 		-u) find-wallpaper && set-wal ;;
 	esac
 }
 
-while (( "$#" )); do
+while (( $# )); do
 	case "$1" in
 		-h|--help) usage; exit ;;
 		-v|--version) version; exit ;;
-		*) setwal $1; exit  ;;
+		*) setwal "$1"; exit ;;
 	esac
 done

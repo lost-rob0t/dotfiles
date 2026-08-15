@@ -21,6 +21,13 @@ Qtile reconfigures screens.
 
 The profile for this workstation is =scripts/monitors/unseen@flake.sh=.
 
+* Keybindings
+Qtile owns the complete active keymap. The former SXHKD configuration was
+retired after its approved shortcuts were migrated to native =Key= entries.
+
+Monitor focus and window movement use physical X coordinates, so Left and Right
+select the adjacent display instead of following XRandR's output enumeration.
+
 * Automatic group mode
 The first button on each top bar always displays =AUTO= in black text.
 

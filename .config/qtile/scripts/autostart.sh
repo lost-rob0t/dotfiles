@@ -35,9 +35,6 @@ fi
 (conky -c $HOME/.config/qtile/scripts/system-overview) &
 (conky -c $HOME/Documents/Scripts/weather.conf) &
 
-#start sxhkd to replace Qtile native key-bindings
-run sxhkd -c ~/.config/qtile/sxhkd/sxhkdrc &
-
 #starting utility applications at boot time
 run variety &
 run nm-applet &

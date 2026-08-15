@@ -42,7 +42,6 @@
     sqlitebrowser
     telegram-desktop
     # Misc
-    sxhkd
     conky
     j4-dmenu-desktop
     fetchmail
