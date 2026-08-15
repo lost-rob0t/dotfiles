@@ -43,6 +43,7 @@
         gotop
         pavucontrol
         xkill
+        xdotool
     ];
   };
 }

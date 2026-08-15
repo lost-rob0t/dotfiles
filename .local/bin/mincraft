@@ -1,0 +1,12 @@
+#!/bin/sh
+
+unset LD_LIBRARY_PATH LD_PRELOAD NIX_LD NIX_LD_LIBRARY_PATH
+unset GTK_PATH GIO_EXTRA_MODULES GI_TYPELIB_PATH
+
+runtime_dir=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+export PULSE_SERVER="unix:${runtime_dir}/pulse/native"
+export ALSOFT_DRIVERS=pulse
+export SDL_AUDIODRIVER=pulse
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl
+
+exec /usr/bin/prismlauncher "$@"
