@@ -410,7 +410,22 @@ def screen_widgets(systray=False):
     return items
 
 
-screens = [Screen(top=bar.Bar(screen_widgets(True), 26, opacity=0.8)), Screen(top=bar.Bar(screen_widgets(), 26, opacity=0.8))]
+def generate_screens(output_info):
+    tray_output = sorted(output_info, key=lambda output: output.rect.x)[
+        len(output_info) // 2
+    ]
+    return [
+        Screen(
+            top=bar.Bar(
+                screen_widgets(output is tray_output),
+                26,
+                opacity=0.8,
+            )
+        )
+        for output in output_info
+    ]
+
+
 mouse = [
     Drag([mod], "Button1", lazy.window.set_position_floating(), start=lazy.window.get_position()),
     Drag([mod], "Button3", lazy.window.set_size_floating(), start=lazy.window.get_size()),

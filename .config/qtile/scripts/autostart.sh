@@ -38,7 +38,6 @@ fi
 #start sxhkd to replace Qtile native key-bindings
 run sxhkd -c ~/.config/qtile/sxhkd/sxhkdrc &
 
-run "$HOME/.dotfiles/.config/qtile/scripts/graphics/$(hostname).sh"
 #starting utility applications at boot time
 run variety &
 run nm-applet &

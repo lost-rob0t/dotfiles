@@ -7,6 +7,20 @@ This file previously duplicated the complete Python configuration and tangled it
 
 Edit =config.py= directly.
 
+* Monitor configuration
+Before Qtile starts, =.xinitrc= runs =scripts/setup-monitors.sh=. The loader looks
+for an executable host profile named after the current user and hostname:
+
+=~/.config/qtile/scripts/monitors/USER@HOSTNAME.sh=
+
+If the profile exists, it configures the outputs with =xrandr=. Qtile's
+=generate_screens= hook then creates one bar per active output. The system tray
+is placed on the physical middle monitor. For an even number of outputs, the
+monitor to the right of center receives the tray. The hook also reruns when
+Qtile reconfigures screens.
+
+The profile for this workstation is =scripts/monitors/unseen@flake.sh=.
+
 * Automatic group mode
 The first button on each top bar always displays =AUTO= in black text.
 
