@@ -1,9 +1,6 @@
 name: Publish Logos ISO
 
 on:
-  push:
-    tags:
-      - "logos-*"
   workflow_dispatch:
     inputs:
       release_tag:
@@ -40,11 +37,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            release_tag="$GITHUB_REF_NAME"
-          else
-            release_tag="$MANUAL_TAG"
-          fi
+          release_tag="$MANUAL_TAG"
 
           if [[ ! "$release_tag" =~ ^logos-[A-Za-z0-9._-]+$ ]]; then
             echo "Release tag must start with logos- and contain only letters, numbers, dots, underscores, or dashes." >&2

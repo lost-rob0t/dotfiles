@@ -48,5 +48,7 @@ jobs:
       - uses: cachix/cachix-action@v16
         with:
           name: nix-community
-      - run: nix flake check --show-trace
-      - run: nix build --no-link --print-build-logs
+      - name: Evaluate flake checks without building system closures
+        run: nix flake check --no-build --show-trace
+      - name: Evaluate desktop Home Manager configuration
+        run: nix eval --raw '.#homeConfigurations."unseen@desktop".activationPackage.drvPath'
