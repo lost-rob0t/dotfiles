@@ -19,7 +19,6 @@
         propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ (with self.python3Packages; [
           requests
           pika
-          pkgs.sxhkd
           pkgs.j4-dmenu-desktop
           pkgs.dmenu
           pkgs.brave

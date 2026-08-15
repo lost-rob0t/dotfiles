@@ -185,15 +185,27 @@ def kill_focused_window(qtile):
         qtile.current_window.kill()
 
 
+def adjacent_screen(qtile, step):
+    screens = sorted(qtile.screens, key=lambda screen: screen.x)
+    target = screens.index(qtile.current_screen) + step
+    if 0 <= target < len(screens):
+        return screens[target]
+    return None
+
+
+@lazy.function
+def focus_adjacent_screen(qtile, step):
+    target = adjacent_screen(qtile, step)
+    if target:
+        qtile.focus_screen(qtile.screens.index(target))
+
+
 @lazy.function
 def move_window_screen(qtile, step):
-    if not qtile.current_window:
-        return
-    current = qtile.screens.index(qtile.current_screen)
-    target = current + step
-    if 0 <= target < len(qtile.screens):
-        qtile.current_window.togroup(qtile.screens[target].group.name)
-        qtile.focus_screen(target)
+    target = adjacent_screen(qtile, step)
+    if qtile.current_window and target:
+        qtile.current_window.togroup(target.group.name)
+        qtile.focus_screen(qtile.screens.index(target))
 
 
 keys = [
@@ -294,14 +306,52 @@ groups.extend(
 )
 keys.extend(
     [
+        Key([mod, "shift"], "v", lazy.spawn("zara --dictate"), desc="Zara dictation"),
+        Key([mod], "F1", lazy.spawn("brave"), desc="Launch Brave"),
+        Key([mod], "z", lazy.spawn(home + "/.config/emacs/bin/doom +everywhere"), desc="Emacs Everywhere"),
+        Key([mod], "w", lazy.spawn("brave"), desc="Launch Brave"),
+        Key([mod], "c", lazy.spawn("conky -c " + home + "/.config/qtile/scripts/system-overview"), desc="Launch system overview"),
+        Key([mod, "control"], "c", lazy.spawn("pkill -f conky"), desc="Stop Conky"),
+        Key([mod], "v", lazy.spawn("pavucontrol"), desc="Open volume control"),
+        Key([mod, "shift"], "t", lazy.spawn("terminator"), desc="Launch terminal"),
+        Key([mod], "Return", lazy.spawn("emacsclient -c -a emacs --eval '(+vterm/here projectile-current-project-on-switch)'"), desc="Project VTerm"),
+        Key([mod], "Escape", lazy.spawn("xkill"), desc="Kill selected window"),
+        Key([mod, "shift"], "Return", lazy.spawn("emacsclient -c -a emacs --eval '(dired nil)'"), desc="Open Dired"),
+        Key([mod], "d", lazy.spawn("j4-dmenu-desktop"), desc="Application menu"),
+        Key([mod, "shift"], "s", lazy.reload_config(), desc="Reload Qtile config"),
+        Key([mod, "shift"], "x", lazy.shutdown(), desc="Shut down Qtile"),
+        Key([mod, "control", alt], "l", lazy.spawn("pkill -f mousetrap"), desc="Release pointer lock"),
+        Key(["control", alt], "Next", lazy.spawn("conky-rotate -n"), desc="Next Conky"),
+        Key(["control", alt], "Prior", lazy.spawn("conky-rotate -p"), desc="Previous Conky"),
+        Key(["control", alt], "c", lazy.spawn("catfish"), desc="Search files"),
+        Key([alt], "t", lazy.spawn("variety -t"), desc="Trash wallpaper"),
+        Key([alt], "n", lazy.spawn("variety -n"), desc="Next wallpaper"),
+        Key([alt], "p", lazy.spawn("variety -p"), desc="Previous wallpaper"),
+        Key([alt], "f", lazy.spawn("variety -f"), desc="Favorite wallpaper"),
+        Key([alt, "shift"], "t", lazy.spawn(home + "/.config/qtile/scripts/set-pywal.sh -t"), desc="Trash wallpaper and refresh colors"),
+        Key([alt, "shift"], "n", lazy.spawn(home + "/.config/qtile/scripts/set-pywal.sh -n"), desc="Next wallpaper and refresh colors"),
+        Key([alt, "shift"], "p", lazy.spawn(home + "/.config/qtile/scripts/set-pywal.sh -p"), desc="Previous wallpaper and refresh colors"),
+        Key([alt, "shift"], "f", lazy.spawn(home + "/.config/qtile/scripts/set-pywal.sh -f"), desc="Favorite wallpaper and refresh colors"),
+        Key([alt, "shift"], "u", lazy.spawn(home + "/.config/qtile/scripts/set-pywal.sh -u"), desc="Refresh wallpaper colors"),
+        Key(["control", alt], "o", lazy.spawn(home + "/.config/qtile/scripts/picom-toggle.sh"), desc="Toggle Picom"),
+        Key([alt], "l", lazy.spawn("mousetrap -t 30 -b 30 -l 30 -r 30"), desc="Lock pointer"),
+        Key([alt], "Print", lazy.spawn("spectacle --fullscreen --background --nonotify"), desc="Capture desktop"),
+        Key([alt, "shift"], "Print", lazy.spawn("spectacle --region --background --nonotify"), desc="Capture region"),
+        Key([], "F12", lazy.spawn("xfce4-terminal --drop-down"), desc="Drop-down terminal"),
+        Key([], "XF86AudioRaiseVolume", lazy.spawn("amixer set Master 10%+"), desc="Raise volume"),
+        Key([], "XF86AudioLowerVolume", lazy.spawn("amixer set Master 10%-"), desc="Lower volume"),
+        Key([], "XF86AudioMute", lazy.spawn("amixer -D pulse set Master 1+ toggle"), desc="Toggle mute"),
+        Key([], "XF86MonBrightnessUp", lazy.spawn("xbacklight -inc 10"), desc="Raise brightness"),
+        Key([], "XF86MonBrightnessDown", lazy.spawn("xbacklight -dec 10"), desc="Lower brightness"),
+        Key(["control", "shift"], "Escape", lazy.spawn(home + "/.config/qtile/scripts/setup-monitors.sh"), desc="Reapply monitor profile"),
         Key([mod, "shift"], "F1", lazy.group["browserPad"].dropdown_toggle("browser")),
         Key([mod], "F12", lazy.group["termpad"].dropdown_toggle("term")),
         Key([mod, "shift"], "E", lazy.group["editorPad"].dropdown_toggle("emacs")),
         Key([mod], "F3", lazy.group["passwords"].dropdown_toggle("keepassxc")),
         Key([mod], "x", lazy.group["editorPad"].dropdown_toggle("org-capture")),
         Key([mod, "shift"], "M", lazy.group["media"].dropdown_toggle("feishin")),
-        Key([alt], "Right", lazy.next_screen()),
-        Key([alt], "Left", lazy.prev_screen()),
+        Key([alt], "Right", focus_adjacent_screen(1)),
+        Key([alt], "Left", focus_adjacent_screen(-1)),
         Key([mod, "shift"], "Right", move_window_screen(1)),
         Key([mod, "shift"], "Left", move_window_screen(-1)),
     ]
@@ -410,7 +460,22 @@ def screen_widgets(systray=False):
     return items
 
 
-screens = [Screen(top=bar.Bar(screen_widgets(True), 26, opacity=0.8)), Screen(top=bar.Bar(screen_widgets(), 26, opacity=0.8))]
+def generate_screens(output_info):
+    tray_output = sorted(output_info, key=lambda output: output.rect.x)[
+        len(output_info) // 2
+    ]
+    return [
+        Screen(
+            top=bar.Bar(
+                screen_widgets(output is tray_output),
+                26,
+                opacity=0.8,
+            )
+        )
+        for output in output_info
+    ]
+
+
 mouse = [
     Drag([mod], "Button1", lazy.window.set_position_floating(), start=lazy.window.get_position()),
     Drag([mod], "Button3", lazy.window.set_size_floating(), start=lazy.window.get_size()),

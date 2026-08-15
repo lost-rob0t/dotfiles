@@ -26,7 +26,6 @@
         extraPackages = mkOption {
           type = types.listOf types.package;
           default = with pkgs; [
-            sxhkd
             j4-dmenu-desktop
             dmenu
             brave

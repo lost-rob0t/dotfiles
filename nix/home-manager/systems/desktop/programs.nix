@@ -76,7 +76,6 @@
     #noto-fonts-emoji
     # TODO make a nixos module for qtile?
     # Can we do qtile without nixos module?
-    sxhkd
     conky
     j4-dmenu-desktop
     fetchmail

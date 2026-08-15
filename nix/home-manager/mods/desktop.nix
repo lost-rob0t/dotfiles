@@ -36,12 +36,13 @@
         firefox
         xsettingsd
         scrot
-        flameshot
+        kdePackages.spectacle
         keepassxc
         xdg-utils
         dunst
         gotop
         pavucontrol
+        xkill
     ];
   };
 }
