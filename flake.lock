@@ -168,11 +168,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1786089803,
-        "narHash": "sha256-ZuvZfVW2tB5tXYEcpcfhVXB3N4OhdZLOqOviy4OD4b4=",
+        "lastModified": 1786711500,
+        "narHash": "sha256-QvnceIGTBeDvDd9oCn+GvdsnkquliuwbVgpiRH68qaQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "ee48b147c18c7de1e6ec97dc74792be42724bed1",
+        "rev": "02e08985a27c65ffd33d434eeb2e660a2e4dc84d",
         "type": "github"
       },
       "original": {
@@ -230,6 +230,23 @@
       "original": {
         "owner": "lost-rob0t",
         "repo": "org-vector",
+        "type": "github"
+      }
+    },
+    "prolog-rlm": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1786587278,
+        "narHash": "sha256-1CVrkszMg6c69hTv0MBVD7T5MMEwF0jmLTUBwykrML8=",
+        "owner": "lost-rob0t",
+        "repo": "prolog-rlm",
+        "rev": "4cdc9854a510a2d07b559e9ae34491d43d81301a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lost-rob0t",
+        "repo": "prolog-rlm",
+        "rev": "4cdc9854a510a2d07b559e9ae34491d43d81301a",
         "type": "github"
       }
     },
@@ -291,14 +308,15 @@
     },
     "zara": {
       "inputs": {
-        "nixpkgs": "nixpkgs_5"
+        "nixpkgs": "nixpkgs_5",
+        "prolog-rlm": "prolog-rlm"
       },
       "locked": {
-        "lastModified": 1784663887,
-        "narHash": "sha256-39d4qBG4LQ0dOclc0rZhmUoFHyarlvDnVr8YxCo10Os=",
+        "lastModified": 1786840198,
+        "narHash": "sha256-ZNOMSX9NGNxRbJWt6EAgTDOsOzvNb5dITinWB+bMajs=",
         "owner": "lost-rob0t",
         "repo": "zara",
-        "rev": "1e380610fc7bf78d489455af3f0dd7b8991cf72a",
+        "rev": "887e244e38a94033d5bf3e4a4355f6a04567e698",
         "type": "github"
       },
       "original": {
