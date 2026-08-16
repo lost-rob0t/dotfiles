@@ -113,7 +113,8 @@
       (with-current-buffer buffer
         (save-excursion
           (goto-char (overlay-start overlay))
-          (unless (member "none" result-params)
+          (unless (or (member "none" result-params)
+                      (member "silent" result-params))
             (setf (nth 2 info) (ob-prolog-async--request-params request))
             (org-babel-insert-result result result-params info nil "prolog")))))))
 
