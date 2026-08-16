@@ -1,0 +1,39 @@
+name: starintel-el
+
+on:
+  pull_request:
+    paths:
+      - 'lisp/starintel/**'
+      - '.github/workflows/starintel-el.yml'
+  push:
+    branches:
+      - master
+    paths:
+      - 'lisp/starintel/**'
+      - '.github/workflows/starintel-el.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Emacs
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends emacs-nox
+
+      - name: Check syntax
+        run: |
+          emacs -Q --batch \
+            --eval '(with-temp-buffer (insert-file-contents "lisp/starintel/starintel.el") (emacs-lisp-mode) (check-parens))'
+
+      - name: Run ERT
+        run: |
+          emacs -Q --batch \
+            -L lisp/starintel \
+            -l lisp/starintel/test-starintel.el \
+            -f ert-run-tests-batch-and-exit
