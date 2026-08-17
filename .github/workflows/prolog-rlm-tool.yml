@@ -1,0 +1,66 @@
+name: Prolog RLM tool
+
+on:
+  pull_request:
+    paths:
+      - "lisp/llm/ai-prolog-rlm.el"
+      - "lisp/llm/prolog-rlm-bridge.pl"
+      - "lisp/llm/ai-prolog-rlm-test.el"
+      - "lisp/llm/ai-init.el"
+      - ".github/scripts/check-prolog-rlm-bridge.sh"
+      - ".github/workflows/prolog-rlm-tool.yml"
+  push:
+    branches:
+      - master
+      - "agent/**"
+    paths:
+      - "lisp/llm/ai-prolog-rlm.el"
+      - "lisp/llm/prolog-rlm-bridge.pl"
+      - "lisp/llm/ai-prolog-rlm-test.el"
+      - "lisp/llm/ai-init.el"
+      - ".github/scripts/check-prolog-rlm-bridge.sh"
+      - ".github/workflows/prolog-rlm-tool.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  prolog-rlm-tool:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out researched prolog-rlm runtime
+        uses: actions/checkout@v4
+        with:
+          repository: lost-rob0t/prolog-rlm
+          ref: 4cdc9854a510a2d07b559e9ae34491d43d81301a
+          path: .ci/prolog-rlm
+
+      - name: Check out tested gptel revision
+        uses: actions/checkout@v4
+        with:
+          repository: karthink/gptel
+          ref: dc0280821c344ec10547e13179ea2095f6165f05
+          path: .ci/gptel
+
+      - uses: cachix/install-nix-action@v31
+
+      - name: Verify trusted SWI bridge
+        run: |
+          set -euo pipefail
+          nix shell \
+            github:NixOS/nixpkgs/nixos-26.05#swi-prolog \
+            --command bash .github/scripts/check-prolog-rlm-bridge.sh
+
+      - name: Run Emacs 30 adapter ERT tests
+        run: |
+          set -euo pipefail
+          nix shell \
+            github:NixOS/nixpkgs/nixos-26.05#emacs-nox \
+            github:NixOS/nixpkgs/nixos-26.05#swi-prolog \
+            --command emacs -Q --batch \
+              -L .ci/gptel \
+              -L lisp/llm \
+              -l lisp/llm/ai-prolog-rlm-test.el \
+              -f ert-run-tests-batch-and-exit
