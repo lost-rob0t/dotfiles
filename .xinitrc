@@ -31,4 +31,9 @@ fi
 
 "$HOME/.config/qtile/scripts/setup-monitors.sh"
 
-exec qtile start
+# Qtile talks to Xorg over the X socket, not the controlling tty. Keep stdio
+# off /dev/tty1: startx retains the foreground process group, so any read of
+# tty1 by qtile or its children (SIGTTIN) would stop the whole WM.
+session_log="$HOME/.local/state/qtile/session.log"
+mkdir -p "$(dirname "$session_log")"
+exec qtile start </dev/null >>"$session_log" 2>&1
