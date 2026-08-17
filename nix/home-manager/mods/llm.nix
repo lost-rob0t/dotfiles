@@ -22,7 +22,8 @@ in
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-prolog
       inputs.org-vector.packages.${stdenv.hostPlatform.system}.org-vector
 
-      # LLM Editors
+      # LLM Editors and desktop clients
+      inputs.chatgpt-desktop.packages.${stdenv.hostPlatform.system}.default
       opencode
       claude-code
 
