@@ -27,6 +27,7 @@
       nixpkgs,
       disko,
       home-manager,
+      chatgpt-desktop,
       zara,
       org-vector,
       bixby-studio,
