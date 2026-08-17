@@ -10,6 +10,14 @@
 (require 'chat)
 (require 'fren-loader)
 
+(defconst ai/default-openrouter-image-model
+  (or (getenv "OPENROUTER_IMAGE_MODEL")
+      "bytedance-seed/seedream-4.5")
+  "OpenRouter image model used by image and meme generation.")
+
+(setq ai/image-model ai/default-openrouter-image-model
+      ai/meme-model ai/default-openrouter-image-model)
+
 (unless (assq 'openrouter/auto ai/llm-openrouter-models)
   (push '(openrouter/auto
           :description "OpenRouter Auto Router in pure-quality mode"
