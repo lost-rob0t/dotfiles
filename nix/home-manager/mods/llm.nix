@@ -50,6 +50,15 @@ in
       openai-whisper
     ];
 
+    # Zara loads user tools from ~/.zarathushtra/plugins at startup.
+    home.file.".zarathushtra/plugins/starintel.py".source =
+      ../files/zarathushtra/plugins/starintel.py;
+
+    # Local-only StarIntel is the safe/default deployment. Override this in a
+    # host config when Zara should talk to another trusted StarIntel instance.
+    home.sessionVariables.STARINTEL_URL = mkDefault "http://127.0.0.1:5000";
+    home.sessionVariables.STARINTEL_TIMEOUT_SECONDS = mkDefault "10";
+
     # ComfyUI uses a writable XDG data directory instead of the immutable
     # Nix store. Keep downloaded models and generated media here.
     home.activation.comfyuiDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
