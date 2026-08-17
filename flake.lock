@@ -19,6 +19,26 @@
         "type": "github"
       }
     },
+    "chatgpt-desktop": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1786997787,
+        "narHash": "sha256-YZkMbqe09x8Ua0pydX0IZXiDVLY1fmSyjfxWNE36PS0=",
+        "owner": "lost-rob0t",
+        "repo": "chatgpt-desktop",
+        "rev": "d3567103749b03a5c73e617d56e2c97391101b29",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lost-rob0t",
+        "repo": "chatgpt-desktop",
+        "type": "github"
+      }
+    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -253,6 +273,7 @@
     "root": {
       "inputs": {
         "bixby-studio": "bixby-studio",
+        "chatgpt-desktop": "chatgpt-desktop",
         "disko": "disko",
         "home-manager": "home-manager",
         "mousetrap": "mousetrap",
