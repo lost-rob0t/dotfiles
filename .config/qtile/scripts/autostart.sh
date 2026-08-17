@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 function run {
-    if ! pgrep -x "$(basename "$1" | head -c 15)" 1>/dev/null; then
-        "$@" </dev/null >/dev/null 2>&1 &
+    if ! pgrep -x $(basename $1 | head -c 15) 1>/dev/null; then
+        $@ &
     fi
 }
 
@@ -32,15 +32,15 @@ fi
 #wallpaper for other Arch based systems
 #feh --bg-fill /usr/share/archlinux-tweak-tool/data/wallpaper/wallpaper.png &
 #start the conky to learn the shortcuts
-(conky -c $HOME/.config/qtile/scripts/system-overview) </dev/null >/dev/null 2>&1 &
-(conky -c $HOME/Documents/Scripts/weather.conf) </dev/null >/dev/null 2>&1 &
+(conky -c $HOME/.config/qtile/scripts/system-overview) &
+(conky -c $HOME/Documents/Scripts/weather.conf) &
 
 #starting utility applications at boot time
 run variety &
 run nm-applet &
 #run pamac-tray &
 run xfce4-power-manager &
-numlockx on </dev/null >/dev/null 2>&1 &
+numlockx on &
 run blueman-applet &
 run picom &
 run /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
