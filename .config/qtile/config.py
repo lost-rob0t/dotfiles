@@ -208,12 +208,29 @@ def move_window_screen(qtile, step):
         qtile.focus_screen(qtile.screens.index(target))
 
 
+@lazy.function
+def span_focused_window(qtile):
+    window = qtile.current_window
+    if not window:
+        return
+
+    left = min(screen.x for screen in qtile.screens)
+    top = min(screen.y for screen in qtile.screens)
+    right = max(screen.x + screen.width for screen in qtile.screens)
+    bottom = max(screen.y + screen.height for screen in qtile.screens)
+
+    window.fullscreen = False
+    window.floating = True
+    window.place(left, top, right - left, bottom - top, 0, None, above=True)
+
+
 keys = [
     Key([mod], "f", lazy.window.toggle_fullscreen()),
     Key([mod], "q", kill_focused_window),
     Key([mod, "shift"], "q", kill_focused_window),
     Key([mod, "shift"], "r", lazy.restart()),
     Key([mod], "n", lazy.layout.normalize()),
+    Key([mod, "control"], "f", span_focused_window()),
     Key([mod], "space", lazy.next_layout()),
     Key([mod, "shift"], "f", lazy.layout.flip()),
     Key([mod, "shift"], "space", lazy.window.toggle_floating()),

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=mincraft
+Comment=Launch Prism Launcher with PipeWire audio
+Exec=/home/unseen/.local/bin/mincraft
+Icon=org.prismlauncher.PrismLauncher
+Terminal=false
+StartupNotify=true
+StartupWMClass=PrismLauncher

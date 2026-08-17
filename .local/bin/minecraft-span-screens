@@ -1,0 +1,56 @@
+#!/bin/sh
+
+set -eu
+
+for command in xrandr xdotool; do
+    if ! command -v "$command" >/dev/null 2>&1; then
+        echo "Required command is not installed: $command" >&2
+        exit 1
+    fi
+done
+
+desktop_geometry=$(
+    xrandr --query | awk '
+        $2 == "connected" {
+            for (field = 3; field <= NF; field++) {
+                if ($field ~ /^[0-9]+x[0-9]+[+-][0-9]+[+-][0-9]+$/) {
+                    split($field, size_and_x, "x")
+                    width = size_and_x[1]
+                    split(size_and_x[2], height_and_position, /[+-]/)
+                    height = height_and_position[1]
+                    position = substr($field, length(width) + length(height) + 2)
+                    match(position, /^[+-][0-9]+/)
+                    x = substr(position, RSTART, RLENGTH) + 0
+                    y = substr(position, RLENGTH + 1) + 0
+
+                    if (!found || x < left) left = x
+                    if (!found || y < top) top = y
+                    if (!found || x + width > right) right = x + width
+                    if (!found || y + height > bottom) bottom = y + height
+                    found = 1
+                    break
+                }
+            }
+        }
+        END {
+            if (found) print left, top, right - left, bottom - top
+        }
+    '
+)
+
+if [ -z "$desktop_geometry" ]; then
+    echo "Could not determine the connected monitor geometry." >&2
+    exit 1
+fi
+
+window_id=$(xdotool getactivewindow)
+
+IFS=' ' read -r left top width height <<EOF
+$desktop_geometry
+EOF
+qtile cmd-obj -o window "$window_id" -f disable_fullscreen >/dev/null
+qtile cmd-obj -o window "$window_id" -f enable_floating >/dev/null
+xdotool windowstate --remove FULLSCREEN "$window_id"
+xdotool windowmove --sync "$window_id" "$left" "$top"
+xdotool windowsize --sync "$window_id" "$width" "$height"
+xdotool windowraise "$window_id"
