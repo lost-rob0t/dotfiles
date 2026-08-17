@@ -11,6 +11,10 @@
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    chatgpt-desktop = {
+      url = "github:lost-rob0t/chatgpt-desktop";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     zara.url = "github:lost-rob0t/zara";
     org-vector.url = "github:lost-rob0t/org-vector";
     bixby-studio.url = "github:lost-rob0t/org-vector";
