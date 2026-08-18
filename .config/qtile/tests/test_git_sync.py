@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the Bash git-sync helper used by the Qtile reload chord."""
+"""Tests for the Bash git-sync helper used by Bash, Home Manager, and Qtile."""
 
 from __future__ import annotations
 
@@ -31,9 +31,8 @@ class GitSyncTests(unittest.TestCase):
 
             self.assertEqual(run("git", "init", "--bare", str(remote)).returncode, 0)
             self.assertEqual(run("git", "clone", str(remote), str(first)).returncode, 0)
-            for repo in (first,):
-                self.assertEqual(run("git", "config", "user.name", "test", cwd=repo).returncode, 0)
-                self.assertEqual(run("git", "config", "user.email", "test@example.com", cwd=repo).returncode, 0)
+            self.assertEqual(run("git", "config", "user.name", "test", cwd=first).returncode, 0)
+            self.assertEqual(run("git", "config", "user.email", "test@example.com", cwd=first).returncode, 0)
 
             (first / "value").write_text("one\n", encoding="utf-8")
             self.assertEqual(run("git", "add", "value", cwd=first).returncode, 0)
@@ -53,6 +52,18 @@ class GitSyncTests(unittest.TestCase):
             synced = run("bash", "--noprofile", "--norc", "-c", command)
             self.assertEqual(synced.returncode, 0, synced.stderr)
             self.assertEqual((first / "value").read_text(encoding="utf-8"), "one\ntwo\n")
+
+    def test_helper_can_run_as_a_command_without_being_sourced(self):
+        with tempfile.TemporaryDirectory() as directory:
+            result = run("bash", str(SCRIPT), directory)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("not a git repository", result.stderr)
+
+    def test_sourcing_helper_defines_bash_function_without_running_it(self):
+        command = f'source "{SCRIPT}"; type -t git-sync'
+        result = run("bash", "--noprofile", "--norc", "-c", command)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "function")
 
     def test_rejects_non_repository(self):
         with tempfile.TemporaryDirectory() as directory:
