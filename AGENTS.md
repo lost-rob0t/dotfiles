@@ -34,10 +34,10 @@ Qtile sync/reload behavior must:
 
 `bash.org` and its tangled `.bashrc` should source the shared `.config/bash/git-sync.sh` helper so interactive Bash gets a `git-sync` function when that Bash configuration is active.
 
-Do not rely on Bash startup files as the only way to expose `git-sync`. The helper must also be directly executable, and the base Home Manager module must install it as a real `git-sync` command and deploy the helper to `~/.config/bash/git-sync.sh`. This keeps Qtile, Bash, and Home Manager on one implementation even when the live `.bashrc` is owned or generated elsewhere.
+Do not rely on Bash startup files as the only way to expose `git-sync`. The helper must also be directly executable, and the base Home Manager module must install it as a real `git-sync` command built from the same helper. Do not make Home Manager take ownership of the Stow-managed helper path merely to expose the command.
 
 ## Testing
 
 Follow TDD for behavior changes. Add or update regression tests before implementation when practical, then run the real suite. Tests must validate literate/generated parity for files touched by a change rather than merely checking that both files exist.
 
-For shared shell helpers, test both sourced-function behavior and direct command execution. Home Manager evaluation must remain green for changes to installed commands or XDG-managed files.
+For shared shell helpers, test both sourced-function behavior and direct command execution. Home Manager evaluation must remain green for changes to installed commands.
