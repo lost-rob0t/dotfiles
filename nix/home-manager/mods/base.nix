@@ -33,5 +33,10 @@ in
       curl
 
     ]) ++ [ gitSync ];
+
+    # Keep the shared helper at the stable path used by interactive Bash and
+    # the Qtile sync/reload binding. The installed git-sync command is built
+    # from this same file so there is only one implementation to maintain.
+    xdg.configFile."bash/git-sync.sh".source = ../../../.config/bash/git-sync.sh;
   };
 }
