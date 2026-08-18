@@ -1,0 +1,249 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'
+
+readonly PROGRAM="${0##*/}"
+readonly HOST="${GH_HOST:-github.com}"
+readonly REPO_ROOT="${REPO_ROOT:-$HOME/git/lost-robot}"
+readonly INSTALL_PATH="${INSTALL_PATH:-$HOME/.local/bin/sync-lost-robot-repos}"
+readonly LOG_PATH="${LOG_PATH:-$HOME/.local/state/lost-robot-repo-sync.log}"
+readonly CRON_MARKER="# lost-robot-repo-sync"
+INSTALL_CRON=false
+
+usage() {
+  cat <<EOF
+Usage: $PROGRAM [--install-cron]
+
+Repair and synchronize every repository owned by the authenticated GitHub user:
+
+  1. Unarchive every archived repository on GitHub.
+  2. Clone missing repositories into:
+       $REPO_ROOT
+  3. Fetch existing repositories and fast-forward clean tracked branches.
+  4. With --install-cron, replace the old dangerous archive cron entry with
+     an hourly synchronization job.
+
+Environment:
+  GH_HOST       GitHub host. Default: github.com
+  REPO_ROOT     Local repository directory. Default: ~/git/lost-robot
+  INSTALL_PATH  Stable installed script path.
+  LOG_PATH      Cron log path.
+EOF
+}
+
+log() {
+  printf '[%(%Y-%m-%dT%H:%M:%S%z)T] %s\n' -1 "$*"
+}
+
+die() {
+  log "error: $*" >&2
+  exit 1
+}
+
+while (($#)); do
+  case "$1" in
+    --install-cron)
+      INSTALL_CRON=true
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "unknown argument: $1"
+      ;;
+  esac
+  shift
+done
+
+command -v gh >/dev/null 2>&1 || die "gh is not installed"
+command -v git >/dev/null 2>&1 || die "git is not installed"
+gh auth status --hostname "$HOST" >/dev/null 2>&1 ||
+  die "gh is not authenticated for $HOST"
+
+mkdir -p "$REPO_ROOT" "$(dirname "$LOG_PATH")"
+
+readonly LOCK_ROOT="${XDG_RUNTIME_DIR:-/tmp}"
+readonly LOCK_DIR="$LOCK_ROOT/sync-lost-robot-repos.$UID.lock"
+
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  log "another synchronization is active; exiting"
+  exit 0
+fi
+
+cleanup() {
+  rmdir "$LOCK_DIR" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
+install_cron() {
+  command -v crontab >/dev/null 2>&1 || die "crontab is not installed"
+
+  install -Dm755 "$0" "$INSTALL_PATH"
+  rm -f     "$HOME/.local/bin/archive-all-github-repos"     "$HOME/.local/bin/archive-all-github-repos.sh"
+
+  local install_q log_q cron_line
+  printf -v install_q '%q' "$INSTALL_PATH"
+  printf -v log_q '%q' "$LOG_PATH"
+
+  cron_line="0 * * * * PATH=$HOME/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin:/usr/local/bin:/usr/bin:/bin $install_q >>$log_q 2>&1 $CRON_MARKER"
+
+  {
+    crontab -l 2>/dev/null |
+      grep -vF "$CRON_MARKER" |
+      grep -vF "archive-all-github-repos" || true
+    printf '%s\n' "$cron_line"
+  } | awk 'NF && !seen[$0]++' | crontab -
+
+  log "installed hourly cron job"
+  log "removed old archive-all-github-repos cron entries"
+}
+
+readonly QUERY='
+query($endCursor: String) {
+  viewer {
+    repositories(
+      first: 100
+      after: $endCursor
+      ownerAffiliations: [OWNER]
+      orderBy: {field: NAME, direction: ASC}
+    ) {
+      nodes {
+        name
+        nameWithOwner
+        isArchived
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+}'
+
+list_repositories() {
+  gh api graphql \
+    --hostname "$HOST" \
+    --paginate \
+    -f query="$QUERY" \
+    --jq '.data.viewer.repositories.nodes[]
+          | [.name, .nameWithOwner, (.isArchived | tostring)]
+          | @tsv'
+}
+
+unarchive_repository() {
+  local repository="$1"
+
+  log "unarchive: $repository"
+  gh api \
+    --hostname "$HOST" \
+    --method PATCH \
+    "repos/$repository" \
+    -F archived=false \
+    --silent
+}
+
+sync_existing_repository() {
+  local repository="$1"
+  local directory="$2"
+  local branch upstream
+
+  if [[ ! -d "$directory/.git" ]]; then
+    log "skip: $directory exists but is not a Git repository"
+    return 1
+  fi
+
+  log "fetch: $repository"
+  git -C "$directory" fetch --all --prune --tags
+
+  branch="$(git -C "$directory" symbolic-ref --quiet --short HEAD || true)"
+  if [[ -z "$branch" ]]; then
+    log "fetched only: $repository is on a detached HEAD"
+    return 0
+  fi
+
+  if [[ -n "$(git -C "$directory" status --porcelain=v1)" ]]; then
+    log "fetched only: $repository has local changes"
+    return 0
+  fi
+
+  upstream="$(git -C "$directory" rev-parse \
+    --abbrev-ref \
+    --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+
+  if [[ -n "$upstream" ]]; then
+    log "fast-forward: $repository ($branch <- $upstream)"
+    git -C "$directory" pull --ff-only
+    return 0
+  fi
+
+  if git -C "$directory" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+    log "fast-forward: $repository ($branch <- origin/$branch)"
+    git -C "$directory" merge --ff-only "origin/$branch"
+    return 0
+  fi
+
+  log "fetched only: $repository branch $branch has no matching remote branch"
+}
+
+clone_repository() {
+  local repository="$1"
+  local directory="$2"
+
+  log "clone: $repository -> $directory"
+  GH_HOST="$HOST" gh repo clone "$repository" "$directory"
+}
+
+synchronize() {
+  local name repository archived directory
+  local unarchived=0 cloned=0 updated=0 failed=0
+  local repository_file
+
+  repository_file="$(mktemp)"
+  trap 'rm -f "$repository_file"; cleanup' EXIT INT TERM
+
+  list_repositories >"$repository_file"
+
+  while IFS=$'\t' read -r name repository archived; do
+    [[ -n "$repository" ]] || continue
+
+    if [[ "$archived" == "true" ]]; then
+      if unarchive_repository "$repository"; then
+        ((unarchived += 1))
+      else
+        log "failed to unarchive: $repository"
+        ((failed += 1))
+        continue
+      fi
+    fi
+
+    directory="$REPO_ROOT/$name"
+
+    if [[ -e "$directory" ]]; then
+      if sync_existing_repository "$repository" "$directory"; then
+        ((updated += 1))
+      else
+        ((failed += 1))
+      fi
+    else
+      if clone_repository "$repository" "$directory"; then
+        ((cloned += 1))
+      else
+        log "failed to clone: $repository"
+        ((failed += 1))
+      fi
+    fi
+  done <"$repository_file"
+
+  rm -f "$repository_file"
+  trap cleanup EXIT INT TERM
+
+  log "complete: unarchived=$unarchived cloned=$cloned updated=$updated failed=$failed"
+  ((failed == 0))
+}
+
+if [[ "$INSTALL_CRON" == true ]]; then
+  install_cron
+fi
+
+synchronize

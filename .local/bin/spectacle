@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# Arch Spectacle 6.7.4 works with the X11 GLX configuration.  The older Nix
+# profile build requests an unavailable single-buffered framebuffer config.
+if [ -x /usr/bin/spectacle ]; then
+    exec /usr/bin/spectacle "$@"
+fi
+
+exec "$HOME/.nix-profile/bin/spectacle" "$@"
