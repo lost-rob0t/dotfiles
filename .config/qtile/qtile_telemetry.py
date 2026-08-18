@@ -159,6 +159,10 @@ def install_telemetry(config_globals):
     _config = config_globals
     _instrument_keys(config_globals.get("keys", ()))
 
+    from qtile_openrouter import install_openrouter_widget
+
+    install_openrouter_widget(config_globals)
+
 
 @hook.subscribe.startup_complete
 def _startup_complete():
