@@ -1,6 +1,13 @@
-"""OpenRouter status widget integration for the Qtile bar."""
+"""OpenRouter status widget integration and small Qtile runtime helpers."""
 
 from libqtile import widget
+from libqtile.config import Key
+from libqtile.lazy import lazy
+
+SYNC_AND_RELOAD_COMMAND = (
+    'git-sync "$HOME/.dotfiles" && '
+    "qtile cmd-obj -o root -f reload_config"
+)
 
 
 def _status_widget(home, colors):
@@ -17,8 +24,34 @@ def _status_widget(home, colors):
     )
 
 
+def _install_sync_and_reload_key(config_globals):
+    keys = config_globals.get("keys")
+    mod = config_globals.get("mod", "mod4")
+    if not isinstance(keys, list):
+        return
+
+    modifiers = {mod, "control", "shift"}
+    if any(
+        getattr(binding, "key", None) == "r"
+        and set(getattr(binding, "modifiers", ())) == modifiers
+        for binding in keys
+    ):
+        return
+
+    keys.append(
+        Key(
+            [mod, "control", "shift"],
+            "r",
+            lazy.spawn(["bash", "-lc", SYNC_AND_RELOAD_COMMAND]),
+            desc="Sync dotfiles and reload Qtile",
+        )
+    )
+
+
 def install_openrouter_widget(config_globals):
-    """Insert OpenRouter telemetry immediately after the existing Net widget."""
+    """Install OpenRouter telemetry and related Qtile runtime helpers."""
+    _install_sync_and_reload_key(config_globals)
+
     original_widgets = config_globals.get("widgets")
     separator = config_globals.get("sep")
     home = config_globals.get("home")
