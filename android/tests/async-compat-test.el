@@ -25,7 +25,8 @@
   "Sanitization covers the complete process buffer even when narrowed."
   (with-temp-buffer
     (insert "prefix\n#<buffer hidden>\nsuffix\n")
-    (narrow-to-region (point-min) (line-end-position))
+    (goto-char (point-min))
+    (narrow-to-region (line-beginning-position) (line-end-position))
     (star/async-sanitize-readable-output)
     (widen)
     (should-not (string-match-p "#<" (buffer-string)))
