@@ -60,6 +60,12 @@ class OpenRouterWidgetStructureTests(unittest.TestCase):
         self.assertIn("qtile.call_soon_threadsafe(qtile.reload_config)", SOURCE_TEXT)
         self.assertNotIn("qtile cmd-obj", SOURCE_TEXT)
 
+    def test_sync_reload_uses_installed_command_with_repo_bootstrap_fallback(self):
+        self.assertIn('shutil.which("git-sync")', SOURCE_TEXT)
+        self.assertIn('Path.home() / ".dotfiles" / ".config" / "bash" / "git-sync.sh"', SOURCE_TEXT)
+        self.assertNotIn('Path.home() / ".config" / "bash" / "git-sync.sh"', SOURCE_TEXT)
+        self.assertNotIn('source "{helper}"', SOURCE_TEXT)
+
     def test_sync_reload_notifies_user(self):
         self.assertIn('shutil.which("dunstify")', SOURCE_TEXT)
         self.assertIn('shutil.which("notify-send")', SOURCE_TEXT)
