@@ -17,12 +17,14 @@ from pathlib import Path
 from typing import Any
 
 API_BASE = "https://openrouter.ai/api/v1"
-AI_ICON = ""
+# Nerd Fonts v3+ Material Design "brain" (nf-md-brain).
+# The old U+F5DC Material Design range was removed in Nerd Fonts v3.
+AI_ICON = "\U000F09D1"
 
 RED = "#dd546e"
 YELLOW = "#fba922"
 GREEN = "#62FF00"
-TEXT = "#f3f4f5"
+IO = "#f6019d"
 ACCENT = "#2de2e6"
 
 CACHE_TTL_SECONDS = 12
@@ -67,11 +69,11 @@ def render(status: Status, *, stale: bool = False) -> str:
     return (
         f'<span foreground="{credit_color(status.credits_remaining)}">'
         f"{AI_ICON} ${status.credits_remaining:.2f}</span>"
-        f' <span foreground="{TEXT}">'
-        f"↓{compact_count(status.live_input_tokens)}/m "
-        f"↑{compact_count(status.live_output_tokens)}/m</span>"
+        f' <span foreground="{IO}">'
+        f"tok:{compact_count(status.live_input_tokens)}↓ "
+        f"{compact_count(status.live_output_tokens)}↑</span>"
         f' <span foreground="{ACCENT}">'
-        f"30d {compact_count(status.rolling_tokens)}{stale_marker}</span>"
+        f"30d:{compact_count(status.rolling_tokens)}{stale_marker}</span>"
     )
 
 

@@ -22,8 +22,15 @@ jobs:
       - name: Check shell scripts
         run: |
           set -euo pipefail
-          bash -n scripts/*.sh
-          shellcheck --severity=warning scripts/*.sh
+          bash -n scripts/*.sh .bash_profile .config/bash/git-sync.sh
+          shellcheck --severity=warning scripts/*.sh .bash_profile .config/bash/git-sync.sh
+      - name: Check Qtile Python helpers
+        run: >-
+          python3 -m py_compile
+          .config/qtile/qtile_openrouter.py
+          .config/qtile/scripts/openrouter_status.py
+      - name: Run Qtile helper tests
+        run: python3 -m unittest discover -s .config/qtile/tests -p 'test_*.py'
 
   image-progress-tests:
     needs: workflows
