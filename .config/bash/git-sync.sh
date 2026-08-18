@@ -24,9 +24,8 @@ git-sync() {
     git -C "$repo" merge --ff-only "$upstream"
 }
 
+export -f git-sync
+
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     git-sync "$@"
-    exit $?
 fi
-
-export -f git-sync
