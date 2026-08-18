@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import threading
 import time
@@ -14,18 +15,18 @@ from libqtile.config import Key
 from libqtile.lazy import lazy
 from libqtile.widget import base
 
-SYNC_AND_RELOAD_COMMAND = (
-    'git-sync "$HOME/.dotfiles" && '
-    "qtile cmd-obj -o root -f reload_config"
-)
-
 POLL_SECONDS = 1
 GRAPH_SAMPLES = 60
 GRAPH_WIDTH = 76
+CREDIT_FONTSIZE = 14
+IO_FONTSIZE = 12
+ROLLING_FONTSIZE = 13
 
 _poll_lock = threading.Lock()
 _last_poll_at = 0.0
 _last_payload = None
+_sync_lock = threading.Lock()
+_sync_in_progress = False
 
 
 def _color(colors, index):
@@ -100,6 +101,84 @@ def _fetch_payload(script):
         return None
 
 
+def _notify(summary, body="", urgency="normal"):
+    notifier = shutil.which("dunstify") or shutil.which("notify-send")
+    if not notifier:
+        return
+
+    command = [notifier, "-a", "Qtile", "-u", urgency, summary]
+    if body:
+        command.append(body)
+    try:
+        subprocess.Popen(
+            command,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        pass
+
+
+def _git_sync_command():
+    helper = Path.home() / ".config" / "bash" / "git-sync.sh"
+    repo = Path.home() / ".dotfiles"
+    return (
+        f'source "{helper}" && '
+        f'git-sync "{repo}"'
+    )
+
+
+def _run_dotfiles_sync():
+    return subprocess.run(
+        ["bash", "-lc", _git_sync_command()],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+
+
+def _sync_and_reload(qtile):
+    """Sync dotfiles off the event loop, then reload Qtile in-process."""
+    global _sync_in_progress
+
+    with _sync_lock:
+        if _sync_in_progress:
+            _notify("Dotfiles sync", "Already syncing.", "low")
+            return
+        _sync_in_progress = True
+
+    _notify("Dotfiles sync", "Fetching updates…")
+
+    def worker():
+        global _sync_in_progress
+        try:
+            completed = _run_dotfiles_sync()
+        except (OSError, subprocess.SubprocessError) as error:
+            _notify("Dotfiles sync failed", str(error), "critical")
+            with _sync_lock:
+                _sync_in_progress = False
+            return
+
+        with _sync_lock:
+            _sync_in_progress = False
+
+        if completed.returncode != 0:
+            detail = (completed.stderr or completed.stdout or "git-sync failed").strip()
+            _notify("Dotfiles sync failed", detail[-800:], "critical")
+            return
+
+        detail = (completed.stdout or "Dotfiles are up to date.").strip()
+        _notify("Dotfiles synced", detail[-400:] + "\nReloading Qtile…")
+        qtile.call_soon_threadsafe(qtile.reload_config)
+
+    threading.Thread(
+        target=worker,
+        name="qtile-dotfiles-sync",
+        daemon=True,
+    ).start()
+
+
 class OpenRouterCredit(base.BackgroundPoll):
     """Poll OpenRouter once per second across all monitor instances."""
 
@@ -168,7 +247,7 @@ class OpenRouterIOGraph(base._Widget):
         ("input_color", "#f6019d", "Prompt-token graph color."),
         ("output_color", "#2de2e6", "Completion-token graph color."),
         ("midline_color", "#92406e", "Graph center-line color."),
-        ("line_width", 1.2, "Graph line width."),
+        ("line_width", 1.4, "Graph line width."),
         ("margin_x", 2, "Horizontal graph margin."),
         ("margin_y", 2, "Vertical graph margin."),
     ]
@@ -193,11 +272,9 @@ class OpenRouterIOGraph(base._Widget):
         if len(values) < 2:
             return
 
-        maximum = max(
-            max(self.input_values, default=0),
-            max(self.output_values, default=0),
-            1,
-        )
+        # Each stream gets its own scale. Prompt traffic can be orders of
+        # magnitude larger than completion traffic and must not flatten it.
+        maximum = max(max(values, default=0), 1)
         usable_width = max(self.width - 2 * self.margin_x, 1)
         step = usable_width / max(len(values) - 1, 1)
 
@@ -261,7 +338,7 @@ def _install_sync_and_reload_key(config_globals):
         Key(
             [mod, "control", "shift"],
             "r",
-            lazy.spawn(["bash", "-lc", SYNC_AND_RELOAD_COMMAND]),
+            lazy.function(_sync_and_reload),
             desc="Sync dotfiles and reload Qtile",
         )
     )
@@ -279,8 +356,8 @@ def _telemetry_widgets(home, colors):
             update_interval=POLL_SECONDS,
             markup=True,
             font="Hack Nerd Regular",
-            fontsize=12,
-            padding=3,
+            fontsize=CREDIT_FONTSIZE,
+            padding=4,
             foreground=_color(colors, 5),
             background=background,
         ),
@@ -291,8 +368,8 @@ def _telemetry_widgets(home, colors):
             update_interval=POLL_SECONDS,
             markup=True,
             font="Hack Nerd Regular",
-            fontsize=8,
-            padding=2,
+            fontsize=IO_FONTSIZE,
+            padding=3,
             foreground=_color(colors, 5),
             background=background,
         ),
@@ -312,8 +389,8 @@ def _telemetry_widgets(home, colors):
             update_interval=POLL_SECONDS,
             markup=True,
             font="Hack Nerd Regular",
-            fontsize=10,
-            padding=3,
+            fontsize=ROLLING_FONTSIZE,
+            padding=4,
             foreground=_color(colors, 4),
             background=background,
         ),
