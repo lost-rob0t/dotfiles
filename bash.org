@@ -34,6 +34,14 @@ fi
 
 #+end_src
 
+Load the shared git synchronization helper in interactive shells.  Qtile uses the
+same helper directly, so the shell command and keybinding have one implementation.
+#+begin_src sh :tangle .bashrc
+if [[ -f "$HOME/.config/bash/git-sync.sh" ]]; then
+    source "$HOME/.config/bash/git-sync.sh"
+fi
+#+end_src
+
 Setting up colors
 #+begin_src sh :tangle .bashrc
 export TERM="xterm-256color"                      # getting proper colors
@@ -101,7 +109,7 @@ else # awk - fallback for POSIX systems
     fi
     opts="--height ${FZF_TMUX_HEIGHT:-40%} --bind=ctrl-z:ignore ${FZF_DEFAULT_OPTS-} -n2..,.. --scheme=history --bind=ctrl-r:toggle-sort ${FZF_CTRL_R_OPTS-} +m --read0"
     [[ $(HISTTIMEFORMAT='' builtin history 1) =~ [[:digit:]]+ ]]    # how many history entries
-    script='function P(b) { ++n; sub(/^[ *]/, "", b); if (!seen[b]++) { printf "%d\t%s%c", '$((BASH_REMATCH + 1))' - n, b, 0 } }
+    script='function P(b) { ++n; sub(/^[ *]//, "", b); if (!seen[b]++) { printf "%d\t%s%c", '$((BASH_REMATCH + 1))' - n, b, 0 } }'
     NR==1 { b = substr($0, 2); next }
     /^\t/ { P(b); b = substr($0, 2); next }
     { b = b RS $0 }
@@ -604,5 +612,4 @@ esac
 
 [fn:2] https://taingram.org/blog/emacs-client.html
 [fn:1] https://github.com/labbots/bash-oneliners#terminal
-
 
