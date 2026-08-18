@@ -2,6 +2,10 @@
 
 # Synchronize a git checkout with its configured upstream without creating
 # merge commits or rewriting local history. Defaults to the current directory.
+#
+# This file intentionally supports both entry points:
+# - source it from Bash to define the git-sync function;
+# - execute it (or package it) to use git-sync as a normal command.
 git-sync() {
     local repo="${1:-$PWD}"
     local upstream
@@ -19,4 +23,10 @@ git-sync() {
     git -C "$repo" fetch --prune || return
     git -C "$repo" merge --ff-only "$upstream"
 }
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    git-sync "$@"
+    exit $?
+fi
+
 export -f git-sync
