@@ -16,6 +16,10 @@ if [ ! -d ~/.bashrc.d ]; then
 	done
 fi
 
+if [[ -f "$HOME/.config/bash/git-sync.sh" ]]; then
+    source "$HOME/.config/bash/git-sync.sh"
+fi
+
 export TERM="xterm-256color"                      # getting proper colors
 
 shopt -s histappend

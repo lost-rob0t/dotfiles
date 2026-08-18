@@ -34,6 +34,14 @@ fi
 
 #+end_src
 
+Load shared git helpers in interactive Bash.  Qtile sources the same helper directly,
+so both entry points use one implementation.
+#+begin_src sh :tangle .bashrc
+if [[ -f "$HOME/.config/bash/git-sync.sh" ]]; then
+    source "$HOME/.config/bash/git-sync.sh"
+fi
+#+end_src
+
 Setting up colors
 #+begin_src sh :tangle .bashrc
 export TERM="xterm-256color"                      # getting proper colors
@@ -604,5 +612,4 @@ esac
 
 [fn:2] https://taingram.org/blog/emacs-client.html
 [fn:1] https://github.com/labbots/bash-oneliners#terminal
-
 
