@@ -16,6 +16,10 @@ if [ ! -d ~/.bashrc.d ]; then
 	done
 fi
 
+if [[ -f "$HOME/.config/bash/git-sync.sh" ]]; then
+    source "$HOME/.config/bash/git-sync.sh"
+fi
+
 export TERM="xterm-256color"                      # getting proper colors
 
 shopt -s histappend
@@ -70,8 +74,8 @@ else # awk - fallback for POSIX systems
     END { if (NR) P(b) }'
     output=$(
       set +o pipefail
-      builtin fc -lnr -2147483648 2> /dev/null |   # ( $'\t '<lines>$'\n' )* ; <lines> ::= [^\n]* ( $'\n'<lines> )*
-        command $__fzf_awk "$script"           |   # ( <counter>$'\t'<lines>$'\000' )*
+      builtin fc -lnr -2147483648 2> /dev/null |
+        command $__fzf_awk "$script" |
         FZF_DEFAULT_OPTS="$opts" $(__fzfcmd) --query "$READLINE_LINE"
     ) || return
     READLINE_LINE=${output#*$'\t'}
@@ -126,9 +130,9 @@ ex ()
   fi
 }
 
-export ALTERNATE_EDITOR=""                        # setting for emacsclient
-export EDITOR="emacsclient -t -a ''"              # $EDITOR use Emacs in terminal
-export VISUAL="emacsclient -c -a emacs"           # $VISUAL use Emacs in GUI mode
+export ALTERNATE_EDITOR=""
+export EDITOR="emacsclient -t -a ''"
+export VISUAL="emacsclient -c -a emacs"
 
 function install_doom() {
     local doom_dir="$HOME/.config/emacs"
@@ -168,38 +172,24 @@ function cmdtop () {
 }
 
 export PATH="$PATH:$HOME/.nimble/bin"
-
 export PATH="$PATH:$HOME/.cargo/bin"
-
 export PATH="$PATH:$HOME/.bin/"
-
 export PATH="$PATH:$HOME/.node/bin/"
-
 export GOPATH="$HOME/go"
 export PATH="$PATH:$GOPATH/bin"
-
 export PATH="$PATH:$HOME/.config/emacs/bin/"
-export PATH="$PATH:$HOME/.emacs.d/bin/" #For older installs
+export PATH="$PATH:$HOME/.emacs.d/bin/"
 
-shopt -s expand_aliases # expand aliases
+shopt -s expand_aliases
 
 alias em="emacs -nw"
 alias emacs="emacsclient -c -a 'emacs'"
 alias emacs-debug="$(which emacs) --debug-init"
 alias emcd='cd "$(emacsclient -e "default-directory" | tr -d \"\")"'
-
 alias nix-xdg-link="ln -s ~/.nix-profile/share/applications/ ~/.local/share/applications/nix"
-
 alias nim-doc="nim doc --project --index:on --outdir=docs"
 
-# aliases for grc(1)
-
-# this will execute only if there is a line with
-# GRC_ALIASES=true
-# in /etc/default/grc or you export GRC_ALIASES=true prior to sourcing this
-
 [ -f /etc/default/grc ] && . /etc/default/grc
-
 
 GRC="$(which grc)"
 if tty -s && [ -n "$TERM" ] && [ "$TERM" != dumb ] && [ -n "$GRC" ]; then
@@ -212,7 +202,6 @@ if tty -s && [ -n "$TERM" ] && [ "$TERM" != dumb ] && [ -n "$GRC" ]; then
     alias docker-compose='colourify docker-compose'
     alias docker-machine='colourify docker-machine'
     alias du='colourify du'
-#    alias env='colourify env'
     alias free='colourify free'
     alias fdisk='colourify fdisk'
     alias findmnt='colourify findmnt'
@@ -227,7 +216,6 @@ if tty -s && [ -n "$TERM" ] && [ "$TERM" != dumb ] && [ -n "$GRC" ]; then
     alias journalctl='colourify journalctl'
     alias kubectl='colourify kubectl'
     alias ld='colourify ld'
-    #alias ls='colourify ls'
     alias lsof='colourify lsof'
     alias lsblk='colourify lsblk'
     alias lspci='colourify lspci'
@@ -249,9 +237,7 @@ if tty -s && [ -n "$TERM" ] && [ "$TERM" != dumb ] && [ -n "$GRC" ]; then
 fi
 
 alias wttr="curl wttr.in"
-
 alias couchdb="mkdir -p $PWD/.database && sudo chown 1001:1001 $PWD/.database && sudo docker run -d  -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password  -v $PWD/.database:/opt/couchdb/data  -p 0.0.0.0:5984:5984 ibmcom/couchdb3" && echo $PWD/.database >> $HOME/.config/couchdb-databases
-
 alias couchdb-gc="grep -e '\.database$' ~/.config/couchdb-databases | xargs -I {} sudo rm -rf {} && rm -f ~/.config/couchdb-databases && touch ~/.config/couchdb-databases"
 
 function couchdb-rm-db() {
@@ -264,23 +250,15 @@ function couchdb-rm-db() {
 
 alert_cmd=$(which "dunstify" || which "notify-send")
 alias alert='$alert_cmd --urgency=medium -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
-
 alias paste="curl -F 'f:1=<-' ix.io"
 alias ix.io="curl -F 'f:1=<-' ix.io"
-
 alias hackmode="cd $HOME/Documents/hackmode"
-
 alias starintel="cd ~/Documents/Projects/starintel"
-
 alias reload-bash="source $HOME/.bashrc"
-
 alias unix="date +%s"
-
 alias npm-init-dir="mkdir -p ~/.node"
 alias npm-install="npm install --prefix ~/.node -g"
-
 alias ai-proxy="ssh -N -L 7860:127.0.0.1:7860 unseen@10.50.50.18"
-
 alias sync-music="rsync --progress -av ~/Music/Sorted/ music:/music && ssh music python3 /music/sort.py /mnt/Music"
 
 export HACKMODE_OP=$(cat ~/.local/share/hackmode/current-op | head -n 1)
@@ -302,22 +280,15 @@ function hackmode-setting() {
     echo "HACKMODE_OP is not set. Please select a hackmode directory using 'shm' first."
     return 1
   fi
-
   settings_dir="$HACKMODE_PATH/.config/$HACKMODE_OP"
-
-  # Create settings directory if it doesn't exist
   if [ ! -d "$settings_dir" ]; then
     mkdir -p "$settings_dir"
     read -p "Enter the name of the setting: " setting_name
   else
     setting_name=$(basename =$(find "$settings_dir" -type f | fzf ))
   fi
-
-  # Use the specified editor or fallback to a default editor (e.g., nano)
   editor=${VISUAL:-$EDITOR}
   editor=${editor:-nano}
-
-  # Prompt user for setting name
   if [ -n "$setting_name" ]; then
     setting_file="$settings_dir/$setting_name"
     $editor "$setting_file"
@@ -326,24 +297,18 @@ function hackmode-setting() {
   fi
 }
 
-
 function list-hackmode-settings () {
-
   if [ -z "$HACKMODE_OP" ]; then
     echo "HACKMODE_OP is not set. Please select a hackmode directory using 'shm' first."
     return 1
   fi
-
   settings_dir="$HACKMODE_PATH/.config/"
-
   if [ ! -d "$settings_dir" ]; then
     echo "Settings directory not found: $settings_dir"
     return 1
   fi
-
   for setting_file in "$settings_dir"/*; do
     setting_name=$(basename "$setting_file")
-
     if [ -f "$setting_file" ]; then
       while IFS= read -r line; do
         echo "$setting_name: $line"
@@ -368,10 +333,8 @@ vterm_printf() {
     if [ -n "$TMUX" ] \
         && { [ "${TERM%%-*}" = "tmux" ] \
             || [ "${TERM%%-*}" = "screen" ]; }; then
-        # Tell tmux to pass the escape sequences through
         printf "\ePtmux;\e\e]%s\007\e\\" "$1"
     elif [ "${TERM%%-*}" = "screen" ]; then
-        # GNU screen (screen, screen-256color, screen-256color-bce)
         printf "\eP\e]%s\007\e\\" "$1"
     else
         printf "\e]%s\e\\" "$1"
