@@ -26,11 +26,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1786997787,
-        "narHash": "sha256-YZkMbqe09x8Ua0pydX0IZXiDVLY1fmSyjfxWNE36PS0=",
+        "lastModified": 1787093578,
+        "narHash": "sha256-c6H5/pV7aPtjahr+R2NEIIKvSTiPo0rTsrV1HlBNJy8=",
         "owner": "lost-rob0t",
         "repo": "chatgpt-desktop",
-        "rev": "d3567103749b03a5c73e617d56e2c97391101b29",
+        "rev": "4d35d554a384165cf3125a3ee3ac7ec7d38d9819",
         "type": "github"
       },
       "original": {
@@ -188,11 +188,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1786711500,
-        "narHash": "sha256-QvnceIGTBeDvDd9oCn+GvdsnkquliuwbVgpiRH68qaQ=",
+        "lastModified": 1787042014,
+        "narHash": "sha256-lgnV/xeEatfEnPZG0RrXS0fhcr63p3tsVvL1GdaVkJQ=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "02e08985a27c65ffd33d434eeb2e660a2e4dc84d",
+        "rev": "c69ae8fb8faeb3472fd11234ba55a70ac3601f9b",
         "type": "github"
       },
       "original": {

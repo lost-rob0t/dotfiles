@@ -25,6 +25,10 @@ The profile for this workstation is =scripts/monitors/unseen@flake.sh=.
 Qtile owns the complete active keymap. The former SXHKD configuration was
 retired after its approved shortcuts were migrated to native =Key= entries.
 
+Spectacle is launched through =~/.local/bin/spectacle=. The wrapper prefers
+the current Arch build, which works with this X11 GLX configuration, over the
+older Nix profile build that requests an unavailable framebuffer configuration.
+
 Monitor focus and window movement use physical X coordinates, so Left and Right
 select the adjacent display instead of following XRandR's output enumeration.
 
