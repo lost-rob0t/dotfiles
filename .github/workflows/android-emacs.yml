@@ -10,7 +10,6 @@ on:
     branches:
       - master
       - "agent/**"
-      - "fix/**"
     paths:
       - "android/**"
       - ".doom.d/android.org"
