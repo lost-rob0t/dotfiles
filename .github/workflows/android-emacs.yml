@@ -10,6 +10,7 @@ on:
     branches:
       - master
       - "agent/**"
+      - "fix/**"
     paths:
       - "android/**"
       - ".doom.d/android.org"
@@ -34,19 +35,22 @@ jobs:
             (dolist (file (list "android/early-init.el"
                                 "android/init.el"
                                 "android/lisp/star-android-reader.el"
-                                "android/tests/star-android-reader-test.el"))
+                                "android/tests/star-android-reader-test.el"
+                                "android/tests/async-compat-test.el"))
               (with-temp-buffer
                 (insert-file-contents file)
                 (emacs-lisp-mode)
                 (check-parens)))'
 
-      - name: Run reader ERT tests
+      - name: Run reader and async compatibility ERT tests
         run: |
           set -euo pipefail
           emacs -Q --batch \
             -L android/lisp \
             -L android/tests \
+            -l android/early-init.el \
             -l android/tests/star-android-reader-test.el \
+            -l android/tests/async-compat-test.el \
             -f ert-run-tests-batch-and-exit
 
       - name: Check sync helper
