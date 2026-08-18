@@ -104,7 +104,7 @@
         pkgs.bashInteractive
         pkgs.recoll
         # For emacs everywhere which seemly only works on xorg rn
-        pkgs.xorg.xwininfo
+        pkgs.xwininfo
         pkgs.xdotool
         pkgs.fd
       ];
