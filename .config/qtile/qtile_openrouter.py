@@ -1,27 +1,246 @@
-"""OpenRouter status widget integration and small Qtile runtime helpers."""
+"""OpenRouter telemetry widgets and small Qtile runtime helpers."""
 
-from libqtile import widget
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import threading
+import time
+from collections import deque
+from pathlib import Path
+
 from libqtile.config import Key
 from libqtile.lazy import lazy
+from libqtile.widget import base
 
 SYNC_AND_RELOAD_COMMAND = (
     'git-sync "$HOME/.dotfiles" && '
     "qtile cmd-obj -o root -f reload_config"
 )
 
+POLL_SECONDS = 1
+GRAPH_SAMPLES = 60
+GRAPH_WIDTH = 76
 
-def _status_widget(home, colors):
-    return widget.GenPollCommand(
-        name="openrouter_status",
-        cmd=["python3", home + "/.config/qtile/scripts/openrouter_status.py"],
-        update_interval=15,
-        markup=True,
-        font="Hack Nerd Regular",
-        fontsize=12,
-        padding=4,
-        foreground=colors[5],
-        background=colors[1],
-    )
+_poll_lock = threading.Lock()
+_last_poll_at = 0.0
+_last_payload = None
+
+
+def _color(colors, index):
+    value = colors[index]
+    if isinstance(value, (list, tuple)):
+        return value[0]
+    return value
+
+
+def _cache_path():
+    root = Path(os.environ.get("XDG_CACHE_HOME", "~/.cache")).expanduser()
+    return root / "qtile" / "openrouter-status.json"
+
+
+def _read_cached_status():
+    try:
+        cache = json.loads(_cache_path().read_text(encoding="utf-8"))
+        return cache.get("status")
+    except (FileNotFoundError, json.JSONDecodeError, OSError, TypeError):
+        return None
+
+
+def _compact_count(value):
+    value = float(value or 0)
+    for suffix, divisor in (("B", 1_000_000_000), ("M", 1_000_000), ("k", 1_000)):
+        if abs(value) >= divisor:
+            rendered = f"{value / divisor:.1f}".rstrip("0").rstrip(".")
+            return f"{rendered}{suffix}"
+    return str(int(round(value)))
+
+
+def _credit_color(value, colors):
+    if value < 5:
+        return _color(colors, 8)
+    if value < 10:
+        return _color(colors, 3)
+    return _color(colors, 7)
+
+
+def _fetch_payload(script):
+    global _last_payload, _last_poll_at
+
+    with _poll_lock:
+        now = time.monotonic()
+        if _last_payload is not None and now - _last_poll_at < 0.9:
+            return _last_payload
+
+        completed = subprocess.run(
+            ["python3", script, "--json", "--force"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=8,
+        )
+        try:
+            payload = json.loads(completed.stdout)
+        except json.JSONDecodeError:
+            payload = None
+
+        _last_poll_at = time.monotonic()
+        if isinstance(payload, dict) and "credits_remaining" in payload:
+            _last_payload = payload
+            return payload
+
+        cached = _read_cached_status()
+        if cached:
+            payload = dict(cached)
+            payload["stale"] = True
+            _last_payload = payload
+            return payload
+
+        return None
+
+
+class OpenRouterCredit(base.BackgroundPoll):
+    """Poll OpenRouter once per second across all monitor instances."""
+
+    orientations = base.ORIENTATION_HORIZONTAL
+
+    def __init__(self, script, colors, **config):
+        self.script = script
+        self.colors = colors
+        super().__init__(text="AI …", **config)
+
+    def poll(self):
+        payload = _fetch_payload(self.script)
+        if not payload:
+            return f'<span foreground="{_color(self.colors, 8)}">AI offline</span>'
+
+        credits = float(payload["credits_remaining"])
+        stale = " ~" if payload.get("stale") else ""
+        color = _credit_color(credits, self.colors)
+        return (
+            f'<span foreground="{color}">'
+            f"\U000F09D1 ${credits:.2f}{stale}</span>"
+        )
+
+
+class OpenRouterCacheText(base.InLoopPollText):
+    """Read the shared OpenRouter cache without spawning more API requests."""
+
+    orientations = base.ORIENTATION_HORIZONTAL
+
+    def __init__(self, mode, colors, **config):
+        self.mode = mode
+        self.colors = colors
+        super().__init__(default_text="", **config)
+
+    def poll(self):
+        status = _read_cached_status()
+        if not status:
+            return ""
+
+        if self.mode == "io":
+            incoming = _compact_count(status.get("live_input_tokens", 0))
+            outgoing = _compact_count(status.get("live_output_tokens", 0))
+            return (
+                f'<span foreground="{_color(self.colors, 6)}">{incoming}↓</span>\n'
+                f'<span foreground="{_color(self.colors, 4)}">{outgoing}↑</span>'
+            )
+
+        rolling = (
+            int(status.get("rolling_input_tokens", 0))
+            + int(status.get("rolling_output_tokens", 0))
+        )
+        return (
+            f'<span foreground="{_color(self.colors, 4)}">'
+            f"30d:{_compact_count(rolling)}</span>"
+        )
+
+
+class OpenRouterIOGraph(base._Widget):
+    """Mirrored one-minute token I/O sparkline fed from the shared cache."""
+
+    orientations = base.ORIENTATION_HORIZONTAL
+
+    defaults = [
+        ("frequency", POLL_SECONDS, "Graph refresh interval in seconds."),
+        ("samples", GRAPH_SAMPLES, "Number of one-second samples."),
+        ("input_color", "#f6019d", "Prompt-token graph color."),
+        ("output_color", "#2de2e6", "Completion-token graph color."),
+        ("midline_color", "#92406e", "Graph center-line color."),
+        ("line_width", 1.2, "Graph line width."),
+        ("margin_x", 2, "Horizontal graph margin."),
+        ("margin_y", 2, "Vertical graph margin."),
+    ]
+
+    def __init__(self, width=GRAPH_WIDTH, **config):
+        super().__init__(width, **config)
+        self.add_defaults(self.defaults)
+        self.input_values = deque([0.0] * self.samples, maxlen=self.samples)
+        self.output_values = deque([0.0] * self.samples, maxlen=self.samples)
+
+    def timer_setup(self):
+        self._update()
+        self.timeout_add(self.frequency, self.timer_setup)
+
+    def _update(self):
+        status = _read_cached_status() or {}
+        self.input_values.append(float(status.get("live_input_tokens", 0)))
+        self.output_values.append(float(status.get("live_output_tokens", 0)))
+        self.draw()
+
+    def _draw_series(self, values, color, center_y, half_height, direction):
+        if len(values) < 2:
+            return
+
+        maximum = max(
+            max(self.input_values, default=0),
+            max(self.output_values, default=0),
+            1,
+        )
+        usable_width = max(self.width - 2 * self.margin_x, 1)
+        step = usable_width / max(len(values) - 1, 1)
+
+        self.drawer.set_source_rgb(color)
+        self.drawer.ctx.set_line_width(self.line_width)
+
+        for index, value in enumerate(values):
+            x = self.margin_x + index * step
+            distance = (float(value) / maximum) * half_height
+            y = center_y + direction * distance
+            if index == 0:
+                self.drawer.ctx.move_to(x, y)
+            else:
+                self.drawer.ctx.line_to(x, y)
+        self.drawer.ctx.stroke()
+
+    def draw(self):
+        self.drawer.clear(self.background or self.bar.background)
+
+        center_y = self.height / 2.0
+        half_height = max(center_y - self.margin_y - 1, 1)
+
+        self.drawer.set_source_rgb(self.midline_color)
+        self.drawer.ctx.set_line_width(0.6)
+        self.drawer.ctx.move_to(self.margin_x, center_y)
+        self.drawer.ctx.line_to(self.width - self.margin_x, center_y)
+        self.drawer.ctx.stroke()
+
+        self._draw_series(
+            self.input_values,
+            self.input_color,
+            center_y,
+            half_height,
+            -1,
+        )
+        self._draw_series(
+            self.output_values,
+            self.output_color,
+            center_y,
+            half_height,
+            1,
+        )
+        self.draw_at_default_position()
 
 
 def _install_sync_and_reload_key(config_globals):
@@ -48,8 +267,62 @@ def _install_sync_and_reload_key(config_globals):
     )
 
 
+def _telemetry_widgets(home, colors):
+    script = home + "/.config/qtile/scripts/openrouter_status.py"
+    background = _color(colors, 1)
+
+    return [
+        OpenRouterCredit(
+            script,
+            colors,
+            name="openrouter_credit",
+            update_interval=POLL_SECONDS,
+            markup=True,
+            font="Hack Nerd Regular",
+            fontsize=12,
+            padding=3,
+            foreground=_color(colors, 5),
+            background=background,
+        ),
+        OpenRouterCacheText(
+            "io",
+            colors,
+            name="openrouter_io",
+            update_interval=POLL_SECONDS,
+            markup=True,
+            font="Hack Nerd Regular",
+            fontsize=8,
+            padding=2,
+            foreground=_color(colors, 5),
+            background=background,
+        ),
+        OpenRouterIOGraph(
+            name="openrouter_io_graph",
+            frequency=POLL_SECONDS,
+            samples=GRAPH_SAMPLES,
+            input_color=_color(colors, 6),
+            output_color=_color(colors, 4),
+            midline_color=_color(colors, 2),
+            background=background,
+        ),
+        OpenRouterCacheText(
+            "rolling",
+            colors,
+            name="openrouter_rolling",
+            update_interval=POLL_SECONDS,
+            markup=True,
+            font="Hack Nerd Regular",
+            fontsize=10,
+            padding=3,
+            foreground=_color(colors, 4),
+            background=background,
+        ),
+    ]
+
+
 def install_openrouter_widget(config_globals):
-    """Install OpenRouter telemetry and related Qtile runtime helpers."""
+    """Install the OpenRouter telemetry cluster and Qtile runtime helpers."""
+
     _install_sync_and_reload_key(config_globals)
 
     original_widgets = config_globals.get("widgets")
@@ -64,7 +337,10 @@ def install_openrouter_widget(config_globals):
 
     def widgets_with_openrouter():
         items = original_widgets()
-        if any(getattr(item, "name", None) == "openrouter_status" for item in items):
+        if any(
+            str(getattr(item, "name", "")).startswith("openrouter_")
+            for item in items
+        ):
             return items
 
         insert_at = next(
@@ -75,7 +351,7 @@ def install_openrouter_widget(config_globals):
             ),
             len(items),
         )
-        additions = [_status_widget(home, colors)]
+        additions = _telemetry_widgets(home, colors)
         if callable(separator):
             additions.insert(0, separator(5))
         items[insert_at:insert_at] = additions
