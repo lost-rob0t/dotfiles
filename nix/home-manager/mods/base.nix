@@ -1,5 +1,12 @@
 { lib, pkgs, config, ... }:
 
+let
+  gitSync = pkgs.writeShellApplication {
+    name = "git-sync";
+    runtimeInputs = [ pkgs.git ];
+    text = builtins.readFile ../../../.config/bash/git-sync.sh;
+  };
+in
 {
   options = {
     base.enable = lib.mkOption {
@@ -10,7 +17,7 @@
   };
 
   config = lib.mkIf config.base.enable {
-    home.packages = with pkgs; [
+    home.packages = (with pkgs; [
       nixpkgs-fmt
       git
       stow # until i have nix handles it
@@ -25,6 +32,6 @@
       starship
       curl
 
-    ];
+    ]) ++ [ gitSync ];
   };
 }
