@@ -32,6 +32,10 @@ class OpenRouterStatusTests(unittest.TestCase):
         self.assertEqual(MODULE.compact_count(12_000_000), "12M")
         self.assertEqual(MODULE.compact_count(2_500_000_000), "2.5B")
 
+    def test_uses_current_nerd_font_brain_codepoint(self):
+        self.assertEqual(ord(MODULE.AI_ICON), 0xF09D1)
+        self.assertFalse(0xF500 <= ord(MODULE.AI_ICON) <= 0xFD46)
+
     def test_parse_credits_subtracts_usage(self):
         payload = {"data": {"total_credits": 25.0, "total_usage": 17.25}}
         self.assertEqual(MODULE.parse_credits(payload), 7.75)
@@ -51,7 +55,7 @@ class OpenRouterStatusTests(unittest.TestCase):
         }
         self.assertEqual(MODULE.parse_token_totals(payload), (350, 35))
 
-    def test_render_contains_credit_live_io_and_rolling_total(self):
+    def test_render_matches_net_direction_style(self):
         status = MODULE.Status(
             credits_remaining=7.5,
             live_input_tokens=12_300,
@@ -62,10 +66,11 @@ class OpenRouterStatusTests(unittest.TestCase):
         rendered = MODULE.render(status)
         self.assertIn(MODULE.AI_ICON, rendered)
         self.assertIn(MODULE.YELLOW, rendered)
+        self.assertIn(MODULE.IO, rendered)
         self.assertIn("$7.50", rendered)
-        self.assertIn("↓12.3k/m", rendered)
-        self.assertIn("↑4.5k/m", rendered)
-        self.assertIn("30d 50M", rendered)
+        self.assertIn("tok:12.3k↓ 4.5k↑", rendered)
+        self.assertIn("30d:50M", rendered)
+        self.assertNotIn("/m", rendered)
 
     def test_management_key_prefers_dedicated_environment_variable(self):
         with mock.patch.dict(
