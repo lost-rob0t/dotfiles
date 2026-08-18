@@ -57,7 +57,7 @@
     virt-viewer
     kdePackages.kdeconnect-kde
     # Security
-
+    keepassxc
 
     # Communication
     #vesktop
