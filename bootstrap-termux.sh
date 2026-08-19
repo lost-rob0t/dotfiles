@@ -58,7 +58,7 @@ proot-distro login "$DISTRO" -- /bin/bash -lc '
   installer="$(mktemp)"
   trap '\''rm -f "$installer"'\'' EXIT
   curl -fsSL https://opencode.ai/install -o "$installer"
-  HOME=/root bash "$installer" --no-modify-path
+  HOME=/root PATH=/usr/bin:/bin bash "$installer" --no-modify-path
   install -m 0755 /root/.opencode/bin/opencode /usr/local/bin/opencode
   /usr/local/bin/opencode --version
 '
