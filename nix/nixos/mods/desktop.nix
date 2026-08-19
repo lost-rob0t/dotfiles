@@ -69,14 +69,6 @@
         windowManager.session = lib.singleton {
           name = "qtile";
           start = ''
-            hm_session_vars="$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
-            if [ -r "$hm_session_vars" ]; then
-              . "$hm_session_vars"
-            fi
-
-            export XDG_DATA_DIRS="$HOME/.nix-profile/share:/etc/profiles/per-user/$USER/share:/run/current-system/sw/share:/nix/var/nix/profiles/default/share:''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
-            systemctl --user import-environment DISPLAY PATH XDG_DATA_DIRS
-
             ${config.desktop.qtile.package}/bin/qtile start -b ${config.desktop.sessionType} \
             --config /home/unseen/.config/qtile/config.py &
             waitPID=$!
