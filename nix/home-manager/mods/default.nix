@@ -15,5 +15,6 @@
     ./llm.nix
     ./proxmox-mcp.nix
     ./discord-mcp.nix
+    ./unifi-mcp.nix
   ];
 }
