@@ -77,6 +77,13 @@
   (ai/mcp-register-proxmox noerror))
 
 ;;;###autoload
+(defun +llm/unifi-register (&optional noerror)
+  "Register the UDM Pro / UniFi MCP server."
+  (interactive)
+  (require 'ai-mcp)
+  (ai/mcp-register-unifi noerror))
+
+;;;###autoload
 (defun +llm/discord-register (&optional noerror)
   "Register the Discord MCP server."
   (interactive)
@@ -89,6 +96,13 @@
   (interactive)
   (require 'ai-mcp)
   (ai/mcp-connect-proxmox))
+
+;;;###autoload
+(defun +llm/unifi-connect ()
+  "Connect the UDM Pro / UniFi MCP server."
+  (interactive)
+  (require 'ai-mcp)
+  (ai/mcp-connect-unifi))
 
 ;;;###autoload
 (defun +llm/discord-connect ()
