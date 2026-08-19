@@ -25,7 +25,7 @@ let
       set +a
 
       case "''${UNIFI_HOST:-}" in
-        "" | "192.168.1.1")
+        "" | "your-udmp-host")
           echo "unifi-mcp-launcher: set UNIFI_HOST in $env_file" >&2
           exit 1
           ;;
