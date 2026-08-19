@@ -29,11 +29,27 @@ OpenCode in one shot:
 curl -fsSL https://raw.githubusercontent.com/lost-rob0t/dotfiles/master/bootstrap-termux.sh | bash
 #+end_src
 
-The bootstrap installs the native Termux tools, clones this repository to
-=~/.dotfiles=, activates =android/= as the Emacs profile when no existing Emacs
-configuration is present, and installs OpenCode inside a Debian =proot-distro=.
-A native Termux =opencode= wrapper enters that Debian environment while sharing
-the Termux home directory, so projects under =~= remain directly usable.
+The bootstrap first performs a full Termux package upgrade because Termux is a
+rolling distribution and partial upgrades can leave native libraries ABI
+incompatible.  It then installs the native Termux tools, clones this repository
+to =~/.dotfiles=, activates =android/= as the Emacs profile when no existing
+Emacs configuration is present, and installs OpenCode inside a Debian
+=proot-distro=.  A native Termux =opencode= wrapper enters that Debian
+environment while sharing the Termux home directory, so projects under =~=
+remain directly usable.
+
+If =curl= or Git HTTPS fails with =CANNOT LINK EXECUTABLE= or a missing SSL
+symbol after a partial package update, repair the Termux prefix with =apt=
+before rerunning the bootstrap.  =pkg= itself depends on =curl=, so use the
+underlying package manager while =curl= is broken:
+
+#+begin_src sh
+unset LD_LIBRARY_PATH
+apt update
+apt full-upgrade -y
+apt install --reinstall -y openssl libngtcp2 libcurl curl git
+hash -r
+#+end_src
 
 OpenCode currently ships Linux arm64 binaries that target glibc rather than the
 Android/Termux ABI, so the bootstrap intentionally does not install the binary
@@ -44,7 +60,9 @@ access the same Android application data.  In Termux install the command-line
 side:
 
 #+begin_src sh
-pkg update
+unset LD_LIBRARY_PATH
+apt update
+apt full-upgrade -y
 pkg install git gh openssh ripgrep fd sqlite curl jq gnupg
 
 gh auth login
