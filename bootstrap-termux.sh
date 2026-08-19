@@ -3,7 +3,6 @@ set -euo pipefail
 
 readonly DOTFILES_REPO="https://github.com/lost-rob0t/dotfiles.git"
 readonly DOTFILES_DIR="${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}"
-readonly OPENCODE_INSTALL_URL="https://opencode.ai/install"
 readonly DISTRO="debian"
 
 fail() {
@@ -55,11 +54,12 @@ proot-distro login "$DISTRO" -- /bin/bash -lc '
   set -euo pipefail
   export DEBIAN_FRONTEND=noninteractive
   apt-get update
-  apt-get install -y ca-certificates curl git
+  apt-get install -y ca-certificates curl git tar
   installer="$(mktemp)"
   trap '\''rm -f "$installer"'\'' EXIT
   curl -fsSL https://opencode.ai/install -o "$installer"
-  OPENCODE_INSTALL_DIR=/usr/local/bin bash "$installer"
+  HOME=/root bash "$installer" --no-modify-path
+  install -m 0755 /root/.opencode/bin/opencode /usr/local/bin/opencode
   /usr/local/bin/opencode --version
 '
 
@@ -93,7 +93,7 @@ chmod 0755 "$PREFIX/bin/opencode"
 
 printf '\n==> Bootstrap complete\n'
 printf 'Emacs:   '
-emacs --version | head -n 1
+emacs --version | sed -n '1p'
 printf 'OpenCode: '
 opencode --version
 
