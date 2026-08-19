@@ -10,10 +10,20 @@ fail() {
   exit 1
 }
 
+command -v apt >/dev/null 2>&1 || fail "this script requires Termux apt"
 command -v pkg >/dev/null 2>&1 || fail "this script must run inside Termux"
 
+# Termux is rolling-release and does not support partial upgrades. Keep any
+# caller-provided library search path from injecting incompatible libraries into
+# package-manager subprocesses, then synchronize the whole prefix before adding
+# bootstrap dependencies.
+unset LD_LIBRARY_PATH
+
+printf '==> Synchronizing Termux packages\n'
+apt update
+DEBIAN_FRONTEND=noninteractive apt full-upgrade -y
+
 printf '==> Installing Termux packages\n'
-pkg update -y
 pkg install -y \
   curl \
   emacs \
