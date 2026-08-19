@@ -8,6 +8,7 @@ let
     name = "unifi-mcp-launcher";
     runtimeInputs = with pkgs; [
       coreutils
+      python313
       uv
     ];
     text = ''
@@ -43,6 +44,8 @@ let
       export MCP_UNIFI_READONLY="''${MCP_UNIFI_READONLY:-${if cfg.readOnly then "true" else "false"}}"
       export MCP_UNIFI_MODULES_ENABLED="''${MCP_UNIFI_MODULES_ENABLED:-${cfg.modules}}"
       export MCP_UNIFI_AUDIT_PATH="''${MCP_UNIFI_AUDIT_PATH:-${cfg.auditPath}}"
+      export UV_PYTHON="${pkgs.python313}/bin/python3.13"
+      export UV_PYTHON_DOWNLOADS=never
 
       mkdir -p "$(dirname "$MCP_UNIFI_AUDIT_PATH")"
 
@@ -76,7 +79,7 @@ in
     version = lib.mkOption {
       type = lib.types.str;
       default = "v0.21.1";
-      description = "Pinned pete-builds/mcp-unifi release executed by uvx.";
+      description = "Pinned pete-builds/mcp-unifi version executed by uvx.";
     };
 
     envFile = lib.mkOption {
