@@ -1,0 +1,10 @@
+#!/bin/sh
+
+hm_session_vars="$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
+if [ -r "$hm_session_vars" ]; then
+    . "$hm_session_vars"
+fi
+
+export XDG_DATA_DIRS="$HOME/.nix-profile/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+systemctl --user import-environment DISPLAY XAUTHORITY PATH XDG_DATA_DIRS
