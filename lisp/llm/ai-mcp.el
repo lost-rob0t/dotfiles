@@ -26,6 +26,13 @@ When readable, it is exported to the launcher via PROXMOX_MCP_ENV."
   :type 'file
   :group 'ai/mcp)
 
+(defcustom ai/mcp-unifi-env-file
+  (expand-file-name "~/.config/unifi-mcp/unifi-mcp.env")
+  "Shell env file sourced by the UniFi MCP launcher before uvx.
+The real UDM Pro host and API key stay outside the dotfiles repository."
+  :type 'file
+  :group 'ai/mcp)
+
 (defcustom ai/mcp-discord-auth-host "discord"
   "auth-source host used to look up the Discord bot token."
   :type 'string
@@ -66,6 +73,23 @@ With NOERROR, return nil instead of signaling when unavailable."
                   (assoc-delete-all "proxmox" mcp-hub-servers)))
       t))))
 
+(defun ai/mcp-register-unifi (&optional noerror)
+  "Register the local UDM Pro / UniFi MCP launcher.
+With NOERROR, return nil instead of signaling when unavailable."
+  (cond
+   ((not (file-readable-p ai/mcp-unifi-env-file))
+    (unless noerror
+      (user-error "Missing UniFi MCP config: %s" ai/mcp-unifi-env-file)))
+   ((not (executable-find "unifi-mcp-launcher"))
+    (unless noerror
+      (user-error "unifi-mcp-launcher is not on exec-path")))
+   (t
+    (setq mcp-hub-servers
+          (cons `("unifi-udmp" . (:command "unifi-mcp-launcher"
+                                  :env (:UNIFI_MCP_ENV ,ai/mcp-unifi-env-file)))
+                (assoc-delete-all "unifi-udmp" mcp-hub-servers)))
+    t)))
+
 (defun ai/mcp-register-discord (&optional noerror)
   "Register the local Discord MCP launcher.
 With NOERROR, return nil instead of signaling when unavailable."
@@ -95,6 +119,7 @@ With NOERROR, report failures without aborting Emacs startup."
         (require 'mcp-hub)
         (ai/mcp-register-discord 'noerror)
         (ai/mcp-register-proxmox 'noerror)
+        (ai/mcp-register-unifi 'noerror)
         (gptel-mcp-connect)
         t)
     (error
@@ -111,6 +136,14 @@ With NOERROR, report failures without aborting Emacs startup."
   (require 'mcp-hub)
   (ai/mcp-register-proxmox)
   (gptel-mcp-connect '("proxmox")))
+
+(defun ai/mcp-connect-unifi ()
+  "Register and connect the UDM Pro / UniFi MCP server."
+  (interactive)
+  (require 'gptel-integrations)
+  (require 'mcp-hub)
+  (ai/mcp-register-unifi)
+  (gptel-mcp-connect '("unifi-udmp")))
 
 (defun ai/mcp-connect-discord ()
   "Register and connect the Discord MCP server."
