@@ -7,6 +7,8 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `bash.org` is the source of truth for `.bashrc`.
 - `.config/qtile/qtile-ai.org` is the main source of truth for `.config/qtile/config.py`.
 - `.config/qtile/qtile-openrouter.org` is the source of truth for `.config/qtile/qtile_openrouter.py`.
+- `.doom.d/autoload/gpt-todos.org` is the source of truth for `.doom.d/autoload/gpt-todos.el`.
+- `scripts/gpt-todos-sync.org` is the source of truth for `scripts/gpt-todos-sync` and `scripts/install-gpt-todos-cron`.
 - Do not make a lasting change only in a generated/tangled file.
 
 When a change touches a literate configuration:
@@ -35,6 +37,14 @@ Qtile sync/reload behavior must:
 `bash.org` and its tangled `.bashrc` should source the shared `.config/bash/git-sync.sh` helper so interactive Bash gets a `git-sync` function when that Bash configuration is active.
 
 Do not rely on Bash startup files as the only way to expose `git-sync`. The helper must also be directly executable, and the base Home Manager module must install it as a real `git-sync` command built from the same helper. Do not make Home Manager take ownership of the Stow-managed helper path merely to expose the command.
+
+## GPT TODO sync
+
+`lost-rob0t/gpt-todos` owns durable Org task state. Dotfiles owns the local sync/runtime integration used to move that state into the user's live Org agenda.
+
+Do not put the canonical sync executable or Emacs integration in `gpt-todos`. Keep them in this repository and keep their Org sources synchronized with their generated counterparts.
+
+`gpt-todos-sync` may enforce known literate/generated pairs before task synchronization. Treat detected generated-only drift as a blocking error rather than silently syncing task state on top of inconsistent configuration.
 
 ## Testing
 
