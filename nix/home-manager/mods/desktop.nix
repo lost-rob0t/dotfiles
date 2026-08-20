@@ -1,6 +1,17 @@
 { lib, pkgs, config, ... }:
 
+# this really doesnt work in nyxt yet
+#let
+#  nyxt = pkgs.nyxt.overrideAttrs (oldAttrs: {
+#    postFixup = ''
+#      wrapProgram $out/bin/nyxt \
+#        --set-default WEBKIT_FORCE_SANDBOX 0
+#    '';
+#  });
+#  in
+#
 {
+
   options = {
     desktop =  {
     # Enable desktop configuration.
@@ -28,6 +39,23 @@
       desktopName = "Hibernate";
       exec = "${pkgs.pavucontrol}/bin/pavucontrol";
       terminal = false;
+    };
+
+    # Keep a user-level Brave launcher independent of session PATH. Home Manager
+    # writes this to ~/.local/share/applications/brave-browser.desktop.
+    xdg.desktopEntries.brave-browser = {
+      name = "Brave Browser";
+      genericName = "Web Browser";
+      comment = "Browse the web";
+      exec = "${pkgs.brave}/bin/brave --new-window %U";
+      icon = "brave-browser";
+      terminal = false;
+      categories = [ "Network" "WebBrowser" ];
+      mimeType = [
+        "text/html"
+        "x-scheme-handler/http"
+        "x-scheme-handler/https"
+      ];
     };
 
 
