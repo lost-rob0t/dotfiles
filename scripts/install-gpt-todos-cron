@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+minutes="${1:-5}"
+[[ "$minutes" =~ ^[0-9]+$ ]] || { echo "usage: $0 [minutes>=5]" >&2; exit 2; }
+(( minutes >= 5 )) || { echo "minimum is 5 minutes" >&2; exit 2; }
+
+sync="${GPT_TODOS_SYNC:-$HOME/.dotfiles/scripts/gpt-todos-sync}"
+line="*/$minutes * * * * /usr/bin/env bash '$sync' >>'$HOME/.local/state/gpt-todos-sync.log' 2>&1"
+mkdir -p "$HOME/.local/state"
+
+( crontab -l 2>/dev/null | grep -v 'gpt-todos-sync' || true; echo "$line" ) | crontab -
+echo "$line"
