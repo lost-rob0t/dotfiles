@@ -43,7 +43,15 @@ run xfce4-power-manager &
 numlockx on &
 run blueman-applet &
 run picom &
-run /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+# Polkit graphical authentication agent.
+# Guarded explicitly (not via run()) because run()'s `head -c 15` truncation
+# breaks pgrep -x for this 35-char process name, causing duplicate agents on
+# qtile restart. No-op if the package is absent so this dotfiles tree stays
+# portable to hosts without polkit-gnome.
+if [ -x /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ] \
+   && ! pgrep -x polkit-gnome-authentication-agent-1 >/dev/null 2>&1; then
+    /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+fi
 run /usr/lib/xfce4/notifyd/xfce4-notifyd &
 run spice-vdagent &
 #starting user applications at boot time
