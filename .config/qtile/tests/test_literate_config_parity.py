@@ -8,11 +8,14 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+QTILE_MAIN_ORG = ROOT / ".config" / "qtile" / "qtile-ai.org"
+QTILE_MAIN_PY = ROOT / ".config" / "qtile" / "config.py"
 QTILE_ORG = ROOT / ".config" / "qtile" / "qtile-openrouter.org"
 QTILE_PY = ROOT / ".config" / "qtile" / "qtile_openrouter.py"
 BASH_ORG = ROOT / "bash.org"
 BASHRC = ROOT / ".bashrc"
 BASE_NIX = ROOT / "nix" / "home-manager" / "mods" / "base.nix"
+DESKTOP_NIX = ROOT / "nix" / "home-manager" / "mods" / "desktop.nix"
 GIT_SYNC_SOURCE = 'source "$HOME/.config/bash/git-sync.sh"'
 
 
@@ -24,10 +27,39 @@ def _single_python_block(path: Path) -> str:
 
 
 class LiterateConfigParityTests(unittest.TestCase):
+    def test_qtile_main_org_matches_runtime_exactly(self):
+        self.assertEqual(
+            _single_python_block(QTILE_MAIN_ORG),
+            QTILE_MAIN_PY.read_text(encoding="utf-8"),
+        )
+
     def test_qtile_openrouter_org_matches_runtime_exactly(self):
         self.assertEqual(
             _single_python_block(QTILE_ORG),
             QTILE_PY.read_text(encoding="utf-8"),
+        )
+
+    def test_brave_bindings_do_not_depend_on_session_path(self):
+        source = QTILE_MAIN_PY.read_text(encoding="utf-8")
+        self.assertIn(
+            'brave_command = home + "/.nix-profile/bin/brave --new-window"',
+            source,
+        )
+        self.assertIn(
+            'Key([mod], "w", lazy.spawn(brave_command), desc="Launch Brave")',
+            source,
+        )
+        self.assertIn(
+            'Key([mod], "F1", lazy.spawn(brave_command), desc="Launch Brave")',
+            source,
+        )
+
+    def test_home_manager_generates_brave_desktop_entry(self):
+        source = DESKTOP_NIX.read_text(encoding="utf-8")
+        self.assertIn("xdg.desktopEntries.brave-browser", source)
+        self.assertIn(
+            'exec = "${pkgs.brave}/bin/brave --new-window %U";',
+            source,
         )
 
     def test_bash_org_and_bashrc_both_load_git_sync(self):
