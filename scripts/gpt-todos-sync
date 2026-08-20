@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_DIR="${GPT_TODOS_REPO_DIR:-$HOME/.local/share/gpt-todos}"
+TASK_DIR="$REPO_DIR/agenda"
+ORG_DIR="${GPT_TODOS_ORG_DIR:-$HOME/Documents/Notes/org/agenda}"
+REMOTE="${GPT_TODOS_REMOTE:-git@github.com:lost-rob0t/gpt-todos.git}"
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
+LOCK="${XDG_RUNTIME_DIR:-/tmp}/gpt-todos-sync-${UID}.lock"
+
+mkdir -p "$(dirname "$REPO_DIR")" "$ORG_DIR"
+exec 9>"$LOCK"
+flock -n 9 || exit 0
+
+if [[ ! -d "$REPO_DIR/.git" ]]; then
+  git clone "$REMOTE" "$REPO_DIR"
+fi
+mkdir -p "$TASK_DIR"
+
+sync_literate_pair() {
+  local src="$1"; shift
+  local relsrc="${src#"$DOTFILES_DIR/"}"
+  [[ -f "$src" ]] || return 0
+
+  local src_dirty=0 out_dirty=0 out
+  git -C "$DOTFILES_DIR" diff --quiet -- "$relsrc" || src_dirty=1
+  git -C "$DOTFILES_DIR" diff --cached --quiet -- "$relsrc" || src_dirty=1
+
+  for out in "$@"; do
+    [[ -e "$DOTFILES_DIR/$out" ]] || continue
+    git -C "$DOTFILES_DIR" diff --quiet -- "$out" || out_dirty=1
+    git -C "$DOTFILES_DIR" diff --cached --quiet -- "$out" || out_dirty=1
+  done
+
+  if (( out_dirty && ! src_dirty )); then
+    printf 'gpt-todos-sync: tangled output changed without literate source: %s\n' "$relsrc" >&2
+    printf 'Edit the Org source too, then rerun sync.\n' >&2
+    return 3
+  fi
+
+  if (( src_dirty )); then
+    command -v emacs >/dev/null || {
+      printf 'gpt-todos-sync: emacs required to tangle %s\n' "$relsrc" >&2
+      return 4
+    }
+    emacs --batch --quick \
+      --eval '(require (quote org))' \
+      --eval '(require (quote ob-tangle))' \
+      --eval "(org-babel-tangle-file \"$src\")" >/dev/null
+  fi
+}
+
+sync_dotfiles_literate() {
+  [[ -d "$DOTFILES_DIR/.git" ]] || return 0
+  sync_literate_pair "$DOTFILES_DIR/bash.org" ".bashrc"
+  sync_literate_pair "$DOTFILES_DIR/.doom.d/config.org" ".doom.d/config.el" ".doom.d/init.el"
+  sync_literate_pair "$DOTFILES_DIR/.doom.d/packages.org" ".doom.d/packages.el"
+  sync_literate_pair "$DOTFILES_DIR/.doom.d/autoload/gpt-todos.org" ".doom.d/autoload/gpt-todos.el"
+  sync_literate_pair "$DOTFILES_DIR/.config/qtile/qtile-ai.org" ".config/qtile/config.py"
+  sync_literate_pair "$DOTFILES_DIR/.config/qtile/qtile-openrouter.org" ".config/qtile/qtile_openrouter.py"
+  sync_literate_pair "$DOTFILES_DIR/scripts/gpt-todos-sync.org" \
+    "scripts/gpt-todos-sync" "scripts/install-gpt-todos-cron"
+}
+
+sync_dotfiles_literate
+
+# Only repo agenda/ is mirrored into ~/Documents/Notes/org/agenda.
+# Docs/README Org files never enter the live agenda.
+rsync -a --checksum --update --include='*/' --include='*.org' --exclude='*' \
+  "$ORG_DIR/" "$TASK_DIR/"
+
+git -C "$REPO_DIR" pull --rebase --autostash
+
+rsync -a --checksum --update --include='*/' --include='*.org' --exclude='*' \
+  "$TASK_DIR/" "$ORG_DIR/"
+
+mapfile -t org_paths < <(find "$TASK_DIR" -type f -name '*.org' -printf 'agenda/%P\n' | sort -u)
+if ((${#org_paths[@]})); then
+  git -C "$REPO_DIR" add -- "${org_paths[@]}"
+fi
+
+if ! git -C "$REPO_DIR" diff --cached --quiet; then
+  git -C "$REPO_DIR" commit -m "Sync Org task state"
+  git -C "$REPO_DIR" push
+fi
+
+git -C "$REPO_DIR" pull --rebase --autostash
+rsync -a --checksum --update --include='*/' --include='*.org' --exclude='*' \
+  "$TASK_DIR/" "$ORG_DIR/"
