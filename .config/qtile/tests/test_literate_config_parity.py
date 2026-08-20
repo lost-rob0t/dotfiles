@@ -54,11 +54,14 @@ class LiterateConfigParityTests(unittest.TestCase):
             source,
         )
 
-    def test_home_manager_generates_brave_desktop_entry(self):
+    def test_home_manager_installs_user_brave_desktop_entry(self):
         source = DESKTOP_NIX.read_text(encoding="utf-8")
-        self.assertIn("xdg.desktopEntries.brave-browser", source)
         self.assertIn(
-            'exec = "${pkgs.brave}/bin/brave --new-window %U";',
+            'home.file.".local/share/applications/brave-browser.desktop".text',
+            source,
+        )
+        self.assertIn(
+            'Exec=${pkgs.brave}/bin/brave --new-window %U',
             source,
         )
 
