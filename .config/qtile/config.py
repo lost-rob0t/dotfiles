@@ -321,12 +321,15 @@ groups.extend(
         ScratchPad("media", [dropdown("feishin", "feishin", match=Match(wm_class="feishin"), opacity=0.95)]),
     ]
 )
+
+brave_command = home + "/.nix-profile/bin/brave --new-window"
+
 keys.extend(
     [
         Key([mod, "shift"], "v", lazy.spawn("zara --dictate"), desc="Zara dictation"),
-        Key([mod], "F1", lazy.spawn("brave"), desc="Launch Brave"),
+        Key([mod], "F1", lazy.spawn(brave_command), desc="Launch Brave"),
         Key([mod], "z", lazy.spawn(home + "/.config/emacs/bin/doom +everywhere"), desc="Emacs Everywhere"),
-        Key([mod], "w", lazy.spawn("brave"), desc="Launch Brave"),
+        Key([mod], "w", lazy.spawn(brave_command), desc="Launch Brave"),
         Key([mod], "c", lazy.spawn("conky -c " + home + "/.config/qtile/scripts/system-overview"), desc="Launch system overview"),
         Key([mod, "control"], "c", lazy.spawn("pkill -f conky"), desc="Stop Conky"),
         Key([mod], "v", lazy.spawn("pavucontrol"), desc="Open volume control"),
