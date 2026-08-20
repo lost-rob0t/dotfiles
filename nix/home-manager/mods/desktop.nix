@@ -41,22 +41,21 @@
       terminal = false;
     };
 
-    # Keep a user-level Brave launcher independent of session PATH. Home Manager
-    # writes this to ~/.local/share/applications/brave-browser.desktop.
-    xdg.desktopEntries.brave-browser = {
-      name = "Brave Browser";
-      genericName = "Web Browser";
-      comment = "Browse the web";
-      exec = "${pkgs.brave}/bin/brave --new-window %U";
-      icon = "brave-browser";
-      terminal = false;
-      categories = [ "Network" "WebBrowser" ];
-      mimeType = [
-        "text/html"
-        "x-scheme-handler/http"
-        "x-scheme-handler/https"
-      ];
-    };
+    # Keep Brave visible to launchers even when the session misses Home Manager's
+    # XDG_DATA_DIRS. Home Manager owns the literal user-level desktop entry.
+    home.file.".local/share/applications/brave-browser.desktop".text = ''
+      [Desktop Entry]
+      Version=1.0
+      Type=Application
+      Name=Brave Browser
+      GenericName=Web Browser
+      Comment=Browse the web
+      Exec=${pkgs.brave}/bin/brave --new-window %U
+      Icon=brave-browser
+      Terminal=false
+      Categories=Network;WebBrowser;
+      MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;
+    '';
 
 
     home.packages = with pkgs;  [
