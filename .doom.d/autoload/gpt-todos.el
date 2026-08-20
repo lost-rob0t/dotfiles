@@ -1,8 +1,9 @@
 ;;; gpt-todos.el -*- lexical-binding: t; -*-
 
 (defcustom gpt-todos-sync-script
-  (expand-file-name "~/.local/share/gpt-todos/bin/sync")
-  "Path to the gpt-todos sync script."
+  (or (getenv "GPT_TODOS_SYNC")
+      (expand-file-name "~/.dotfiles/scripts/gpt-todos-sync"))
+  "Path to the dotfiles-owned gpt-todos sync script."
   :type 'file)
 
 ;;;###autoload
