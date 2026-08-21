@@ -1,4 +1,4 @@
-{ config, inputs, lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
   cfg = config.homeManagerUpdater;
   configuration = "${config.home.username}@${cfg.hostName}";
@@ -25,7 +25,7 @@ let
       pkgs.libnotify
       pkgs.logrotate
       pkgs.nix
-      inputs.home-manager.packages.${pkgs.system}.home-manager
+      config.programs.home-manager.package
     ];
     text = ''
       exec ${pkgs.bash}/bin/bash ${../../../scripts/home-manager-updater.sh}
