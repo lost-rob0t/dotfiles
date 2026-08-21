@@ -1,0 +1,57 @@
+#+TITLE: Dotfiles Wiki - Getting Started
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Repository
+The repository is intended to be cloned as =~/.dotfiles=.
+
+#+begin_src shell
+  git clone git@github.com:lost-rob0t/dotfiles.git ~/.dotfiles
+  cd ~/.dotfiles
+#+end_src
+
+The root [[file:../../README.org][README.org]] remains the short public entry point.  This wiki carries the operational detail.
+
+* Two deployment models
+** GNU Stow
+For files managed directly from the repository tree, run Stow from the repository root.
+
+#+begin_src shell
+  cd ~/.dotfiles
+  stow .
+#+end_src
+
+Use this for the traditional dotfile tree where the repository path mirrors =$HOME=.
+
+** Home Manager / Nix
+The flake exposes standalone Home Manager profiles and NixOS outputs.  Inspect them first rather than guessing at a hostname like a civilized mammal.
+
+#+begin_src shell
+  cd ~/.dotfiles
+  nix flake show
+#+end_src
+
+Current Home Manager outputs include:
+- =unseen@logos=
+- =unseen@flake=
+- =unseen@desktop=
+- =unseen@hunter02=
+
+A first activation can be run without a globally installed =home-manager= command:
+
+#+begin_src shell
+  nix run github:nix-community/home-manager/release-26.05 -- switch --flake '.#unseen@logos'
+#+end_src
+
+For the more detailed Logos bootstrap path, see [[file:../logos-home-manager-bootstrap.md][Logos Home Manager bootstrap]].
+
+* Main entry points
+- [[file:../../flake.nix][flake.nix]] - Nix outputs, applications, installers, checks, and profiles.
+- [[file:../../bash.org][bash.org]] - Bash configuration source.
+- [[file:../../.doom.d/config.org][.doom.d/config.org]] - Doom Emacs configuration source.
+- [[file:../../.doom.d/packages.org][.doom.d/packages.org]] - Doom package source.
+- [[file:../../.config/qtile/qtile-ai.org][.config/qtile/qtile-ai.org]] - primary Qtile source.
+- [[file:../../AGENTS.md][AGENTS.md]] - editing rules that apply before changing literate configuration.
+
+* Before changing anything
+Read [[file:literate-config.org][Literate configuration]].  If an Org file tangles a generated file, edit the Org source first and update the generated counterpart in the same change.
