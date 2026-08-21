@@ -16,5 +16,6 @@
     ./proxmox-mcp.nix
     ./discord-mcp.nix
     ./unifi-mcp.nix
+    ./home-manager-updater.nix
   ];
 }
