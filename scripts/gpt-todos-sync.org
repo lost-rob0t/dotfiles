@@ -4,14 +4,17 @@
 
 * Sync
 
-This is the canonical literate source for the task-state sync helper.  It keeps
-only =gpt-todos/agenda/*.org= mirrored into the live Org agenda, reconciles the
-private repository through Git, and refuses to silently tolerate known
-literate/generated drift in dotfiles.  The default durable checkout is
-=~/Documents/gpt-todos=.
+This is the canonical literate source for the task-state sync helper.  It
+mirrors only Org files already tracked under =gpt-todos/agenda/= into the live
+Org agenda, reconciles the private repository through Git, and refuses to
+silently tolerate known literate/generated drift in dotfiles.  Arbitrary files
+from =~/Documents/Notes/org/agenda/= are never imported merely because they
+exist there.  The default durable checkout is =~/Documents/gpt-todos=.
 
 The same command also owns deployment.  Run =gpt-todos-sync --deploy 5= to
-perform the initial sync and install the five-minute cron entry.
+perform the initial sync and install the five-minute cron entry.  Git operations
+are deliberately non-interactive for cron use; automated commits disable GPG
+signing so a pinentry prompt cannot wedge synchronization.
 
 #+begin_src sh :tangle ./gpt-todos-sync :results none
 #!/usr/bin/env bash
@@ -24,12 +27,19 @@ REMOTE="${GPT_TODOS_REMOTE:-git@github.com:lost-rob0t/gpt-todos.git}"
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 LOCK="${XDG_RUNTIME_DIR:-/tmp}/gpt-todos-sync-${UID}.lock"
 
+# This runs from cron too. Never allow Git/SSH/GPG to open an interactive
+# prompt and wedge the sync indefinitely.
+export GIT_TERMINAL_PROMPT=0
+if [[ -z "${GIT_SSH_COMMAND:-}" ]]; then
+  export GIT_SSH_COMMAND="ssh -o BatchMode=yes"
+fi
+
 if [[ "${1:-}" == "--deploy" ]]; then
   minutes="${2:-5}"
   [[ "$minutes" =~ ^[0-9]+$ ]] || { echo "usage: $0 --deploy [minutes>=5]" >&2; exit 2; }
   (( minutes >= 5 )) || { echo "minimum is 5 minutes" >&2; exit 2; }
 
-  for cmd in git rsync flock crontab; do
+  for cmd in git rsync flock crontab cmp; do
     command -v "$cmd" >/dev/null || {
       printf 'gpt-todos-sync: missing deploy dependency: %s\n' "$cmd" >&2
       exit 4
@@ -109,31 +119,77 @@ sync_dotfiles_literate() {
     "scripts/gpt-todos-sync" "scripts/install-gpt-todos-cron"
 }
 
+repair_legacy_imports() {
+  local rel local_rel
+  local removed=0
+  mapfile -t untracked < <(
+    git -C "$REPO_DIR" ls-files --others --exclude-standard -- 'agenda/*.org'
+  )
+  for rel in "${untracked[@]}"; do
+    local_rel="${rel#agenda/}"
+    # The old bootstrap bug copied arbitrary live agenda files into the repo.
+    # Remove only byte-identical copies; never delete an untracked file whose
+    # contents differ from the live agenda.
+    if [[ -f "$ORG_DIR/$local_rel" ]] &&
+       cmp -s "$REPO_DIR/$rel" "$ORG_DIR/$local_rel"; then
+      rm -- "$REPO_DIR/$rel"
+      printf 'gpt-todos-sync: removed legacy imported file %s\n' "$rel"
+      removed=$((removed + 1))
+    fi
+  done
+  (( removed == 0 )) || printf 'gpt-todos-sync: repaired %d legacy import(s)\n' "$removed"
+}
+
 sync_dotfiles_literate
+repair_legacy_imports
 
-# Only repo agenda/ is mirrored into ~/Documents/Notes/org/agenda.
-# Docs/README Org files never enter the live agenda.
-rsync -a --checksum --update --include='*/' --include='*.org' --exclude='*' \
-  "$ORG_DIR/" "$TASK_DIR/"
-
+# Pull first, then derive the sync set from files already tracked by gpt-todos.
+# Local agenda files that are not tracked by gpt-todos are never imported.
 git -C "$REPO_DIR" pull --rebase --autostash
 
-rsync -a --checksum --update --include='*/' --include='*.org' --exclude='*' \
-  "$TASK_DIR/" "$ORG_DIR/"
-
-mapfile -t org_paths < <(find "$TASK_DIR" -type f -name '*.org' -printf 'agenda/%P\n' | sort -u)
-if ((${#org_paths[@]})); then
-  git -C "$REPO_DIR" add -- "${org_paths[@]}"
+mapfile -t org_paths < <(
+  git -C "$REPO_DIR" ls-files -- 'agenda/*.org' | sort -u
+)
+if ((${#org_paths[@]} == 0)); then
+  printf 'gpt-todos-sync: no tracked agenda/*.org files; nothing to sync\n'
+  exit 0
 fi
 
+for rel in "${org_paths[@]}"; do
+  local_rel="${rel#agenda/}"
+  repo_file="$REPO_DIR/$rel"
+  org_file="$ORG_DIR/$local_rel"
+  mkdir -p "$(dirname "$org_file")"
+
+  if [[ ! -e "$org_file" ]]; then
+    cp -p -- "$repo_file" "$org_file"
+  elif [[ "$org_file" -nt "$repo_file" ]]; then
+    cp -p -- "$org_file" "$repo_file"
+  elif [[ "$repo_file" -nt "$org_file" ]]; then
+    cp -p -- "$repo_file" "$org_file"
+  elif ! cmp -s "$repo_file" "$org_file"; then
+    printf 'gpt-todos-sync: conflict for %s (different contents, same mtime)\n' "$rel" >&2
+    exit 5
+  fi
+done
+
+git -C "$REPO_DIR" add -- "${org_paths[@]}"
+
 if ! git -C "$REPO_DIR" diff --cached --quiet; then
-  git -C "$REPO_DIR" commit -m "Sync Org task state"
+  # Automated task-state commits must not inherit interactive GPG signing.
+  git -C "$REPO_DIR" -c commit.gpgsign=false commit --no-gpg-sign \
+    -m "Sync Org task state"
   git -C "$REPO_DIR" push
 fi
 
+# A concurrent remote update after our push is reconciled once more, and the
+# repository copy is authoritative for the final local projection.
 git -C "$REPO_DIR" pull --rebase --autostash
-rsync -a --checksum --update --include='*/' --include='*.org' --exclude='*' \
-  "$TASK_DIR/" "$ORG_DIR/"
+for rel in "${org_paths[@]}"; do
+  local_rel="${rel#agenda/}"
+  mkdir -p "$(dirname "$ORG_DIR/$local_rel")"
+  cp -p -- "$REPO_DIR/$rel" "$ORG_DIR/$local_rel"
+done
 #+end_src
 
 * Cron installer
