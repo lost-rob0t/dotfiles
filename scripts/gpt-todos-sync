@@ -1,12 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="${GPT_TODOS_REPO_DIR:-$HOME/.local/share/gpt-todos}"
+REPO_DIR="${GPT_TODOS_REPO_DIR:-$HOME/Documents/gpt-todos}"
 TASK_DIR="$REPO_DIR/agenda"
 ORG_DIR="${GPT_TODOS_ORG_DIR:-$HOME/Documents/Notes/org/agenda}"
 REMOTE="${GPT_TODOS_REMOTE:-git@github.com:lost-rob0t/gpt-todos.git}"
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 LOCK="${XDG_RUNTIME_DIR:-/tmp}/gpt-todos-sync-${UID}.lock"
+
+if [[ "${1:-}" == "--deploy" ]]; then
+  minutes="${2:-5}"
+  [[ "$minutes" =~ ^[0-9]+$ ]] || { echo "usage: $0 --deploy [minutes>=5]" >&2; exit 2; }
+  (( minutes >= 5 )) || { echo "minimum is 5 minutes" >&2; exit 2; }
+
+  for cmd in git rsync flock crontab; do
+    command -v "$cmd" >/dev/null || {
+      printf 'gpt-todos-sync: missing deploy dependency: %s\n' "$cmd" >&2
+      exit 4
+    }
+  done
+
+  [[ -d "$DOTFILES_DIR/.git" ]] || {
+    printf 'gpt-todos-sync: dotfiles checkout not found at %s\n' "$DOTFILES_DIR" >&2
+    exit 3
+  }
+
+  if [[ ! -d "$REPO_DIR/.git" ]]; then
+    mkdir -p "$(dirname "$REPO_DIR")"
+    git clone "$REMOTE" "$REPO_DIR"
+  fi
+
+  /usr/bin/env bash "$DOTFILES_DIR/scripts/gpt-todos-sync"
+  GPT_TODOS_SYNC="$DOTFILES_DIR/scripts/gpt-todos-sync" \
+    /usr/bin/env bash "$DOTFILES_DIR/scripts/install-gpt-todos-cron" "$minutes"
+
+  printf 'gpt-todos sync deployed: %s -> %s every %s minutes\n' \
+    "$TASK_DIR" "$ORG_DIR" "$minutes"
+  exit 0
+fi
 
 mkdir -p "$(dirname "$REPO_DIR")" "$ORG_DIR"
 exec 9>"$LOCK"
