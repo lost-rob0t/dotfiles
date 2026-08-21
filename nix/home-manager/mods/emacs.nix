@@ -5,6 +5,10 @@
   ...
 }:
 {
+  imports = [
+    ./gpt-todos.nix
+  ];
+
   options = with lib; {
     emacs = {
       enable = mkOption {
