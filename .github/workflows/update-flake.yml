@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          issues="$(gh issue list --state open --limit 100 --json number,title)"
+          issues="$(gh issue list --state open --search "\"$FAILURE_ISSUE_TITLE\" in:title" --limit 100 --json number,title)"
           number="$(printf '%s\n' "$issues" | jq -r --arg title "$FAILURE_ISSUE_TITLE" '.[] | select(.title == $title) | .number' | head -n1)"
           if [[ -n "$number" ]]; then
             gh issue close "$number" --comment "Daily flake update recovered successfully in run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
@@ -81,7 +81,7 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          issues="$(gh issue list --state all --limit 100 --json number,title,state 2>/dev/null || printf '[]')"
+          issues="$(gh issue list --state all --search "\"$FAILURE_ISSUE_TITLE\" in:title" --limit 100 --json number,title,state 2>/dev/null || printf '[]')"
           number="$(printf '%s\n' "$issues" | jq -r --arg title "$FAILURE_ISSUE_TITLE" '.[] | select(.title == $title) | .number' | head -n1)"
           body_file="$(mktemp)"
           cat >"$body_file" <<EOF
