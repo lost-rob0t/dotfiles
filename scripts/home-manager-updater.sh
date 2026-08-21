@@ -32,7 +32,8 @@ current_generation() {
 find_issue_number() {
   local state="${1:-all}"
   local json
-  if ! json="$(gh issue list --repo "$HM_UPDATER_REPOSITORY" --state "$state" --limit 100 --json number,title 2>/dev/null)"; then
+  if ! json="$(gh issue list --repo "$HM_UPDATER_REPOSITORY" --state "$state" \
+    --search "\"$ISSUE_TITLE\" in:title" --limit 100 --json number,title 2>/dev/null)"; then
     return 1
   fi
   printf '%s\n' "$json" | jq -r --arg title "$ISSUE_TITLE" '.[] | select(.title == $title) | .number' | head -n1
