@@ -4,9 +4,10 @@
 + [[./docs/wiki/index.org][Dotfiles wiki]]
 + [[./bash.org][Bash]]
 + [[./.doom.d/config.org][Emacs config]]
-+ [[./.config/qtile/qtile.org][Qtile Config]]
++ [[./.config/qtile/qtile-ai.org][Qtile literate config]]
++ [[./.config/qtile/qtile.org][Qtile runtime notes]]
 + [[./.config/dunst/dunst.org][Dunst Config]]
-+ [[./todo.org][Todo List]]
++ [[./tasks.org][Todo List]]
 
 
 
