@@ -40,10 +40,19 @@ let
       if [[ ! -s "$failure_file" ]]; then
         exit 0
       fi
-      notification_id="$(notify-send --print-id --urgency=critical --expire-time=0 \
-        --app-name="Home Manager Updater" \
-        "Home Manager auto-update failed" \
-        "$(cat "$failure_file")")"
+      if [[ -s "$id_file" ]]; then
+        old_id="$(cat "$id_file")"
+        notification_id="$(notify-send --print-id --replace-id="$old_id" \
+          --urgency=critical --expire-time=0 \
+          --app-name="Home Manager Updater" \
+          "Home Manager auto-update failed" \
+          "$(cat "$failure_file")")"
+      else
+        notification_id="$(notify-send --print-id --urgency=critical --expire-time=0 \
+          --app-name="Home Manager Updater" \
+          "Home Manager auto-update failed" \
+          "$(cat "$failure_file")")"
+      fi
       printf '%s\n' "$notification_id" >"$id_file"
     '';
   };
