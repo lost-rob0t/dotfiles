@@ -6,25 +6,6 @@ let
     runtimeInputs = [ pkgs.git ];
     text = builtins.readFile ../../../.config/bash/git-sync.sh;
   };
-
-  gptTodosSync = pkgs.writeShellApplication {
-    name = "gpt-todos-sync";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.findutils
-      pkgs.git
-      pkgs.rsync
-      pkgs.util-linux
-      pkgs.cronie
-    ];
-    text = builtins.readFile ../../../scripts/gpt-todos-sync;
-  };
-
-  installGptTodosCron = pkgs.writeShellApplication {
-    name = "install-gpt-todos-cron";
-    runtimeInputs = [ pkgs.cronie ];
-    text = builtins.readFile ../../../scripts/install-gpt-todos-cron;
-  };
 in
 {
   options = {
@@ -51,10 +32,6 @@ in
       starship
       curl
 
-    ]) ++ [
-      gitSync
-      gptTodosSync
-      installGptTodosCron
-    ];
+    ]) ++ [ gitSync ];
   };
 }
