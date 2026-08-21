@@ -1,0 +1,78 @@
+#+TITLE: Dotfiles Wiki - Nix and Home Manager
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Flake overview
+[[file:../../flake.nix][flake.nix]] is the main Nix entry point.  The repository currently tracks NixOS 26.05 and Home Manager 26.05 inputs.
+
+The flake provides:
+- NixOS configurations;
+- standalone Home Manager configurations;
+- installer applications;
+- buildable packages;
+- checks;
+- a Nix formatter.
+
+* NixOS outputs
+| Output | Source | Purpose |
+|--------+--------+---------|
+| =nixosConfigurations.logos= | [[file:../../nix/nixos/hosts/logos/][nix/nixos/hosts/logos/]] | Main Logos NixOS host. |
+| =nixosConfigurations.logos-iso= | [[file:../../nix/nixos/installer/logos-iso.nix][nix/nixos/installer/logos-iso.nix]] | Installer ISO configuration. |
+
+* Home Manager outputs
+| Output | System source |
+|--------+---------------|
+| =unseen@logos= | [[file:../../nix/home-manager/systems/logos/home.nix][systems/logos/home.nix]] |
+| =unseen@flake= | [[file:../../nix/home-manager/systems/desktop/home.nix][systems/desktop/home.nix]] |
+| =unseen@desktop= | [[file:../../nix/home-manager/systems/desktop/home.nix][systems/desktop/home.nix]] |
+| =unseen@hunter02= | [[file:../../nix/home-manager/systems/hunter02/home.nix][systems/hunter02/home.nix]] |
+
+The Home Manager tree is split into:
+- [[file:../../nix/home-manager/files/][files/]] - file payloads managed by Home Manager;
+- [[file:../../nix/home-manager/mods/][mods/]] - reusable modules;
+- [[file:../../nix/home-manager/systems/][systems/]] - host/profile composition.
+
+* Installer applications
+The flake exposes =install-logos= and =install-logos-gui=.  Their shell implementations live under [[file:../../scripts/][scripts/]].
+
+Useful discovery commands:
+
+#+begin_src shell
+  cd ~/.dotfiles
+  nix flake show
+  nix flake check
+#+end_src
+
+To build a specific Home Manager activation without switching:
+
+#+begin_src shell
+  nix build '.#homeConfigurations."unseen@desktop".activationPackage'
+#+end_src
+
+* Switching a Home Manager profile
+For an existing machine with Nix installed:
+
+#+begin_src shell
+  cd ~/.dotfiles
+  home-manager switch --flake '.#unseen@desktop'
+#+end_src
+
+If =home-manager= is not installed globally, bootstrap through Nix:
+
+#+begin_src shell
+  nix run github:nix-community/home-manager/release-26.05 -- switch --flake '.#unseen@logos'
+#+end_src
+
+See [[file:../logos-home-manager-bootstrap.md][Logos Home Manager bootstrap]] for the existing Logos-specific notes.
+
+* Editing rule
+Host-specific composition belongs under =nix/home-manager/systems/= or =nix/nixos/hosts/=.  Reusable behavior belongs in modules rather than being copied between hosts.  Keep =flake.nix= focused on wiring outputs together.
+
+After Nix changes, run at minimum:
+
+#+begin_src shell
+  nix fmt -- --check
+  nix flake check
+#+end_src
+
+If the formatter invocation differs on the installed Nix version, run =nix fmt= and inspect the resulting diff before committing.
