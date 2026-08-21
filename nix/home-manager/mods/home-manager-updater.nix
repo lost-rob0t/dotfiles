@@ -89,8 +89,6 @@ in
     systemd.user.services.home-manager-updater = {
       Unit = {
         Description = "Update and activate Home Manager configuration ${configuration}";
-        Wants = [ "network-online.target" ];
-        After = [ "network-online.target" ];
         OnFailure = [ "home-manager-updater-failure-notification.service" ];
       };
       Service = {
