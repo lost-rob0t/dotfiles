@@ -116,7 +116,7 @@
           inherit pkgs;
           extraSpecialArgs = homeArgs;
           modules = [
-            ./nix/home-manager/systems/desktop/home.nix
+            ./nix/home-manager/systems/flake/home.nix
           ];
         };
         "unseen@desktop" = home-manager.lib.homeManagerConfiguration {
@@ -179,6 +179,7 @@
         logos = logos.config.system.build.toplevel;
         install-logos = installLogos;
         unseen-home = homeConfigurations."unseen@logos".activationPackage;
+        unseen-flake-home = homeConfigurations."unseen@flake".activationPackage;
       };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;
