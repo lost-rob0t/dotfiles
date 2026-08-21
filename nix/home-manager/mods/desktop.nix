@@ -16,11 +16,11 @@
   };
 
   config = lib.mkIf config.desktop.enable {
-    # LightDM sources ~/.xprofile before starting Qtile. Keep that link under
+    # LightDM sources ~/.xprofile before starting Qtile. Keep that file under
     # Home Manager ownership so a fresh checkout/activation cannot silently
     # omit the session environment merely because `stow .` was not re-run.
     home.file.".xprofile" = {
-      source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/.dotfiles/.xprofile";
+      source = ../../../.xprofile;
       force = true;
     };
 
