@@ -25,7 +25,9 @@ TASK_DIR="$REPO_DIR/agenda"
 ORG_DIR="${GPT_TODOS_ORG_DIR:-$HOME/Documents/Notes/org/agenda}"
 REMOTE="${GPT_TODOS_REMOTE:-git@github.com:lost-rob0t/gpt-todos.git}"
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
-LOCK="${XDG_RUNTIME_DIR:-/tmp}/gpt-todos-sync-${UID}.lock"
+LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+[[ -d "$LOCK_DIR" ]] || LOCK_DIR=/tmp
+LOCK="$LOCK_DIR/gpt-todos-sync-${UID}.lock"
 
 # This runs from cron too. Never allow Git/SSH/GPG to open an interactive
 # prompt and wedge the sync indefinitely.
@@ -56,7 +58,8 @@ if [[ "${1:-}" == "--deploy" ]]; then
     git clone "$REMOTE" "$REPO_DIR"
   fi
 
-  /usr/bin/env bash "$DOTFILES_DIR/scripts/gpt-todos-sync"
+  GPT_TODOS_REPAIR_LEGACY=1 \
+    /usr/bin/env bash "$DOTFILES_DIR/scripts/gpt-todos-sync"
   GPT_TODOS_SYNC="$DOTFILES_DIR/scripts/gpt-todos-sync" \
     /usr/bin/env bash "$DOTFILES_DIR/scripts/install-gpt-todos-cron" "$minutes"
 
@@ -120,23 +123,41 @@ sync_dotfiles_literate() {
 }
 
 repair_legacy_imports() {
+  [[ "${GPT_TODOS_REPAIR_LEGACY:-0}" == "1" ]] || return 0
+
   local rel local_rel
   local removed=0
+
+  # The broken bootstrap could have stopped after `git add`, so clean staged
+  # additions as well as ordinary untracked copies. Only byte-identical files
+  # that also exist in the live agenda qualify for automatic repair.
+  mapfile -t staged_added < <(
+    git -C "$REPO_DIR" diff --cached --name-only --diff-filter=A -- 'agenda/*.org'
+  )
+  for rel in "${staged_added[@]}"; do
+    local_rel="${rel#agenda/}"
+    if [[ -f "$ORG_DIR/$local_rel" ]] &&
+       cmp -s "$REPO_DIR/$rel" "$ORG_DIR/$local_rel"; then
+      git -C "$REPO_DIR" reset -q HEAD -- "$rel"
+      rm -- "$REPO_DIR/$rel"
+      printf 'gpt-todos-sync: removed staged legacy import %s\n' "$rel"
+      removed=$((removed + 1))
+    fi
+  done
+
   mapfile -t untracked < <(
     git -C "$REPO_DIR" ls-files --others --exclude-standard -- 'agenda/*.org'
   )
   for rel in "${untracked[@]}"; do
     local_rel="${rel#agenda/}"
-    # The old bootstrap bug copied arbitrary live agenda files into the repo.
-    # Remove only byte-identical copies; never delete an untracked file whose
-    # contents differ from the live agenda.
     if [[ -f "$ORG_DIR/$local_rel" ]] &&
        cmp -s "$REPO_DIR/$rel" "$ORG_DIR/$local_rel"; then
       rm -- "$REPO_DIR/$rel"
-      printf 'gpt-todos-sync: removed legacy imported file %s\n' "$rel"
+      printf 'gpt-todos-sync: removed untracked legacy import %s\n' "$rel"
       removed=$((removed + 1))
     fi
   done
+
   (( removed == 0 )) || printf 'gpt-todos-sync: repaired %d legacy import(s)\n' "$removed"
 }
 
