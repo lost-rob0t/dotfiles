@@ -22,8 +22,10 @@ jobs:
       - name: Check shell scripts
         run: |
           set -euo pipefail
-          bash -n scripts/*.sh .bash_profile .config/bash/git-sync.sh
-          shellcheck --severity=warning scripts/*.sh .bash_profile .config/bash/git-sync.sh
+          bash -n scripts/*.sh tests/home-manager-updater.sh .bash_profile .config/bash/git-sync.sh
+          shellcheck --severity=warning scripts/*.sh tests/home-manager-updater.sh .bash_profile .config/bash/git-sync.sh
+      - name: Run Home Manager updater recovery tests
+        run: bash tests/home-manager-updater.sh
       - name: Check Qtile Python helpers
         run: >-
           python3 -m py_compile
@@ -59,3 +61,5 @@ jobs:
         run: nix flake check --no-build --show-trace
       - name: Evaluate desktop Home Manager configuration
         run: nix eval --raw '.#homeConfigurations."unseen@desktop".activationPackage.drvPath'
+      - name: Evaluate flake Home Manager configuration
+        run: nix eval --raw '.#homeConfigurations."unseen@flake".activationPackage.drvPath'
