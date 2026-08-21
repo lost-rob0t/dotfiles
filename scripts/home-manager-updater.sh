@@ -136,27 +136,38 @@ fi
 if ! git -C "$CHECKOUT" checkout -B "$HM_UPDATER_BRANCH" "origin/$HM_UPDATER_BRANCH"; then
   fail_update "checkout" "Could not reset the dedicated checkout to origin/$HM_UPDATER_BRANCH."
 fi
-git -C "$CHECKOUT" reset --hard "origin/$HM_UPDATER_BRANCH"
-git -C "$CHECKOUT" clean -fdx
+if ! git -C "$CHECKOUT" reset --hard "origin/$HM_UPDATER_BRANCH"; then
+  fail_update "checkout" "Could not hard-reset the dedicated updater checkout."
+fi
+if ! git -C "$CHECKOUT" clean -fdx; then
+  fail_update "checkout" "Could not clean the dedicated updater checkout."
+fi
 
 flake_attr="$CHECKOUT#homeConfigurations.\"$HM_UPDATER_CONFIGURATION\".activationPackage"
 if ! nix build --no-link --show-trace "$flake_attr"; then
   fail_update "build" "The candidate Home Manager activation package failed to build. The active generation was not changed."
 fi
 
-before_generation="$(current_generation)"
-log "Current generation before activation: ${before_generation:-unknown}"
+before_generation="$(current_generation || true)"
+if [[ -z "$before_generation" ]]; then
+  fail_update "preflight" "Could not determine the current Home Manager generation. Refusing activation because there is no trustworthy rollback baseline."
+fi
+log "Current generation before activation: $before_generation"
 
 if ! home-manager switch --flake "$CHECKOUT#$HM_UPDATER_CONFIGURATION" --show-trace; then
-  after_generation="$(current_generation)"
+  after_generation="$(current_generation || true)"
   log "Generation after failed activation: ${after_generation:-unknown}"
 
-  if [[ -n "$before_generation" && -n "$after_generation" && "$after_generation" != "$before_generation" ]]; then
+  if [[ -z "$after_generation" ]]; then
+    fail_update "activation" "Activation failed and the current generation could not be determined afterward. No blind rollback was attempted; manual recovery is required."
+  fi
+
+  if [[ "$after_generation" != "$before_generation" ]]; then
     log "Activation advanced the generation; rolling back once"
     if ! home-manager switch --rollback; then
       fail_update "rollback" "Activation failed and the one-shot rollback also failed. Manual recovery is required."
     fi
-    rolled_generation="$(current_generation)"
+    rolled_generation="$(current_generation || true)"
     if [[ "$rolled_generation" != "$before_generation" ]]; then
       fail_update "rollback" "Rollback command completed but did not restore the previous generation ($before_generation). Current: ${rolled_generation:-unknown}."
     fi
