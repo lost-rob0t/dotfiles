@@ -19,11 +19,10 @@ class BraveLauncherSessionTests(unittest.TestCase):
         self.assertIn('$HOME/.nix-profile/share', source)
         self.assertIn("XDG_DATA_DIRS", source)
 
-    def test_desktop_home_manager_owns_xprofile_link(self):
+    def test_desktop_home_manager_owns_xprofile(self):
         source = DESKTOP_NIX.read_text(encoding="utf-8")
         self.assertIn('home.file.".xprofile"', source)
-        self.assertIn("mkOutOfStoreSymlink", source)
-        self.assertIn('"${config.home.homeDirectory}/.dotfiles/.xprofile"', source)
+        self.assertIn("source = ../../../.xprofile;", source)
         self.assertIn("force = true;", source)
 
     def test_desktop_home_manager_declares_local_brave_desktop_entry(self):
