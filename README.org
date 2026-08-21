@@ -1,6 +1,7 @@
 #+TITLE: Readme
 
 * Index
++ [[./docs/wiki/index.org][Dotfiles wiki]]
 + [[./bash.org][Bash]]
 + [[./.doom.d/config.org][Emacs config]]
 + [[./.config/qtile/qtile.org][Qtile Config]]
