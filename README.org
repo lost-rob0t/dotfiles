@@ -27,6 +27,23 @@ Otherwise
 ** Install dotfiles
 clone repo  to ~/.dotfiles and run gnu stow .
 
+** GPT TODO sync
+The durable task-state checkout defaults to =~/Documents/gpt-todos= and only its
+=agenda/*.org= files are mirrored into =~/Documents/Notes/org/agenda=.
+
+After the dotfiles checkout exists, this one-liner updates dotfiles, performs an
+initial sync, and installs the five-minute cron entry:
+
+#+begin_src sh
+git -C ~/.dotfiles pull --ff-only && bash ~/.dotfiles/scripts/gpt-todos-sync --deploy 5
+#+end_src
+
+The dotfiles-owned deployment command by itself is:
+
+#+begin_src sh
+bash ~/.dotfiles/scripts/gpt-todos-sync --deploy 5
+#+end_src
+
 ** nix
 *** Setup nix
 Install nix: https://nixos.org/download
