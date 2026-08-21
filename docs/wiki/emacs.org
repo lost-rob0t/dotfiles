@@ -1,0 +1,59 @@
+#+TITLE: Dotfiles Wiki - Emacs and Doom
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Main Doom sources
+The Doom configuration is literate.
+
+| Source | Generated / related output | Purpose |
+|--------+----------------------------+---------|
+| [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/config.el][config.el]] | Main Emacs/Doom behavior. |
+| [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/init.el][init.el]] | Doom module selection from an explicitly tangled block. |
+| [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | [[file:../../.doom.d/packages.el][packages.el]] | Package declarations and package configuration. |
+| [[file:../../.doom.d/snippets/][.doom.d/snippets/]] | n/a | Yasnippet and Org helper snippets. |
+
+The top of =config.org= declares =config.el= as its default tangle target, while individual blocks may override the target.  Read block-level =:tangle= arguments before assuming one Org file produces only one output.
+
+* Other Emacs code
+The repository also contains reusable or experimental Emacs-related code outside =.doom.d=:
+- [[file:../../emacs/][emacs/]] - Emacs packages/tools maintained in the dotfiles tree;
+- [[file:../../hackmode/][hackmode/]] - hackmode-related code;
+- [[file:../../lisp/][lisp/]] - Lisp utilities and older components;
+- [[file:../../exwm/][exwm/]] - EXWM configuration/code.
+
+Several of these areas contain their own Org literate sources.  Apply the same source-first/tangle-second rule described in [[file:literate-config.org][Literate configuration]].
+
+* Normal edit cycle
+1. Edit =.doom.d/config.org= or =.doom.d/packages.org=.
+2. Tangle the changed Org file.
+3. Inspect =config.el=, =init.el=, or =packages.el= diffs.
+4. Run =doom sync= when module/package state changed.
+5. Start or reload Doom and exercise the changed feature.
+
+Batch tangle example:
+
+#+begin_src shell
+  cd ~/.dotfiles
+  emacs --batch \
+    --eval '(require (quote org))' \
+    --eval '(org-babel-tangle-file ".doom.d/config.org")'
+#+end_src
+
+* Useful verification
+Check generated Elisp can at least be read by Emacs before blaming Doom, Mercury retrograde, or package maintainers.
+
+#+begin_src shell
+  emacs --batch -Q \
+    --eval '(progn (byte-compile-file ".doom.d/config.el") t)'
+#+end_src
+
+Byte compilation may expose environment-dependent package warnings, so treat it as a fast syntax/static check rather than a complete Doom integration test.
+
+For package/module changes:
+
+#+begin_src shell
+  doom sync
+#+end_src
+
+* Documentation discipline
+Put configuration rationale next to the executable Org source whenever it explains a specific setting.  Use this wiki for architecture, ownership, workflow, and navigation.  This keeps the literate config genuinely literate instead of making readers hunt through two competing manuals.
