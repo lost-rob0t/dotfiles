@@ -32,6 +32,9 @@ old="${MOCK_OLD_GENERATION:?}"
 new="${MOCK_NEW_GENERATION:?}"
 
 if [[ "${1:-}" == "generations" ]]; then
+  if [[ "${MOCK_GENERATIONS_RC:-0}" -ne 0 ]]; then
+    exit "$MOCK_GENERATIONS_RC"
+  fi
   printf '2026-08-21 00:00 : id 1 -> %s\n' "$(cat "$state")"
   exit 0
 fi
@@ -119,6 +122,7 @@ reset_case() {
   printf '%s\n' "$MOCK_OLD_GENERATION" >"$MOCK_GENERATION_STATE"
   : >"$MOCK_COUNTS"
   export MOCK_NIX_RC=0
+  export MOCK_GENERATIONS_RC=0
   export MOCK_SWITCH_RC=0
   export MOCK_ROLLBACK_RC=0
   export MOCK_ADVANCE_ON_SWITCH=0
@@ -137,6 +141,14 @@ assert_count switch 0
 assert_count rollback 0
 [[ "$(cat "$MOCK_GENERATION_STATE")" == "$MOCK_OLD_GENERATION" ]] || fail_test "build failure changed generation"
 assert_contains "$HM_UPDATER_DATA_DIR/failure.txt" "Stage: build"
+
+reset_case missing-rollback-baseline
+export MOCK_GENERATIONS_RC=1
+run_expect_failure
+assert_count switch 0
+assert_count rollback 0
+assert_contains "$HM_UPDATER_DATA_DIR/failure.txt" "Stage: preflight"
+assert_contains "$HM_UPDATER_DATA_DIR/failure.txt" "no trustworthy rollback baseline"
 
 reset_case activation-before-generation
 export MOCK_SWITCH_RC=1
