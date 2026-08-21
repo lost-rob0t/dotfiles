@@ -1,0 +1,89 @@
+#+TITLE: Dotfiles Wiki - Maintenance
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Safe change loop
+For ordinary changes:
+1. Pull/rebase onto the intended base branch.
+2. Identify the deployment owner and, for literate subsystems, the canonical Org source.
+3. Edit the canonical source.
+4. Tangle generated outputs when applicable.
+5. Inspect the diff before running broad formatters or sync commands.
+6. Run focused syntax/tests first, then repository-level checks.
+7. Commit source and generated counterparts together.
+
+* Quick status
+#+begin_src shell
+  cd ~/.dotfiles
+  git status --short
+  git diff --check
+#+end_src
+
+* Literate parity
+See [[file:literate-config.org][Literate configuration]] for the source map.
+
+A useful manual parity pattern is:
+#+begin_src shell
+  # tangle the canonical Org source, then inspect what changed
+  git status --short
+  git diff --check
+#+end_src
+
+Unexpected generated changes are a reason to investigate, not free bonus code.
+
+* Focused checks
+** Bash
+#+begin_src shell
+  bash -n .bashrc
+#+end_src
+
+** Qtile
+#+begin_src shell
+  python -m py_compile .config/qtile/config.py
+  python -m py_compile .config/qtile/qtile_openrouter.py
+#+end_src
+
+** Emacs Lisp structure
+This checks balanced delimiters without trying to boot the full Doom environment:
+
+#+begin_src shell
+  emacs --batch -Q \
+    --eval '(with-temp-buffer (insert-file-contents ".doom.d/config.el") (emacs-lisp-mode) (check-parens))'
+#+end_src
+
+For package/module changes, also run:
+
+#+begin_src shell
+  doom sync
+#+end_src
+
+** Nix
+#+begin_src shell
+  nix flake check
+#+end_src
+
+Run =nix fmt= when Nix files need formatting, then inspect the diff.
+
+* Git sync ownership
+The shared Git synchronization helper is intentionally reusable.  Bash, Qtile, and Home Manager integrations should consume the same implementation rather than growing slightly different copies that eventually disagree in entertaining ways.
+
+See [[file:../../AGENTS.md][AGENTS.md]] for the current =git-sync= invariants.
+
+* Stow versus Home Manager
+Before changing where a file is installed, determine who owns the target path:
+- repository/Stow;
+- Home Manager;
+- an application-generated file;
+- a tangled output.
+
+Do not have Stow and Home Manager both own the same target merely because both mechanisms can.  The resulting conflict is technically deterministic and emotionally stupid.
+
+* Updating this wiki
+Update the wiki when one of these changes:
+- a major canonical Org/generated pair;
+- a host or Home Manager profile name;
+- a deployment mechanism;
+- a subsystem ownership boundary;
+- an important maintenance/test invariant.
+
+Do not mirror routine keybindings, package lists, or line-by-line configuration here.  Those belong in the literate source itself.
