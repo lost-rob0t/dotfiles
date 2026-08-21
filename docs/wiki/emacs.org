@@ -9,7 +9,7 @@ The Doom configuration is literate.
 |--------+----------------------------+---------|
 | [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/config.el][config.el]] | Main Emacs/Doom behavior. |
 | [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/init.el][init.el]] | Doom module selection from an explicitly tangled block. |
-| [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | [[file:../../.doom.d/packages.el][packages.el]] | Package declarations and package configuration. |
+| [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | [[file:../../.doom.d/packages.el][packages.el]] | Doom package declarations. |
 | [[file:../../.doom.d/snippets/][.doom.d/snippets/]] | n/a | Yasnippet and Org helper snippets. |
 
 The top of =config.org= declares =config.el= as its default tangle target, while individual blocks may override the target.  Read block-level =:tangle= arguments before assuming one Org file produces only one output.
@@ -40,14 +40,14 @@ Batch tangle example:
 #+end_src
 
 * Useful verification
-Check generated Elisp can at least be read by Emacs before blaming Doom, Mercury retrograde, or package maintainers.
+A lightweight structural check can run without booting the full Doom environment:
 
 #+begin_src shell
   emacs --batch -Q \
-    --eval '(progn (byte-compile-file ".doom.d/config.el") t)'
+    --eval '(with-temp-buffer (insert-file-contents ".doom.d/config.el") (emacs-lisp-mode) (check-parens))'
 #+end_src
 
-Byte compilation may expose environment-dependent package warnings, so treat it as a fast syntax/static check rather than a complete Doom integration test.
+This catches unbalanced delimiters but is not a substitute for loading the configuration under Doom.
 
 For package/module changes:
 
