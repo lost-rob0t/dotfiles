@@ -1,5 +1,9 @@
 # AGENTS.md
 
+## Read this first
+
+Before editing this repository, read this file and treat it as the repository editing contract.
+
 ## Source of truth
 
 This repository uses literate Org configuration. Treat the Org files as source code and tangled files as generated artifacts.
@@ -17,6 +21,25 @@ When a change touches a literate configuration:
 4. Run syntax checks and the relevant tests before merging.
 
 If an existing generated file has no literate source but belongs to a literate subsystem, add or identify the source before extending it. Do not create parallel sources of truth.
+
+## Documentation is part of the change
+
+Keep repository documentation synchronized with the implementation. Documentation drift is a blocking consistency error, just like literate/generated drift.
+
+For every change, determine whether it affects documented behavior or repository structure. If it changes behavior, architecture, ownership, deployment, interfaces, workflows, host/profile names, commands, important invariants, or a canonical source/generated mapping, update the relevant documentation in the same branch and PR.
+
+Documentation locations include:
+
+- `README.org` for repository entry points and high-level setup;
+- `docs/wiki/` for architecture, ownership, workflows, host/profile maps, maintenance procedures, and cross-subsystem navigation;
+- the canonical literate Org source for configuration-specific rationale, keybindings, widgets, and behavior that belongs next to executable configuration;
+- subsystem-specific docs when they already exist.
+
+Do not create duplicate sources of truth by copying large configuration details into the wiki. Link to the canonical source and document the architecture, invariant, or workflow instead.
+
+When adding or renaming a major subsystem, host/profile, canonical Org source, generated output, or deployment path, update `docs/wiki/index.org` and any affected wiki page so navigation remains accurate.
+
+A change is not complete if the implementation and relevant documentation disagree.
 
 ## Qtile
 
