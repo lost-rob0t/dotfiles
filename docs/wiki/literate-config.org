@@ -1,0 +1,64 @@
+#+TITLE: Dotfiles Wiki - Literate Configuration
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Source-of-truth rule
+This repository uses Org Babel as a configuration source format.  When a literate source exists, the Org file is canonical and the tangled output is generated.
+
+Never make a lasting change only in a generated file.  A generated-file-only edit is configuration drift wearing a fake mustache.
+
+* Known canonical pairs
+| Org source | Generated output | Role |
+|------------+------------------+------|
+| [[file:../../bash.org][bash.org]] | [[file:../../.bashrc][.bashrc]] | Interactive Bash configuration. |
+| [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/config.el][.doom.d/config.el]] | Main Doom configuration. |
+| [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/init.el][.doom.d/init.el]] | Doom module selection, tangled from an explicit block. |
+| [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | [[file:../../.doom.d/packages.el][.doom.d/packages.el]] | Doom package declarations. |
+| [[file:../../.config/qtile/qtile-ai.org][.config/qtile/qtile-ai.org]] | [[file:../../.config/qtile/config.py][.config/qtile/config.py]] | Main Qtile configuration. |
+| [[file:../../.config/qtile/qtile-openrouter.org][.config/qtile/qtile-openrouter.org]] | [[file:../../.config/qtile/qtile_openrouter.py][.config/qtile/qtile_openrouter.py]] | OpenRouter telemetry helper. |
+
+Other Org files may also tangle generated outputs.  Check their =#+property: header-args= lines and individual source-block =:tangle= arguments before editing related generated files.
+
+* Change workflow
+1. Identify the canonical Org source.
+2. Edit the Org source first.
+3. Tangle the affected source.
+4. Inspect the generated diff.
+5. Verify source and generated output remain synchronized.
+6. Run syntax checks and subsystem tests.
+7. Commit the Org source and generated files together.
+
+* Tangling
+From Emacs, open the canonical Org file and use =org-babel-tangle=.
+
+A batch form is useful for repeatable verification:
+
+#+begin_src shell
+  emacs --batch \
+    --eval '(require (quote org))' \
+    --eval '(org-babel-tangle-file ".doom.d/config.org")'
+#+end_src
+
+Substitute the actual Org source being changed.  Tangling may write more than one file when a source contains per-block =:tangle= destinations.
+
+* Drift checks
+After tangling, inspect exactly what changed:
+
+#+begin_src shell
+  git status --short
+  git diff --check
+  git diff -- bash.org .bashrc
+#+end_src
+
+For another subsystem, replace the final paths with that subsystem's canonical/generated pair.
+
+A clean retangle followed by no unexpected diff is the simplest useful parity test.
+
+* New literate configuration
+When adding a configuration file to a subsystem that is already literate:
+- prefer adding it to an existing appropriate Org source, or create a clearly named Org source;
+- declare the generated destination explicitly with =:tangle=;
+- commit both source and generated output when the generated file belongs in the repository;
+- document the new canonical pair in this page if it is a major entry point.
+
+Do not create parallel editable Org and generated sources with unclear authority.  Future-you has enough enemies already.
