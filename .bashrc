@@ -115,7 +115,7 @@ ex ()
       *.gz)        gunzip $1    ;;
       *.tar)       tar xf $1    ;;
       *.tbz2)      tar xjf $1   ;;
-      *.tgz)       tar xzf $1   ;;
+      *.tgz)        tar xzf $1   ;;
       *.zip)       unzip $1     ;;
       *.Z)         uncompress $1;;
       *.7z)        7z x $1      ;;
@@ -284,6 +284,16 @@ alias npm-init-dir="mkdir -p ~/.node"
 alias npm-install="npm install --prefix ~/.node -g"
 
 alias ai-proxy="ssh -N -L 7860:127.0.0.1:7860 unseen@10.50.50.18"
+
+agent-zero-forward() {
+    local session="agent-zero-forward"
+
+    tmux has-session -t "$session" 2>/dev/null &&
+        tmux kill-session -t "$session"
+
+    tmux new-session -d -s "$session" \
+        "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -N -L 5080:127.0.0.1:5080 unseen@10.50.50.28"
+}
 
 alias sync-music="rsync --progress -av ~/Music/Sorted/ music:/music && ssh music python3 /music/sort.py /mnt/Music"
 
