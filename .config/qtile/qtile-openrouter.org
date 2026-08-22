@@ -4,8 +4,16 @@
 * Runtime helper
 
 This file is the source of truth for the OpenRouter status widgets and the
-=Super+Ctrl+Shift+R= dotfiles sync-and-reload binding.  Tangle this file whenever
+=Super+Ctrl+Shift+R= dotfiles sync-and-reload binding. Tangle this file whenever
 that runtime helper changes.
+
+OpenRouter telemetry is intentionally rate-oriented: the text widget reports
+prompt and completion tokens consumed during the trailing 60 seconds as tokens
+per minute. The balance and 30-day counters are not shown. The API poll is
+bounded to once every five seconds, and the graph keeps five minutes of those
+samples. Constant series are hidden rather than drawing fake full-height rails;
+when a rate moves, each stream gets an adaptive visual range so its shape stays
+visible even when prompt traffic dwarfs completion traffic.
 
 #+begin_src python
 """OpenRouter telemetry widgets and small Qtile runtime helpers."""
@@ -25,12 +33,10 @@ from libqtile.config import Key
 from libqtile.lazy import lazy
 from libqtile.widget import base
 
-POLL_SECONDS = 1
+POLL_SECONDS = 5
 GRAPH_SAMPLES = 60
 GRAPH_WIDTH = 76
-CREDIT_FONTSIZE = 14
-IO_FONTSIZE = 12
-ROLLING_FONTSIZE = 13
+RATE_FONTSIZE = 12
 
 _poll_lock = threading.Lock()
 _last_poll_at = 0.0
@@ -68,24 +74,16 @@ def _compact_count(value):
     return str(int(round(value)))
 
 
-def _credit_color(value, colors):
-    if value < 5:
-        return _color(colors, 8)
-    if value < 10:
-        return _color(colors, 3)
-    return _color(colors, 7)
-
-
 def _fetch_payload(script):
     global _last_payload, _last_poll_at
 
     with _poll_lock:
         now = time.monotonic()
-        if _last_payload is not None and now - _last_poll_at < 0.9:
+        if _last_payload is not None and now - _last_poll_at < POLL_SECONDS - 0.5:
             return _last_payload
 
         completed = subprocess.run(
-            ["python3", script, "--json", "--force"],
+            ["python3", script, "--json"],
             check=False,
             capture_output=True,
             text=True,
@@ -97,7 +95,7 @@ def _fetch_payload(script):
             payload = None
 
         _last_poll_at = time.monotonic()
-        if isinstance(payload, dict) and "credits_remaining" in payload:
+        if isinstance(payload, dict) and "input_tokens_per_minute" in payload:
             _last_payload = payload
             return payload
 
@@ -189,8 +187,8 @@ def _sync_and_reload(qtile):
     ).start()
 
 
-class OpenRouterCredit(base.BackgroundPoll):
-    """Poll OpenRouter once per second across all monitor instances."""
+class OpenRouterRate(base.BackgroundPoll):
+    """Display a rolling 60-second OpenRouter token rate."""
 
     orientations = base.ORIENTATION_HORIZONTAL
 
@@ -204,56 +202,23 @@ class OpenRouterCredit(base.BackgroundPoll):
         if not payload:
             return f'<span foreground="{_color(self.colors, 8)}">AI offline</span>'
 
-        credits = float(payload["credits_remaining"])
+        incoming = _compact_count(payload.get("input_tokens_per_minute", 0))
+        outgoing = _compact_count(payload.get("output_tokens_per_minute", 0))
         stale = " ~" if payload.get("stale") else ""
-        color = _credit_color(credits, self.colors)
         return (
-            f'<span foreground="{color}">'
-            f"\U000F09D1 ${credits:.2f}{stale}</span>"
-        )
-
-
-class OpenRouterCacheText(base.InLoopPollText):
-    """Read the shared OpenRouter cache without spawning more API requests."""
-
-    orientations = base.ORIENTATION_HORIZONTAL
-
-    def __init__(self, mode, colors, **config):
-        self.mode = mode
-        self.colors = colors
-        super().__init__(default_text="", **config)
-
-    def poll(self):
-        status = _read_cached_status()
-        if not status:
-            return ""
-
-        if self.mode == "io":
-            incoming = _compact_count(status.get("live_input_tokens", 0))
-            outgoing = _compact_count(status.get("live_output_tokens", 0))
-            return (
-                f'<span foreground="{_color(self.colors, 6)}">{incoming}↓</span>\n'
-                f'<span foreground="{_color(self.colors, 4)}">{outgoing}↑</span>'
-            )
-
-        rolling = (
-            int(status.get("rolling_input_tokens", 0))
-            + int(status.get("rolling_output_tokens", 0))
-        )
-        return (
-            f'<span foreground="{_color(self.colors, 4)}">'
-            f"30d:{_compact_count(rolling)}</span>"
+            f'<span foreground="{_color(self.colors, 6)}">{incoming}↓/m</span>\n'
+            f'<span foreground="{_color(self.colors, 4)}">{outgoing}↑/m{stale}</span>'
         )
 
 
 class OpenRouterIOGraph(base._Widget):
-    """Mirrored one-minute token I/O sparkline fed from the shared cache."""
+    """Five-minute sparkline of sampled input/output tokens per minute."""
 
     orientations = base.ORIENTATION_HORIZONTAL
 
     defaults = [
         ("frequency", POLL_SECONDS, "Graph refresh interval in seconds."),
-        ("samples", GRAPH_SAMPLES, "Number of one-second samples."),
+        ("samples", GRAPH_SAMPLES, "Number of rate samples."),
         ("input_color", "#f6019d", "Prompt-token graph color."),
         ("output_color", "#2de2e6", "Completion-token graph color."),
         ("midline_color", "#92406e", "Graph center-line color."),
@@ -265,26 +230,34 @@ class OpenRouterIOGraph(base._Widget):
     def __init__(self, width=GRAPH_WIDTH, **config):
         super().__init__(width, **config)
         self.add_defaults(self.defaults)
-        self.input_values = deque([0.0] * self.samples, maxlen=self.samples)
-        self.output_values = deque([0.0] * self.samples, maxlen=self.samples)
+        self.input_values = deque(maxlen=self.samples)
+        self.output_values = deque(maxlen=self.samples)
 
     def timer_setup(self):
         self._update()
         self.timeout_add(self.frequency, self.timer_setup)
 
     def _update(self):
-        status = _read_cached_status() or {}
-        self.input_values.append(float(status.get("live_input_tokens", 0)))
-        self.output_values.append(float(status.get("live_output_tokens", 0)))
+        status = _read_cached_status()
+        if status:
+            self.input_values.append(float(status.get("input_tokens_per_minute", 0)))
+            self.output_values.append(float(status.get("output_tokens_per_minute", 0)))
         self.draw()
 
     def _draw_series(self, values, color, center_y, half_height, direction):
         if len(values) < 2:
             return
 
-        # Each stream gets its own scale. Prompt traffic can be orders of
-        # magnitude larger than completion traffic and must not flatten it.
-        maximum = max(max(values, default=0), 1)
+        values = list(values)
+        minimum = min(values)
+        maximum = max(values)
+        if maximum <= minimum:
+            return
+
+        # Absolute rates are printed beside the graph. The sparkline uses an
+        # adaptive per-stream range so real movement remains visible even when
+        # prompt and completion traffic differ by orders of magnitude.
+        span = maximum - minimum
         usable_width = max(self.width - 2 * self.margin_x, 1)
         step = usable_width / max(len(values) - 1, 1)
 
@@ -293,7 +266,8 @@ class OpenRouterIOGraph(base._Widget):
 
         for index, value in enumerate(values):
             x = self.margin_x + index * step
-            distance = (float(value) / maximum) * half_height
+            normalized = (float(value) - minimum) / span
+            distance = (0.15 + 0.85 * normalized) * half_height
             y = center_y + direction * distance
             if index == 0:
                 self.drawer.ctx.move_to(x, y)
@@ -359,26 +333,14 @@ def _telemetry_widgets(home, colors):
     background = _color(colors, 1)
 
     return [
-        OpenRouterCredit(
+        OpenRouterRate(
             script,
             colors,
-            name="openrouter_credit",
+            name="openrouter_rate",
             update_interval=POLL_SECONDS,
             markup=True,
             font="Hack Nerd Regular",
-            fontsize=CREDIT_FONTSIZE,
-            padding=4,
-            foreground=_color(colors, 5),
-            background=background,
-        ),
-        OpenRouterCacheText(
-            "io",
-            colors,
-            name="openrouter_io",
-            update_interval=POLL_SECONDS,
-            markup=True,
-            font="Hack Nerd Regular",
-            fontsize=IO_FONTSIZE,
+            fontsize=RATE_FONTSIZE,
             padding=3,
             foreground=_color(colors, 5),
             background=background,
@@ -390,18 +352,6 @@ def _telemetry_widgets(home, colors):
             input_color=_color(colors, 6),
             output_color=_color(colors, 4),
             midline_color=_color(colors, 2),
-            background=background,
-        ),
-        OpenRouterCacheText(
-            "rolling",
-            colors,
-            name="openrouter_rolling",
-            update_interval=POLL_SECONDS,
-            markup=True,
-            font="Hack Nerd Regular",
-            fontsize=ROLLING_FONTSIZE,
-            padding=4,
-            foreground=_color(colors, 4),
             background=background,
         ),
     ]

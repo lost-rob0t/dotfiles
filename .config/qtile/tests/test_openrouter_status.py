@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the Qtile OpenRouter status helper."""
+"""Tests for the Qtile OpenRouter token-rate helper."""
 
 from __future__ import annotations
 
@@ -20,12 +20,6 @@ SPEC.loader.exec_module(MODULE)
 
 
 class OpenRouterStatusTests(unittest.TestCase):
-    def test_credit_color_thresholds(self):
-        self.assertEqual(MODULE.credit_color(4.99), MODULE.RED)
-        self.assertEqual(MODULE.credit_color(5.0), MODULE.YELLOW)
-        self.assertEqual(MODULE.credit_color(9.99), MODULE.YELLOW)
-        self.assertEqual(MODULE.credit_color(10.0), MODULE.GREEN)
-
     def test_compact_count(self):
         self.assertEqual(MODULE.compact_count(999), "999")
         self.assertEqual(MODULE.compact_count(1_200), "1.2k")
@@ -35,14 +29,6 @@ class OpenRouterStatusTests(unittest.TestCase):
     def test_uses_current_nerd_font_brain_codepoint(self):
         self.assertEqual(ord(MODULE.AI_ICON), 0xF09D1)
         self.assertFalse(0xF500 <= ord(MODULE.AI_ICON) <= 0xFD46)
-
-    def test_parse_credits_subtracts_usage(self):
-        payload = {"data": {"total_credits": 25.0, "total_usage": 17.25}}
-        self.assertEqual(MODULE.parse_credits(payload), 7.75)
-
-    def test_parse_credits_never_goes_negative(self):
-        payload = {"data": {"total_credits": 5.0, "total_usage": 8.0}}
-        self.assertEqual(MODULE.parse_credits(payload), 0.0)
 
     def test_parse_token_totals_sums_rows(self):
         payload = {
@@ -55,22 +41,17 @@ class OpenRouterStatusTests(unittest.TestCase):
         }
         self.assertEqual(MODULE.parse_token_totals(payload), (350, 35))
 
-    def test_render_matches_net_direction_style(self):
+    def test_render_labels_tokens_per_minute(self):
         status = MODULE.Status(
-            credits_remaining=7.5,
-            live_input_tokens=12_300,
-            live_output_tokens=4_500,
-            rolling_input_tokens=40_000_000,
-            rolling_output_tokens=10_000_000,
+            input_tokens_per_minute=12_300,
+            output_tokens_per_minute=4_500,
         )
         rendered = MODULE.render(status)
         self.assertIn(MODULE.AI_ICON, rendered)
-        self.assertIn(MODULE.YELLOW, rendered)
-        self.assertIn(MODULE.IO, rendered)
-        self.assertIn("$7.50", rendered)
-        self.assertIn("tok:12.3k↓ 4.5k↑", rendered)
-        self.assertIn("30d:50M", rendered)
-        self.assertNotIn("/m", rendered)
+        self.assertIn("12.3k↓/m", rendered)
+        self.assertIn("4.5k↑/m", rendered)
+        self.assertNotIn("$", rendered)
+        self.assertNotIn("30d:", rendered)
 
     def test_management_key_prefers_dedicated_environment_variable(self):
         with mock.patch.dict(
@@ -94,54 +75,51 @@ class OpenRouterStatusTests(unittest.TestCase):
             ):
                 self.assertEqual(MODULE.load_management_key(), "file-key")
 
-    def test_fetch_status_reuses_fresh_rolling_total(self):
-        cached = MODULE.Status(
-            credits_remaining=12.0,
-            live_input_tokens=1,
-            live_output_tokens=2,
-            rolling_input_tokens=1_000,
-            rolling_output_tokens=500,
-        )
-        cache = {
-            "rolling_updated_at": MODULE.time.time(),
-            "status": MODULE.asdict(cached),
+    def test_fetch_tokens_requests_prompt_and_completion_metrics(self):
+        start = MODULE.datetime(2026, 8, 22, 1, 0, tzinfo=MODULE.timezone.utc)
+        end = MODULE.datetime(2026, 8, 22, 1, 1, tzinfo=MODULE.timezone.utc)
+        response = {
+            "data": {
+                "data": [
+                    {"tokens_prompt": 1_000, "tokens_completion": 100},
+                ]
+            }
         }
-        with (
-            mock.patch.object(MODULE, "fetch_credits", return_value=11.0),
-            mock.patch.object(MODULE, "fetch_tokens", return_value=(10, 20)) as fetch_tokens,
-        ):
-            status, _ = MODULE.fetch_status("key", cache)
+        with mock.patch.object(MODULE, "_request_json", return_value=response) as request:
+            self.assertEqual(MODULE.fetch_tokens("key", start, end), (1_000, 100))
 
-        self.assertEqual(fetch_tokens.call_count, 1)
-        self.assertEqual(status.live_input_tokens, 10)
-        self.assertEqual(status.live_output_tokens, 20)
-        self.assertEqual(status.rolling_tokens, 1_500)
+        payload = request.call_args.args[3]
+        self.assertEqual(payload["metrics"], ["tokens_prompt", "tokens_completion"])
+        self.assertNotIn("granularity", payload)
 
-    def test_fetch_status_refreshes_stale_rolling_total(self):
-        cached = MODULE.Status(
-            credits_remaining=12.0,
-            live_input_tokens=1,
-            live_output_tokens=2,
-            rolling_input_tokens=1_000,
-            rolling_output_tokens=500,
+    def test_fetch_status_is_a_rolling_sixty_second_rate(self):
+        with mock.patch.object(MODULE, "fetch_tokens", return_value=(10_000, 500)) as fetch_tokens:
+            status = MODULE.fetch_status("key")
+
+        _, start, end = fetch_tokens.call_args.args
+        self.assertAlmostEqual((end - start).total_seconds(), 60.0)
+        self.assertEqual(status.input_tokens_per_minute, 10_000)
+        self.assertEqual(status.output_tokens_per_minute, 500)
+        self.assertEqual(status.total_tokens_per_minute, 10_500)
+
+    def test_status_cache_bounds_api_polling(self):
+        status = MODULE.Status(
+            input_tokens_per_minute=1_000,
+            output_tokens_per_minute=100,
         )
-        cache = {
-            "rolling_updated_at": 0,
-            "status": MODULE.asdict(cached),
-        }
-        with (
-            mock.patch.object(MODULE, "fetch_credits", return_value=11.0),
-            mock.patch.object(
-                MODULE,
-                "fetch_tokens",
-                side_effect=[(10, 20), (2_000, 1_000)],
-            ) as fetch_tokens,
-        ):
-            status, rolling_updated_at = MODULE.fetch_status("key", cache)
+        with tempfile.TemporaryDirectory() as directory:
+            with (
+                mock.patch.dict(os.environ, {"XDG_CACHE_HOME": directory}),
+                mock.patch.object(MODULE, "fetch_status", return_value=status) as fetch_status,
+            ):
+                first, first_stale = MODULE.status_with_cache("key")
+                second, second_stale = MODULE.status_with_cache("key")
 
-        self.assertEqual(fetch_tokens.call_count, 2)
-        self.assertGreater(rolling_updated_at, 0)
-        self.assertEqual(status.rolling_tokens, 3_000)
+        self.assertEqual(first, status)
+        self.assertEqual(second, status)
+        self.assertFalse(first_stale)
+        self.assertFalse(second_stale)
+        self.assertEqual(fetch_status.call_count, 1)
 
 
 if __name__ == "__main__":
