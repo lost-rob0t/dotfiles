@@ -42,6 +42,11 @@ class OpenRouterStatusTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "truncated"):
             MODULE.parse_token_totals(payload)
 
+    def test_parse_token_totals_rejects_malformed_metrics(self):
+        payload = {"data": {"data": [{"tokens_prompt": "wat", "tokens_completion": 1}]}}
+        with self.assertRaisesRegex(RuntimeError, "malformed"):
+            MODULE.parse_token_totals(payload)
+
     def test_closed_window_is_previous_full_minute(self):
         now = MODULE.datetime(2026, 8, 22, 21, 10, 47, 900, tzinfo=MODULE.timezone.utc)
         start, end = MODULE._closed_minute_window(now)
@@ -63,6 +68,12 @@ class OpenRouterStatusTests(unittest.TestCase):
         with mock.patch.object(MODULE, "_request_json", return_value=response) as request:
             self.assertEqual(MODULE.fetch_balance("key"), 17.75)
         self.assertEqual(request.call_args.args[:3], ("GET", "/credits", "key"))
+
+    def test_fetch_balance_rejects_malformed_credit_payload(self):
+        response = {"data": {"total_credits": "nope", "total_usage": 7.25}}
+        with mock.patch.object(MODULE, "_request_json", return_value=response):
+            with self.assertRaisesRegex(RuntimeError, "credit payload malformed"):
+                MODULE.fetch_balance("key")
 
     def test_165m_style_spike_is_rejected(self):
         with mock.patch.dict(os.environ, {"OPENROUTER_TPM_MAX": "10000000"}, clear=False):
