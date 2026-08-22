@@ -196,7 +196,10 @@ run_recorder() {
 
     rm -f -- "$output"
     notify "Recording failed" "Recorder exited with status $rc"
-    return "${rc:-1}"
+    if (( rc != 0 )); then
+        return "$rc"
+    fi
+    return 1
 }
 
 record_window() {
