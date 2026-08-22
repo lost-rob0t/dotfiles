@@ -1,0 +1,26 @@
+{
+  "desktop": {
+    "auto_group": true,
+    "screens": {
+      "left": "1",
+      "center": "2",
+      "right": "6",
+      "aux": "8"
+    }
+  },
+  "coding": {
+    "auto_group": true,
+    "screens": {
+      "left": "1",
+      "center": "2",
+      "right": "7",
+      "aux": "8"
+    }
+  },
+  "focus": {
+    "auto_group": true,
+    "screens": {
+      "center": "2"
+    }
+  }
+}
