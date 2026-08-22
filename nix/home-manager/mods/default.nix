@@ -1,6 +1,7 @@
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 {
   imports = [
+    inputs.skills.homeManagerModules.opencode
     ./base.nix
     ./desktop.nix
     ./fonts.nix
