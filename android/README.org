@@ -32,11 +32,37 @@ curl -fsSL https://raw.githubusercontent.com/lost-rob0t/dotfiles/master/bootstra
 The bootstrap first performs a full Termux package upgrade because Termux is a
 rolling distribution and partial upgrades can leave native libraries ABI
 incompatible.  It then installs the native Termux tools, clones this repository
-to =~/.dotfiles=, activates =android/= as the Emacs profile when no existing
-Emacs configuration is present, and installs OpenCode inside a Debian
-=proot-distro=.  A native Termux =opencode= wrapper enters that Debian
-environment while sharing the Termux home directory, so projects under =~=
-remain directly usable.
+to =~/.dotfiles=, installs =agent-zero-tunnel= into the Termux executable path,
+activates =android/= as the Emacs profile when no existing Emacs configuration
+is present, and installs OpenCode inside a Debian =proot-distro=.  A native
+Termux =opencode= wrapper enters that Debian environment while sharing the
+Termux home directory, so projects under =~= remain directly usable.
+
+** Agent Zero mobile tunnel
+
+=agent-zero-tunnel= creates an SSH local forward from the phone to an Agent Zero
+Web UI running on another computer.  The default SSH target is =op= and the
+default Agent Zero port is =50080=.
+
+#+begin_src sh
+agent-zero-tunnel op 50080
+#+end_src
+
+Keep that Termux session running, then open the loopback URL on the phone:
+
+#+begin_example
+http://127.0.0.1:50080
+#+end_example
+
+The helper binds only to =127.0.0.1= on the phone.  Override the target or ports
+without editing the script:
+
+#+begin_src sh
+export A0_SSH_TARGET="unseen@your-host"
+export A0_REMOTE_PORT=50080
+export A0_LOCAL_PORT=50080
+agent-zero-tunnel
+#+end_src
 
 If =curl= or Git HTTPS fails with =CANNOT LINK EXECUTABLE= or a missing SSL
 symbol after a partial package update, repair the Termux prefix with =apt=
