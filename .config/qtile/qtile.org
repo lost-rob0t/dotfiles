@@ -1,11 +1,11 @@
 #+title: Qtile Configuration
 
 * Canonical configuration
-The active Qtile configuration is [[file:config.py][config.py]].
+The active Qtile configuration is generated at [[file:config.py][config.py]], but its canonical editable source is [[file:qtile-ai.org][qtile-ai.org]].
 
-This file previously duplicated the complete Python configuration and tangled it into =config.py=. The two copies had drifted and the literate copy retained the same runtime bugs as the generated file. The duplicate source has been retired so future fixes and features have one canonical implementation.
+Do not make lasting edits directly in =config.py=. Edit =qtile-ai.org= first, tangle it, and commit the generated =config.py= in the same change. The repository-wide literate source rules are documented in [[file:../../AGENTS.md][AGENTS.md]] and [[file:../../docs/wiki/literate-config.org][the dotfiles wiki]].
 
-Edit =config.py= directly.
+The OpenRouter telemetry helper follows the same rule: [[file:qtile-openrouter.org][qtile-openrouter.org]] is canonical and generates =qtile_openrouter.py=.
 
 * Monitor configuration
 Before Qtile starts, =.xinitrc= runs =scripts/setup-monitors.sh=. The loader looks
@@ -51,7 +51,7 @@ When enabled:
 
 When disabled, Qtile stops enforcing routes and layout thresholds. Existing windows and layouts are left in their current state so they can be rearranged manually.
 
-Application routes are configured in =auto_group_routes= in =config.py=.
+Application routes are configured in =auto_group_routes= in =config.py= and therefore must be changed through =qtile-ai.org=.
 
 * Usage telemetry
 Qtile appends structured JSONL events to:
@@ -84,7 +84,7 @@ The report ranks keybind use, focused and managed applications, unmatched applic
 The raw telemetry includes window titles. Browser page names, document names, terminal titles, and other private information may therefore appear in the JSONL files. Review the raw log or generated report before sharing it.
 
 * Validation
-Run these checks after modifying the configuration:
+After modifying =qtile-ai.org= or related Qtile sources, tangle first and then run:
 
 #+begin_src sh
 python -m py_compile config.py qtile_telemetry.py scripts/qtile-telemetry-summary.py

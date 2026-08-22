@@ -1,11 +1,19 @@
 #+TITLE: Readme
 
+* Agent instructions
+Before editing this repository, read [[./AGENTS.md][AGENTS.md]] and follow it as the repository editing contract.
+
+In particular, keep literate Org sources and their tangled/generated outputs synchronized, and update the relevant documentation in the same change whenever behavior, architecture, ownership, deployment, interfaces, workflows, host/profile names, or important invariants change.
+
 * Index
++ [[./docs/wiki/index.org][Dotfiles wiki]]
++ [[./AGENTS.md][Agent instructions]]
 + [[./bash.org][Bash]]
 + [[./.doom.d/config.org][Emacs config]]
-+ [[./.config/qtile/qtile.org][Qtile Config]]
++ [[./.config/qtile/qtile-ai.org][Qtile literate config]]
++ [[./.config/qtile/qtile.org][Qtile runtime notes]]
 + [[./.config/dunst/dunst.org][Dunst Config]]
-+ [[./todo.org][Todo List]]
++ [[./tasks.org][Todo List]]
 
 
 

@@ -1,0 +1,50 @@
+#+TITLE: Dotfiles Wiki - Desktop and Qtile
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Qtile ownership
+The primary Qtile configuration is literate:
+
+| Source | Generated output | Responsibility |
+|--------+------------------+----------------|
+| [[file:../../.config/qtile/qtile-ai.org][qtile-ai.org]] | [[file:../../.config/qtile/config.py][config.py]] | Core Qtile configuration, groups, layouts, keybindings, widgets, hooks, and screens. |
+| [[file:../../.config/qtile/qtile-openrouter.org][qtile-openrouter.org]] | [[file:../../.config/qtile/qtile_openrouter.py][qtile_openrouter.py]] | OpenRouter telemetry and its dynamic sync/reload integration. |
+
+The main Org source describes itself as modular and self-documenting.  Prefer improving that source when documenting a concrete keybinding or widget rather than duplicating the detail here.
+
+* Important invariants
+The repository editing rules require Qtile sync/reload behavior to:
+- use the shared =git-sync= implementation;
+- avoid blocking Qtile's event loop while Git runs;
+- reload only after a successful sync;
+- send desktop notifications for start, success, and failure;
+- retain the existing 1 Hz OpenRouter telemetry behavior unless deliberately changed.
+
+The dynamic =Super+Ctrl+Shift+R= binding belongs to the OpenRouter telemetry helper.  Keep its documentation and generated implementation synchronized with =qtile-openrouter.org=.
+
+* Desktop integration map
+Qtile-related files live under [[file:../../.config/qtile/][.config/qtile/]].  Besides the generated main config, that tree contains widgets, helper scripts, icons, autostart integration, and support code.
+
+Related desktop configuration is spread through =.config/= and Home Manager modules.  Before moving a file into Home Manager, check whether it is currently Stow-managed.  Avoid creating two deployment owners for the same path.
+
+* Edit and test cycle
+1. Edit the relevant Qtile Org source.
+2. Tangle it.
+3. Confirm only the expected generated Python files changed.
+4. Compile the generated Python.
+5. Exercise the affected keybinding/widget/hook in a running Qtile session.
+
+#+begin_src shell
+  cd ~/.dotfiles
+  python -m py_compile .config/qtile/config.py
+  python -m py_compile .config/qtile/qtile_openrouter.py
+#+end_src
+
+For a sync/reload change, test both successful and failed Git sync paths so notification and reload behavior do not quietly rot.
+
+* Other desktop sources
+- [[file:../../.config/dunst/dunst.org][Dunst literate config]] - notification daemon configuration.
+- [[file:../../.xprofile][.xprofile]] and [[file:../../.xinitrc][.xinitrc]] - X session startup pieces.
+- [[file:../../nix/home-manager/][Home Manager modules]] - declarative desktop packages/files where ownership has moved into Nix.
+
+When a desktop file has a literate source, treat that source as canonical even if the generated file is the one the application actually reads.

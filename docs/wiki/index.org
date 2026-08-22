@@ -1,0 +1,34 @@
+#+TITLE: Dotfiles Wiki
+#+AUTHOR: nsaspy
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Purpose
+This wiki is the operational map for the dotfiles repository.
+
+The configuration itself remains the source of truth.  In particular, literate Org files are executable documentation and their tangled files are generated artifacts.  The wiki should explain where things live, how they fit together, and how to change them without creating a second source of truth.
+
+* Start here
+- [[file:getting-started.org][Getting started]] - clone, Stow, Home Manager, and the main repository entry points.
+- [[file:literate-config.org][Literate configuration]] - canonical Org sources, generated files, tangling, and consistency rules.
+- [[file:nix.org][Nix and Home Manager]] - flake outputs, hosts, profiles, installers, and module layout.
+- [[file:emacs.org][Emacs and Doom]] - Doom literate sources and Emacs-related code in the repository.
+- [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, and desktop integration.
+- [[file:maintenance.org][Maintenance]] - safe edit/tangle/test workflow and useful verification commands.
+
+* Repository map
+| Area | Canonical entry point | Notes |
+|------+-----------------------+-------|
+| Shell | [[file:../../bash.org][bash.org]] | Literate Bash configuration; tangles to =.bashrc=. |
+| Doom Emacs | [[file:../../.doom.d/config.org][.doom.d/config.org]] | Main Doom configuration and =init.el= source blocks. |
+| Doom packages | [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | Package declarations; tangles to =packages.el=. |
+| Qtile | [[file:../../.config/qtile/qtile-ai.org][.config/qtile/qtile-ai.org]] | Main Qtile literate source; tangles to =config.py=. |
+| OpenRouter widget | [[file:../../.config/qtile/qtile-openrouter.org][.config/qtile/qtile-openrouter.org]] | Telemetry/widget helper; tangles to =qtile_openrouter.py=. |
+| Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
+| Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |
+| NixOS | [[file:../../nix/nixos/][nix/nixos/]] | Hosts and installer definitions. |
+| Scripts | [[file:../../scripts/][scripts/]] | Provisioning/install/maintenance helpers. |
+| Agent rules | [[file:../../AGENTS.md][AGENTS.md]] | Repository editing and parity requirements. |
+
+* Wiki rule
+Do not copy large sections of configuration into this wiki merely to describe them.  Link to the canonical Org source and document the architecture, workflow, or invariant instead.  Humans already invented stale documentation once; there is no need to perfect the mistake.
