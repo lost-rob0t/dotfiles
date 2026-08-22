@@ -1,0 +1,29 @@
+name: Refresh skills lock once
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - .github/workflows/refresh-skills-lock-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - uses: cachix/install-nix-action@v31
+      - name: Refresh skills input and remove one-shot workflow
+        run: |
+          set -euo pipefail
+          nix flake lock --update-input skills
+          git rm .github/workflows/refresh-skills-lock-once.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add flake.lock
+          git commit -m 'chore(nix): refresh skills input after backlog merge'
+          git push origin HEAD:master
