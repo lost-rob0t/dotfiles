@@ -4,8 +4,8 @@ set -euo pipefail
 readonly program="${0##*/}"
 readonly container_name="${A0_CONTAINER_NAME:-agent-zero}"
 readonly image="${A0_IMAGE:-agent0ai/agent-zero:latest}"
-readonly port="${A0_PORT:-5080}"
-readonly usr_volume="${A0_USR_VOLUME:-agent-zero-data}"
+readonly port="${A0_PORT:-50080}"
+readonly usr_volume="${A0_USR_VOLUME:-a0_v2_usr}"
 readonly nix_volume="${A0_NIX_VOLUME:-a0_nix}"
 
 usage() {
@@ -17,8 +17,8 @@ Run Agent Zero with its existing persistent data volume plus a persistent Nix st
 Environment overrides:
   A0_CONTAINER_NAME  Container name (default: agent-zero)
   A0_IMAGE           Image (default: agent0ai/agent-zero:latest)
-  A0_PORT            Host Web UI port (default: 5080)
-  A0_USR_VOLUME      /a0/usr volume (default: agent-zero-data)
+  A0_PORT            Host Web UI port (default: 50080)
+  A0_USR_VOLUME      /a0/usr volume (default: a0_v2_usr)
   A0_NIX_VOLUME      /nix volume (default: a0_nix)
 EOF
 }
@@ -63,9 +63,8 @@ docker run -d \
   --name "$container_name" \
   --restart unless-stopped \
   -p "$port:80" \
-  --mount "type=volume,src=$usr_volume,dst=/a0/usr" \
-  --mount "type=volume,src=$nix_volume,dst=/nix" \
-  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v "$usr_volume:/a0/usr" \
+  -v "$nix_volume:/nix" \
   "$image" >/dev/null
 
 printf 'Agent Zero started: http://127.0.0.1:%s\n' "$port"
