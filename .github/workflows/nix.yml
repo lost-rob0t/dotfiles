@@ -28,6 +28,10 @@ jobs:
         run: bash tests/home-manager-updater.sh
       - name: Run GPT TODO bidirectional sync tests
         run: bash tests/gpt-todos-sync.sh
+      - name: Check GNOME tablet extension
+        run: |
+          node --check nix/home-manager/mods/gnome-tablet/extension.js
+          python3 -m json.tool nix/home-manager/mods/gnome-tablet/metadata.json >/dev/null
       - name: Check Qtile Python helpers
         run: >-
           python3 -m py_compile
@@ -73,3 +77,5 @@ jobs:
         run: nix eval --raw '.#homeConfigurations."unseen@desktop".activationPackage.drvPath'
       - name: Evaluate flake Home Manager configuration
         run: nix eval --raw '.#homeConfigurations."unseen@flake".activationPackage.drvPath'
+      - name: Evaluate logos Home Manager configuration
+        run: nix eval --raw '.#homeConfigurations."unseen@logos".activationPackage.drvPath'

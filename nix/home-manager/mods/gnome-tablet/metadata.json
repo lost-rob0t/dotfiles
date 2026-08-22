@@ -1,0 +1,6 @@
+{
+  "uuid": "osk-terminal-avoid@lost-rob0t",
+  "name": "OSK Terminal Avoidance",
+  "description": "Keeps GNOME's on-screen keyboard from covering terminal windows.",
+  "shell-version": ["45", "46", "47", "48", "49", "50"]
+}
