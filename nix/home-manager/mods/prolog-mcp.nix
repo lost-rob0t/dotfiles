@@ -24,7 +24,7 @@ in
 
     skillRevision = lib.mkOption {
       type = lib.types.str;
-      default = "ecc1bbfd35039c0d3155e10efca6ad768b46807b";
+      default = "b60b658ecad86cddb9cfec4113ff32f6f734933a";
       description = "Pinned lost-rob0t/skills revision containing the OpenCode Prolog skill.";
     };
   };
