@@ -1,0 +1,49 @@
+# Pinger host list. Copy this template to ~/.config/hosts.toml (machine-local,
+# NOT tracked by dotfiles) and edit per machine.
+#
+# Each [[hosts]] entry describes one host to check on every cycle. The
+# aliveness check is selected with `method`:
+#
+#   method = "ping"   -> ICMP ping (default; uses /usr/bin/ping)
+#   method = "ssh"    -> non-interactive SSH probe: runs `true` over SSH
+#                        with BatchMode=yes so it fails fast instead of
+#                        hanging on a password prompt.
+#
+# Fields:
+#   name     required, human-readable label used in dunstify alerts
+#   address  required, IP or hostname to probe
+#   method   optional, "ping" (default) or "ssh"
+#   user     ssh only, optional, SSH user (default: current user)
+#   port     ssh only, optional, SSH port (default: 22)
+#   key      ssh only, optional, path to identity file
+#   timeout  optional, per-host probe timeout in seconds (default: 5)
+#
+# Top-level:
+#   interval_seconds  optional, seconds between full sweeps (default: 30)
+
+interval_seconds = 30
+
+# ICMP ping example
+[[hosts]]
+name = "Gateway"
+address = "10.50.50.1"
+method = "ping"
+
+# SSH probe example. Uses `ssh root@10.60.60.248 true` with BatchMode so a
+# missing key or down host fails fast instead of prompting.
+[[hosts]]
+name = "Proxmox"
+address = "10.60.60.248"
+method = "ssh"
+user = "root"
+timeout = 8
+
+# SSH with explicit key and non-default port
+[[hosts]]
+name = "Lab box"
+address = "lab.example.com"
+method = "ssh"
+user = "deploy"
+port = 2222
+key = "/home/unseen/.ssh/lab_ed25519"
+timeout = 10
