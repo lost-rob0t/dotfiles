@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Regression coverage for Brave launch/discovery under the Qtile LightDM session."""
+"""Regression coverage for application discovery under the Qtile LightDM session."""
 
 from __future__ import annotations
 
+import os
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -13,11 +16,50 @@ QTILE_CONFIG = ROOT / ".config" / "qtile" / "config.py"
 
 
 class BraveLauncherSessionTests(unittest.TestCase):
-    def test_xprofile_loads_home_manager_session_and_application_data(self):
-        source = XPROFILE.read_text(encoding="utf-8")
-        self.assertIn("hm-session-vars.sh", source)
-        self.assertIn('$HOME/.nix-profile/share', source)
-        self.assertIn("XDG_DATA_DIRS", source)
+    def test_xprofile_preserves_arch_application_dirs_after_home_manager(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            profile_dir = home / ".nix-profile" / "etc" / "profile.d"
+            bin_dir = home / "bin"
+            profile_dir.mkdir(parents=True)
+            bin_dir.mkdir()
+
+            (profile_dir / "hm-session-vars.sh").write_text(
+                'export XDG_DATA_DIRS="/nix/hm/share:/nix/default/share"\n',
+                encoding="utf-8",
+            )
+            systemctl = bin_dir / "systemctl"
+            systemctl.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            systemctl.chmod(0o755)
+
+            env = os.environ.copy()
+            env["HOME"] = str(home)
+            env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
+            env.pop("XDG_DATA_HOME", None)
+            env.pop("XDG_DATA_DIRS", None)
+
+            result = subprocess.run(
+                [
+                    "/bin/sh",
+                    "-c",
+                    '. "$1"; printf "%s\\n%s\\n" "$XDG_DATA_HOME" "$XDG_DATA_DIRS"',
+                    "sh",
+                    str(XPROFILE),
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+            data_home, data_dirs = result.stdout.splitlines()
+            dirs = data_dirs.split(":")
+
+            self.assertEqual(data_home, str(home / ".local" / "share"))
+            self.assertIn(str(home / ".nix-profile" / "share"), dirs)
+            self.assertIn("/nix/hm/share", dirs)
+            self.assertIn("/nix/default/share", dirs)
+            self.assertIn("/usr/local/share", dirs)
+            self.assertIn("/usr/share", dirs)
 
     def test_desktop_home_manager_owns_xprofile(self):
         source = DESKTOP_NIX.read_text(encoding="utf-8")
