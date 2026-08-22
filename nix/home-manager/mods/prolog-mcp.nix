@@ -6,11 +6,6 @@ let
   prologMcpPackage = pkgs.callPackage ../../packages/prolog-mcp.nix {
     revision = cfg.revision;
   };
-
-  skillSource = builtins.fetchGit {
-    url = "https://github.com/lost-rob0t/skills.git";
-    rev = cfg.skillRevision;
-  };
 in
 {
   options.prologMcp = {
@@ -20,12 +15,6 @@ in
       type = lib.types.str;
       default = "4ae536fd9b1cef8419d1798b5d4cb1569cba3cae";
       description = "Pinned dicelab-rhul/PrologMCP Git revision.";
-    };
-
-    skillRevision = lib.mkOption {
-      type = lib.types.str;
-      default = "b60b658ecad86cddb9cfec4113ff32f6f734933a";
-      description = "Pinned lost-rob0t/skills revision containing the OpenCode Prolog skill.";
     };
   };
 
@@ -43,7 +32,6 @@ in
     programs.opencode = {
       enable = lib.mkDefault true;
       enableMcpIntegration = true;
-      skills.prolog-reasoning = "${skillSource}/opencode/prolog-reasoning";
     };
   };
 }
