@@ -3,6 +3,7 @@
 (require 'json)
 (require 'org)
 (require 'org-agenda)
+(require 'subr-x)
 (require 'url)
 (require 'url-http)
 
@@ -117,8 +118,8 @@
       (buffer-substring-no-properties (point) (point-max))
     ""))
 
-(defun qtile-agent-zero--finish (target-buffer status)
-  "Handle Agent Zero URL callback into TARGET-BUFFER."
+(defun qtile-agent-zero--finish (status target-buffer)
+  "Handle Agent Zero URL callback STATUS into TARGET-BUFFER."
   (let ((body (qtile-agent-zero--response-body))
         (code (plist-get status :error)))
     (kill-buffer (current-buffer))
