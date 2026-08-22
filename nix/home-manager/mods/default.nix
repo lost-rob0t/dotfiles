@@ -2,6 +2,7 @@
 {
   imports = [
     inputs.skills.homeManagerModules.opencode
+    inputs.skills.homeManagerModules.claude
     ./base.nix
     ./desktop.nix
     ./fonts.nix
