@@ -161,6 +161,13 @@ function install_doom() {
     fi
 }
 
+# if [ ! -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+#     source ~/.nix-profile/etc/profile.d/nix.sh
+#     export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}
+# fi
+
+PKG_CONFIG_PATH="$HOME/.nix-profile/lib/pkgconfig:$HOME/.nix-profile/lib64/pkgconfig:$HOME/.nix-profile/share/pkgconfig;"
+
 function nim-init () {
  # Init a nim project and start a git repo
  nimble init $1
@@ -284,6 +291,16 @@ alias npm-init-dir="mkdir -p ~/.node"
 alias npm-install="npm install --prefix ~/.node -g"
 
 alias ai-proxy="ssh -N -L 7860:127.0.0.1:7860 unseen@10.50.50.18"
+
+agent-zero-forward() {
+    local session="agent-zero-forward"
+
+    tmux has-session -t "$session" 2>/dev/null &&
+        tmux kill-session -t "$session"
+
+    tmux new-session -d -s "$session" \
+        "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -N -L 5080:127.0.0.1:5080 unseen@10.50.50.28"
+}
 
 alias sync-music="rsync --progress -av ~/Music/Sorted/ music:/music && ssh music python3 /music/sort.py /mnt/Music"
 

@@ -255,7 +255,7 @@ For some reason on non nixos system this is needed
 #     source ~/.nix-profile/etc/profile.d/nix.sh
 #     export NIX_PATH=$HOME/.nix-defexpr/channels:/nix/var/nix/profiles/per-user/root/channels${NIX_PATH:+:$NIX_PATH}
 # fi
-# #+end_src
+#+end_src
 **** Setup pkg-config
 This is needed for sbcl
 #+begin_src sh :tangle .bashrc
@@ -468,6 +468,19 @@ alias npm-install="npm install --prefix ~/.node -g"
 SSH forwarding proxy for ai
 #+begin_src sh :tangle .bashrc
 alias ai-proxy="ssh -N -L 7860:127.0.0.1:7860 unseen@10.50.50.18"
+#+end_src
+
+Agent Zero SSH forward. Replaces any stale local tmux forward and leaves the tunnel detached.
+#+begin_src sh :tangle .bashrc
+agent-zero-forward() {
+    local session="agent-zero-forward"
+
+    tmux has-session -t "$session" 2>/dev/null &&
+        tmux kill-session -t "$session"
+
+    tmux new-session -d -s "$session" \
+        "ssh -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -N -L 5080:127.0.0.1:5080 unseen@10.50.50.28"
+}
 #+end_src
 
 Rsync new music to music server

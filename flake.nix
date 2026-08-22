@@ -185,6 +185,8 @@
         prolog-mcp = prologMcp;
         unseen-home = homeConfigurations."unseen@logos".activationPackage;
         unseen-flake-home = homeConfigurations."unseen@flake".activationPackage;
+        unseen-desktop-home = homeConfigurations."unseen@desktop".activationPackage;
+        unseen-hunter02-home = homeConfigurations."unseen@hunter02".activationPackage;
       };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;

@@ -5,6 +5,7 @@
     inputs.skills.homeManagerModules.claude
     ./base.nix
     ./desktop.nix
+    ./gnome.nix
     ./fonts.nix
     ./emacs.nix
     ./security.nix

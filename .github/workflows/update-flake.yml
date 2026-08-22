@@ -32,11 +32,17 @@ jobs:
         with:
           name: nix-community
 
+      - name: Verify Nix runner
+        run: |
+          set -euo pipefail
+          nix --version
+          nix flake metadata --no-write-lock-file
+
       - name: Update flake inputs in the candidate checkout
         run: nix flake update
 
       - name: Check candidate flake before publishing lockfile
-        run: nix flake check --show-trace
+        run: nix flake check -L --show-trace
 
       - name: Detect lockfile changes
         id: lockfile
@@ -91,7 +97,7 @@ jobs:
           - Commit checked out: \`$GITHUB_SHA\`
           - Time: \`$(date --iso-8601=seconds)\`
 
-          The workflow updates inputs in its checkout, runs \`nix flake check --show-trace\`, and only pushes \`flake.lock\` after that check succeeds. This issue is intentionally reused across failures.
+          The workflow verifies the Nix runner, updates inputs in its checkout, runs \`nix flake check -L --show-trace\`, and only pushes \`flake.lock\` after every declared check succeeds. This issue is intentionally reused across failures.
           EOF
 
           if [[ -n "$number" ]]; then
