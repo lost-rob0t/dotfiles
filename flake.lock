@@ -279,7 +279,23 @@
         "mousetrap": "mousetrap",
         "nixpkgs": "nixpkgs_3",
         "org-vector": "org-vector",
+        "skills": "skills",
         "zara": "zara"
+      }
+    },
+    "skills": {
+      "locked": {
+        "lastModified": 1787370155,
+        "narHash": "sha256-qi1vjlNgLomfBgaJmLGjDIo/75i0I1pqkWf2gKMII/8=",
+        "owner": "lost-rob0t",
+        "repo": "skills",
+        "rev": "976f3912a9c8f8cc155492f2511ecdbc2508cbbc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lost-rob0t",
+        "repo": "skills",
+        "type": "github"
       }
     },
     "systems": {
