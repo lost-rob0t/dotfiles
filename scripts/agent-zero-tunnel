@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly PROGRAM="${0##*/}"
+
+usage() {
+  cat <<'EOF'
+Usage: agent-zero-tunnel [SSH_TARGET] [REMOTE_PORT] [LOCAL_PORT]
+
+Open an SSH local-forward to Agent Zero on a remote PC.
+
+Defaults:
+  SSH_TARGET   $A0_SSH_TARGET or "op"
+  REMOTE_PORT  $A0_REMOTE_PORT or 50080
+  LOCAL_PORT   $A0_LOCAL_PORT or REMOTE_PORT
+
+Optional environment:
+  A0_REMOTE_HOST  Remote Agent Zero bind host (default: 127.0.0.1)
+  A0_BIND_ADDR    Local bind address (default: 127.0.0.1)
+
+Example from Termux:
+  agent-zero-tunnel op 50080
+
+Then open:
+  http://127.0.0.1:50080
+EOF
+}
+
+fail() {
+  printf '%s: %s\n' "$PROGRAM" "$*" >&2
+  exit 1
+}
+
+is_port() {
+  [[ "$1" =~ ^[0-9]+$ ]] && (( 1 <= 10#$1 && 10#$1 <= 65535 ))
+}
+
+case "${1:-}" in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+esac
+
+command -v ssh >/dev/null 2>&1 || fail "ssh is required"
+
+readonly ssh_target="${1:-${A0_SSH_TARGET:-op}}"
+readonly remote_port="${2:-${A0_REMOTE_PORT:-50080}}"
+readonly local_port="${3:-${A0_LOCAL_PORT:-$remote_port}}"
+readonly remote_host="${A0_REMOTE_HOST:-127.0.0.1}"
+readonly bind_addr="${A0_BIND_ADDR:-127.0.0.1}"
+
+[[ -n "$ssh_target" ]] || fail "SSH target must not be empty"
+is_port "$remote_port" || fail "invalid remote port: $remote_port"
+is_port "$local_port" || fail "invalid local port: $local_port"
+
+printf 'Agent Zero: http://%s:%s\n' "$bind_addr" "$local_port"
+printf 'Tunnel: %s -> %s:%s via %s\n' \
+  "$bind_addr:$local_port" "$remote_host" "$remote_port" "$ssh_target"
+
+exec ssh \
+  -NT \
+  -L "$bind_addr:$local_port:$remote_host:$remote_port" \
+  -o ExitOnForwardFailure=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=3 \
+  "$ssh_target"
