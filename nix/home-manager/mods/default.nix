@@ -13,6 +13,7 @@
     ./media.nix
     ./pentesting.nix
     ./llm.nix
+    ./prolog-mcp.nix
     ./proxmox-mcp.nix
     ./discord-mcp.nix
     ./unifi-mcp.nix

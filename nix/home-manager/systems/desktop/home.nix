@@ -20,6 +20,10 @@
     enable = true;
   };
 
+  prologMcp = {
+    enable = true;
+  };
+
   proxmoxMcp = {
     enable = true;
   };
