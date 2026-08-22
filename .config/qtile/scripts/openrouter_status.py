@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render OpenRouter credits and token telemetry for the Qtile bar."""
+"""Render OpenRouter token-per-minute telemetry for the Qtile bar."""
 
 from __future__ import annotations
 
@@ -18,33 +18,25 @@ from typing import Any
 
 API_BASE = "https://openrouter.ai/api/v1"
 # Nerd Fonts v3+ Material Design "brain" (nf-md-brain).
-# The old U+F5DC Material Design range was removed in Nerd Fonts v3.
 AI_ICON = "\U000F09D1"
 
 RED = "#dd546e"
-YELLOW = "#fba922"
-GREEN = "#62FF00"
 IO = "#f6019d"
 ACCENT = "#2de2e6"
 
-CACHE_TTL_SECONDS = 12
-ROLLING_TTL_SECONDS = 300
-LIVE_WINDOW_SECONDS = 60
-ROLLING_DAYS = 30
+CACHE_TTL_SECONDS = 4
+RATE_WINDOW_SECONDS = 60
 REQUEST_TIMEOUT_SECONDS = 5
 
 
 @dataclass(frozen=True)
 class Status:
-    credits_remaining: float
-    live_input_tokens: int
-    live_output_tokens: int
-    rolling_input_tokens: int
-    rolling_output_tokens: int
+    input_tokens_per_minute: int
+    output_tokens_per_minute: int
 
     @property
-    def rolling_tokens(self) -> int:
-        return self.rolling_input_tokens + self.rolling_output_tokens
+    def total_tokens_per_minute(self) -> int:
+        return self.input_tokens_per_minute + self.output_tokens_per_minute
 
 
 def compact_count(value: int | float) -> str:
@@ -56,24 +48,13 @@ def compact_count(value: int | float) -> str:
     return str(int(round(value)))
 
 
-def credit_color(credits_remaining: float) -> str:
-    if credits_remaining < 5:
-        return RED
-    if credits_remaining < 10:
-        return YELLOW
-    return GREEN
-
-
 def render(status: Status, *, stale: bool = False) -> str:
     stale_marker = " ~" if stale else ""
     return (
-        f'<span foreground="{credit_color(status.credits_remaining)}">'
-        f"{AI_ICON} ${status.credits_remaining:.2f}</span>"
-        f' <span foreground="{IO}">'
-        f"tok:{compact_count(status.live_input_tokens)}↓ "
-        f"{compact_count(status.live_output_tokens)}↑</span>"
-        f' <span foreground="{ACCENT}">'
-        f"30d:{compact_count(status.rolling_tokens)}{stale_marker}</span>"
+        f'<span foreground="{IO}">{AI_ICON} '
+        f"{compact_count(status.input_tokens_per_minute)}↓/m</span> "
+        f'<span foreground="{ACCENT}">'
+        f"{compact_count(status.output_tokens_per_minute)}↑/m{stale_marker}</span>"
     )
 
 
@@ -111,7 +92,7 @@ def _request_json(
     headers = {
         "Accept": "application/json",
         "Authorization": f"Bearer {key}",
-        "User-Agent": "qtile-openrouter-status/1",
+        "User-Agent": "qtile-openrouter-status/2",
     }
     if payload is not None:
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
@@ -139,20 +120,11 @@ def _request_json(
         raise RuntimeError("OpenRouter unavailable") from exc
 
 
-def parse_credits(payload: dict[str, Any]) -> float:
-    data = payload["data"]
-    return max(0.0, float(data["total_credits"]) - float(data["total_usage"]))
-
-
 def parse_token_totals(payload: dict[str, Any]) -> tuple[int, int]:
     rows = payload.get("data", {}).get("data", [])
     prompt = sum(float(row.get("tokens_prompt") or 0) for row in rows)
     completion = sum(float(row.get("tokens_completion") or 0) for row in rows)
     return int(round(prompt)), int(round(completion))
-
-
-def fetch_credits(key: str) -> float:
-    return parse_credits(_request_json("GET", "/credits", key))
 
 
 def fetch_tokens(
@@ -194,20 +166,13 @@ def _status_from_cache(cache: dict[str, Any] | None) -> Status | None:
         return None
 
 
-def _write_cache(
-    path: Path,
-    status: Status,
-    *,
-    fetched_at: float,
-    rolling_updated_at: float,
-) -> None:
+def _write_cache(path: Path, status: Status, *, fetched_at: float) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
     temporary.write_text(
         json.dumps(
             {
                 "fetched_at": fetched_at,
-                "rolling_updated_at": rolling_updated_at,
                 "status": asdict(status),
             },
             separators=(",", ":"),
@@ -217,39 +182,16 @@ def _write_cache(
     temporary.replace(path)
 
 
-def fetch_status(key: str, cache: dict[str, Any] | None = None) -> tuple[Status, float]:
+def fetch_status(key: str) -> Status:
     now = datetime.now(timezone.utc)
-    cached_status = _status_from_cache(cache)
-    rolling_updated_at = float((cache or {}).get("rolling_updated_at", 0))
-    rolling_is_fresh = time.time() - rolling_updated_at < ROLLING_TTL_SECONDS
-
-    credits = fetch_credits(key)
-    live_input, live_output = fetch_tokens(
+    input_tokens, output_tokens = fetch_tokens(
         key,
-        now - timedelta(seconds=LIVE_WINDOW_SECONDS),
+        now - timedelta(seconds=RATE_WINDOW_SECONDS),
         now,
     )
-
-    if cached_status and rolling_is_fresh:
-        rolling_input = cached_status.rolling_input_tokens
-        rolling_output = cached_status.rolling_output_tokens
-    else:
-        rolling_input, rolling_output = fetch_tokens(
-            key,
-            now - timedelta(days=ROLLING_DAYS),
-            now,
-        )
-        rolling_updated_at = time.time()
-
-    return (
-        Status(
-            credits_remaining=credits,
-            live_input_tokens=live_input,
-            live_output_tokens=live_output,
-            rolling_input_tokens=rolling_input,
-            rolling_output_tokens=rolling_output,
-        ),
-        rolling_updated_at,
+    return Status(
+        input_tokens_per_minute=input_tokens,
+        output_tokens_per_minute=output_tokens,
     )
 
 
@@ -268,18 +210,13 @@ def status_with_cache(key: str, *, force: bool = False) -> tuple[Status, bool]:
             return cached_status, False
 
         try:
-            status, rolling_updated_at = fetch_status(key, cache)
+            status = fetch_status(key)
         except RuntimeError:
             if cached_status:
                 return cached_status, True
             raise
 
-        _write_cache(
-            path,
-            status,
-            fetched_at=time.time(),
-            rolling_updated_at=rolling_updated_at,
-        )
+        _write_cache(path, status, fetched_at=time.time())
         return status, False
 
 
@@ -304,7 +241,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.json:
         payload = asdict(status)
-        payload["rolling_tokens"] = status.rolling_tokens
+        payload["total_tokens_per_minute"] = status.total_tokens_per_minute
         payload["stale"] = stale
         print(json.dumps(payload, sort_keys=True))
     else:
