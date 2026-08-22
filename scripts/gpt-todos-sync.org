@@ -4,12 +4,19 @@
 
 * Sync
 
-This is the canonical literate source for the task-state sync helper.  It
-mirrors only Org files already tracked under =gpt-todos/agenda/= into the live
-Org agenda, reconciles the private repository through Git, and refuses to
-silently tolerate known literate/generated drift in dotfiles.  Arbitrary files
-from =~/Documents/Notes/org/agenda/= are never imported merely because they
-exist there.  The default durable checkout is =~/Documents/gpt-todos=.
+This is the canonical literate source for the task-state sync helper.  Org files
+already tracked under =gpt-todos/agenda/= are synchronized bidirectionally with
+the live Org agenda.  The durable checkout's current =HEAD= is the synchronization
+baseline: the helper fetches the upstream ref, compares Git blob identities, and
+only copies a side when that side changed relative to the baseline.  Concurrent
+local and remote edits to the same file are rejected instead of being resolved
+by filesystem timestamps.
+
+Untracked files from =~/Documents/Notes/org/agenda/= are deliberately not
+imported, so unrelated agenda data cannot leak into the GPT TODO repository.
+Missing local copies are restored from the repository; repository-side deletion
+requires manual resolution.  The default durable checkout is
+=~/Documents/gpt-todos=.
 
 The same command also owns deployment.  Run =gpt-todos-sync --deploy 5= to
 perform the initial sync and install the five-minute cron entry.  Git operations
@@ -29,8 +36,6 @@ LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
 [[ -d "$LOCK_DIR" ]] || LOCK_DIR=/tmp
 LOCK="$LOCK_DIR/gpt-todos-sync-${UID}.lock"
 
-# This runs from cron too. Never allow Git/SSH/GPG to open an interactive
-# prompt and wedge the sync indefinitely.
 export GIT_TERMINAL_PROMPT=0
 if [[ -z "${GIT_SSH_COMMAND:-}" ]]; then
   export GIT_SSH_COMMAND="ssh -o BatchMode=yes"
@@ -127,10 +132,9 @@ repair_legacy_imports() {
 
   local rel local_rel
   local removed=0
+  local -a staged_added=()
+  local -a untracked=()
 
-  # The broken bootstrap could have stopped after `git add`, so clean staged
-  # additions as well as ordinary untracked copies. Only byte-identical files
-  # that also exist in the live agenda qualify for automatic repair.
   mapfile -t staged_added < <(
     git -C "$REPO_DIR" diff --cached --name-only --diff-filter=A -- 'agenda/*.org'
   )
@@ -161,51 +165,122 @@ repair_legacy_imports() {
   (( removed == 0 )) || printf 'gpt-todos-sync: repaired %d legacy import(s)\n' "$removed"
 }
 
+blob_at() {
+  local ref="$1"
+  local rel="$2"
+  git -C "$REPO_DIR" rev-parse --verify "$ref:$rel" 2>/dev/null || printf '%s\n' '-'
+}
+
+file_blob() {
+  local file="$1"
+  [[ -f "$file" ]] || {
+    printf '%s\n' '-'
+    return
+  }
+  git -C "$REPO_DIR" hash-object "$file"
+}
+
+list_org_paths() {
+  local ref="$1"
+  local rel
+  while IFS= read -r rel; do
+    [[ "$rel" == agenda/*.org ]] && printf '%s\n' "$rel"
+  done < <(git -C "$REPO_DIR" ls-tree -r --name-only "$ref" -- agenda)
+}
+
 sync_dotfiles_literate
 repair_legacy_imports
 
-# Pull first, then derive the sync set from files already tracked by gpt-todos.
-# Local agenda files that are not tracked by gpt-todos are never imported.
-git -C "$REPO_DIR" pull --rebase --autostash
+if [[ -n "$(git -C "$REPO_DIR" status --porcelain --untracked-files=all -- agenda)" ]]; then
+  printf 'gpt-todos-sync: durable agenda checkout is dirty; refusing to guess ownership\n' >&2
+  git -C "$REPO_DIR" status --short -- agenda >&2
+  exit 6
+fi
+
+git -C "$REPO_DIR" fetch --prune
+UPSTREAM="$(git -C "$REPO_DIR" rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null)" || {
+  printf 'gpt-todos-sync: current branch has no upstream\n' >&2
+  exit 7
+}
+BASE="$(git -C "$REPO_DIR" rev-parse HEAD)"
+REMOTE_HEAD="$(git -C "$REPO_DIR" rev-parse "$UPSTREAM")"
 
 mapfile -t org_paths < <(
-  git -C "$REPO_DIR" ls-files -- 'agenda/*.org' | sort -u
+  {
+    list_org_paths "$BASE"
+    list_org_paths "$REMOTE_HEAD"
+  } | sort -u
 )
+
 if ((${#org_paths[@]} == 0)); then
   printf 'gpt-todos-sync: no tracked agenda/*.org files; nothing to sync\n'
   exit 0
 fi
 
+local_changes=()
+conflicts=0
+
 for rel in "${org_paths[@]}"; do
   local_rel="${rel#agenda/}"
-  repo_file="$REPO_DIR/$rel"
   org_file="$ORG_DIR/$local_rel"
-  mkdir -p "$(dirname "$org_file")"
+  base_hash="$(blob_at "$BASE" "$rel")"
+  remote_hash="$(blob_at "$REMOTE_HEAD" "$rel")"
+  local_hash="$(file_blob "$org_file")"
 
-  if [[ ! -e "$org_file" ]]; then
-    cp -p -- "$repo_file" "$org_file"
-  elif [[ "$org_file" -nt "$repo_file" ]]; then
-    cp -p -- "$org_file" "$repo_file"
-  elif [[ "$repo_file" -nt "$org_file" ]]; then
-    cp -p -- "$repo_file" "$org_file"
-  elif ! cmp -s "$repo_file" "$org_file"; then
-    printf 'gpt-todos-sync: conflict for %s (different contents, same mtime)\n' "$rel" >&2
-    exit 5
+  if [[ "$base_hash" != "-" && "$remote_hash" == "-" ]]; then
+    printf 'gpt-todos-sync: remote deletion requires manual resolution: %s\n' "$rel" >&2
+    conflicts=$((conflicts + 1))
+    continue
+  fi
+
+  if [[ "$base_hash" == "-" ]]; then
+    if [[ "$local_hash" != "-" && "$local_hash" != "$remote_hash" ]]; then
+      printf 'gpt-todos-sync: new remote file conflicts with local file: %s\n' "$rel" >&2
+      conflicts=$((conflicts + 1))
+    fi
+    continue
+  fi
+
+  if [[ "$local_hash" == "-" || "$local_hash" == "$remote_hash" ]]; then
+    continue
+  fi
+
+  local_changed=0
+  remote_changed=0
+  [[ "$local_hash" != "$base_hash" ]] && local_changed=1
+  [[ "$remote_hash" != "$base_hash" ]] && remote_changed=1
+
+  if (( local_changed && remote_changed )); then
+    printf 'gpt-todos-sync: concurrent local/remote edit conflict: %s\n' "$rel" >&2
+    conflicts=$((conflicts + 1))
+  elif (( local_changed )); then
+    local_changes+=("$rel")
   fi
 done
 
-git -C "$REPO_DIR" add -- "${org_paths[@]}"
+(( conflicts == 0 )) || exit 5
+
+git -C "$REPO_DIR" merge --ff-only "$REMOTE_HEAD"
+
+for rel in "${local_changes[@]}"; do
+  local_rel="${rel#agenda/}"
+  cp -p -- "$ORG_DIR/$local_rel" "$REPO_DIR/$rel"
+done
+
+if ((${#local_changes[@]})); then
+  git -C "$REPO_DIR" add -- "${local_changes[@]}"
+fi
 
 if ! git -C "$REPO_DIR" diff --cached --quiet; then
-  # Automated task-state commits must not inherit interactive GPG signing.
   git -C "$REPO_DIR" -c commit.gpgsign=false commit --no-gpg-sign \
     -m "Sync Org task state"
   git -C "$REPO_DIR" push
 fi
 
-# A concurrent remote update after our push is reconciled once more, and the
-# repository copy is authoritative for the final local projection.
-git -C "$REPO_DIR" pull --rebase --autostash
+git -C "$REPO_DIR" fetch --prune
+git -C "$REPO_DIR" merge --ff-only "$UPSTREAM"
+
+mapfile -t org_paths < <(list_org_paths HEAD | sort -u)
 for rel in "${org_paths[@]}"; do
   local_rel="${rel#agenda/}"
   mkdir -p "$(dirname "$ORG_DIR/$local_rel")"
