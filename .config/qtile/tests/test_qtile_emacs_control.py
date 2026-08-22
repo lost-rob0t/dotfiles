@@ -20,6 +20,7 @@ class QtileEmacsControlTests(unittest.TestCase):
     def test_agent_zero_request_is_async(self):
         self.assertIn("url-retrieve", TEXT)
         self.assertNotIn("url-retrieve-synchronously", TEXT)
+        self.assertIn("(defun qtile-agent-zero--finish (status target-buffer)", TEXT)
 
     def test_secrets_come_from_environment_or_private_file(self):
         self.assertIn('getenv "AGENT_ZERO_API_KEY"', TEXT)
