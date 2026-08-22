@@ -47,6 +47,9 @@ else
   git clone --branch master --single-branch "$DOTFILES_REPO" "$DOTFILES_DIR"
 fi
 
+printf '==> Installing Agent Zero tunnel helper\n'
+install -m 0755 "$DOTFILES_DIR/scripts/agent-zero-tunnel" "$PREFIX/bin/agent-zero-tunnel"
+
 if [[ ! -e "$HOME/.emacs" && ! -e "$HOME/.emacs.d" && ! -e "$HOME/.config/emacs" ]]; then
   printf '==> Activating the Android Emacs profile\n'
   ln -s "$DOTFILES_DIR/android" "$HOME/.emacs.d"
@@ -106,6 +109,7 @@ printf 'Emacs:   '
 emacs --version | sed -n '1p'
 printf 'OpenCode: '
 opencode --version
+printf 'A0 tunnel: agent-zero-tunnel --help\n'
 
 if gh auth status >/dev/null 2>&1; then
   printf 'GitHub:   authenticated\n'
