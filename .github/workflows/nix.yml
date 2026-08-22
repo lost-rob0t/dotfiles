@@ -22,10 +22,12 @@ jobs:
       - name: Check shell scripts
         run: |
           set -euo pipefail
-          bash -n scripts/*.sh tests/home-manager-updater.sh .bash_profile .config/bash/git-sync.sh
-          shellcheck --severity=warning scripts/*.sh tests/home-manager-updater.sh .bash_profile .config/bash/git-sync.sh
+          bash -n scripts/*.sh tests/home-manager-updater.sh tests/gpt-todos-sync.sh .bash_profile .config/bash/git-sync.sh
+          shellcheck --severity=warning scripts/*.sh tests/home-manager-updater.sh tests/gpt-todos-sync.sh .bash_profile .config/bash/git-sync.sh
       - name: Run Home Manager updater recovery tests
         run: bash tests/home-manager-updater.sh
+      - name: Run GPT TODO bidirectional sync tests
+        run: bash tests/gpt-todos-sync.sh
       - name: Check Qtile Python helpers
         run: >-
           python3 -m py_compile
