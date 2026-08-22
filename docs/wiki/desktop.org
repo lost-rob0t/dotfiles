@@ -17,8 +17,9 @@ The repository editing rules require Qtile sync/reload behavior to:
 - use the shared =git-sync= implementation;
 - avoid blocking Qtile's event loop while Git runs;
 - reload only after a successful sync;
-- send desktop notifications for start, success, and failure;
-- retain the existing 1 Hz OpenRouter telemetry behavior unless deliberately changed.
+- send desktop notifications for start, success, and failure.
+
+OpenRouter telemetry is rate-oriented rather than balance-oriented. The bar reports prompt and completion tokens from the trailing 60-second window as tokens per minute, polls the analytics helper every five seconds, and graphs five minutes of sampled rates. The balance and 30-day counters are deliberately omitted. The graph suppresses constant series and adaptively scales moving series so a much larger prompt stream does not visually erase completion traffic.
 
 The dynamic =Super+Ctrl+Shift+R= binding belongs to the OpenRouter telemetry helper.  Keep its documentation and generated implementation synchronized with =qtile-openrouter.org=.
 
