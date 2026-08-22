@@ -1,0 +1,262 @@
+#+title: StarIntel SSH tunnel manager
+#+PROPERTY: header-args:bash :mkdirp yes :tangle-mode (identity #o755)
+
+* Purpose
+
+A single tmux-backed SSH tunnel manager for StarIntel services. Each service owns one tmux session, and =all= expands to every built-in plus every service registered in =~/.config/starintel/tunnels.conf=.
+
+Built-in services are CouchDB, RabbitMQ management, RabbitMQ AMQP, and Valkey. Local configuration can override those mappings or add more without changing the command.
+
+* Tunnel command
+
+#+begin_src bash :tangle starintel-tunnel
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly session_prefix="${STARINTEL_TUNNEL_SESSION_PREFIX:-starintel-tunnel}"
+readonly config_file="${STARINTEL_TUNNEL_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/starintel/tunnels.conf}"
+readonly default_ssh_target="${STARINTEL_TUNNEL_SSH_TARGET:-starintel}"
+
+declare -a services=()
+declare -A local_ports=()
+declare -A remote_hosts=()
+declare -A remote_ports=()
+declare -A ssh_targets=()
+
+die() {
+  printf 'starintel-tunnel: %s\n' "$*" >&2
+  exit 2
+}
+
+valid_port() {
+  [[ $1 =~ ^[0-9]+$ ]] && (( 1 <= 10#$1 && 10#$1 <= 65535 ))
+}
+
+register_service() {
+  local name=$1 local_port=$2 remote_host=$3 remote_port=$4 ssh_target=$5
+
+  [[ $name =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid service name: $name"
+  valid_port "$local_port" || die "invalid local port for $name: $local_port"
+  valid_port "$remote_port" || die "invalid remote port for $name: $remote_port"
+  [[ $remote_host =~ ^[A-Za-z0-9._-]+$ ]] || die "invalid remote host for $name: $remote_host"
+  [[ $ssh_target =~ ^[A-Za-z0-9._@-]+$ && $ssh_target != -* ]] || die "invalid SSH target for $name: $ssh_target"
+
+  if [[ ! ${local_ports[$name]+present} ]]; then
+    services+=("$name")
+  fi
+
+  local_ports[$name]=$local_port
+  remote_hosts[$name]=$remote_host
+  remote_ports[$name]=$remote_port
+  ssh_targets[$name]=$ssh_target
+}
+
+load_defaults() {
+  register_service couchdb 5984 127.0.0.1 5984 "$default_ssh_target"
+  register_service rabbitmq-ui 15672 127.0.0.1 15672 "$default_ssh_target"
+  register_service rabbitmq-amqp 5672 127.0.0.1 5672 "$default_ssh_target"
+  register_service valkey 6379 127.0.0.1 6379 "$default_ssh_target"
+}
+
+load_config() {
+  local name local_port remote_host remote_port ssh_target extra
+
+  [[ -r $config_file ]] || return 0
+
+  while read -r name local_port remote_host remote_port ssh_target extra; do
+    [[ -z ${name:-} || $name == \#* ]] && continue
+    [[ -z ${extra:-} ]] || die "too many fields in $config_file for service $name"
+    ssh_target=${ssh_target:-$default_ssh_target}
+    register_service "$name" "$local_port" "$remote_host" "$remote_port" "$ssh_target"
+  done <"$config_file"
+}
+
+require_tools() {
+  command -v tmux >/dev/null 2>&1 || die 'tmux is required'
+  command -v ssh >/dev/null 2>&1 || die 'ssh is required'
+}
+
+require_service() {
+  [[ ${local_ports[$1]+present} ]] || die "unknown service: $1"
+}
+
+session_name() {
+  printf '%s-%s' "$session_prefix" "$1"
+}
+
+start_service() {
+  local service=$1 session forward ssh_command
+  require_service "$service"
+  session=$(session_name "$service")
+
+  if tmux has-session -t "$session" 2>/dev/null; then
+    printf '%-16s already running (%s)\n' "$service" "$session"
+    return 0
+  fi
+
+  forward="${local_ports[$service]}:${remote_hosts[$service]}:${remote_ports[$service]}"
+  ssh_command="exec ssh -NT -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L ${forward} ${ssh_targets[$service]}"
+
+  tmux new-session -d -s "$session" "$ssh_command"
+  sleep 0.25
+
+  if ! tmux has-session -t "$session" 2>/dev/null; then
+    printf '%-16s FAILED to establish localhost:%s -> %s:%s via %s\n' \
+      "$service" "${local_ports[$service]}" "${remote_hosts[$service]}" \
+      "${remote_ports[$service]}" "${ssh_targets[$service]}" >&2
+    return 1
+  fi
+
+  printf '%-16s localhost:%s -> %s:%s via %s (%s)\n' \
+    "$service" "${local_ports[$service]}" "${remote_hosts[$service]}" \
+    "${remote_ports[$service]}" "${ssh_targets[$service]}" "$session"
+}
+
+stop_service() {
+  local service=$1 session
+  require_service "$service"
+  session=$(session_name "$service")
+
+  if tmux has-session -t "$session" 2>/dev/null; then
+    tmux kill-session -t "$session"
+    printf '%-16s stopped (%s)\n' "$service" "$session"
+  else
+    printf '%-16s not running\n' "$service"
+  fi
+}
+
+status_service() {
+  local service=$1 session state
+  require_service "$service"
+  session=$(session_name "$service")
+  state=down
+  if tmux has-session -t "$session" 2>/dev/null; then
+    state=up
+  fi
+  printf '%-16s %-4s localhost:%s -> %s:%s via %s\n' \
+    "$service" "$state" "${local_ports[$service]}" "${remote_hosts[$service]}" \
+    "${remote_ports[$service]}" "${ssh_targets[$service]}"
+}
+
+run_all() {
+  local operation=$1 service rc=0
+  for service in "${services[@]}"; do
+    if ! "${operation}_service" "$service"; then
+      rc=1
+    fi
+  done
+  return "$rc"
+}
+
+list_services() {
+  local service
+  for service in "${services[@]}"; do
+    printf '%-16s localhost:%s -> %s:%s via %s\n' \
+      "$service" "${local_ports[$service]}" "${remote_hosts[$service]}" \
+      "${remote_ports[$service]}" "${ssh_targets[$service]}"
+  done
+  if [[ -r $config_file ]]; then
+    printf 'config: %s\n' "$config_file"
+  else
+    printf 'config: %s (optional, not present)\n' "$config_file"
+  fi
+}
+
+attach_service() {
+  local service=$1 session
+  require_service "$service"
+  session=$(session_name "$service")
+  tmux has-session -t "$session" 2>/dev/null || die "$service is not running"
+  exec tmux attach-session -t "$session"
+}
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  starintel-tunnel                  Start all configured tunnels
+  starintel-tunnel <service|all>    Start one service or all services
+  starintel-tunnel start [target]   Start target (default: all)
+  starintel-tunnel stop [target]    Stop target (default: all)
+  starintel-tunnel restart [target] Restart target (default: all)
+  starintel-tunnel status [target]  Show tunnel status (default: all)
+  starintel-tunnel attach <service> Attach to a service's tmux session
+  starintel-tunnel list             List configured services
+
+Config format (~/.config/starintel/tunnels.conf by default):
+  NAME LOCAL_PORT REMOTE_HOST REMOTE_PORT [SSH_TARGET]
+
+Built-ins: couchdb, rabbitmq-ui, rabbitmq-amqp, valkey.
+A config entry with the same NAME overrides a built-in; new names extend `all`.
+USAGE
+}
+
+load_defaults
+load_config
+
+command=${1:-start}
+target=${2:-all}
+
+case $command in
+  -h|--help|help)
+    usage
+    ;;
+  list)
+    list_services
+    ;;
+  start|stop|restart|status)
+    require_tools
+    if [[ $target == all ]]; then
+      if [[ $command == restart ]]; then
+        run_all stop
+        run_all start
+      else
+        run_all "$command"
+      fi
+    else
+      require_service "$target"
+      if [[ $command == restart ]]; then
+        stop_service "$target"
+        start_service "$target"
+      else
+        "${command}_service" "$target"
+      fi
+    fi
+    ;;
+  attach)
+    require_tools
+    [[ $target != all ]] || die 'attach requires one service name'
+    attach_service "$target"
+    ;;
+  all)
+    require_tools
+    run_all start
+    ;;
+  *)
+    require_tools
+    require_service "$command"
+    start_service "$command"
+    ;;
+esac
+#+end_src
+
+* CouchDB compatibility command
+
+The old command remains as a compatibility shim.
+
+#+begin_src bash :tangle starintel-couchdb-tunnel
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec "$(dirname "$0")/starintel-tunnel" couchdb
+#+end_src
+
+* Example local registry
+
+#+begin_src conf :tangle ../../.config/starintel/tunnels.example.conf
+# NAME LOCAL_PORT REMOTE_HOST REMOTE_PORT [SSH_TARGET]
+# Built-ins already include CouchDB, RabbitMQ UI/AMQP, and Valkey.
+# Repeat a built-in name to override it, or add new services to extend `all`.
+#
+# api 18080 127.0.0.1 8080 starintel
+# metrics 19090 127.0.0.1 9090 starintel
+#+end_src

@@ -22,10 +22,12 @@ jobs:
       - name: Check shell scripts
         run: |
           set -euo pipefail
-          bash -n scripts/*.sh tests/home-manager-updater.sh .bash_profile .config/bash/git-sync.sh
-          shellcheck --severity=warning scripts/*.sh tests/home-manager-updater.sh .bash_profile .config/bash/git-sync.sh
+          bash -n scripts/*.sh tests/home-manager-updater.sh tests/starintel-tunnel.sh .bash_profile .config/bash/git-sync.sh .local/bin/starintel-tunnel .local/bin/starintel-couchdb-tunnel
+          shellcheck --severity=warning scripts/*.sh tests/home-manager-updater.sh tests/starintel-tunnel.sh .bash_profile .config/bash/git-sync.sh .local/bin/starintel-tunnel .local/bin/starintel-couchdb-tunnel
       - name: Run Home Manager updater recovery tests
         run: bash tests/home-manager-updater.sh
+      - name: Run StarIntel tunnel tests
+        run: bash tests/starintel-tunnel.sh
       - name: Check Qtile Python helpers
         run: >-
           python3 -m py_compile
