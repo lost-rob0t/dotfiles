@@ -1,0 +1,320 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+program="${0##*/}"
+screenshot_dir="${SCREEN_CAPTURE_SCREENSHOT_DIR:-$HOME/Pictures/screen-shots}"
+video_dir="${SCREEN_CAPTURE_VIDEO_DIR:-$HOME/Videos}"
+fps="${SCREEN_CAPTURE_FPS:-60}"
+copy_screenshots="${SCREEN_CAPTURE_COPY_SCREENSHOTS:-1}"
+copy_recording_path="${SCREEN_CAPTURE_COPY_RECORDING_PATH:-1}"
+runtime_dir="${SCREEN_CAPTURE_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-/tmp}/screen-capture-${UID}}"
+pid_file="$runtime_dir/recorder.pid"
+path_file="$runtime_dir/recorder.path"
+
+log() { printf '%s: %s\n' "$program" "$*" >&2; }
+die() { log "$*"; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+notify() { have notify-send && notify-send -a screen-capture "$1" "${2:-}" >/dev/null 2>&1 || true; }
+timestamp() { date '+%Y-%m-%d_%H-%M-%S'; }
+
+session_type() {
+    if [[ -n "${SCREEN_CAPTURE_SESSION:-}" ]]; then
+        printf '%s\n' "$SCREEN_CAPTURE_SESSION"
+    elif [[ "${XDG_SESSION_TYPE:-}" == "wayland" || ( -n "${WAYLAND_DISPLAY:-}" && -z "${DISPLAY:-}" ) ]]; then
+        printf 'wayland\n'
+    else
+        printf 'x11\n'
+    fi
+}
+
+ensure_dirs() {
+    mkdir -p -- "$screenshot_dir" "$video_dir" "$runtime_dir"
+}
+
+clean_stale_state() {
+    [[ -f "$pid_file" ]] || return 0
+    local pid
+    pid="$(<"$pid_file")"
+    if [[ ! "$pid" =~ ^[0-9]+$ ]] || ! kill -0 "$pid" 2>/dev/null; then
+        rm -f -- "$pid_file" "$path_file"
+    fi
+}
+
+active_pid() {
+    clean_stale_state
+    [[ -f "$pid_file" ]] || return 1
+    cat -- "$pid_file"
+}
+
+copy_image() {
+    [[ "$copy_screenshots" == "1" ]] || return 0
+    local file="$1"
+    case "$(session_type)" in
+        wayland)
+            have wl-copy || { log "wl-copy unavailable; screenshot saved but clipboard copy skipped"; return 0; }
+            wl-copy --type image/png < "$file"
+            ;;
+        x11)
+            have xclip || { log "xclip unavailable; screenshot saved but clipboard copy skipped"; return 0; }
+            xclip -selection clipboard -t image/png -i "$file"
+            ;;
+    esac
+}
+
+copy_text() {
+    [[ "$copy_recording_path" == "1" ]] || return 0
+    local text="$1"
+    case "$(session_type)" in
+        wayland)
+            have wl-copy || { log "wl-copy unavailable; path clipboard copy skipped"; return 0; }
+            printf '%s' "$text" | wl-copy
+            ;;
+        x11)
+            have xclip || { log "xclip unavailable; path clipboard copy skipped"; return 0; }
+            printf '%s' "$text" | xclip -selection clipboard
+            ;;
+    esac
+}
+
+screenshot_region() {
+    ensure_dirs
+    local file="$screenshot_dir/screenshot-$(timestamp).png"
+    case "$(session_type)" in
+        wayland)
+            have grim || die "grim is required for Wayland screenshots"
+            have slurp || die "slurp is required for Wayland region selection"
+            local geometry
+            geometry="$(slurp)" || exit 130
+            [[ -n "$geometry" ]] || exit 130
+            grim -g "$geometry" "$file"
+            ;;
+        x11)
+            have maim || die "maim is required for X11 screenshots"
+            maim -s "$file" || exit 130
+            ;;
+    esac
+    [[ -s "$file" ]] || die "screenshot backend did not produce $file"
+    copy_image "$file"
+    notify "Screenshot saved" "$file"
+    printf '%s\n' "$file"
+}
+
+screenshot_screen() {
+    ensure_dirs
+    local file="$screenshot_dir/screenshot-$(timestamp).png"
+    case "$(session_type)" in
+        wayland)
+            have grim || die "grim is required for Wayland screenshots"
+            grim "$file"
+            ;;
+        x11)
+            have maim || die "maim is required for X11 screenshots"
+            maim "$file"
+            ;;
+    esac
+    [[ -s "$file" ]] || die "screenshot backend did not produce $file"
+    copy_image "$file"
+    notify "Screenshot saved" "$file"
+    printf '%s\n' "$file"
+}
+
+x11_monitor_geometry() {
+    have xrandr || die "xrandr is required for X11 monitor recording"
+    have xdotool || die "xdotool is required to select the current X11 monitor"
+    local pointer_x pointer_y line geometry width height x y
+    pointer_x="$(xdotool getmouselocation --shell | awk -F= '$1 == "X" { print $2 }')"
+    pointer_y="$(xdotool getmouselocation --shell | awk -F= '$1 == "Y" { print $2 }')"
+    [[ "$pointer_x" =~ ^-?[0-9]+$ && "$pointer_y" =~ ^-?[0-9]+$ ]] || die "could not determine pointer location"
+
+    while IFS= read -r line; do
+        [[ "$line" == *" connected "* ]] || continue
+        if [[ "$line" =~ ([0-9]+)x([0-9]+)\+(-?[0-9]+)\+(-?[0-9]+) ]]; then
+            width="${BASH_REMATCH[1]}"
+            height="${BASH_REMATCH[2]}"
+            x="${BASH_REMATCH[3]}"
+            y="${BASH_REMATCH[4]}"
+            if (( pointer_x >= x && pointer_x < x + width && pointer_y >= y && pointer_y < y + height )); then
+                printf '%sx%s %s,%s\n' "$width" "$height" "$x" "$y"
+                return 0
+            fi
+        fi
+    done < <(xrandr --query)
+    die "pointer is not inside an active X11 output"
+}
+
+recording_path() {
+    local requested="${1:-}"
+    if [[ -z "$requested" ]]; then
+        requested="$video_dir/recording-$(timestamp).mp4"
+    elif [[ "$requested" != /* ]]; then
+        requested="$PWD/$requested"
+    fi
+    printf '%s\n' "$requested"
+}
+
+run_recorder() {
+    local output="$1"
+    shift
+    ensure_dirs
+    clean_stale_state
+    if active_pid >/dev/null 2>&1; then
+        die "a recording is already active (PID $(active_pid))"
+    fi
+    mkdir -p -- "$(dirname -- "$output")"
+
+    local recorder_pid=""
+    cleanup_recording() {
+        local current=""
+        [[ -f "$pid_file" ]] && current="$(<"$pid_file")"
+        if [[ -n "${recorder_pid:-}" && "$current" == "$recorder_pid" ]]; then
+            rm -f -- "$pid_file" "$path_file"
+        fi
+    }
+    forward_signal() {
+        [[ -n "${recorder_pid:-}" ]] && kill -TERM "$recorder_pid" 2>/dev/null || true
+    }
+    trap forward_signal INT TERM HUP
+    trap cleanup_recording EXIT
+
+    "$@" &
+    recorder_pid=$!
+    printf '%s\n' "$recorder_pid" > "$pid_file"
+    printf '%s\n' "$output" > "$path_file"
+    notify "Recording started" "$output"
+
+    local rc=0
+    wait "$recorder_pid" || rc=$?
+    cleanup_recording
+    trap - EXIT INT TERM HUP
+
+    if [[ -s "$output" ]]; then
+        copy_text "$output"
+        notify "Recording saved" "$output"
+        printf '%s\n' "$output"
+        return 0
+    fi
+
+    rm -f -- "$output"
+    notify "Recording failed" "Recorder exited with status $rc"
+    return "${rc:-1}"
+}
+
+record_window() {
+    local output
+    output="$(recording_path "${1:-}")"
+    case "$(session_type)" in
+        wayland)
+            have wf-recorder || die "wf-recorder is required for Wayland recording"
+            have slurp || die "slurp is required for Wayland window/area selection"
+            local geometry
+            geometry="$(slurp)" || exit 130
+            [[ -n "$geometry" ]] || exit 130
+            run_recorder "$output" wf-recorder -r "$fps" -g "$geometry" -f "$output"
+            ;;
+        x11)
+            have ffmpeg || die "ffmpeg is required for X11 recording"
+            have slop || die "slop is required for X11 window selection"
+            local window_id
+            window_id="$(slop -f '%i')" || exit 130
+            [[ "$window_id" =~ ^(0x)?[0-9a-fA-F]+$ ]] || die "invalid selected X11 window id: $window_id"
+            run_recorder "$output" ffmpeg -nostdin -hide_banner -loglevel warning -y \
+                -f x11grab -framerate "$fps" -window_id "$window_id" -i "${DISPLAY:-:0.0}" \
+                -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p "$output"
+            ;;
+    esac
+}
+
+record_screen() {
+    local output
+    output="$(recording_path "${1:-}")"
+    case "$(session_type)" in
+        wayland)
+            have wf-recorder || die "wf-recorder is required for Wayland recording"
+            have slurp || die "slurp is required to select a Wayland output"
+            local selected_output
+            selected_output="$(slurp -o -f '%o')" || exit 130
+            [[ -n "$selected_output" ]] || exit 130
+            run_recorder "$output" wf-recorder -r "$fps" -o "$selected_output" -f "$output"
+            ;;
+        x11)
+            have ffmpeg || die "ffmpeg is required for X11 recording"
+            local geometry size offset
+            geometry="$(x11_monitor_geometry)"
+            size="${geometry%% *}"
+            offset="${geometry#* }"
+            run_recorder "$output" ffmpeg -nostdin -hide_banner -loglevel warning -y \
+                -f x11grab -framerate "$fps" -video_size "$size" -i "${DISPLAY:-:0.0}+$offset" \
+                -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p "$output"
+            ;;
+    esac
+}
+
+record_ui() {
+    have emacsclient || die "emacsclient is required for the recording UI"
+    local elisp_file="${SCREEN_CAPTURE_EMACS_FILE:-$HOME/.doom.d/autoload/screen-capture.el}"
+    [[ -r "$elisp_file" ]] || die "Emacs recording UI not found: $elisp_file"
+    local escaped="${elisp_file//\\/\\\\}"
+    escaped="${escaped//\"/\\\"}"
+    emacsclient -a emacs --eval "(progn (load-file \"$escaped\") (screen-capture-record))" >/dev/null
+}
+
+stop_recording() {
+    ensure_dirs
+    local pid
+    if ! pid="$(active_pid)"; then
+        notify "No active recording" "Nothing to stop"
+        return 0
+    fi
+    kill -TERM "$pid" 2>/dev/null || {
+        clean_stale_state
+        die "recording process $pid is no longer running"
+    }
+    notify "Stopping recording" "Finalizing video"
+}
+
+status_recording() {
+    ensure_dirs
+    local pid
+    if pid="$(active_pid)"; then
+        printf 'recording\t%s\t%s\n' "$pid" "$(<"$path_file")"
+    else
+        printf 'idle\n'
+        return 1
+    fi
+}
+
+usage() {
+    cat <<'USAGE'
+Usage: screen-capture COMMAND [PATH]
+
+Commands:
+  screenshot-region       Select a region, save PNG, copy image to clipboard.
+  screenshot-screen       Save the entire desktop/screen, copy image to clipboard.
+  record-window [PATH]    Select a window/area and record it.
+  record-screen [PATH]    Record the current X11 monitor or selected Wayland output.
+  record-ui               Open the Emacs quick recording UI.
+  stop                    Gracefully stop and finalize the active recording.
+  status                  Print active recording state.
+
+Environment:
+  SCREEN_CAPTURE_SCREENSHOT_DIR
+  SCREEN_CAPTURE_VIDEO_DIR
+  SCREEN_CAPTURE_FPS
+  SCREEN_CAPTURE_COPY_SCREENSHOTS=0|1
+  SCREEN_CAPTURE_COPY_RECORDING_PATH=0|1
+  SCREEN_CAPTURE_SESSION=x11|wayland
+  SCREEN_CAPTURE_RUNTIME_DIR
+USAGE
+}
+
+case "${1:-}" in
+    screenshot-region) shift; screenshot_region "$@" ;;
+    screenshot-screen) shift; screenshot_screen "$@" ;;
+    record-window) shift; record_window "$@" ;;
+    record-screen) shift; record_screen "$@" ;;
+    record-ui) shift; record_ui "$@" ;;
+    stop) shift; stop_recording "$@" ;;
+    status) shift; status_recording "$@" ;;
+    -h|--help|help) usage ;;
+    *) usage >&2; exit 2 ;;
+esac
