@@ -131,8 +131,11 @@ def parse_token_totals(payload: dict[str, Any]) -> tuple[int, int]:
             or row.get("timestamp")
             or row.get("date")
         )
-        row_prompt = float(row.get("tokens_prompt") or 0)
-        row_completion = float(row.get("tokens_completion") or 0)
+        try:
+            row_prompt = float(row.get("tokens_prompt") or 0)
+            row_completion = float(row.get("tokens_completion") or 0)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("OpenRouter analytics token metric malformed") from exc
         signature = (bucket, row_prompt, row_completion)
         if signature in seen:
             continue
@@ -164,8 +167,11 @@ def fetch_tokens(key: str, start: datetime, end: datetime) -> tuple[int, int]:
 def fetch_balance(key: str) -> float:
     payload = _request_json("GET", "/credits", key)
     data = payload.get("data", {})
-    total = float(data.get("total_credits") or 0)
-    usage = float(data.get("total_usage") or 0)
+    try:
+        total = float(data.get("total_credits") or 0)
+        usage = float(data.get("total_usage") or 0)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("OpenRouter credit payload malformed") from exc
     return max(total - usage, 0.0)
 
 
