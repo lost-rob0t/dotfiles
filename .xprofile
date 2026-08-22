@@ -5,6 +5,37 @@ if [ -r "$hm_session_vars" ]; then
     . "$hm_session_vars"
 fi
 
-export XDG_DATA_DIRS="$HOME/.nix-profile/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+# LightDM starts Qtile outside the interactive shell. Build the desktop-entry
+# search path explicitly so j4-dmenu-desktop can see both Arch applications and
+# packages installed through legacy, modern, and multi-user Nix profiles.
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 
-systemctl --user import-environment DISPLAY XAUTHORITY PATH XDG_DATA_DIRS
+xdg_data_dirs=""
+append_xdg_data_dir() {
+    dir="$1"
+    [ -n "$dir" ] || return 0
+    case ":$xdg_data_dirs:" in
+        *":$dir:"*) return 0 ;;
+    esac
+    xdg_data_dirs="${xdg_data_dirs:+$xdg_data_dirs:}$dir"
+}
+
+append_xdg_data_dir "$HOME/.nix-profile/share"
+append_xdg_data_dir "$HOME/.local/state/nix/profiles/profile/share"
+append_xdg_data_dir "/nix/var/nix/profiles/per-user/$USER/profile/share"
+append_xdg_data_dir "/etc/profiles/per-user/$USER/share"
+
+old_ifs=$IFS
+IFS=:
+for dir in ${XDG_DATA_DIRS:-}; do
+    append_xdg_data_dir "$dir"
+done
+IFS=$old_ifs
+
+append_xdg_data_dir "/usr/local/share"
+append_xdg_data_dir "/usr/share"
+export XDG_DATA_DIRS="$xdg_data_dirs"
+unset xdg_data_dirs old_ifs dir
+
+systemctl --user import-environment \
+    DISPLAY XAUTHORITY PATH XDG_DATA_HOME XDG_DATA_DIRS
