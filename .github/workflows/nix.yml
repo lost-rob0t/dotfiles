@@ -61,6 +61,8 @@ jobs:
           name: nix-community
       - name: Evaluate flake checks without building system closures
         run: nix flake check --no-build --show-trace
+      - name: Build and test Prolog MCP package
+        run: nix build .#checks.x86_64-linux.prolog-mcp --no-link
       - name: Evaluate desktop Home Manager configuration
         run: nix eval --raw '.#homeConfigurations."unseen@desktop".activationPackage.drvPath'
       - name: Evaluate flake Home Manager configuration
