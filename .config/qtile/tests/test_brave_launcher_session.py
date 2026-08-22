@@ -16,7 +16,7 @@ QTILE_CONFIG = ROOT / ".config" / "qtile" / "config.py"
 
 
 class BraveLauncherSessionTests(unittest.TestCase):
-    def test_xprofile_preserves_arch_application_dirs_after_home_manager(self):
+    def test_xprofile_exposes_arch_and_nix_application_dirs(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
             profile_dir = home / ".nix-profile" / "etc" / "profile.d"
@@ -34,6 +34,7 @@ class BraveLauncherSessionTests(unittest.TestCase):
 
             env = os.environ.copy()
             env["HOME"] = str(home)
+            env["USER"] = "tester"
             env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
             env.pop("XDG_DATA_HOME", None)
             env.pop("XDG_DATA_DIRS", None)
@@ -56,10 +57,14 @@ class BraveLauncherSessionTests(unittest.TestCase):
 
             self.assertEqual(data_home, str(home / ".local" / "share"))
             self.assertIn(str(home / ".nix-profile" / "share"), dirs)
+            self.assertIn(str(home / ".local/state/nix/profiles/profile/share"), dirs)
+            self.assertIn("/nix/var/nix/profiles/per-user/tester/profile/share", dirs)
+            self.assertIn("/etc/profiles/per-user/tester/share", dirs)
             self.assertIn("/nix/hm/share", dirs)
             self.assertIn("/nix/default/share", dirs)
             self.assertIn("/usr/local/share", dirs)
             self.assertIn("/usr/share", dirs)
+            self.assertEqual(len(dirs), len(set(dirs)))
 
     def test_desktop_home_manager_owns_xprofile(self):
         source = DESKTOP_NIX.read_text(encoding="utf-8")
