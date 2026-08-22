@@ -5,6 +5,11 @@ if [ -r "$hm_session_vars" ]; then
     . "$hm_session_vars"
 fi
 
-export XDG_DATA_DIRS="$HOME/.nix-profile/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+# LightDM sources this file on Arch before starting Qtile. Home Manager may
+# already define XDG_DATA_DIRS, so the Arch application directories must be
+# appended unconditionally rather than supplied only as a shell fallback.
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+export XDG_DATA_DIRS="$HOME/.nix-profile/share:${XDG_DATA_DIRS:+$XDG_DATA_DIRS:}/usr/local/share:/usr/share"
 
-systemctl --user import-environment DISPLAY XAUTHORITY PATH XDG_DATA_DIRS
+systemctl --user import-environment \
+    DISPLAY XAUTHORITY PATH XDG_DATA_HOME XDG_DATA_DIRS
