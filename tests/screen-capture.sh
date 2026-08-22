@@ -51,6 +51,9 @@ cat > "$fake/ffmpeg" <<'SH'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 out="${@: -1}"
+if [[ "${SCREEN_CAPTURE_TEST_EMPTY:-0}" == "1" ]]; then
+  exit 0
+fi
 finish() {
   printf 'video' > "$out"
   exit 0
@@ -73,6 +76,13 @@ region="$($subject screenshot-region)"
 full="$($subject screenshot-screen)"
 [[ -s "$full" ]]
 [[ "$(cat "$SCREEN_CAPTURE_TEST_CLIPBOARD")" == png ]]
+
+empty="$tmp/custom/empty.mp4"
+if SCREEN_CAPTURE_TEST_EMPTY=1 "$subject" record-window "$empty"; then
+  printf 'screen-capture: empty recorder output unexpectedly succeeded\n' >&2
+  exit 1
+fi
+[[ ! -e "$empty" ]]
 
 video="$tmp/custom/final.mp4"
 $subject record-window "$video" > "$tmp/record.out" &
