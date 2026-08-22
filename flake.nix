@@ -11,6 +11,7 @@
       url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    skills.url = "github:lost-rob0t/skills";
     chatgpt-desktop = {
       url = "github:lost-rob0t/chatgpt-desktop";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -27,6 +28,7 @@
       nixpkgs,
       disko,
       home-manager,
+      skills,
       chatgpt-desktop,
       zara,
       org-vector,
