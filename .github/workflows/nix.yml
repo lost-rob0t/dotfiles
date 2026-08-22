@@ -59,6 +59,12 @@ jobs:
       - uses: cachix/cachix-action@v16
         with:
           name: nix-community
+      - name: Check flake lock is current
+        run: |
+          set -euo pipefail
+          nix flake lock
+          git diff -- flake.lock
+          git diff --exit-code -- flake.lock
       - name: Evaluate flake checks without building system closures
         run: nix flake check --no-build --show-trace
       - name: Build and test Prolog MCP package
