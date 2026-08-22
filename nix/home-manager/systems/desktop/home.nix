@@ -20,6 +20,10 @@
     enable = true;
   };
 
+  prologMcp = {
+    enable = true;
+  };
+
   proxmoxMcp = {
     enable = true;
   };
@@ -60,14 +64,14 @@
     homeDirectory = "/home/unseen";
     stateVersion = "23.11";
   };
-  # This value determines the Home Manager release that your
+  # This value determines which Home Manager release that your
   # configuration is compatible with. This helps avoid breakage
   # when a new Home Manager release introduces backwards
   # incompatible changes.
   #
   # You can update Home Manager without changing this value. See
   # the Home Manager release notes for a list of state version
-  # changes in each release.
+  # changes.
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
