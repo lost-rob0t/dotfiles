@@ -53,12 +53,31 @@ jobs:
   logos:
     needs: workflows
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
       - uses: cachix/install-nix-action@v31
       - uses: cachix/cachix-action@v16
         with:
           name: nix-community
+      - name: Refresh skills lock on PR branch
+        if: github.event_name == 'pull_request'
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          nix flake update skills
+          if ! git diff --quiet -- flake.lock; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add flake.lock
+            git commit -m 'chore(nix): update skills input'
+            git push origin "HEAD:$PR_HEAD_REF"
+            exit 1
+          fi
       - name: Check flake lock is current
         run: |
           set -euo pipefail
