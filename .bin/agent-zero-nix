@@ -4,7 +4,7 @@ set -euo pipefail
 readonly program="${0##*/}"
 readonly container_name="${A0_CONTAINER_NAME:-agent-zero}"
 readonly image="${A0_IMAGE:-agent0ai/agent-zero:latest}"
-readonly port="${A0_PORT:-50080}"
+readonly port="${A0_PORT:-5080}"
 readonly usr_volume="${A0_USR_VOLUME:-a0_v2_usr}"
 readonly nix_volume="${A0_NIX_VOLUME:-a0_nix}"
 
@@ -12,12 +12,12 @@ usage() {
   cat <<'EOF'
 Usage: agent-zero-nix
 
-Run Agent Zero with its existing persistent data volume plus a persistent Nix store.
+Recreate Agent Zero with the existing persistent data volume and persistent Nix store.
 
 Environment overrides:
   A0_CONTAINER_NAME  Container name (default: agent-zero)
   A0_IMAGE           Image (default: agent0ai/agent-zero:latest)
-  A0_PORT            Host Web UI port (default: 50080)
+  A0_PORT            Host Web UI port (default: 5080)
   A0_USR_VOLUME      /a0/usr volume (default: a0_v2_usr)
   A0_NIX_VOLUME      /nix volume (default: a0_nix)
 EOF
@@ -48,16 +48,7 @@ docker volume inspect "$usr_volume" >/dev/null 2>&1 || \
   fail "existing Agent Zero volume not found: $usr_volume"
 docker volume create "$nix_volume" >/dev/null
 
-if docker container inspect "$container_name" >/dev/null 2>&1; then
-  if [[ "$(docker inspect -f '{{.State.Running}}' "$container_name")" == "true" ]]; then
-    printf 'Agent Zero already running: http://127.0.0.1:%s\n' "$port"
-    exit 0
-  fi
-
-  docker start "$container_name" >/dev/null
-  printf 'Agent Zero started: http://127.0.0.1:%s\n' "$port"
-  exit 0
-fi
+docker rm -f "$container_name" >/dev/null 2>&1 || true
 
 docker run -d \
   --name "$container_name" \
@@ -66,6 +57,13 @@ docker run -d \
   -v "$usr_volume:/a0/usr" \
   -v "$nix_volume:/nix" \
   "$image" >/dev/null
+
+sleep 2
+if [[ "$(docker inspect -f '{{.State.Running}}' "$container_name" 2>/dev/null || true)" != "true" ]]; then
+  printf 'Agent Zero failed to stay running. Recent logs:\n' >&2
+  docker logs --tail 100 "$container_name" >&2 || true
+  exit 1
+fi
 
 printf 'Agent Zero started: http://127.0.0.1:%s\n' "$port"
 printf 'Agent Zero data: docker volume %s -> /a0/usr\n' "$usr_volume"
