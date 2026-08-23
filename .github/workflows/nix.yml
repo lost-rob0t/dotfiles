@@ -31,6 +31,11 @@ jobs:
             --eval "(require 'org)" \
             --eval "(org-babel-tangle-file \"bash.org\")"
           git diff --exit-code -- .bashrc
+      - name: Verify literate Org sources are tangled in sync
+        run: |
+          set -euo pipefail
+          scripts/check-literate-sync
+          tests/literate-sync.sh
       - name: Run Home Manager updater recovery tests
         run: bash tests/home-manager-updater.sh
       - name: Run GPT TODO bidirectional sync tests
