@@ -93,7 +93,7 @@ tangle_outputs() {
     fi
     sed -e 's/^(//' -e 's/)$//' -e 's/"//g' "$SANDBOX/outputs" |
         tr ' ' '\n' |
-        while IFS= read -r out; do
+        while IFS= read -r out || [ -n "$out" ]; do
             [ -n "$out" ] && [ "$out" != "nil" ] && printf '%s\n' "$out"
         done
 }
