@@ -8,24 +8,29 @@ import shutil
 import subprocess
 import threading
 import time
-from collections import deque
 from pathlib import Path
 
 from libqtile.config import Key
 from libqtile.lazy import lazy
 from libqtile.widget import base
 
+import openrouter_history
+
 POLL_SECONDS = 1
-GRAPH_SAMPLES = 300
-GRAPH_WIDTH = 82
+GRAPH_SAMPLES = 82
+GRAPH_WIDTH = 96
 RATE_FONTSIZE = 12
 ROTATE_SECONDS = 5
+GRAPH_RANGES = tuple(label for label, _seconds in openrouter_history.TIMEFRAMES)
 
 _poll_lock = threading.Lock()
 _last_poll_at = 0.0
 _last_payload = None
 _sync_lock = threading.Lock()
 _sync_in_progress = False
+_graph_lock = threading.Lock()
+_graph_range_index = 0
+_graph_range_changed_at = time.monotonic()
 
 
 def _color(colors, index):
@@ -82,9 +87,11 @@ def _fetch_payload(script):
         if cached:
             payload = dict(cached)
             payload["stale"] = True
+            if isinstance(payload, dict) and completed.stderr:
+                payload.setdefault("last_error", completed.stderr.strip())
             _last_payload = payload
             return payload
-        return None
+        return payload if isinstance(payload, dict) else None
 
 
 def _notify(summary, body="", urgency="normal"):
@@ -148,6 +155,26 @@ def _sync_and_reload(qtile):
     threading.Thread(target=worker, name="qtile-dotfiles-sync", daemon=True).start()
 
 
+def _rotate_graph_range(now=None):
+    global _graph_range_index, _graph_range_changed_at
+    with _graph_lock:
+        now = time.monotonic() if now is None else float(now)
+        elapsed = now - _graph_range_changed_at
+        if elapsed >= ROTATE_SECONDS:
+            steps = max(int(elapsed // ROTATE_SECONDS), 1)
+            _graph_range_index = (_graph_range_index + steps) % len(GRAPH_RANGES)
+            _graph_range_changed_at += steps * ROTATE_SECONDS
+        return GRAPH_RANGES[_graph_range_index]
+
+
+def _step_graph_range(step):
+    global _graph_range_index, _graph_range_changed_at
+    with _graph_lock:
+        _graph_range_index = (_graph_range_index + int(step)) % len(GRAPH_RANGES)
+        _graph_range_changed_at = time.monotonic()
+        return GRAPH_RANGES[_graph_range_index]
+
+
 class OpenRouterCredit(base.BackgroundPoll):
     """Display current OpenRouter account balance without blocking Qtile."""
 
@@ -186,14 +213,16 @@ class OpenRouterRate(base.BackgroundPoll):
 
     def poll(self):
         payload = _fetch_payload(self.script)
-        if not payload:
-            return f'<span foreground="{_color(self.colors, 8)}">AI offline</span>'
+        if not payload or payload.get("error"):
+            reason = (payload or {}).get("error", "offline")
+            return f'<span foreground="{_color(self.colors, 8)}">AI {reason}</span>'
         incoming = _compact_count(payload.get("input_tokens_per_minute", 0))
         outgoing = _compact_count(payload.get("output_tokens_per_minute", 0))
+        warning = " !" if payload.get("last_error") else ""
         stale = " ~" if payload.get("stale") else ""
         return (
             f'<span foreground="{_color(self.colors, 6)}">{incoming}↓/m</span>\n'
-            f'<span foreground="{_color(self.colors, 4)}">{outgoing}↑/m{stale}</span>'
+            f'<span foreground="{_color(self.colors, 4)}">{outgoing}↑/m{warning}{stale}</span>'
         )
 
 
@@ -209,18 +238,9 @@ class OpenRouterRotatingMetric(base.BackgroundPoll):
         self.index = 0
         self.last_rotate = time.monotonic()
         self.specs = (
-            (
-                ("M", "tokens_month"),
-                ("W", "tokens_week"),
-                ("D", "tokens_day"),
-                ("H", "tokens_hour"),
-            )
+            (("M", "tokens_month"), ("W", "tokens_week"), ("D", "tokens_day"), ("H", "tokens_hour"))
             if metric == "tokens"
-            else (
-                ("D", "spend_day"),
-                ("W", "spend_week"),
-                ("M", "spend_month"),
-            )
+            else (("D", "spend_day"), ("W", "spend_week"), ("M", "spend_month"))
         )
         self.icon = "" if metric == "tokens" else ""
         super().__init__(text=f"{self.icon} …", **config)
@@ -250,7 +270,7 @@ class OpenRouterRotatingMetric(base.BackgroundPoll):
         color_index = (4, 6, 3, 7)[self.index % 4]
         color = _color(self.colors, color_index)
         if value is None:
-            rendered = "—"
+            rendered = "!" if payload.get("usage_error") else "—"
         elif self.metric == "tokens":
             rendered = _compact_count(value)
         else:
@@ -258,13 +278,36 @@ class OpenRouterRotatingMetric(base.BackgroundPoll):
         return f'<span foreground="{color}">{self.icon} {label} {rendered}</span>'
 
 
+class OpenRouterGraphRange(base.BackgroundPoll):
+    """Visible controller for the persistent graph range."""
+
+    orientations = base.ORIENTATION_HORIZONTAL
+
+    def __init__(self, colors, **config):
+        self.colors = colors
+        super().__init__(text="󰓅 1m", **config)
+        self.add_callbacks({"Button1": self.next, "Button4": self.previous, "Button5": self.next})
+
+    def previous(self):
+        _step_graph_range(-1)
+        self.tick()
+
+    def next(self):
+        _step_graph_range(1)
+        self.tick()
+
+    def poll(self):
+        label = _rotate_graph_range()
+        return f'<span foreground="{_color(self.colors, 3)}">󰓅 {label}</span>'
+
+
 class OpenRouterIOGraph(base._Widget):
-    """Sparkline of trusted input/output token-rate samples."""
+    """Persistent input/output graph with one truthful shared Y scale."""
 
     orientations = base.ORIENTATION_HORIZONTAL
     defaults = [
         ("frequency", POLL_SECONDS, "Graph refresh interval in seconds."),
-        ("samples", GRAPH_SAMPLES, "Maximum number of changed samples."),
+        ("samples", GRAPH_SAMPLES, "Maximum local history points."),
         ("input_color", "#f6019d", "Prompt-token graph color."),
         ("output_color", "#2de2e6", "Completion-token graph color."),
         ("midline_color", "#92406e", "Graph center-line color."),
@@ -276,47 +319,45 @@ class OpenRouterIOGraph(base._Widget):
     def __init__(self, width=GRAPH_WIDTH, **config):
         super().__init__(width, **config)
         self.add_defaults(self.defaults)
-        self.input_values = deque(maxlen=self.samples)
-        self.output_values = deque(maxlen=self.samples)
-        self._last_sample = None
+        self.series = {"range": "1m", "start": 0, "end": 1, "ceiling": 0, "samples": []}
+        self._last_signature = None
 
     def timer_setup(self):
         self._update()
         self.timeout_add(self.frequency, self.timer_setup)
 
     def _update(self):
-        status = _read_cached_status()
-        if status:
-            sample = (
-                status.get("window_end"),
-                status.get("input_tokens_per_minute"),
-                status.get("output_tokens_per_minute"),
-            )
-            if sample != self._last_sample and sample[0] is not None:
-                self.input_values.append(float(sample[1] or 0))
-                self.output_values.append(float(sample[2] or 0))
-                self._last_sample = sample
-                self.draw()
+        label = _rotate_graph_range()
+        try:
+            series = openrouter_history.query_series(label, points=self.samples)
+        except (OSError, ValueError):
+            return
+        samples = series.get("samples", [])
+        newest = samples[-1].get("timestamp") if samples else None
+        signature = (label, len(samples), newest, series.get("ceiling"))
+        if signature != self._last_signature:
+            self.series = series
+            self._last_signature = signature
+            self.draw()
 
-    def _draw_series(self, values, color, center_y, half_height, direction):
-        if len(values) < 2:
+    def _draw_series(self, key, color, center_y, half_height, direction, ceiling):
+        samples = self.series.get("samples", [])
+        if not samples or ceiling <= 0:
             return
-        values = list(values)
-        minimum = min(values)
-        maximum = max(values)
-        if maximum <= minimum:
-            return
-        span = maximum - minimum
+        start = float(self.series.get("start", 0))
+        end = float(self.series.get("end", start + 1))
+        span = max(end - start, 1.0)
         usable_width = max(self.width - 2 * self.margin_x, 1)
-        step = usable_width / max(len(values) - 1, 1)
         self.drawer.set_source_rgb(color)
         self.drawer.ctx.set_line_width(self.line_width)
-        for index, value in enumerate(values):
-            x = self.margin_x + index * step
-            normalized = (float(value) - minimum) / span
-            distance = (0.15 + 0.85 * normalized) * half_height
-            y = center_y + direction * distance
-            if index == 0:
+        for index, sample in enumerate(samples):
+            x = self.margin_x + ((float(sample["timestamp"]) - start) / span) * usable_width
+            normalized = min(max(float(sample.get(key, 0)) / ceiling, 0.0), 1.0)
+            y = center_y + direction * normalized * half_height
+            if len(samples) == 1:
+                self.drawer.ctx.move_to(max(self.margin_x, x - 2), y)
+                self.drawer.ctx.line_to(min(self.width - self.margin_x, x + 2), y)
+            elif index == 0:
                 self.drawer.ctx.move_to(x, y)
             else:
                 self.drawer.ctx.line_to(x, y)
@@ -331,8 +372,9 @@ class OpenRouterIOGraph(base._Widget):
         self.drawer.ctx.move_to(self.margin_x, center_y)
         self.drawer.ctx.line_to(self.width - self.margin_x, center_y)
         self.drawer.ctx.stroke()
-        self._draw_series(self.input_values, self.input_color, center_y, half_height, -1)
-        self._draw_series(self.output_values, self.output_color, center_y, half_height, 1)
+        ceiling = float(self.series.get("ceiling") or 0)
+        self._draw_series("input", self.input_color, center_y, half_height, -1, ceiling)
+        self._draw_series("output", self.output_color, center_y, half_height, 1, ceiling)
         self.draw_at_default_position()
 
 
@@ -373,6 +415,7 @@ def _telemetry_widgets(home, colors):
     return [
         OpenRouterCredit(script, colors, name="openrouter_credit", **common),
         OpenRouterRate(script, colors, name="openrouter_rate", **common),
+        OpenRouterGraphRange(colors, name="openrouter_graph_range", **common),
         OpenRouterIOGraph(
             name="openrouter_io_graph",
             frequency=POLL_SECONDS,
@@ -382,12 +425,8 @@ def _telemetry_widgets(home, colors):
             midline_color=_color(colors, 2),
             background=background,
         ),
-        OpenRouterRotatingMetric(
-            script, colors, "tokens", name="openrouter_token_totals", **common
-        ),
-        OpenRouterRotatingMetric(
-            script, colors, "spend", name="openrouter_spend_totals", **common
-        ),
+        OpenRouterRotatingMetric(script, colors, "tokens", name="openrouter_token_totals", **common),
+        OpenRouterRotatingMetric(script, colors, "spend", name="openrouter_spend_totals", **common),
     ]
 
 
