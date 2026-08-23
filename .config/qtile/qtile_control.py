@@ -147,6 +147,22 @@ def visible_window_groups(groups: Iterable[Any]) -> list[Any]:
     ]
 
 
+def group_indicator_geometry(
+    offset: int | float,
+    width: int | float,
+    padding_x: int | float,
+) -> tuple[int | float, int | float]:
+    """Inset the screen indicator to the glyph area without moving its center."""
+    inset = max(float(padding_x), 0.0)
+    if float(width) <= inset * 2:
+        return offset, width
+    aligned_offset = float(offset) + inset
+    aligned_width = float(width) - inset * 2
+    if isinstance(offset, int) and isinstance(width, int) and float(padding_x).is_integer():
+        return int(aligned_offset), int(aligned_width)
+    return aligned_offset, aligned_width
+
+
 def _screen_index(screens: list[Any], screen: Any) -> int | None:
     for index, candidate in enumerate(screens):
         if candidate is screen:
@@ -414,13 +430,18 @@ def _owned_group_box(config_globals: dict[str, Any]):
                 current = self.bar.screen.group == group
                 focused = current and self.qtile.current_screen == self.bar.screen
                 width = self.box_width([group])
-                self.drawbox(
+                visual_offset, visual_width = group_indicator_geometry(
                     offset,
+                    width,
+                    self.padding_x,
+                )
+                self.drawbox(
+                    visual_offset,
                     group.label,
                     palette["white"] if current else None,
                     text_color,
                     highlight_color=[palette["deep"], owner_color],
-                    width=width,
+                    width=visual_width,
                     rounded=True,
                     block=False,
                     line=current,
