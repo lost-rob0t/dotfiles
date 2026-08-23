@@ -1,36 +1,29 @@
-#+title: Android Emacs Research Reader
+#+title: Android Emacs Profiles
 #+author: nsaspy
 #+startup: showall
 
 * Purpose
 
-The canonical Android configuration lives in =../android/= and is deliberately
-separate from the full Doom desktop configuration.
+Android has deliberately separate Emacs environments instead of loading the full desktop Doom configuration everywhere.
 
-The default native Android Emacs profile is a read-first StarIntel research
-client.  It provides:
+The lightweight native Android reader lives in =../android/= and remains a read-first StarIntel research client.  It provides research synchronization, a minimal gptel setup, touch controls, document review, and Org-roam without loading the development stack.
 
-- synchronization of every non-archived =lost-rob0t= repository whose name
-  contains =auto-research=;
-- the shared desktop gptel OpenRouter configuration and gptel personas without
-  loading the desktop agent/image/MCP stack;
-- a touch-first text toolbar;
-- an unreviewed-document dashboard sorted newest first;
-- a newest-first indexes section;
-- Org-roam through =starintel-auto-research/lisp/starintel/second-brain.el=.
+The Termux development profile lives in =../android/doom/= and is a real Doom profile with its own =config.org=.  It focuses on StarIntel administration, Org editing/agenda/TODOs, SWI-Prolog, SBCL, Nim, Python, shell workflows, and AI access.  It is launched with =emacs-termux= after running the Termux bootstrap.
 
-The old Temple Android configuration remains available through the existing
-=temple= Chemacs profile, which sets =TEMPLE_MODE=active=.  Normal Android
-sessions do not load Temple, Evil, Prolog, Magit, vterm, or other development
-packages.
+The older Temple Android configuration remains available through the existing =temple= Chemacs profile, which sets =TEMPLE_MODE=active=.
 
 * Canonical files
 
+** Lightweight native reader
 - [[file:../android/early-init.el][android/early-init.el]]
 - [[file:../android/init.el][android/init.el]]
 - [[file:../android/lisp/star-android-reader.el][android/lisp/star-android-reader.el]]
 - [[file:../android/bin/sync-auto-research][android/bin/sync-auto-research]]
 - [[file:../android/README.org][android/README.org]]
 
-Do not tangle this file into the Doom desktop =config.el=.  It documents the
-Android boundary and points at the actual standalone profile.
+** Termux Doom
+- [[file:../bootstrap-termux.org][bootstrap-termux.org]]
+- [[file:../android/doom/config.org][android/doom/config.org]]
+- [[file:../android/doom/README.org][android/doom/README.org]]
+
+Do not tangle this file into the desktop =config.el=.  It documents the Android profile boundary and points at each canonical source.
