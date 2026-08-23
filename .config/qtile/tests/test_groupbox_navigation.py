@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Widget-level regression tests for OwnedGroupBox navigation.
+"""Widget-level regression tests for OwnedGroupBox navigation and geometry.
 
 The libqtile stub's GroupBox base carries the verbatim Qtile 0.33.0
 next_group/prev_group implementation, which spins forever when
@@ -253,6 +253,14 @@ class OwnedGroupBoxNavigationTests(unittest.TestCase):
         sentinel = object()
         self.assertIs(MODULE.next_visible_group([sentinel], sentinel), sentinel)
         self.assertIs(MODULE.next_visible_group([sentinel], object()), sentinel)
+
+    def test_group_indicator_insets_padding_without_moving_center(self):
+        offset, width = MODULE.group_indicator_geometry(100, 32, 6)
+        self.assertEqual((offset, width), (106, 20))
+        self.assertEqual(100 + 32 / 2, offset + width / 2)
+
+    def test_group_indicator_does_not_collapse_tiny_boxes(self):
+        self.assertEqual(MODULE.group_indicator_geometry(5, 8, 6), (5, 8))
 
 
 if __name__ == "__main__":
