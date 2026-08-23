@@ -60,6 +60,12 @@ class OpenRouterWidgetStructureTests(unittest.TestCase):
         self.assertNotIn("self.input_values", SOURCE_TEXT)
         self.assertNotIn("self.output_values", SOURCE_TEXT)
 
+    def test_graph_history_query_runs_off_qtile_event_loop(self):
+        self.assertIn("self._query_running", SOURCE_TEXT)
+        self.assertIn('name="qtile-openrouter-graph"', SOURCE_TEXT)
+        self.assertIn("self.qtile.call_soon_threadsafe(apply)", SOURCE_TEXT)
+        self.assertIn("daemon=True", SOURCE_TEXT)
+
     def test_graph_has_one_shared_scale_and_does_not_hide_flat_series(self):
         self.assertIn('ceiling = float(self.series.get("ceiling") or 0)', SOURCE_TEXT)
         self.assertIn('_draw_series("input"', SOURCE_TEXT)
@@ -70,6 +76,11 @@ class OpenRouterWidgetStructureTests(unittest.TestCase):
     def test_rate_poll_respects_status_cache(self):
         self.assertIn('["python3", script, "--json"]', SOURCE_TEXT)
         self.assertNotIn('"--force"', SOURCE_TEXT)
+
+    def test_provider_errors_are_cached_for_one_poll_window(self):
+        self.assertIn("if isinstance(payload, dict):", SOURCE_TEXT)
+        self.assertIn("_last_payload = payload", SOURCE_TEXT)
+        self.assertIn("five widgets should not fan out five failing subprocesses", SOURCE_TEXT)
 
     def test_collector_errors_are_visible(self):
         self.assertIn('payload.get("last_error")', SOURCE_TEXT)
