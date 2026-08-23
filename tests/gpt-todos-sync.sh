@@ -38,19 +38,34 @@ run_sync() {
     bash "$SYNC"
 }
 
+# Initial remote state is restored into the complete local agenda tree.
 run_sync
 cmp "$ORG/shared.org" "$SEED/agenda/shared.org"
 cmp "$ORG/remote.org" "$SEED/agenda/remote.org"
 
-printf '* TODO private-local-only\n' > "$ORG/private.org"
+# New local agenda files, including nested project files, are first-class sync
+# inputs because Emacs discovers the agenda tree recursively.
+printf '* TODO local-only\n' > "$ORG/local-only.org"
+mkdir -p "$ORG/projects/demo"
+printf '* TODO nested-local\n' > "$ORG/projects/demo/tasks.org"
 printf '* DONE shared-local\n' > "$ORG/shared.org"
 run_sync
 git -C "$SEED" pull >/dev/null 2>&1
 cmp "$ORG/shared.org" "$SEED/agenda/shared.org"
-if git -C "$SEED" ls-files --error-unmatch agenda/private.org >/dev/null 2>&1; then
-  printf 'untracked local agenda file leaked into gpt-todos\n' >&2
-  exit 1
-fi
+cmp "$ORG/local-only.org" "$SEED/agenda/local-only.org"
+cmp "$ORG/projects/demo/tasks.org" "$SEED/agenda/projects/demo/tasks.org"
+git -C "$SEED" ls-files --error-unmatch agenda/local-only.org >/dev/null
+git -C "$SEED" ls-files --error-unmatch agenda/projects/demo/tasks.org >/dev/null
+
+# A new remote nested agenda file is restored locally without flattening it.
+mkdir -p "$SEED/agenda/projects/remote"
+printf '* TODO remote-nested\n' > "$SEED/agenda/projects/remote/tasks.org"
+git -C "$SEED" add agenda/projects/remote/tasks.org
+git -C "$SEED" -c user.name=test -c user.email=test@example.invalid \
+  commit -m remote-nested >/dev/null
+git -C "$SEED" push >/dev/null 2>&1
+run_sync
+grep -q 'remote-nested' "$ORG/projects/remote/tasks.org"
 
 printf '* DONE remote-change\n' > "$SEED/agenda/remote.org"
 git -C "$SEED" add agenda/remote.org
@@ -60,6 +75,7 @@ git -C "$SEED" push >/dev/null 2>&1
 run_sync
 grep -q 'remote-change' "$ORG/remote.org"
 
+# Concurrent edits remain fail-closed.
 printf '* TODO local-conflict\n' > "$ORG/shared.org"
 git -C "$SEED" pull >/dev/null 2>&1
 printf '* TODO remote-conflict\n' > "$SEED/agenda/shared.org"
@@ -75,4 +91,4 @@ set -e
 [[ "$rc" -eq 5 ]]
 grep -q 'local-conflict' "$ORG/shared.org"
 
-printf 'gpt-todos bidirectional sync tests passed\n'
+printf 'gpt-todos recursive agenda sync tests passed\n'
