@@ -21,11 +21,19 @@ def assigned_constant(name):
     raise AssertionError(f"missing constant {name}")
 
 
+def function_source(name):
+    for node in TREE.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == name:
+            return ast.get_source_segment(SOURCE_TEXT, node) or ""
+    raise AssertionError(f"missing function {name}")
+
+
 class OpenRouterWidgetStructureTests(unittest.TestCase):
     def test_one_second_render_poll_and_graph_point_budget(self):
         self.assertEqual(assigned_constant("POLL_SECONDS"), 1)
         self.assertEqual(assigned_constant("GRAPH_SAMPLES"), 82)
         self.assertEqual(assigned_constant("ROTATE_SECONDS"), 5)
+        self.assertGreaterEqual(assigned_constant("COLLECTOR_HEARTBEAT_STALE_SECONDS"), 15)
 
     def test_credit_rate_graph_range_graph_and_rotating_metrics_exist(self):
         classes = {node.name for node in TREE.body if isinstance(node, ast.ClassDef)}
@@ -73,14 +81,30 @@ class OpenRouterWidgetStructureTests(unittest.TestCase):
         self.assertNotIn("minimum = min(values)", SOURCE_TEXT)
         self.assertNotIn("if maximum <= minimum:", SOURCE_TEXT)
 
-    def test_rate_poll_respects_status_cache(self):
-        self.assertIn('["python3", script, "--json"]', SOURCE_TEXT)
-        self.assertNotIn('"--force"', SOURCE_TEXT)
+    def test_widget_poll_is_cache_only(self):
+        source = function_source("_fetch_payload")
+        self.assertIn("_read_cached_payload()", source)
+        self.assertNotIn("subprocess.run", source)
+        self.assertNotIn("subprocess.Popen", source)
+        self.assertNotIn("--json", source)
+        self.assertNotIn("--force", source)
 
-    def test_provider_errors_are_cached_for_one_poll_window(self):
-        self.assertIn("if isinstance(payload, dict):", SOURCE_TEXT)
-        self.assertIn("_last_payload = payload", SOURCE_TEXT)
-        self.assertIn("five widgets should not fan out five failing subprocesses", SOURCE_TEXT)
+    def test_qtile_directly_starts_detached_collector(self):
+        source = function_source("_start_collector")
+        self.assertIn("subprocess.Popen", source)
+        self.assertIn('"--daemon"', source)
+        self.assertIn('"--parent-pid"', source)
+        self.assertIn("str(os.getpid())", source)
+        self.assertIn("start_new_session=True", source)
+        install = function_source("install_openrouter_widget")
+        self.assertIn("_start_collector(script)", install)
+
+    def test_local_cache_surfaces_collector_errors_and_staleness(self):
+        source = function_source("_read_cached_payload")
+        self.assertIn('cache.get("collector_error")', source)
+        self.assertIn('cache.get("collector_heartbeat")', source)
+        self.assertIn('payload["stale"]', source)
+        self.assertIn('payload["last_error"]', source)
 
     def test_collector_errors_are_visible(self):
         self.assertIn('payload.get("last_error")', SOURCE_TEXT)
