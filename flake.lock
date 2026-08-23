@@ -268,11 +268,11 @@
     },
     "skills": {
       "locked": {
-        "lastModified": 1787455643,
-        "narHash": "sha256-CLTAHni9t7PC3Jub5xkLy2/ggguPgwc38PEFvlYh5H4=",
+        "lastModified": 1787526066,
+        "narHash": "sha256-B0OPErdUMAETnNjPYk5qEpDWbejnEBlglmAglmJIql8=",
         "owner": "lost-rob0t",
         "repo": "skills",
-        "rev": "b1be665e736d5071a6118758dac9ed0ae54044bf",
+        "rev": "74cf9e71ab79a569e0948a0ff46274a1d5e5c27e",
         "type": "github"
       },
       "original": {
