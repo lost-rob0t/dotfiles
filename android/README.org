@@ -1,15 +1,18 @@
-#+title: Native Android Emacs Research Reader
+#+title: Android Emacs Profiles
 
 * Scope
 
-This profile exists for reading and reviewing StarIntel Org documents on a
-phone.  It intentionally does not mirror the full desktop Doom configuration.
+Android has two intentionally separate everyday Emacs environments.
 
-Default startup loads only the built-in Org stack plus two external packages:
-=org-roam= and =gptel=.  Org-roam, the shared gptel backend configuration, and
-network synchronization remain lazy until used.
+The files directly under =android/= implement the lightweight native Android research reader.  It is optimized for reading and reviewing StarIntel Org documents on a phone and does not mirror the desktop Doom configuration.
 
-* Layout
+The Termux development environment lives under =android/doom/=.  It is a dedicated Doom profile for StarIntel administration, Org editing, agenda/TODO viewing, native Termux language tooling, and AI access.
+
+The older Temple environment remains available separately through its existing profile.
+
+* Lightweight native reader
+
+Default reader startup loads the built-in Org stack plus =org-roam= and =gptel=.  Org-roam, the shared gptel backend configuration, and network synchronization remain lazy until used.
 
 #+begin_example
 android/
@@ -17,57 +20,100 @@ android/
 ├── init.el
 ├── bin/sync-auto-research
 ├── lisp/star-android-reader.el
+├── doom/
 └── tests/star-android-reader-test.el
 #+end_example
 
-* Termux tools
+* Termux development bootstrap
 
-For a fresh Termux install, bootstrap the dotfiles, Emacs, GitHub CLI, and
-OpenCode in one shot:
+For a fresh Termux install, run:
 
 #+begin_src sh
 curl -fsSL https://raw.githubusercontent.com/lost-rob0t/dotfiles/master/bootstrap-termux.sh | bash
 #+end_src
 
-The bootstrap first performs a full Termux package upgrade because Termux is a
-rolling distribution and partial upgrades can leave native libraries ABI
-incompatible.  It then installs the native Termux tools, clones this repository
-to =~/.dotfiles=, installs =agent-zero-tunnel= into the Termux executable path,
-activates =android/= as the Emacs profile when no existing Emacs configuration
-is present, and installs OpenCode inside a Debian =proot-distro=.  A native
-Termux =opencode= wrapper enters that Debian environment while sharing the
-Termux home directory, so projects under =~= remain directly usable.
+The canonical source is =bootstrap-termux.org= at the repository root.
 
-** Agent Zero mobile tunnel
+The bootstrap:
 
-=agent-zero-tunnel= creates an SSH local forward from the phone to an Agent Zero
-Web UI running on another computer.  The default SSH target is =op= and the
-default Agent Zero port is =50080=.
+- enumerates the Android, Termux, kernel, and CPU architecture before installation;
+- performs a full Termux package upgrade;
+- installs Git, Emacs, GitHub CLI, SSH, ripgrep, fd, SQLite, SWI-Prolog, Nim, Python, compiler tools, and SBCL on supported 64-bit Android architectures;
+- clones or fast-forwards =~/.dotfiles=;
+- installs =platform-enter=, which detects the host and enters the configured PRoot guest only when Termux needs Linux/glibc compatibility;
+- installs OpenCode inside that guest and exposes =opencode= and =ai= as normal Termux commands;
+- installs Doom Emacs core under =~/.config/emacs= and uses =android/doom/= as a separate =DOOMDIR=;
+- creates =emacs-termux=, =emacsclient-termux=, and =doom-termux= launchers;
+- installs Termux:Widget shortcuts and background sync tasks;
+- keeps the lightweight native Android reader untouched.
+
+Native development tools stay native to Termux.  The PRoot guest is a compatibility boundary for tools such as OpenCode that expect a normal Linux/glibc userspace; it is not the primary Python, Lisp, Prolog, or Nim environment.
+
+Useful commands:
 
 #+begin_src sh
-agent-zero-tunnel op 50080
+platform-enter --info
+platform-enter
+emacs-termux
+doom-termux sync
+swipl
+sbcl
+nim --version
+python --version
+ai
 #+end_src
 
-Keep that Termux session running, then open the loopback URL on the phone:
+Set =AI_TOOL= to another command installed in the guest if you want =ai= to dispatch somewhere other than OpenCode.
+
+* Termux Doom
+
+The canonical phone Doom source is [[file:doom/config.org][doom/config.org]].  It tangles to =doom/init.el=, =doom/packages.el=, and =doom/config.el=.
+
+The profile focuses on:
+
+- StarIntel admin Org workspace;
+- Org editing, agenda, TODOs, habits, and Babel;
+- Common Lisp through SBCL;
+- SWI-Prolog;
+- Nim and Python editing;
+- =ob-http= for Org HTTP/admin notebooks;
+- Magit and Eshell;
+- gptel AI chat.
+
+Leader shortcuts include =SPC o A= for StarIntel admin, =SPC o a= for agenda, =SPC o t= for TODOs, and =SPC o i= for AI.
+
+* Termux:Widget
+
+Install the Termux:Widget Android plugin from the same signing/source family as your Termux app.  The bootstrap creates foreground scripts in:
 
 #+begin_example
-http://127.0.0.1:50080
+~/.shortcuts/
 #+end_example
 
-The helper binds only to =127.0.0.1= on the phone.  Override the target or ports
-without editing the script:
+and background jobs in:
 
-#+begin_src sh
-export A0_SSH_TARGET="unseen@your-host"
-export A0_REMOTE_PORT=50080
-export A0_LOCAL_PORT=50080
-agent-zero-tunnel
-#+end_src
+#+begin_example
+~/.shortcuts/tasks/
+#+end_example
 
-If =curl= or Git HTTPS fails with =CANNOT LINK EXECUTABLE= or a missing SSL
-symbol after a partial package update, repair the Termux prefix with =apt=
-before rerunning the bootstrap.  =pkg= itself depends on =curl=, so use the
-underlying package manager while =curl= is broken:
+Foreground widget entries are created for StarIntel Admin, Org Agenda, TODOs, AI, and platform diagnostics.  Background tasks update dotfiles and run the GPT TODO sync helper.  The bootstrap attempts to refresh the widget provider automatically when the plugin is already installed.
+
+* Storage and Org files
+
+The Termux Doom profile looks for Org data in this order:
+
+1. =$STAR_ORG_ROOT=;
+2. =~/Documents/Notes/org=;
+3. =~/storage/shared/Documents/Notes/org=;
+4. =~/.local/share/org=.
+
+Agenda files are refreshed recursively, preferring the =agenda/= subtree when it exists.
+
+The StarIntel admin command checks =$STARINTEL_ADMIN_ORG= first, then common locations in the Org tree and =~/src/starintel-server=.  If no admin file exists, it creates =starintel-admin.org= in the active Org root rather than failing.
+
+* Repairing a partial Termux upgrade
+
+Termux is rolling-release and partial upgrades can leave native libraries ABI-incompatible.  If =curl= or Git HTTPS fails with =CANNOT LINK EXECUTABLE= or a missing SSL symbol, repair the Termux prefix before rerunning the bootstrap:
 
 #+begin_src sh
 unset LD_LIBRARY_PATH
@@ -77,41 +123,9 @@ apt install --reinstall -y openssl libngtcp2 libcurl curl git
 hash -r
 #+end_src
 
-OpenCode currently ships Linux arm64 binaries that target glibc rather than the
-Android/Termux ABI, so the bootstrap intentionally does not install the binary
-as a native Android executable.
-
-For manual setup, use the paired native Android Emacs and Termux builds that can
-access the same Android application data.  In Termux install the command-line
-side:
-
-#+begin_src sh
-unset LD_LIBRARY_PATH
-apt update
-apt full-upgrade -y
-pkg install git gh openssh ripgrep fd sqlite curl jq gnupg
-
-gh auth login
-gh auth setup-git
-#+end_src
-
-Clone dotfiles into the Termux home:
-
-#+begin_src sh
-git clone https://github.com/lost-rob0t/dotfiles.git ~/.dotfiles
-#+end_src
-
-Point the native Emacs init directory at =~/.dotfiles/android= using the paired
-build's shared filesystem arrangement.  The profile itself uses the explicit
-Termux path =/data/data/com.termux/files/home= when available, so Git, =gh=,
-and research repositories are visible to native Emacs.
-
 * Research repositories
 
-The toolbar =Sync= action calls =bin/sync-auto-research=.  It updates the
-current dotfiles checkout and asks =gh= for every non-archived repository owned
-by =lost-rob0t= whose name contains =auto-research=.  Existing clones receive a
-fast-forward-only pull; missing repositories are cloned under:
+The lightweight reader toolbar =Sync= action calls =bin/sync-auto-research=.  It updates the current dotfiles checkout and asks =gh= for every non-archived repository owned by =lost-rob0t= whose name contains =auto-research=.  Existing clones receive a fast-forward-only pull; missing repositories are cloned under:
 
 #+begin_example
 ~/src/auto-research/
@@ -125,14 +139,9 @@ export STAR_DOTFILES_ROOT="$HOME/.dotfiles"
 export STAR_GITHUB_OWNER="lost-rob0t"
 #+end_src
 
-* Dashboard
+* Lightweight reader dashboard
 
-Startup opens =*Star Research*=.  It scans only the first 32 KiB of each Org
-file for metadata and sorts by =#+last_modified=, =#+updated=, =#+created=, or
-filesystem modification time.
-
-The first section contains documents not in a terminal reviewed state.  The
-second section contains every document under =roam/indexes/=, newest first.
+Startup opens =*Star Research*=.  It scans only the first 32 KiB of each Org file for metadata and sorts by =#+last_modified=, =#+updated=, =#+created=, or filesystem modification time.
 
 Reviewed terminal states are currently:
 
@@ -145,35 +154,24 @@ ARCHIVED
 
 * Org-roam
 
-=Roam= does not invent a second Org-roam layout.  It loads the canonical
-=starintel-auto-research/lisp/starintel/second-brain.el= and calls
-=starintel-second-brain-configure= against that repository.
+The lightweight reader's =Roam= action loads the canonical =starintel-auto-research/lisp/starintel/second-brain.el= and calls =starintel-second-brain-configure= against that repository.
 
 * GPTel
 
-=GPT= loads only the shared =lisp/llm/ai.el= backend layer and
-=lisp/llm/gptel-personas.el=.  It mirrors the desktop =ai-init.el= default of
-OpenRouter Auto Router in pure-quality mode while avoiding the desktop agent,
-image-generation, MCP, Mara, and other heavy modules.
+The lightweight reader loads only the shared =lisp/llm/ai.el= backend layer and =lisp/llm/gptel-personas.el=.  The Termux Doom profile installs gptel independently so it can be used as a development/admin client without loading the entire desktop stack.
 
-Secrets remain in the existing auth-source/OpenRouter setup.  No API keys are
-stored in the Android configuration.
+Secrets remain in the existing auth-source/OpenRouter setup.  No API keys are stored in the Android configuration.
 
 * Touch controls
 
-The native tool bar is placed at the bottom and rendered as text for reliable
-touch targets:
+The lightweight native reader keeps its bottom text toolbar:
 
 #+begin_example
 Dash   Sync   Roam   GPT   Prev   Next
 #+end_example
 
-The native modifier bar and pixel-precision scrolling are enabled when the
-running Emacs exposes them.
+The Termux Doom profile instead uses normal Doom keybindings and terminal interaction.
 
 * Temple compatibility
 
-The existing Chemacs =temple= profile sets =TEMPLE_MODE=active=.  In that mode
-=android/init.el= dispatches directly to =android/temple/init.el=.  The minimal
-research reader is therefore the normal Android default without deleting the
-older Temple environment.
+The existing Chemacs =temple= profile sets =TEMPLE_MODE=active=.  In that mode =android/init.el= dispatches directly to =android/temple/init.el=.  Neither the lightweight reader nor the Termux Doom profile removes Temple.
