@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+# check-literate-sync — verify tracked Org sources tangle to their tracked outputs.
+#
+# Invariant: for every tracked .org file that declares tangle outputs, a clean
+# batch tangle with `emacs -Q` must reproduce the committed tracked outputs
+# exactly. Any difference is literate drift.
+#
+# How it works:
+#   * discovers tracked Org files through git (ignored/untracked files are
+#     never scanned),
+#   * filters junk (*.org.old, *.org.bak, *.org~, *.org_archive, archive dirs),
+#   * skips Org files that contain no ":tangle" anywhere (documentation-only),
+#   * tangles each file inside a throwaway git worktree at HEAD so the
+#     repository is never modified,
+#   * points ~/.dotfiles at that worktree so absolute tangle targets of the
+#     form ~/.dotfiles/... are verified too,
+#   * records which Org file owns each tracked output and fails on duplicate
+#     ownership of the same tracked file,
+#   * prints the exact stale source/output relationship and a diff.
+#
+# Baseline: a tracked `.literate-sync-baseline` file at the repo root may
+# list known-drifted Org sources (one path per line, `#` comments allowed)
+# whose drift is tolerated temporarily and reported as a warning instead of
+# failing CI. Entries are removed as drift is repaired; an empty or absent
+# baseline means every drift fails. `duplicate:<output>` entries tolerate a
+# listed duplicate-ownership collision while ownership is being resolved.
+#
+# Usage: scripts/check-literate-sync
+# Environment: EMACS (default: emacs)
+# Exit codes: 0 in sync, 1 drift/ownership problem, 2 environment error.
+
+set -euo pipefail
+
+fail() {
+    printf 'check-literate-sync: %s\n' "$*" >&2
+    exit 2
+}
+
+command -v git >/dev/null 2>&1 || fail "git not found"
+EMACS=${EMACS:-emacs}
+command -v "$EMACS" >/dev/null 2>&1 || fail "emacs not found: $EMACS"
+command -v realpath >/dev/null 2>&1 || fail "realpath not found"
+
+REPO=$(git rev-parse --show-toplevel 2>/dev/null) || fail "not inside a git repository"
+HEAD_SHA=$(git rev-parse HEAD)
+
+if ! git diff --quiet HEAD 2>/dev/null || [ -n "$(git ls-files --others --exclude-standard)" ]; then
+    printf 'check-literate-sync: WARNING: working tree is dirty; checking committed HEAD (%s) only.\n' \
+        "${HEAD_SHA::7}" >&2
+fi
+
+SANDBOX=$(mktemp -d) || fail "mktemp failed"
+WORKTREE="$SANDBOX/worktree"
+cleanup() {
+    git -C "$REPO" worktree remove --force "$WORKTREE" >/dev/null 2>&1 || rm -rf "$WORKTREE"
+    rm -rf "$SANDBOX"
+}
+trap cleanup EXIT
+
+git -C "$REPO" worktree add --detach --quiet "$WORKTREE" "$HEAD_SHA" ||
+    fail "could not create temporary worktree"
+
+export HOME="$SANDBOX/home"
+mkdir -p "$HOME"
+# Absolute tangle targets like ~/.dotfiles/.config/... must land inside
+# the throwaway worktree to be verifiable.
+ln -s "$WORKTREE" "$HOME/.dotfiles"
+
+# Discover candidate Org files: tracked, not junk, and mentioning :tangle.
+mapfile -t ORGS < <(
+    git -C "$WORKTREE" ls-files -- '*.org' \
+        ':(exclude)*.org.old' ':(exclude)*.org.bak' ':(exclude)*.org~' \
+        ':(exclude)*.org_archive' \
+        ':(exclude)**/archive/**' ':(exclude)**/archives/**' |
+        while IFS= read -r org; do
+            grep -qi ':tangle' "$org" && printf '%s\n' "$org"
+        done
+)
+
+tangle_outputs() {
+    # Tangles $1 (path relative to worktree) and prints one absolute
+    # output path per line. Messages go to stderr; only the prin1'ed
+    # return value (list of tangled files) reaches stdout.
+    local org=$1 log out
+    log="$SANDBOX/tangle.log"
+    if ! "$EMACS" -Q --batch \
+        --eval "(require 'org)" \
+        --eval "(setq org-confirm-babel-evaluate nil)" \
+        --eval "(prin1 (org-babel-tangle-file \"$WORKTREE/$org\"))" \
+        >"$SANDBOX/outputs" 2>"$log"; then
+        cat "$log" >&2
+        fail "emacs failed while tangling $org"
+    fi
+    sed -e 's/^(//' -e 's/)$//' -e 's/"//g' "$SANDBOX/outputs" |
+        tr ' ' '\n' |
+        while IFS= read -r out; do
+            [ -n "$out" ] && [ "$out" != "nil" ] && printf '%s\n' "$out"
+        done
+}
+
+declare -A OWNERS
+declare -A OUTSIDE
+declare -A BASELINE_ORGS
+declare -A BASELINE_DUP
+drift=0
+duplicate=0
+baselined=0
+verified_pairs=0
+checked_orgs=0
+
+# Load the tracked baseline (one Org path per line, or duplicate:<output>).
+if [ -f "$WORKTREE/.literate-sync-baseline" ]; then
+    while IFS= read -r entry; do
+        entry=${entry%%#*}
+        entry=$(printf '%s' "$entry" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        [ -n "$entry" ] || continue
+        case "$entry" in
+            duplicate:*) BASELINE_DUP[${entry#duplicate:}]=1 ;;
+            *) BASELINE_ORGS[$entry]=1 ;;
+        esac
+    done <"$WORKTREE/.literate-sync-baseline"
+fi
+
+for org in "${ORGS[@]}"; do
+    checked_orgs=$((checked_orgs + 1))
+    outputs=$(tangle_outputs "$org")
+
+    while IFS= read -r out; do
+        [ -n "$out" ] || continue
+        resolved=$(realpath -m "$out")
+        case "$resolved" in
+            "$WORKTREE"/*)
+                rel=${resolved#"$WORKTREE"/}
+                if git -C "$WORKTREE" ls-files --error-unmatch "$rel" >/dev/null 2>&1; then
+                    OWNERS[$rel]+="${org}"$'\n'
+                    verified_pairs=$((verified_pairs + 1))
+                fi
+                ;;
+            *)
+                OUTSIDE[$org]+="$resolved"$'\n'
+                ;;
+        esac
+    done <<<"$outputs"
+
+    changed=$(git -C "$WORKTREE" status --porcelain=v1 --untracked-files=no)
+    if [ -n "$changed" ]; then
+        if [ -n "${BASELINE_ORGS[$org]:-}" ]; then
+            baselined=$((baselined + 1))
+            printf 'STALE (baselined): %s does not regenerate its committed outputs:\n' "$org"
+            while IFS= read -r line; do
+                printf '  %s\n' "${line:3}"
+            done <<<"$changed"
+            printf '  -> tolerated by .literate-sync-baseline; repair the drift and remove the entry\n'
+        else
+            drift=1
+            printf 'STALE: %s does not regenerate its committed outputs:\n' "$org"
+            while IFS= read -r line; do
+                printf '  %s\n' "${line:3}"
+            done <<<"$changed"
+            git -C "$WORKTREE" --no-pager diff
+        fi
+        git -C "$WORKTREE" checkout -- .
+    fi
+done
+
+for rel in "${!OWNERS[@]}"; do
+    owners=$(printf '%s' "${OWNERS[$rel]}" | sed '/^$/d' | sort -u)
+    count=$(printf '%s\n' "$owners" | grep -c . || true)
+    if [ "$count" -gt 1 ]; then
+        if [ -n "${BASELINE_DUP[$rel]:-}" ]; then
+            baselined=$((baselined + 1))
+            printf 'DUPLICATE OWNERSHIP (baselined): tracked %s is tangled by multiple Org sources:\n' "$rel"
+        else
+            duplicate=1
+            printf 'DUPLICATE OWNERSHIP: tracked %s is tangled by multiple Org sources:\n' "$rel"
+        fi
+        while IFS= read -r owner; do
+            printf '  - %s\n' "$owner"
+        done <<<"$owners"
+    fi
+done
+
+for org in "${!OUTSIDE[@]}"; do
+    printf 'NOTE: %s also tangles outputs outside the repository (not verified):\n' "$org"
+    printf '%s' "${OUTSIDE[$org]}" | sed '/^$/d' | sort -u | sed 's/^/  - /'
+done
+
+if [ "$drift" -eq 1 ] || [ "$duplicate" -eq 1 ]; then
+    printf 'literate sync: FAILED (%s)\n' "$HEAD_SHA" >&2
+    exit 1
+fi
+
+printf 'literate sync: OK (%d Org sources checked, %d tracked outputs verified, %d baselined issues tolerated)\n' \
+    "$checked_orgs" "$verified_pairs" "$baselined"
+exit 0
