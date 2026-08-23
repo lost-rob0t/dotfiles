@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import ast
+import calendar
 import json
 import os
 import shlex
 import subprocess
 import threading
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
@@ -35,6 +37,7 @@ WORKFLOWS_PATH = Path("~/.config/qtile/workflows.json").expanduser()
 EMACS_HELPER = Path("~/.config/qtile/qtile-desktop.el").expanduser()
 WORKFLOW_HELPER = Path("~/.config/qtile/qtile-workflow.el").expanduser()
 GPT_TODOS_SYNC = Path("~/.dotfiles/scripts/gpt-todos-sync").expanduser()
+DUNST_MENU = Path("~/.config/qtile/scripts/dunst_menu.py").expanduser()
 _group_owner_roles: dict[str, str] = {}
 _gpt_todos_sync_lock = threading.Lock()
 _gpt_todos_sync_running = False
@@ -268,6 +271,17 @@ def _notify(summary: str, body: str = "") -> None:
         pass
 
 
+def month_calendar_text(now: datetime | None = None) -> str:
+    """Return a stable monospace month calendar for Dunst."""
+    stamp = now or datetime.now()
+    return calendar.TextCalendar(firstweekday=0).formatmonth(stamp.year, stamp.month).rstrip()
+
+
+def _show_month_calendar(_qtile: Any) -> None:
+    stamp = datetime.now()
+    _notify(stamp.strftime("%B %Y"), month_calendar_text(stamp))
+
+
 def _sync_gpt_todos(_qtile: Any) -> None:
     """Run GPT TODO synchronization off the Qtile event loop."""
     global _gpt_todos_sync_running
@@ -361,6 +375,23 @@ def _emacs_frame_command(function: str, title: str) -> str:
         f"(load-file (expand-file-name {json.dumps(str(EMACS_HELPER))})) "
         f"({function}))"
     )
+    frame = f'((name . "{title}") (title . "{title}"))'
+    return " ".join(
+        [
+            "emacsclient",
+            "-c",
+            "-a",
+            "emacs",
+            "-F",
+            shlex.quote(frame),
+            "--eval",
+            shlex.quote(expression),
+        ]
+    )
+
+
+def _emacs_agenda_day_frame_command(title: str) -> str:
+    expression = "(progn (require 'org-agenda) (org-agenda-list nil (current-time) 1))"
     frame = f'((name . "{title}") (title . "{title}"))'
     return " ".join(
         [
@@ -499,6 +530,7 @@ def _base_widgets(config_globals: dict[str, Any]):
 
 def _system_telemetry(config_globals: dict[str, Any]):
     from libqtile import widget
+    from qtile_net_io import NetIOGraph
 
     palette = outrun_palette(config_globals["colors"])
     background = palette["background"]
@@ -548,25 +580,24 @@ def _system_telemetry(config_globals: dict[str, Any]):
             **graph_common,
         ),
         widget.TextBox(
-            text="󰖩",
+            text=(
+                f'󰖩 <span foreground="{palette["electric_blue"]}">↓</span>'
+                f'<span foreground="{palette["pink"]}">↑</span>'
+            ),
+            markup=True,
             font="Hack Nerd Regular",
-            foreground=palette["electric_blue"],
+            foreground=palette["white"],
             background=background,
             padding=2,
         ),
-        widget.NetGraph(
-            interface="auto",
-            bandwidth_type="down",
-            graph_color=palette["electric_blue"],
-            fill_color=palette["cyan"],
-            **graph_common,
-        ),
-        widget.NetGraph(
-            interface="auto",
-            bandwidth_type="up",
-            graph_color=palette["pink"],
-            fill_color=palette["purple"],
-            **graph_common,
+        NetIOGraph(
+            name="combined_network_io",
+            width=64,
+            frequency=1,
+            samples=60,
+            download_color=palette["electric_blue"],
+            upload_color=palette["pink"],
+            background=background,
         ),
         widget.Net(
             interface="auto",
@@ -585,10 +616,11 @@ def _notification_widget(config_globals: dict[str, Any], role: str):
     from libqtile.lazy import lazy
 
     palette = outrun_palette(config_globals["colors"])
+    script = config_globals["home"] + "/.config/qtile/scripts/dunst_menu.py"
     return widget.GenPollCommand(
         name=f"notifications_{role}",
-        cmd=["dunstctl", "count", "history"],
-        parse=lambda output: f" {output.strip() or '0'}",
+        cmd=["python3", script, "--status"],
+        parse=lambda output: output.strip() or " ?",
         update_interval=1,
         font="Hack Nerd Regular",
         fontsize=11,
@@ -596,8 +628,8 @@ def _notification_widget(config_globals: dict[str, Any], role: str):
         background=palette["background"],
         padding=3,
         mouse_callbacks={
-            "Button1": lazy.spawn("dunstctl history-pop"),
-            "Button3": lazy.spawn("dunstctl context"),
+            "Button1": lazy.spawn(f"python3 {shlex.quote(script)} --menu"),
+            "Button3": lazy.spawn("dunstctl set-paused toggle"),
             "Button4": lazy.spawn("dunstctl history-pop"),
             "Button5": lazy.spawn("dunstctl close"),
         },
@@ -671,13 +703,30 @@ def build_screen_widgets(
         # owns the single date whenever that role exists.
         show_date = role == "center"
     clock_format = "󰃭 %Y-%m-%d   %H:%M" if show_date else " %H:%M"
+    clock_callbacks = (
+        {"Button1": lazy.group["qtileControl"].dropdown_toggle("org-agenda-day")}
+        if show_date
+        else {"Button1": lazy.function(_show_month_calendar)}
+    )
+
+    def clock_widget():
+        return widget.Clock(
+            font="Hack Nerd Regular",
+            foreground=foreground,
+            background=background,
+            fontsize=12,
+            format=clock_format,
+            mouse_callbacks=clock_callbacks,
+        )
 
     if role == "center":
         items.extend(telemetry_widgets_factory(home, config_globals["colors"]))
         items.extend(_system_telemetry(config_globals))
+        if show_date:
+            # N=1 fallback: there is no left Org screen to own Pomodoro/date.
+            items.append(widget.Pomodoro(foreground=palette["pink"], background=background))
         items.extend(
             [
-                widget.Pomodoro(foreground=palette["pink"], background=background),
                 widget.TextBox(
                     name="agent_zero_button",
                     text=" A0 ",
@@ -687,13 +736,7 @@ def build_screen_widgets(
                         "Button1": lazy.group["qtileControl"].dropdown_toggle("agent-zero")
                     },
                 ),
-                widget.Clock(
-                    font="Hack Nerd Regular",
-                    foreground=foreground,
-                    background=background,
-                    fontsize=12,
-                    format=clock_format,
-                ),
+                clock_widget(),
                 widget.Volume(foreground=palette["red"], background=background),
                 widget.Systray(background=background, icon_size=20, padding=4),
             ]
@@ -740,13 +783,8 @@ def build_screen_widgets(
                         "Button1": lazy.function(_select_workflow, config_globals)
                     },
                 ),
-                widget.Clock(
-                    font="Hack Nerd Regular",
-                    foreground=foreground,
-                    background=background,
-                    fontsize=12,
-                    format=clock_format,
-                ),
+                widget.Pomodoro(foreground=palette["pink"], background=background),
+                clock_widget(),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
         )
@@ -766,26 +804,14 @@ def build_screen_widgets(
                     max_chars=80,
                     markup=False,
                 ),
-                widget.Clock(
-                    font="Hack Nerd Regular",
-                    foreground=foreground,
-                    background=background,
-                    fontsize=12,
-                    format=clock_format,
-                ),
+                clock_widget(),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
         )
     else:
         items.extend(
             [
-                widget.Clock(
-                    font="Hack Nerd Regular",
-                    foreground=foreground,
-                    background=background,
-                    fontsize=12,
-                    format=clock_format,
-                ),
+                clock_widget(),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
         )
@@ -816,6 +842,17 @@ def _install_control_scratchpad(config_globals: dict[str, Any]) -> None:
                     opacity=0.97,
                     on_focus_lost_hide=True,
                     match=Match(title="qtile-org-todos"),
+                ),
+                DropDown(
+                    "org-agenda-day",
+                    _emacs_agenda_day_frame_command("qtile-org-agenda-day"),
+                    height=0.72,
+                    width=0.62,
+                    x=0.38,
+                    y=0.02,
+                    opacity=0.97,
+                    on_focus_lost_hide=True,
+                    match=Match(title="qtile-org-agenda-day"),
                 ),
                 DropDown(
                     "agent-zero",

@@ -18,7 +18,7 @@ from libqtile.widget import base
 import openrouter_history
 
 POLL_SECONDS = 1
-GRAPH_SAMPLES = 82
+GRAPH_SAMPLES = 192
 GRAPH_WIDTH = 96
 METRIC_FONTSIZE = 12
 RATE_FONTSIZE = 10
@@ -222,6 +222,13 @@ def _graph_normalized(value, ceiling):
     return min(math.log1p(value) / math.log1p(ceiling), 1.0)
 
 
+def _bucket_bounds(sample):
+    """Return the provider bucket edges represented by one history sample."""
+    center = float(sample.get("timestamp") or 0)
+    duration = max(float(sample.get("bucket_seconds") or 1), 1.0)
+    return center - duration / 2.0, center + duration / 2.0
+
+
 class OpenRouterCredit(base.BackgroundPoll):
     """Display current OpenRouter account balance without blocking Qtile."""
 
@@ -349,7 +356,7 @@ class OpenRouterGraphRange(base.BackgroundPoll):
 
 
 class OpenRouterIOGraph(base._Widget):
-    """Persistent input/output graph with one shared logarithmic Y transform."""
+    """Persistent I/O graph with shared log scaling and truthful bucket edges."""
 
     orientations = base.ORIENTATION_HORIZONTAL
     defaults = [
@@ -424,6 +431,7 @@ class OpenRouterIOGraph(base._Widget):
         ).start()
 
     def _draw_series(self, key, color, center_y, half_height, direction, ceiling):
+        """Draw provider buckets as steps; never interpolate ramps across gaps."""
         samples = self.series.get("samples", [])
         if not samples or ceiling <= 0:
             return
@@ -433,17 +441,27 @@ class OpenRouterIOGraph(base._Widget):
         usable_width = max(self.width - 2 * self.margin_x, 1)
         self.drawer.set_source_rgb(color)
         self.drawer.ctx.set_line_width(self.line_width)
-        for index, sample in enumerate(samples):
-            x = self.margin_x + ((float(sample["timestamp"]) - start) / span) * usable_width
+        previous_end = None
+        previous_y = None
+        for sample in samples:
+            bucket_start, bucket_end = _bucket_bounds(sample)
+            clipped_start = max(bucket_start, start)
+            clipped_end = min(bucket_end, end)
+            if clipped_end <= clipped_start:
+                continue
+            x0 = self.margin_x + ((clipped_start - start) / span) * usable_width
+            x1 = self.margin_x + ((clipped_end - start) / span) * usable_width
             normalized = _graph_normalized(sample.get(key, 0), ceiling)
             y = center_y + direction * normalized * half_height
-            if len(samples) == 1:
-                self.drawer.ctx.move_to(max(self.margin_x, x - 2), y)
-                self.drawer.ctx.line_to(min(self.width - self.margin_x, x + 2), y)
-            elif index == 0:
-                self.drawer.ctx.move_to(x, y)
+            contiguous = previous_end is not None and abs(clipped_start - previous_end) <= 0.5
+            if contiguous and previous_y is not None:
+                self.drawer.ctx.move_to(x0, previous_y)
+                self.drawer.ctx.line_to(x0, y)
             else:
-                self.drawer.ctx.line_to(x, y)
+                self.drawer.ctx.move_to(x0, y)
+            self.drawer.ctx.line_to(x1, y)
+            previous_end = clipped_end
+            previous_y = y
         self.drawer.ctx.stroke()
 
     def draw(self):

@@ -107,6 +107,20 @@ class OpenRouterRangeRotationTests(unittest.TestCase):
         self.assertEqual(values, sorted(values))
         self.assertEqual(len(set(values)), len(values))
 
+    def test_bucket_bounds_preserve_provider_resolution(self):
+        self.assertEqual(
+            MODULE._bucket_bounds({"timestamp": 150.0, "bucket_seconds": 60}),
+            (120.0, 180.0),
+        )
+        self.assertEqual(
+            MODULE._bucket_bounds({"timestamp": 5_400.0, "bucket_seconds": 3_600}),
+            (3_600.0, 7_200.0),
+        )
+
+    def test_missing_bucket_duration_never_creates_zero_width_sample(self):
+        start, end = MODULE._bucket_bounds({"timestamp": 10.0, "bucket_seconds": 0})
+        self.assertGreater(end, start)
+
 
 if __name__ == "__main__":
     unittest.main()
