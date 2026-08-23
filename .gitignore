@@ -8,6 +8,8 @@ tmp/
 *.pyc
 *;;
 .config/starintel/*.ini
+.config/starintel/
+.local/bin/starintel-*
 .config/qtile/private.env
 .direnv/*
 .direnv
