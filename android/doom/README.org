@@ -1,0 +1,57 @@
+#+title: Termux Doom Profile
+#+startup: overview
+
+* Purpose
+
+This is the Android/Termux development profile.  It is separate from both the
+desktop =~/.doom.d= configuration and the lightweight =android/= research
+reader.
+
+The canonical source is [[file:config.org][config.org]].  Tangling it produces =init.el=,
+=packages.el=, and =config.el=.
+
+* Focus
+
+- StarIntel admin Org workspace;
+- Org editing, agenda, capture, and TODO viewing;
+- SWI-Prolog, SBCL, Nim, Python, and shell workflows through native Termux;
+- =ob-http= for Org HTTP/admin notebooks;
+- gptel inside Emacs;
+- OpenCode through the =ai= command and the Debian PRoot compatibility layer.
+
+* Commands
+
+#+begin_src sh
+emacs-termux
+doom-termux sync
+platform-enter --info
+platform-enter
+ai
+#+end_src
+
+=platform-enter= enumerates the host and automatically enters the configured
+Debian PRoot only on Termux.  On ordinary Linux/NixOS/WSL it executes directly
+on the current host.
+
+* Org paths
+
+The profile checks these locations in order:
+
+1. =$STAR_ORG_ROOT=;
+2. =~/Documents/Notes/org=;
+3. =~/storage/shared/Documents/Notes/org=;
+4. =~/.local/share/org=.
+
+The StarIntel admin command checks =$STARINTEL_ADMIN_ORG= first, then common
+locations under the Org root and =~/src/starintel-server=.  If none exist it
+creates =starintel-admin.org= in the selected Org root.
+
+* Termux:Widget
+
+The bootstrap creates foreground shortcuts in =~/.shortcuts= for StarIntel
+Admin, Org Agenda, TODOs, AI, and platform diagnostics.  Background sync jobs
+live in =~/.shortcuts/tasks=.
+
+The Termux:Widget Android app must be installed from the same signing/source
+family as the Termux app.  The bootstrap refreshes widgets automatically when
+the plugin is detected.
