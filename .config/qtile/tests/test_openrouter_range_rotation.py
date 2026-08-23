@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Behavioral tests for OpenRouter graph timeframe rotation."""
+"""Behavioral tests for OpenRouter graph timeframe rotation and scaling."""
 
 from __future__ import annotations
 
@@ -88,6 +88,24 @@ class OpenRouterRangeRotationTests(unittest.TestCase):
         with mock.patch.object(MODULE.time, "monotonic", return_value=223.0):
             self.assertEqual(MODULE._step_graph_range(-1), "1m")
         self.assertEqual(MODULE._graph_range_changed_at, 223.0)
+
+    def test_log_scale_keeps_zero_at_baseline_and_ceiling_at_full_height(self):
+        self.assertEqual(MODULE._graph_normalized(0, 10_000), 0.0)
+        self.assertEqual(MODULE._graph_normalized(-1, 10_000), 0.0)
+        self.assertAlmostEqual(MODULE._graph_normalized(10_000, 10_000), 1.0)
+
+    def test_log_scale_keeps_small_output_visibly_above_subpixel_linear_scale(self):
+        # 100 output vs 10k input would be 1% of half-height on a linear graph.
+        # The shared log transform keeps both on the same mathematical scale but
+        # compresses dynamic range so the smaller completion series is readable.
+        normalized = MODULE._graph_normalized(100, 10_000)
+        self.assertGreater(normalized, 0.45)
+        self.assertLess(normalized, 0.55)
+
+    def test_log_scale_is_monotonic_and_shared_for_both_series(self):
+        values = [MODULE._graph_normalized(value, 100_000) for value in (0, 10, 100, 1_000, 10_000, 100_000)]
+        self.assertEqual(values, sorted(values))
+        self.assertEqual(len(set(values)), len(values))
 
 
 if __name__ == "__main__":
