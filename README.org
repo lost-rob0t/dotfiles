@@ -9,13 +9,14 @@ In particular, keep literate Org sources and their tangled/generated outputs syn
 + [[./docs/wiki/index.org][Dotfiles wiki]]
 + [[./AGENTS.md][Agent instructions]]
 + [[./bash.org][Bash]]
-+ [[./.doom.d/config.org][Emacs config]]
++ [[./.doom.d/config.org][Desktop Emacs config]]
++ [[./bootstrap-termux.org][Termux bootstrap]]
++ [[./android/doom/config.org][Termux Doom config]]
++ [[./android/README.org][Android Emacs reader]]
 + [[./.config/qtile/qtile-ai.org][Qtile literate config]]
 + [[./.config/qtile/qtile.org][Qtile runtime notes]]
 + [[./.config/dunst/dunst.org][Dunst Config]]
 + [[./tasks.org][Todo List]]
-
-
 
 #+OWNLOADED: screenshot @ 2024-01-19 23:41:49
 [[file:desktop.png]]
@@ -33,7 +34,26 @@ Otherwise
 + curl
 
 ** Install dotfiles
-clone repo  to ~/.dotfiles and run gnu stow .
+Clone the repo to =~/.dotfiles= and run GNU Stow from the checkout.
+
+** Android / Termux
+The Termux bootstrap is platform-aware and keeps the native Android toolchain separate from the Linux compatibility guest.  It installs SWI-Prolog, SBCL on supported 64-bit Android architectures, Nim, Python, Emacs, the dedicated Termux Doom profile, OpenCode through a PRoot guest, and Termux:Widget shortcuts.
+
+#+begin_src sh
+curl -fsSL https://raw.githubusercontent.com/lost-rob0t/dotfiles/master/bootstrap-termux.sh | bash
+#+end_src
+
+Useful entry points after installation:
+
+#+begin_src sh
+platform-enter --info
+platform-enter
+emacs-termux
+doom-termux sync
+ai
+#+end_src
+
+The canonical bootstrap source is [[./bootstrap-termux.org][bootstrap-termux.org]].  The phone-specific Doom source is [[./android/doom/config.org][android/doom/config.org]].  The lightweight native Android research reader under [[./android/][android/]] remains separate.
 
 ** GPT TODO sync
 The durable task-state checkout defaults to =~/Documents/gpt-todos= and only its
@@ -77,4 +97,3 @@ Since you will be using this with your username, you will need to edit the usern
 #+begin_src shell :async :results output replace
 
 #+end_src
-
