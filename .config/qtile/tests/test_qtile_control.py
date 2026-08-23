@@ -170,10 +170,16 @@ class QtileControlTests(unittest.TestCase):
         self.assertIn('"GPT TODO sync complete"', SOURCE_TEXT)
         self.assertIn('"GPT TODO sync failed"', SOURCE_TEXT)
 
-    def test_clock_icons_and_single_full_date(self):
-        self.assertEqual(SOURCE_TEXT.count('format="󰃭 %Y-%m-%d   %H:%M"'), 1)
-        self.assertEqual(SOURCE_TEXT.count('format=" %H:%M"'), 3)
+    def test_clock_icons_and_single_date_policy(self):
+        self.assertEqual(SOURCE_TEXT.count('"󰃭 %Y-%m-%d   %H:%M"'), 1)
+        self.assertEqual(SOURCE_TEXT.count('" %H:%M"'), 1)
+        self.assertIn('clock_format = "󰃭 %Y-%m-%d   %H:%M" if show_date else " %H:%M"', SOURCE_TEXT)
         self.assertGreaterEqual(SOURCE_TEXT.count('font="Hack Nerd Regular"'), 4)
+
+    def test_generated_layout_puts_date_on_left_or_center_for_n1(self):
+        self.assertIn('date_role = "left" if any(base_role(role) == "left" for role in roles) else "center"', SOURCE_TEXT)
+        self.assertIn('show_date=base_role(role) == date_role', SOURCE_TEXT)
+        self.assertIn('show_date = role == "center"', SOURCE_TEXT)
 
     def test_agent_zero_chat_is_centered_and_todo_is_right_aligned(self):
         self.assertIn('x=0.19,\n                    y=0.04,', SOURCE_TEXT)
