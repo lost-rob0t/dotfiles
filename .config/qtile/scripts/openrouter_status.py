@@ -37,6 +37,15 @@ DEFAULT_MAX_TPM = 10_000_000
 BACKFILL_INTERVAL_SECONDS = 6 * 60 * 60
 BACKFILL_DAYS = 365
 BACKFILL_FINE_DAYS = 7
+DAEMON_POLL_SECONDS = 1.0
+DAEMON_HEARTBEAT_STALE_SECONDS = 5.0
+COLLECTOR_KEYS = (
+    "collector_pid",
+    "collector_parent_pid",
+    "collector_heartbeat",
+    "collector_error",
+    "collector_stale",
+)
 
 
 @dataclass(frozen=True)
@@ -92,8 +101,6 @@ def _management_key_file() -> Path:
 
 
 def load_management_key() -> str:
-    # OPENROUTER_API_KEY remains a compatibility fallback for users who place
-    # a management key there. Analytics itself requires management-key scope.
     for env_name in ("OPENROUTER_MANAGEMENT_KEY", "OPENROUTER_API_KEY"):
         value = os.environ.get(env_name, "").strip()
         if value:
@@ -114,7 +121,7 @@ def _request_json(
     headers = {
         "Accept": "application/json",
         "Authorization": f"Bearer {key}",
-        "User-Agent": "qtile-openrouter-status/5",
+        "User-Agent": "qtile-openrouter-status/6",
     }
     if payload is not None:
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
@@ -344,6 +351,10 @@ def _cache_path() -> Path:
     return root / "qtile" / "openrouter-status.json"
 
 
+def _daemon_lock_path() -> Path:
+    return _cache_path().with_suffix(".daemon.lock")
+
+
 def _read_cache(path: Path) -> dict[str, Any] | None:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -360,17 +371,34 @@ def _status_from_cache(cache: dict[str, Any] | None) -> Status | None:
         return None
 
 
-def _write_cache(path: Path, status: Status, *, fetched_at: float) -> None:
+def _write_document(path: Path, document: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
     temporary.write_text(
-        json.dumps(
-            {"fetched_at": fetched_at, "status": asdict(status)},
-            separators=(",", ":"),
-        ),
+        json.dumps(document, separators=(",", ":")),
         encoding="utf-8",
     )
     temporary.replace(path)
+
+
+def _write_cache(
+    path: Path,
+    status: Status,
+    *,
+    fetched_at: float,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    existing = _read_cache(path) or {}
+    document: dict[str, Any] = {
+        "fetched_at": fetched_at,
+        "status": asdict(status),
+    }
+    for key in COLLECTOR_KEYS:
+        if key in existing:
+            document[key] = existing[key]
+    if metadata:
+        document.update(metadata)
+    _write_document(path, document)
 
 
 def _iso_now(now: datetime) -> str:
@@ -558,10 +586,202 @@ def _json_payload(status: Status, stale: bool) -> dict[str, Any]:
     return payload
 
 
+def _pid_alive(pid: int | None) -> bool:
+    if not pid or pid <= 1:
+        return False
+    try:
+        os.kill(int(pid), 0)
+    except (OSError, ValueError, TypeError):
+        return False
+    return True
+
+
+def _cached_json_payload(
+    cache: dict[str, Any] | None,
+    *,
+    now: float | None = None,
+) -> dict[str, Any] | None:
+    if not cache:
+        return None
+    now = time.time() if now is None else float(now)
+    status = _status_from_cache(cache)
+    collector_error = cache.get("collector_error")
+    if status is None:
+        if collector_error:
+            return {
+                "error": str(collector_error),
+                "collector_pid": cache.get("collector_pid"),
+                "collector_parent_pid": cache.get("collector_parent_pid"),
+                "collector_heartbeat": cache.get("collector_heartbeat"),
+            }
+        return None
+
+    payload = asdict(status)
+    payload["total_tokens_per_minute"] = status.total_tokens_per_minute
+    heartbeat = float(cache.get("collector_heartbeat") or 0)
+    fetched_at = float(cache.get("fetched_at") or 0)
+    if heartbeat:
+        stale = now - heartbeat > DAEMON_HEARTBEAT_STALE_SECONDS
+    else:
+        stale = now - fetched_at > max(USAGE_REFRESH_SECONDS * 2, 90)
+    stale = bool(cache.get("collector_stale")) or stale
+    payload["stale"] = stale
+    payload["collector_pid"] = cache.get("collector_pid")
+    payload["collector_parent_pid"] = cache.get("collector_parent_pid")
+    payload["collector_heartbeat"] = cache.get("collector_heartbeat")
+    payload["collector_error"] = collector_error
+    if collector_error and not payload.get("last_error"):
+        payload["last_error"] = str(collector_error)
+    return payload
+
+
+def _collector_is_fresh(
+    cache: dict[str, Any] | None,
+    parent_pid: int,
+    *,
+    now: float | None = None,
+) -> bool:
+    if not cache:
+        return False
+    now = time.time() if now is None else float(now)
+    try:
+        pid = int(cache.get("collector_pid") or 0)
+        recorded_parent = int(cache.get("collector_parent_pid") or 0)
+        heartbeat = float(cache.get("collector_heartbeat") or 0)
+    except (TypeError, ValueError):
+        return False
+    return (
+        recorded_parent == int(parent_pid)
+        and heartbeat > 0
+        and now - heartbeat <= DAEMON_HEARTBEAT_STALE_SECONDS
+        and _pid_alive(pid)
+    )
+
+
+def _ensure_daemon(parent_pid: int, *, now: float | None = None) -> bool:
+    cache = _read_cache(_cache_path())
+    if _collector_is_fresh(cache, parent_pid, now=now):
+        return False
+    try:
+        subprocess.Popen(
+            [
+                sys.executable,
+                str(Path(__file__).resolve()),
+                "--daemon",
+                "--parent-pid",
+                str(int(parent_pid)),
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError:
+        return False
+    return True
+
+
+def _collector_metadata(
+    parent_pid: int,
+    *,
+    stale: bool,
+    error: str | None,
+) -> dict[str, Any]:
+    return {
+        "collector_pid": os.getpid(),
+        "collector_parent_pid": int(parent_pid),
+        "collector_heartbeat": time.time(),
+        "collector_error": error,
+        "collector_stale": bool(stale),
+    }
+
+
+def _publish_collector_error(parent_pid: int, error: str) -> None:
+    path = _cache_path()
+    cache = _read_cache(path) or {}
+    status = _status_from_cache(cache)
+    if status is not None:
+        status = replace(status, last_error=error)
+        _write_cache(
+            path,
+            status,
+            fetched_at=float(cache.get("fetched_at") or 0),
+            metadata=_collector_metadata(parent_pid, stale=True, error=error),
+        )
+        return
+    document = {
+        key: value
+        for key, value in cache.items()
+        if key not in COLLECTOR_KEYS
+    }
+    document.update(_collector_metadata(parent_pid, stale=True, error=error))
+    _write_document(path, document)
+
+
+def _sleep_while_parent_alive(parent_pid: int, seconds: float) -> bool:
+    deadline = time.monotonic() + max(seconds, 0)
+    while time.monotonic() < deadline:
+        if not _pid_alive(parent_pid):
+            return False
+        time.sleep(min(0.1, max(deadline - time.monotonic(), 0)))
+    return _pid_alive(parent_pid)
+
+
+def run_daemon(parent_pid: int) -> int:
+    """Run one Qtile-owned collector. Network work never occurs in widget polling."""
+    lock_path = _daemon_lock_path()
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+", encoding="utf-8") as lock:
+        try:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return 0
+        lock.seek(0)
+        lock.truncate()
+        lock.write(json.dumps({"pid": os.getpid(), "parent_pid": int(parent_pid)}))
+        lock.flush()
+
+        while _pid_alive(parent_pid):
+            try:
+                key = load_management_key()
+                if not key:
+                    raise RuntimeError("management key missing")
+                status, stale = status_with_cache(key, force=True)
+                _write_cache(
+                    _cache_path(),
+                    status,
+                    fetched_at=time.time(),
+                    metadata=_collector_metadata(parent_pid, stale=stale, error=None),
+                )
+                _launch_backfill_if_due()
+            except (RuntimeError, OSError, sqlite3.Error) as exc:
+                _publish_collector_error(parent_pid, str(exc))
+            if not _sleep_while_parent_alive(parent_pid, DAEMON_POLL_SECONDS):
+                break
+    return 0
+
+
+def _doctor_payload() -> dict[str, Any]:
+    info = _history_diagnostics()
+    info["management_key_file"] = str(_management_key_file())
+    info["management_key_available"] = bool(
+        os.environ.get("OPENROUTER_MANAGEMENT_KEY")
+        or os.environ.get("OPENROUTER_API_KEY")
+        or _management_key_file().exists()
+    )
+    cache = _read_cache(_cache_path()) or {}
+    for key in COLLECTOR_KEYS:
+        info[key] = cache.get(key)
+    info["collector_alive"] = _pid_alive(cache.get("collector_pid"))
+    return info
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--json", action="store_true", help="print machine-readable status")
-    parser.add_argument("--force", action="store_true", help="ignore the short process cache")
+    parser.add_argument("--json", action="store_true", help="print cache-only machine-readable status")
+    parser.add_argument("--force", action="store_true", help="perform a synchronous one-shot provider refresh")
+    parser.add_argument("--daemon", action="store_true", help="run the Qtile-owned background collector")
+    parser.add_argument("--parent-pid", type=int, help="owner PID for daemon lifecycle")
     parser.add_argument("--backfill", action="store_true", help="backfill persistent history and exit")
     parser.add_argument("--history", choices=tuple(history.TIMEFRAME_SECONDS), help="print a local history range and exit")
     parser.add_argument("--points", type=int, default=82, help="maximum local history points")
@@ -574,14 +794,19 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.doctor:
-            info = _history_diagnostics()
-            info["management_key_file"] = str(_management_key_file())
-            info["management_key_available"] = bool(
-                os.environ.get("OPENROUTER_MANAGEMENT_KEY")
-                or os.environ.get("OPENROUTER_API_KEY")
-                or _management_key_file().exists()
-            )
-            print(json.dumps(info, sort_keys=True))
+            print(json.dumps(_doctor_payload(), sort_keys=True))
+            return 0
+
+        if args.daemon:
+            return run_daemon(args.parent_pid or os.getppid())
+
+        if args.json and not args.force:
+            parent_pid = args.parent_pid or os.getppid()
+            _ensure_daemon(parent_pid)
+            payload = _cached_json_payload(_read_cache(_cache_path()))
+            if payload is None:
+                payload = {"error": "starting", "collector_parent_pid": parent_pid}
+            print(json.dumps(payload, sort_keys=True))
             return 0
 
         key = load_management_key()
