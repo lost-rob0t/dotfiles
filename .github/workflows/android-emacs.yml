@@ -4,8 +4,10 @@ on:
   pull_request:
     paths:
       - "android/**"
+      - "bootstrap-termux.org"
       - "bootstrap-termux.sh"
       - ".doom.d/android.org"
+      - ".emacs-profiles.el"
       - ".github/workflows/android-emacs.yml"
   push:
     branches:
@@ -13,8 +15,10 @@ on:
       - "agent/**"
     paths:
       - "android/**"
+      - "bootstrap-termux.org"
       - "bootstrap-termux.sh"
       - ".doom.d/android.org"
+      - ".emacs-profiles.el"
       - ".github/workflows/android-emacs.yml"
 
 permissions:
@@ -29,6 +33,21 @@ jobs:
       - name: Install validation tools
         run: sudo apt-get update && sudo apt-get install -y emacs-nox shellcheck
 
+      - name: Check literate generated parity
+        run: |
+          set -euo pipefail
+          emacs -Q --batch --eval '
+            (progn
+              (require (quote org))
+              (require (quote ob-tangle))
+              (org-babel-tangle-file "bootstrap-termux.org")
+              (org-babel-tangle-file "android/doom/config.org"))'
+          git diff --exit-code -- \
+            bootstrap-termux.sh \
+            android/doom/init.el \
+            android/doom/packages.el \
+            android/doom/config.el
+
       - name: Check Elisp structure
         run: |
           set -euo pipefail
@@ -37,7 +56,10 @@ jobs:
                                 "android/init.el"
                                 "android/lisp/star-android-reader.el"
                                 "android/tests/star-android-reader-test.el"
-                                "android/tests/async-compat-test.el"))
+                                "android/tests/async-compat-test.el"
+                                "android/doom/init.el"
+                                "android/doom/packages.el"
+                                "android/doom/config.el"))
               (with-temp-buffer
                 (insert-file-contents file)
                 (emacs-lisp-mode)
