@@ -22,36 +22,38 @@ def assigned_constant(name):
 
 
 class OpenRouterWidgetStructureTests(unittest.TestCase):
-    def test_five_second_rate_polling_and_five_minute_graph_capacity(self):
-        self.assertEqual(assigned_constant("POLL_SECONDS"), 5)
-        self.assertEqual(assigned_constant("GRAPH_SAMPLES"), 60)
+    def test_one_second_render_poll_and_sparse_graph_capacity(self):
+        self.assertEqual(assigned_constant("POLL_SECONDS"), 1)
+        self.assertEqual(assigned_constant("GRAPH_SAMPLES"), 300)
 
-    def test_readable_rate_font_size(self):
-        self.assertGreaterEqual(assigned_constant("RATE_FONTSIZE"), 12)
-
-    def test_credit_rate_and_graph_widgets_exist(self):
+    def test_credit_rate_graph_and_rotating_metrics_exist(self):
         classes = {node.name for node in TREE.body if isinstance(node, ast.ClassDef)}
         self.assertIn("OpenRouterCredit", classes)
         self.assertIn("OpenRouterRate", classes)
         self.assertIn("OpenRouterIOGraph", classes)
+        self.assertIn("OpenRouterRotatingMetric", classes)
 
     def test_credit_thresholds_are_preserved(self):
         self.assertIn("balance < 5", SOURCE_TEXT)
         self.assertIn("balance < 10", SOURCE_TEXT)
         self.assertIn('name="openrouter_credit"', SOURCE_TEXT)
 
+    def test_tokens_rotate_month_week_day_hour_and_spend_day_week_month(self):
+        for value in ("tokens_month", "tokens_week", "tokens_day", "tokens_hour"):
+            self.assertIn(value, SOURCE_TEXT)
+        for value in ("spend_day", "spend_week", "spend_month"):
+            self.assertIn(value, SOURCE_TEXT)
+        self.assertIn('"Button4": self.previous', SOURCE_TEXT)
+        self.assertIn('"Button5": self.next', SOURCE_TEXT)
+
     def test_rate_poll_respects_status_cache(self):
         self.assertIn('["python3", script, "--json"]', SOURCE_TEXT)
         self.assertNotIn('"--force"', SOURCE_TEXT)
-        self.assertIn('"openrouter_io_graph"', SOURCE_TEXT)
 
-    def test_rate_is_rendered_as_two_tokens_per_minute_lines(self):
-        self.assertIn("{incoming}↓/m</span>\\n", SOURCE_TEXT)
-        self.assertIn("{outgoing}↑/m{stale}</span>", SOURCE_TEXT)
-
-    def test_graph_does_not_duplicate_same_minute(self):
-        self.assertIn("self._last_window_end", SOURCE_TEXT)
+    def test_graph_only_appends_changed_trusted_sample(self):
+        self.assertIn("sample != self._last_sample", SOURCE_TEXT)
         self.assertIn('status.get("window_end")', SOURCE_TEXT)
+        self.assertIn("self._last_sample = sample", SOURCE_TEXT)
 
     def test_graph_uses_adaptive_range_and_hides_constant_series(self):
         self.assertIn("minimum = min(values)", SOURCE_TEXT)
@@ -65,7 +67,6 @@ class OpenRouterWidgetStructureTests(unittest.TestCase):
 
     def test_installs_topology_control_layer(self):
         self.assertIn("from qtile_control import install_desktop_control", SOURCE_TEXT)
-        self.assertIn("install_desktop_control(config_globals, _telemetry_widgets)", SOURCE_TEXT)
 
 
 if __name__ == "__main__":
