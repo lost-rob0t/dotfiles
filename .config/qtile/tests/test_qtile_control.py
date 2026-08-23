@@ -7,6 +7,7 @@ import importlib.util
 import tempfile
 import unittest
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1] / "qtile_control.py"
@@ -132,20 +133,31 @@ class QtileControlTests(unittest.TestCase):
         self.assertGreater(SOURCE_TEXT.index("widget.Mpris2", right), right)
         self.assertEqual(SOURCE_TEXT.count("widget.Mpris2"), 1)
 
-    def test_center_restores_system_graphs(self):
+    def test_center_has_one_combined_network_graph(self):
+        self.assertIn("from qtile_net_io import NetIOGraph", SOURCE_TEXT)
+        self.assertEqual(SOURCE_TEXT.count("NetIOGraph("), 1)
+        self.assertNotIn("widget.NetGraph(", SOURCE_TEXT)
+        self.assertIn('name="combined_network_io"', SOURCE_TEXT)
+        self.assertIn('download_color=palette["electric_blue"]', SOURCE_TEXT)
+        self.assertIn('upload_color=palette["pink"]', SOURCE_TEXT)
+        self.assertIn('format="↓{down}{down_suffix} ↑{up}{up_suffix}"', SOURCE_TEXT)
+        self.assertIn('foreground="{palette[\"electric_blue\"]}">↓', SOURCE_TEXT)
+        self.assertIn('foreground="{palette[\"pink\"]}">↑', SOURCE_TEXT)
+
+    def test_center_restores_cpu_memory_system_graphs(self):
         center = SOURCE_TEXT.index('if role == "center":')
-        right = SOURCE_TEXT.index('elif role == "left":')
-        center_text = SOURCE_TEXT[center:right]
+        left = SOURCE_TEXT.index('elif role == "left":')
+        center_text = SOURCE_TEXT[center:left]
         self.assertIn("_system_telemetry(config_globals)", center_text)
         self.assertIn("widget.CPUGraph", SOURCE_TEXT)
         self.assertIn("widget.MemoryGraph", SOURCE_TEXT)
-        self.assertGreaterEqual(SOURCE_TEXT.count("widget.NetGraph"), 2)
         self.assertIn('format="{Available: .1f}{mm} free"', SOURCE_TEXT)
-        self.assertIn('format="↓{down}{down_suffix} ↑{up}{up_suffix}"', SOURCE_TEXT)
 
     def test_exactly_one_legacy_systray_and_notifications_every_role(self):
         self.assertEqual(SOURCE_TEXT.count("widget.Systray"), 1)
-        self.assertIn('cmd=["dunstctl", "count", "history"]', SOURCE_TEXT)
+        self.assertIn('cmd=["python3", script, "--status"]', SOURCE_TEXT)
+        self.assertIn('lazy.spawn(f"python3 {shlex.quote(script)} --menu")', SOURCE_TEXT)
+        self.assertIn('lazy.spawn("dunstctl set-paused toggle")', SOURCE_TEXT)
         self.assertIn("items.append(_notification_widget(config_globals, role))", SOURCE_TEXT)
 
     def test_volume_uses_outrun_red(self):
@@ -170,20 +182,37 @@ class QtileControlTests(unittest.TestCase):
         self.assertIn('"GPT TODO sync complete"', SOURCE_TEXT)
         self.assertIn('"GPT TODO sync failed"', SOURCE_TEXT)
 
-    def test_clock_icons_and_single_date_policy(self):
+    def test_pomodoro_lives_on_left_with_n1_center_fallback(self):
+        center = SOURCE_TEXT.index('if role == "center":')
+        left = SOURCE_TEXT.index('elif role == "left":')
+        right = SOURCE_TEXT.index('elif role == "right":')
+        center_text = SOURCE_TEXT[center:left]
+        left_text = SOURCE_TEXT[left:right]
+        self.assertIn("if show_date:", center_text)
+        self.assertEqual(center_text.count("widget.Pomodoro"), 1)
+        self.assertEqual(left_text.count("widget.Pomodoro"), 1)
+        self.assertEqual(SOURCE_TEXT.count("widget.Pomodoro"), 2)
+
+    def test_clock_icons_single_date_and_click_actions(self):
         self.assertEqual(SOURCE_TEXT.count('"󰃭 %Y-%m-%d   %H:%M"'), 1)
         self.assertEqual(SOURCE_TEXT.count('" %H:%M"'), 1)
-        self.assertIn('clock_format = "󰃭 %Y-%m-%d   %H:%M" if show_date else " %H:%M"', SOURCE_TEXT)
-        self.assertGreaterEqual(SOURCE_TEXT.count('font="Hack Nerd Regular"'), 4)
+        self.assertIn('dropdown_toggle("org-agenda-day")', SOURCE_TEXT)
+        self.assertIn("lazy.function(_show_month_calendar)", SOURCE_TEXT)
+        self.assertIn("org-agenda-list nil (current-time) 1", SOURCE_TEXT)
+        expected = MODULE.month_calendar_text(datetime(2026, 8, 23, 12, 0))
+        self.assertIn("August 2026", expected)
+        self.assertIn("23", expected)
 
     def test_generated_layout_puts_date_on_left_or_center_for_n1(self):
         self.assertIn('date_role = "left" if any(base_role(role) == "left" for role in roles) else "center"', SOURCE_TEXT)
         self.assertIn('show_date=base_role(role) == date_role', SOURCE_TEXT)
         self.assertIn('show_date = role == "center"', SOURCE_TEXT)
 
-    def test_agent_zero_chat_is_centered_and_todo_is_right_aligned(self):
-        self.assertIn('x=0.19,\n                    y=0.04,', SOURCE_TEXT)
+    def test_agenda_and_todo_dropdowns_are_right_aligned(self):
+        self.assertIn('"org-agenda-day"', SOURCE_TEXT)
+        self.assertIn('x=0.38,\n                    y=0.02,', SOURCE_TEXT)
         self.assertIn('x=0.42,\n                    y=0.02,', SOURCE_TEXT)
+        self.assertIn('x=0.19,\n                    y=0.04,', SOURCE_TEXT)
         self.assertIn('qtile-workflow.el', SOURCE_TEXT)
         self.assertIn("qtile-workflow-read-right", SOURCE_TEXT)
 
