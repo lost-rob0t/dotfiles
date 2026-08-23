@@ -116,6 +116,25 @@ def outrun_palette(colors: Any) -> dict[str, str]:
     }
 
 
+def next_visible_group(groups: list[Any], current: Any, step: int = 1) -> Any | None:
+    """Return the next group after *current* that is visible, or None.
+
+    Navigation is bounded: if no group qualifies (for example an empty
+    visible set), the caller gets ``None`` instead of an infinite cycle.
+    """
+    if not groups:
+        return None
+    names = [id(group) for group in groups]
+    try:
+        index = names.index(id(current))
+    except ValueError:
+        index = None
+    if index is None:
+        return groups[0] if step > 0 else groups[-1]
+    moved = (index + step) % len(groups)
+    return groups[moved]
+
+
 def visible_window_groups(groups: Iterable[Any]) -> list[Any]:
     """Only groups with live windows belong in the bar."""
     return [
@@ -326,6 +345,20 @@ def _owned_group_box(config_globals: dict[str, Any]):
             if self.visible_groups:
                 groups = [group for group in groups if group.name in self.visible_groups]
             return groups
+
+        def next_group(self):
+            # Qtile <=0.33 next_group cycles until it finds a member of
+            # self.groups; an empty visible set would spin forever and stall
+            # the Qtile event loop. Navigate only among visible groups and
+            # never loop when nothing is visible.
+            group = next_visible_group(self.groups, self.qtile.current_group)
+            if group is not None:
+                self.go_to_group(group)
+
+        def prev_group(self):
+            group = next_visible_group(self.groups, self.qtile.current_group, step=-1)
+            if group is not None:
+                self.go_to_group(group)
 
         def setup_hooks(self):
             super().setup_hooks()
