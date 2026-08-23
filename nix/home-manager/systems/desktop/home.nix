@@ -20,6 +20,10 @@
     enable = true;
   };
 
+  screenCapture = {
+    enable = true;
+  };
+
   prologMcp = {
     enable = true;
   };

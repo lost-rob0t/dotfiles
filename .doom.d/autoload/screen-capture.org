@@ -1,0 +1,88 @@
+#+title: Screen Capture Emacs Quick UI
+#+property: header-args:emacs-lisp :tangle screen-capture.el :mkdirp yes :results none
+
+* Purpose
+This file is the canonical literate source for =screen-capture.el=. The Emacs
+layer only gathers a recording mode and output path; capture semantics and
+recorder lifecycle remain owned by the =screen-capture= command.
+
+* Quick recording UI
+#+begin_src emacs-lisp
+;;; screen-capture.el --- quick recording UI -*- lexical-binding: t; -*-
+
+(require 'subr-x)
+
+(defgroup screen-capture nil
+  "Small Emacs UI for the dotfiles screen-capture command."
+  :group 'external)
+
+(defcustom screen-capture-video-directory (expand-file-name "~/Videos/")
+  "Default directory offered for new recordings."
+  :type 'directory)
+
+(defun screen-capture--default-path ()
+  (expand-file-name
+   (format-time-string "recording-%Y-%m-%d_%H-%M-%S.mp4")
+   screen-capture-video-directory))
+
+(defun screen-capture--ui-frame ()
+  (make-frame '((name . "screen-capture")
+                (title . "Record screen")
+                (width . 72)
+                (height . 12)
+                (minibuffer . t)
+                (unsplittable . t))))
+
+(defun screen-capture--sentinel (process event)
+  (when (memq (process-status process) '(exit signal))
+    (let ((buffer (process-buffer process)))
+      (if (and (= (process-exit-status process) 0)
+               (buffer-live-p buffer))
+          (with-current-buffer buffer
+            (message "%s" (string-trim (buffer-string))))
+        (message "screen-capture: %s" (string-trim event)))
+      (when (buffer-live-p buffer)
+        (kill-buffer buffer)))))
+
+;;;###autoload
+(defun screen-capture-record (&optional mode)
+  "Prompt quickly for MODE and destination, then start recording asynchronously."
+  (interactive)
+  (let ((frame (screen-capture--ui-frame)))
+    (unwind-protect
+        (progn
+          (select-frame-set-input-focus frame)
+          (let* ((choice (or mode
+                             (completing-read "Record: " '("window" "screen")
+                                              nil t nil nil "window")))
+                 (default (screen-capture--default-path))
+                 (path (read-file-name "Save video: "
+                                       screen-capture-video-directory
+                                       default nil
+                                       (file-name-nondirectory default)))
+                 (command (pcase choice
+                            ("window" "record-window")
+                            ("screen" "record-screen")
+                            (_ (user-error "Unknown recording mode: %s" choice))))
+                 (buffer (generate-new-buffer " *screen-capture*")))
+            (make-process :name "screen-capture-record"
+                          :buffer buffer
+                          :command (list "screen-capture" command path)
+                          :noquery t
+                          :sentinel #'screen-capture--sentinel)
+            (message "Recording started: %s" path)))
+      (when (frame-live-p frame)
+        (delete-frame frame)))))
+
+;;;###autoload
+(defun screen-capture-stop ()
+  "Stop and finalize the current screen recording."
+  (interactive)
+  (make-process :name "screen-capture-stop"
+                :command '("screen-capture" "stop")
+                :noquery t
+                :sentinel #'screen-capture--sentinel))
+
+(provide 'screen-capture)
+;;; screen-capture.el ends here
+#+end_src

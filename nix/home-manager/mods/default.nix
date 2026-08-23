@@ -16,6 +16,7 @@
     ./media.nix
     ./pentesting.nix
     ./llm.nix
+    ./screen-capture.nix
     ./prolog-mcp.nix
     ./proxmox-mcp.nix
     ./discord-mcp.nix
