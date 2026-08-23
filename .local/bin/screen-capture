@@ -78,7 +78,8 @@ copy_text() {
 
 screenshot_region() {
     ensure_dirs
-    local file="$screenshot_dir/screenshot-$(timestamp).png"
+    local file
+    file="$screenshot_dir/screenshot-$(timestamp).png"
     case "$(session_type)" in
         wayland)
             have grim || die "grim is required for Wayland screenshots"
@@ -101,7 +102,8 @@ screenshot_region() {
 
 screenshot_screen() {
     ensure_dirs
-    local file="$screenshot_dir/screenshot-$(timestamp).png"
+    local file
+    file="$screenshot_dir/screenshot-$(timestamp).png"
     case "$(session_type)" in
         wayland)
             have grim || die "grim is required for Wayland screenshots"
