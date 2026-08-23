@@ -62,3 +62,31 @@ When adding a configuration file to a subsystem that is already literate:
 - document the new canonical pair in this page if it is a major entry point.
 
 Do not create parallel editable Org and generated sources with unclear authority.  Future-you has enough enemies already.
+
+* Parity gate (CI-enforced)
+:PROPERTIES:
+:CUSTOM_ID: parity-gate
+:END:
+
+Canonical literate =.org= source and its tangled tracked outputs must be
+modified and committed together.  CI verifies exact parity for every
+tracked Org file with tangle outputs:
+
+- =scripts/check-literate-sync= runs a clean =emacs -Q= batch tangle of every
+  tracked Org source inside a throwaway git worktree and fails if any
+  committed generated file differs from what the Org source produces.
+- The gate also fails when two Org sources tangle the same tracked output
+  (duplicate ownership); exactly one Org file owns each generated file.
+- Locally: run =scripts/check-literate-sync= from the repository root before
+  pushing literate changes.  Fixture regression tests live in
+  =tests/literate-sync.sh= and run in CI under the step
+  "Verify literate Org sources are tangled in sync".
+
+** Temporary drift baseline
+
+=.literate-sync-baseline= at the repository root tolerates known drift while
+it is repaired (see the literate source integrity epic).  List one Org source
+path per line, or =duplicate:<output>= for a duplicate-ownership collision.
+The baseline must shrink: remove an entry in the same change that restores
+parity for that Org source.  An empty or absent baseline means every drift
+fails CI.
