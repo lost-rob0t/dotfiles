@@ -15,11 +15,10 @@ from libqtile.config import Key
 from libqtile.lazy import lazy
 from libqtile.widget import base
 
-POLL_SECONDS = 1
-GRAPH_SAMPLES = 300
-GRAPH_WIDTH = 82
+POLL_SECONDS = 5
+GRAPH_SAMPLES = 60
+GRAPH_WIDTH = 76
 RATE_FONTSIZE = 12
-ROTATE_SECONDS = 5
 
 _poll_lock = threading.Lock()
 _last_poll_at = 0.0
@@ -61,14 +60,14 @@ def _fetch_payload(script):
     global _last_payload, _last_poll_at
     with _poll_lock:
         now = time.monotonic()
-        if _last_payload is not None and now - _last_poll_at < POLL_SECONDS - 0.05:
+        if _last_payload is not None and now - _last_poll_at < POLL_SECONDS - 0.5:
             return _last_payload
         completed = subprocess.run(
             ["python3", script, "--json"],
             check=False,
             capture_output=True,
             text=True,
-            timeout=12,
+            timeout=8,
         )
         try:
             payload = json.loads(completed.stdout)
@@ -175,7 +174,7 @@ class OpenRouterCredit(base.BackgroundPoll):
 
 
 class OpenRouterRate(base.BackgroundPoll):
-    """Display the most recent trusted OpenRouter token rate."""
+    """Display the most recent complete-minute OpenRouter token rate."""
 
     orientations = base.ORIENTATION_HORIZONTAL
 
@@ -197,74 +196,13 @@ class OpenRouterRate(base.BackgroundPoll):
         )
 
 
-class OpenRouterRotatingMetric(base.BackgroundPoll):
-    """Rotate one OpenRouter metric through configured periods."""
-
-    orientations = base.ORIENTATION_HORIZONTAL
-
-    def __init__(self, script, colors, metric, **config):
-        self.script = script
-        self.colors = colors
-        self.metric = metric
-        self.index = 0
-        self.last_rotate = time.monotonic()
-        self.specs = (
-            (
-                ("M", "tokens_month"),
-                ("W", "tokens_week"),
-                ("D", "tokens_day"),
-                ("H", "tokens_hour"),
-            )
-            if metric == "tokens"
-            else (
-                ("D", "spend_day"),
-                ("W", "spend_week"),
-                ("M", "spend_month"),
-            )
-        )
-        self.icon = "" if metric == "tokens" else ""
-        super().__init__(text=f"{self.icon} …", **config)
-        self.add_callbacks({"Button4": self.previous, "Button5": self.next})
-
-    def previous(self):
-        self.index = (self.index - 1) % len(self.specs)
-        self.last_rotate = time.monotonic()
-        self.tick()
-
-    def next(self):
-        self.index = (self.index + 1) % len(self.specs)
-        self.last_rotate = time.monotonic()
-        self.tick()
-
-    def _maybe_rotate(self):
-        now = time.monotonic()
-        if now - self.last_rotate >= ROTATE_SECONDS:
-            self.index = (self.index + 1) % len(self.specs)
-            self.last_rotate = now
-
-    def poll(self):
-        self._maybe_rotate()
-        label, key = self.specs[self.index]
-        payload = _fetch_payload(self.script) or {}
-        value = payload.get(key)
-        color_index = (4, 6, 3, 7)[self.index % 4]
-        color = _color(self.colors, color_index)
-        if value is None:
-            rendered = "—"
-        elif self.metric == "tokens":
-            rendered = _compact_count(value)
-        else:
-            rendered = f"${float(value):.2f}"
-        return f'<span foreground="{color}">{self.icon} {label} {rendered}</span>'
-
-
 class OpenRouterIOGraph(base._Widget):
-    """Sparkline of trusted input/output token-rate samples."""
+    """Five-minute sparkline of trusted input/output tokens per minute."""
 
     orientations = base.ORIENTATION_HORIZONTAL
     defaults = [
         ("frequency", POLL_SECONDS, "Graph refresh interval in seconds."),
-        ("samples", GRAPH_SAMPLES, "Maximum number of changed samples."),
+        ("samples", GRAPH_SAMPLES, "Number of rate samples."),
         ("input_color", "#f6019d", "Prompt-token graph color."),
         ("output_color", "#2de2e6", "Completion-token graph color."),
         ("midline_color", "#92406e", "Graph center-line color."),
@@ -278,7 +216,7 @@ class OpenRouterIOGraph(base._Widget):
         self.add_defaults(self.defaults)
         self.input_values = deque(maxlen=self.samples)
         self.output_values = deque(maxlen=self.samples)
-        self._last_sample = None
+        self._last_window_end = None
 
     def timer_setup(self):
         self._update()
@@ -287,16 +225,12 @@ class OpenRouterIOGraph(base._Widget):
     def _update(self):
         status = _read_cached_status()
         if status:
-            sample = (
-                status.get("window_end"),
-                status.get("input_tokens_per_minute"),
-                status.get("output_tokens_per_minute"),
-            )
-            if sample != self._last_sample and sample[0] is not None:
-                self.input_values.append(float(sample[1] or 0))
-                self.output_values.append(float(sample[2] or 0))
-                self._last_sample = sample
-                self.draw()
+            window_end = status.get("window_end")
+            if window_end != self._last_window_end:
+                self.input_values.append(float(status.get("input_tokens_per_minute", 0)))
+                self.output_values.append(float(status.get("output_tokens_per_minute", 0)))
+                self._last_window_end = window_end
+        self.draw()
 
     def _draw_series(self, values, color, center_y, half_height, direction):
         if len(values) < 2:
@@ -361,18 +295,31 @@ def _install_sync_and_reload_key(config_globals):
 def _telemetry_widgets(home, colors):
     script = home + "/.config/qtile/scripts/openrouter_status.py"
     background = _color(colors, 1)
-    common = {
-        "update_interval": POLL_SECONDS,
-        "markup": True,
-        "font": "Hack Nerd Regular",
-        "fontsize": RATE_FONTSIZE,
-        "padding": 3,
-        "foreground": _color(colors, 5),
-        "background": background,
-    }
     return [
-        OpenRouterCredit(script, colors, name="openrouter_credit", **common),
-        OpenRouterRate(script, colors, name="openrouter_rate", **common),
+        OpenRouterCredit(
+            script,
+            colors,
+            name="openrouter_credit",
+            update_interval=POLL_SECONDS,
+            markup=True,
+            font="Hack Nerd Regular",
+            fontsize=RATE_FONTSIZE,
+            padding=3,
+            foreground=_color(colors, 5),
+            background=background,
+        ),
+        OpenRouterRate(
+            script,
+            colors,
+            name="openrouter_rate",
+            update_interval=POLL_SECONDS,
+            markup=True,
+            font="Hack Nerd Regular",
+            fontsize=RATE_FONTSIZE,
+            padding=3,
+            foreground=_color(colors, 5),
+            background=background,
+        ),
         OpenRouterIOGraph(
             name="openrouter_io_graph",
             frequency=POLL_SECONDS,
@@ -381,12 +328,6 @@ def _telemetry_widgets(home, colors):
             output_color=_color(colors, 4),
             midline_color=_color(colors, 2),
             background=background,
-        ),
-        OpenRouterRotatingMetric(
-            script, colors, "tokens", name="openrouter_token_totals", **common
-        ),
-        OpenRouterRotatingMetric(
-            script, colors, "spend", name="openrouter_spend_totals", **common
         ),
     ]
 

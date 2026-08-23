@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Collect trustworthy OpenRouter rate, balance, token, and spend telemetry."""
+"""Render trustworthy OpenRouter token-per-minute telemetry for the Qtile bar."""
 
 from __future__ import annotations
 
 import argparse
-import concurrent.futures
 import fcntl
 import json
 import os
@@ -19,11 +18,11 @@ from typing import Any
 
 API_BASE = "https://openrouter.ai/api/v1"
 AI_ICON = "\U000F09D1"
-
-CACHE_TTL_SECONDS = 0.75
+RED = "#dd546e"
+IO = "#f6019d"
+ACCENT = "#2de2e6"
+CACHE_TTL_SECONDS = 4
 RATE_WINDOW_SECONDS = 60
-USAGE_REFRESH_SECONDS = 30
-BALANCE_REFRESH_SECONDS = 30
 REQUEST_TIMEOUT_SECONDS = 5
 DEFAULT_MAX_TPM = 10_000_000
 
@@ -34,15 +33,6 @@ class Status:
     output_tokens_per_minute: int
     balance_usd: float | None = None
     window_end: str | None = None
-    tokens_month: int | None = None
-    tokens_week: int | None = None
-    tokens_day: int | None = None
-    tokens_hour: int | None = None
-    spend_month: float | None = None
-    spend_week: float | None = None
-    spend_day: float | None = None
-    usage_fetched_at: str | None = None
-    balance_fetched_at: str | None = None
 
     @property
     def total_tokens_per_minute(self) -> int:
@@ -61,13 +51,15 @@ def compact_count(value: int | float) -> str:
 def render(status: Status, *, stale: bool = False) -> str:
     stale_marker = " ~" if stale else ""
     return (
-        f"{AI_ICON} {compact_count(status.input_tokens_per_minute)}↓/m "
-        f"{compact_count(status.output_tokens_per_minute)}↑/m{stale_marker}"
+        f'<span foreground="{IO}">{AI_ICON} '
+        f"{compact_count(status.input_tokens_per_minute)}↓/m</span> "
+        f'<span foreground="{ACCENT}">'
+        f"{compact_count(status.output_tokens_per_minute)}↑/m{stale_marker}</span>"
     )
 
 
 def render_error(message: str) -> str:
-    return f"{AI_ICON} {message}"
+    return f'<span foreground="{RED}">{AI_ICON} {message}</span>'
 
 
 def _management_key_file() -> Path:
@@ -98,7 +90,7 @@ def _request_json(
     headers = {
         "Accept": "application/json",
         "Authorization": f"Bearer {key}",
-        "User-Agent": "qtile-openrouter-status/4",
+        "User-Agent": "qtile-openrouter-status/3",
     }
     if payload is not None:
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
@@ -119,21 +111,20 @@ def _request_json(
         raise RuntimeError("OpenRouter unavailable") from exc
 
 
-def _rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
+def parse_token_totals(payload: dict[str, Any]) -> tuple[int, int]:
     metadata = payload.get("metadata") or payload.get("data", {}).get("metadata") or {}
     if metadata.get("truncated"):
         raise RuntimeError("OpenRouter analytics result truncated")
     rows = payload.get("data", {}).get("data", [])
     if not isinstance(rows, list):
         raise RuntimeError("OpenRouter analytics rows malformed")
-    return [row for row in rows if isinstance(row, dict)]
 
-
-def parse_token_totals(payload: dict[str, Any]) -> tuple[int, int]:
     prompt = 0.0
     completion = 0.0
     seen: set[tuple[Any, ...]] = set()
-    for row in _rows(payload):
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
         bucket = (
             row.get("created_at__minute")
             or row.get("date__minute")
@@ -154,23 +145,6 @@ def parse_token_totals(payload: dict[str, Any]) -> tuple[int, int]:
     return int(round(prompt)), int(round(completion))
 
 
-def parse_usage_summary(payload: dict[str, Any]) -> tuple[int, float]:
-    tokens = 0.0
-    spend = 0.0
-    for row in _rows(payload):
-        try:
-            row_tokens = row.get("tokens_total")
-            if row_tokens is None:
-                row_tokens = float(row.get("tokens_prompt") or 0) + float(
-                    row.get("tokens_completion") or 0
-                )
-            tokens += float(row_tokens or 0)
-            spend += float(row.get("total_usage") or 0)
-        except (TypeError, ValueError) as exc:
-            raise RuntimeError("OpenRouter usage metric malformed") from exc
-    return int(round(tokens)), spend
-
-
 def _closed_minute_window(now: datetime | None = None) -> tuple[datetime, datetime]:
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     end = now.replace(second=0, microsecond=0)
@@ -188,19 +162,6 @@ def fetch_tokens(key: str, start: datetime, end: datetime) -> tuple[int, int]:
         "limit": 10,
     }
     return parse_token_totals(_request_json("POST", "/analytics/query", key, payload))
-
-
-def fetch_usage_range(key: str, start: datetime, end: datetime) -> tuple[int, float]:
-    payload = {
-        "metrics": ["tokens_total", "total_usage"],
-        "granularity": "hour",
-        "time_range": {
-            "start": start.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
-            "end": end.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
-        },
-        "limit": 1000,
-    }
-    return parse_usage_summary(_request_json("POST", "/analytics/query", key, payload))
 
 
 def fetch_balance(key: str) -> float:
@@ -228,39 +189,6 @@ def validate_rate(input_tokens: int, output_tokens: int) -> None:
     maximum = _maximum_tpm()
     if input_tokens + output_tokens > maximum:
         raise RuntimeError("implausible OpenRouter token rate")
-
-
-def period_starts(now: datetime | None = None) -> dict[str, datetime]:
-    if now is None:
-        now = datetime.now().astimezone()
-    elif now.tzinfo is None:
-        now = now.astimezone()
-    day = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    hour = now.replace(minute=0, second=0, microsecond=0)
-    week = day - timedelta(days=day.weekday())
-    month = day.replace(day=1)
-    return {"month": month, "week": week, "day": day, "hour": hour}
-
-
-def fetch_period_totals(key: str, now: datetime | None = None) -> dict[str, float | int]:
-    if now is None:
-        now = datetime.now().astimezone()
-    elif now.tzinfo is None:
-        now = now.astimezone()
-    starts = period_starts(now)
-    periods = ("month", "week", "day", "hour")
-    result: dict[str, float | int] = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(periods)) as executor:
-        futures = {
-            period: executor.submit(fetch_usage_range, key, starts[period], now)
-            for period in periods
-        }
-        for period in periods:
-            tokens, spend = futures[period].result()
-            result[f"tokens_{period}"] = tokens
-            if period != "hour":
-                result[f"spend_{period}"] = spend
-    return result
 
 
 def _cache_path() -> Path:
@@ -297,66 +225,21 @@ def _write_cache(path: Path, status: Status, *, fetched_at: float) -> None:
     temporary.replace(path)
 
 
-def _iso_now(now: datetime) -> str:
-    return now.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def _age_seconds(value: str | None, now: datetime) -> float:
-    if not value:
-        return float("inf")
-    try:
-        stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return float("inf")
-    return max((now.astimezone(timezone.utc) - stamp.astimezone(timezone.utc)).total_seconds(), 0)
-
-
 def fetch_status(key: str, previous: Status | None = None) -> Status:
-    now_utc = datetime.now(timezone.utc)
-    start, end = _closed_minute_window(now_utc)
-    window_end = end.isoformat().replace("+00:00", "Z")
-
-    input_tokens = previous.input_tokens_per_minute if previous else 0
-    output_tokens = previous.output_tokens_per_minute if previous else 0
-    if previous is None or previous.window_end != window_end:
-        input_tokens, output_tokens = fetch_tokens(key, start, end)
-        validate_rate(input_tokens, output_tokens)
-
-    values = asdict(previous) if previous else asdict(Status(input_tokens, output_tokens))
-    values.update(
+    start, end = _closed_minute_window()
+    input_tokens, output_tokens = fetch_tokens(key, start, end)
+    validate_rate(input_tokens, output_tokens)
+    balance = previous.balance_usd if previous else None
+    try:
+        balance = fetch_balance(key)
+    except RuntimeError:
+        pass
+    return Status(
         input_tokens_per_minute=input_tokens,
         output_tokens_per_minute=output_tokens,
-        window_end=window_end,
+        balance_usd=balance,
+        window_end=end.isoformat().replace("+00:00", "Z"),
     )
-
-    usage_due = (
-        previous is None
-        or _age_seconds(previous.usage_fetched_at, now_utc) >= USAGE_REFRESH_SECONDS
-    )
-    balance_due = (
-        previous is None
-        or _age_seconds(previous.balance_fetched_at, now_utc) >= BALANCE_REFRESH_SECONDS
-    )
-    if usage_due or balance_due:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            usage_future = executor.submit(fetch_period_totals, key) if usage_due else None
-            balance_future = executor.submit(fetch_balance, key) if balance_due else None
-
-            if usage_future is not None:
-                try:
-                    values.update(usage_future.result())
-                    values["usage_fetched_at"] = _iso_now(now_utc)
-                except RuntimeError:
-                    pass
-
-            if balance_future is not None:
-                try:
-                    values["balance_usd"] = balance_future.result()
-                    values["balance_fetched_at"] = _iso_now(now_utc)
-                except RuntimeError:
-                    pass
-
-    return Status(**values)
 
 
 def status_with_cache(key: str, *, force: bool = False) -> tuple[Status, bool]:
@@ -383,7 +266,7 @@ def status_with_cache(key: str, *, force: bool = False) -> tuple[Status, bool]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="print machine-readable status")
-    parser.add_argument("--force", action="store_true", help="ignore the short process cache")
+    parser.add_argument("--force", action="store_true", help="ignore the short poll cache")
     args = parser.parse_args(argv)
     try:
         key = load_management_key()
