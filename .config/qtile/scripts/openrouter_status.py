@@ -8,6 +8,7 @@ import concurrent.futures
 import fcntl
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import time
@@ -393,23 +394,27 @@ def fetch_status(key: str, previous: Status | None = None) -> Status:
 
     input_tokens = previous.input_tokens_per_minute if previous else 0
     output_tokens = previous.output_tokens_per_minute if previous else 0
+    history_error = None
     if previous is None or previous.window_end != window_end:
         input_tokens, output_tokens = fetch_tokens(key, start, end)
         validate_rate(input_tokens, output_tokens)
-        history.upsert_sample(
-            start,
-            RATE_WINDOW_SECONDS,
-            input_tokens,
-            output_tokens,
-            source="live-minute",
-        )
+        try:
+            history.upsert_sample(
+                start,
+                RATE_WINDOW_SECONDS,
+                input_tokens,
+                output_tokens,
+                source="live-minute",
+            )
+        except (OSError, sqlite3.Error) as exc:
+            history_error = f"history storage unavailable: {exc}"
 
     values = asdict(previous) if previous else asdict(Status(input_tokens, output_tokens))
     values.update(
         input_tokens_per_minute=input_tokens,
         output_tokens_per_minute=output_tokens,
         window_end=window_end,
-        last_error=None,
+        last_error=history_error,
     )
 
     usage_due = (
@@ -508,7 +513,7 @@ def backfill_history(key: str, now: datetime | None = None) -> dict[str, int]:
 def _launch_backfill_if_due() -> None:
     try:
         due = history.claim_due("backfill_last_attempt", BACKFILL_INTERVAL_SECONDS)
-    except OSError:
+    except (OSError, sqlite3.Error):
         return
     if not due:
         return
@@ -524,18 +529,32 @@ def _launch_backfill_if_due() -> None:
         pass
 
 
+def _history_diagnostics() -> dict[str, Any]:
+    try:
+        info = history.summary()
+        info["backfill_last_success"] = history.get_metadata("backfill_last_success")
+        info["history_error"] = None
+        return info
+    except (OSError, sqlite3.Error) as exc:
+        return {
+            "rows": 0,
+            "oldest": None,
+            "newest": None,
+            "backfill_last_success": None,
+            "history_error": str(exc),
+        }
+
+
 def _json_payload(status: Status, stale: bool) -> dict[str, Any]:
     payload = asdict(status)
     payload["total_tokens_per_minute"] = status.total_tokens_per_minute
     payload["stale"] = stale
-    try:
-        info = history.summary()
-    except OSError:
-        info = {"rows": 0, "oldest": None, "newest": None}
+    info = _history_diagnostics()
     payload["history_rows"] = info.get("rows", 0)
     payload["history_oldest"] = info.get("oldest")
     payload["history_newest"] = info.get("newest")
-    payload["history_backfill"] = history.get_metadata("backfill_last_success")
+    payload["history_backfill"] = info.get("backfill_last_success")
+    payload["history_error"] = info.get("history_error")
     return payload
 
 
@@ -549,23 +568,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--doctor", action="store_true", help="print local telemetry diagnostics and exit")
     args = parser.parse_args(argv)
 
-    if args.history:
-        print(json.dumps(history.query_series(args.history, points=args.points), sort_keys=True))
-        return 0
-
-    if args.doctor:
-        info = history.summary()
-        info["management_key_file"] = str(_management_key_file())
-        info["management_key_available"] = bool(
-            os.environ.get("OPENROUTER_MANAGEMENT_KEY")
-            or os.environ.get("OPENROUTER_API_KEY")
-            or _management_key_file().exists()
-        )
-        info["backfill_last_success"] = history.get_metadata("backfill_last_success")
-        print(json.dumps(info, sort_keys=True))
-        return 0
-
     try:
+        if args.history:
+            print(json.dumps(history.query_series(args.history, points=args.points), sort_keys=True))
+            return 0
+
+        if args.doctor:
+            info = _history_diagnostics()
+            info["management_key_file"] = str(_management_key_file())
+            info["management_key_available"] = bool(
+                os.environ.get("OPENROUTER_MANAGEMENT_KEY")
+                or os.environ.get("OPENROUTER_API_KEY")
+                or _management_key_file().exists()
+            )
+            print(json.dumps(info, sort_keys=True))
+            return 0
+
         key = load_management_key()
         if not key:
             raise RuntimeError("management key missing")
@@ -573,8 +591,8 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(backfill_history(key), sort_keys=True))
             return 0
         status, stale = status_with_cache(key, force=args.force)
-    except RuntimeError as exc:
-        if args.json:
+    except (RuntimeError, OSError, sqlite3.Error) as exc:
+        if args.json or args.history or args.backfill:
             print(json.dumps({"error": str(exc)}))
         else:
             short = "key?" if "key" in str(exc).lower() else "offline"
