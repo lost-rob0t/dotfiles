@@ -632,6 +632,8 @@ def build_screen_widgets(
     role: str,
     config_globals: dict[str, Any],
     telemetry_widgets_factory: Callable[[str, Any], list[Any]],
+    *,
+    show_date: bool | None = None,
 ):
     from libqtile import widget
     from libqtile.lazy import lazy
@@ -642,6 +644,12 @@ def build_screen_widgets(
     foreground = palette["white"]
     items = _base_widgets(config_globals)
     role = base_role(role)
+    if show_date is None:
+        # Compatibility fallback for direct screen_widgets() callers. The
+        # generated multi-monitor layout overrides this so the left Org screen
+        # owns the single date whenever that role exists.
+        show_date = role == "center"
+    clock_format = "󰃭 %Y-%m-%d   %H:%M" if show_date else " %H:%M"
 
     if role == "center":
         items.extend(telemetry_widgets_factory(home, config_globals["colors"]))
@@ -663,7 +671,7 @@ def build_screen_widgets(
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format="󰃭 %Y-%m-%d   %H:%M",
+                    format=clock_format,
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
                 widget.Systray(background=background, icon_size=20, padding=4),
@@ -716,7 +724,7 @@ def build_screen_widgets(
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format=" %H:%M",
+                    format=clock_format,
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
@@ -742,7 +750,7 @@ def build_screen_widgets(
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format=" %H:%M",
+                    format=clock_format,
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
@@ -755,7 +763,7 @@ def build_screen_widgets(
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format=" %H:%M",
+                    format=clock_format,
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
@@ -815,15 +823,21 @@ def install_desktop_control(
     load_private_env()
     _install_control_scratchpad(config_globals)
 
-    def screen_widgets(role: str = "center"):
-        return build_screen_widgets(role, config_globals, telemetry_widgets_factory)
+    def screen_widgets(role: str = "center", show_date: bool | None = None):
+        return build_screen_widgets(
+            role,
+            config_globals,
+            telemetry_widgets_factory,
+            show_date=show_date,
+        )
 
     def generate_screens(output_info):
         roles = screen_roles(output_info)
+        date_role = "left" if any(base_role(role) == "left" for role in roles) else "center"
         return [
             Screen(
                 top=bar.Bar(
-                    screen_widgets(role),
+                    screen_widgets(role, show_date=base_role(role) == date_role),
                     26,
                     opacity=0.8,
                 )
