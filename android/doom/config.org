@@ -78,6 +78,8 @@ UI, native Termux language tools, and gptel.
 #+begin_src emacs-lisp :tangle config.el
 ;;; config.el --- Termux Doom configuration -*- lexical-binding: t; -*-
 
+(require 'seq)
+
 (setq doom-theme 'doom-one
       display-line-numbers-type 'relative
       org-log-done 'time
