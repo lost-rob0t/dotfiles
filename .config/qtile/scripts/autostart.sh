@@ -9,7 +9,7 @@
 #   - pgrep -x matches the 15-char truncated /proc/<pid>/comm, so it cannot
 #     match long names like polkit-gnome-authentication-agent-1 and cannot
 #     distinguish multiple instances of the same binary with different
-#     arguments (e.g. the two conky configs below).
+#     arguments.
 #   - pgrep -f matches the full command line, but long-running daemons
 #     (conky, brave, ...) rewrite or shorten /proc/<pid>/cmdline after
 #     daemonizing, so the pattern no longer matches and duplicates get
@@ -91,9 +91,9 @@ fi
 # Some ways to set your wallpaper besides variety or nitrogen
 # feh --bg-fill /usr/share/backgrounds/archlinux-tweak-tool/data/wallpaper/wallpaper.png &
 
-# start the conky to learn the shortcuts
-run conky -c "$HOME/.config/qtile/scripts/system-overview"
-run conky -c "$HOME/Documents/Scripts/weather.conf"
+# Monitor-aware Conky deck. The launcher owns per-head PIDs and assigns
+# SYSTEM/AI/WORK/NET across however many active monitors are present.
+"$HOME/.local/bin/conky-rotate" --all >/dev/null 2>&1 || true
 
 # starting utility applications at boot time
 run variety
