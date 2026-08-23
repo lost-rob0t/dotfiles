@@ -13,6 +13,8 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `.config/qtile/qtile-openrouter.org` is the source of truth for `.config/qtile/qtile_openrouter.py`.
 - `.doom.d/autoload/gpt-todos.org` is the source of truth for `.doom.d/autoload/gpt-todos.el`.
 - `scripts/gpt-todos-sync.org` is the source of truth for `scripts/gpt-todos-sync` and `scripts/install-gpt-todos-cron`.
+- `bootstrap-termux.org` is the source of truth for `bootstrap-termux.sh`.
+- `android/doom/config.org` is the source of truth for `android/doom/init.el`, `android/doom/packages.el`, and `android/doom/config.el`.
 - Do not make a lasting change only in a generated/tangled file.
 
 When a change touches a literate configuration:
