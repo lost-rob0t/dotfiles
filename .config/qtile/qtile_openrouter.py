@@ -87,11 +87,16 @@ def _fetch_payload(script):
         if cached:
             payload = dict(cached)
             payload["stale"] = True
-            if isinstance(payload, dict) and completed.stderr:
+            if completed.stderr:
                 payload.setdefault("last_error", completed.stderr.strip())
             _last_payload = payload
             return payload
-        return payload if isinstance(payload, dict) else None
+        if isinstance(payload, dict):
+            # Cache provider/auth error payloads for the same one-second window
+            # too; five widgets should not fan out five failing subprocesses.
+            _last_payload = payload
+            return payload
+        return None
 
 
 def _notify(summary, body="", urgency="normal"):
@@ -321,6 +326,8 @@ class OpenRouterIOGraph(base._Widget):
         self.add_defaults(self.defaults)
         self.series = {"range": "1m", "start": 0, "end": 1, "ceiling": 0, "samples": []}
         self._last_signature = None
+        self._query_lock = threading.Lock()
+        self._query_running = False
 
     def timer_setup(self):
         self._update()
@@ -328,17 +335,51 @@ class OpenRouterIOGraph(base._Widget):
 
     def _update(self):
         label = _rotate_graph_range()
-        try:
-            series = openrouter_history.query_series(label, points=self.samples)
-        except (OSError, ValueError):
-            return
-        samples = series.get("samples", [])
-        newest = samples[-1].get("timestamp") if samples else None
-        signature = (label, len(samples), newest, series.get("ceiling"))
-        if signature != self._last_signature:
-            self.series = series
-            self._last_signature = signature
-            self.draw()
+        with self._query_lock:
+            if self._query_running:
+                return
+            self._query_running = True
+
+        def worker():
+            try:
+                series = openrouter_history.query_series(label, points=self.samples)
+            except Exception:
+                series = None
+
+            def apply():
+                with self._query_lock:
+                    self._query_running = False
+                if series is None:
+                    return
+                samples = series.get("samples", [])
+                signature = (
+                    label,
+                    tuple(
+                        (
+                            sample.get("timestamp"),
+                            sample.get("input"),
+                            sample.get("output"),
+                            sample.get("bucket_seconds"),
+                        )
+                        for sample in samples
+                    ),
+                )
+                if signature != self._last_signature:
+                    self.series = series
+                    self._last_signature = signature
+                    self.draw()
+
+            try:
+                self.qtile.call_soon_threadsafe(apply)
+            except Exception:
+                with self._query_lock:
+                    self._query_running = False
+
+        threading.Thread(
+            target=worker,
+            name="qtile-openrouter-graph",
+            daemon=True,
+        ).start()
 
     def _draw_series(self, key, color, center_y, half_height, direction, ceiling):
         samples = self.series.get("samples", [])
