@@ -21,6 +21,7 @@ GRAPH_SAMPLES = 82
 GRAPH_WIDTH = 96
 RATE_FONTSIZE = 12
 ROTATE_SECONDS = 5
+COLLECTOR_HEARTBEAT_STALE_SECONDS = 30
 GRAPH_RANGES = tuple(label for label, _seconds in openrouter_history.TIMEFRAMES)
 
 _poll_lock = threading.Lock()
@@ -45,12 +46,40 @@ def _cache_path():
     return root / "qtile" / "openrouter-status.json"
 
 
-def _read_cached_status():
+def _read_cached_payload():
     try:
         cache = json.loads(_cache_path().read_text(encoding="utf-8"))
-        return cache.get("status")
     except (FileNotFoundError, json.JSONDecodeError, OSError, TypeError):
         return None
+
+    status = cache.get("status")
+    collector_error = cache.get("collector_error")
+    if not isinstance(status, dict):
+        if collector_error:
+            return {"error": str(collector_error)}
+        return {"error": "starting"}
+
+    payload = dict(status)
+    try:
+        heartbeat = float(cache.get("collector_heartbeat") or 0)
+        fetched_at = float(cache.get("fetched_at") or 0)
+    except (TypeError, ValueError):
+        heartbeat = 0.0
+        fetched_at = 0.0
+    freshness = heartbeat or fetched_at
+    stale = (
+        bool(cache.get("collector_stale"))
+        or not freshness
+        or time.time() - freshness > COLLECTOR_HEARTBEAT_STALE_SECONDS
+    )
+    payload["stale"] = stale
+    payload["collector_pid"] = cache.get("collector_pid")
+    payload["collector_parent_pid"] = cache.get("collector_parent_pid")
+    payload["collector_heartbeat"] = cache.get("collector_heartbeat")
+    payload["collector_error"] = collector_error
+    if collector_error and not payload.get("last_error"):
+        payload["last_error"] = str(collector_error)
+    return payload
 
 
 def _compact_count(value):
@@ -62,40 +91,36 @@ def _compact_count(value):
     return str(int(round(value)))
 
 
-def _fetch_payload(script):
+def _fetch_payload(_script):
+    """Read local collector state only; widget polling never launches/fetches."""
     global _last_payload, _last_poll_at
     with _poll_lock:
         now = time.monotonic()
         if _last_payload is not None and now - _last_poll_at < POLL_SECONDS - 0.05:
             return _last_payload
-        completed = subprocess.run(
-            ["python3", script, "--json"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=12,
+        payload = _read_cached_payload()
+        _last_poll_at = now
+        _last_payload = payload
+        return payload
+
+
+def _start_collector(script):
+    """Have Qtile directly ensure the detached provider collector."""
+    try:
+        return subprocess.Popen(
+            [
+                "python3",
+                script,
+                "--daemon",
+                "--parent-pid",
+                str(os.getpid()),
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
         )
-        try:
-            payload = json.loads(completed.stdout)
-        except json.JSONDecodeError:
-            payload = None
-        _last_poll_at = time.monotonic()
-        if isinstance(payload, dict) and "input_tokens_per_minute" in payload:
-            _last_payload = payload
-            return payload
-        cached = _read_cached_status()
-        if cached:
-            payload = dict(cached)
-            payload["stale"] = True
-            if completed.stderr:
-                payload.setdefault("last_error", completed.stderr.strip())
-            _last_payload = payload
-            return payload
-        if isinstance(payload, dict):
-            # Cache provider/auth error payloads for the same one-second window
-            # too; five widgets should not fan out five failing subprocesses.
-            _last_payload = payload
-            return payload
+    except OSError:
         return None
 
 
@@ -477,3 +502,5 @@ def install_openrouter_widget(config_globals):
     from qtile_control import install_desktop_control
 
     install_desktop_control(config_globals, _telemetry_widgets)
+    script = config_globals["home"] + "/.config/qtile/scripts/openrouter_status.py"
+    _start_collector(script)
