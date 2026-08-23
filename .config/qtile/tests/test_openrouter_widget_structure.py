@@ -28,10 +28,19 @@ def function_source(name):
     raise AssertionError(f"missing function {name}")
 
 
+def method_source(class_name, method_name):
+    for node in TREE.body:
+        if isinstance(node, ast.ClassDef) and node.name == class_name:
+            for child in node.body:
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) and child.name == method_name:
+                    return ast.get_source_segment(SOURCE_TEXT, child) or ""
+    raise AssertionError(f"missing method {class_name}.{method_name}")
+
+
 class OpenRouterWidgetStructureTests(unittest.TestCase):
     def test_one_second_render_poll_and_graph_point_budget(self):
         self.assertEqual(assigned_constant("POLL_SECONDS"), 1)
-        self.assertEqual(assigned_constant("GRAPH_SAMPLES"), 82)
+        self.assertEqual(assigned_constant("GRAPH_SAMPLES"), 192)
         self.assertEqual(assigned_constant("ROTATE_SECONDS"), 5)
         self.assertGreaterEqual(assigned_constant("COLLECTOR_HEARTBEAT_STALE_SECONDS"), 15)
 
@@ -82,6 +91,16 @@ class OpenRouterWidgetStructureTests(unittest.TestCase):
         self.assertIn("math.log1p", function_source("_graph_normalized"))
         self.assertNotIn("minimum = min(values)", SOURCE_TEXT)
         self.assertNotIn("if maximum <= minimum:", SOURCE_TEXT)
+
+    def test_graph_draws_provider_bucket_steps_without_gap_interpolation(self):
+        source = method_source("OpenRouterIOGraph", "_draw_series")
+        self.assertIn("_bucket_bounds(sample)", source)
+        self.assertIn("clipped_start", source)
+        self.assertIn("clipped_end", source)
+        self.assertIn("contiguous", source)
+        self.assertIn("self.drawer.ctx.line_to(x0, y)", source)
+        self.assertIn("self.drawer.ctx.line_to(x1, y)", source)
+        self.assertNotIn('float(sample["timestamp"]) - start', source)
 
     def test_stacked_rate_uses_smaller_font_than_single_line_metrics(self):
         self.assertLess(assigned_constant("RATE_FONTSIZE"), assigned_constant("METRIC_FONTSIZE"))
