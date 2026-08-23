@@ -94,7 +94,11 @@ tangle_outputs() {
     sed -e 's/^(//' -e 's/)$//' -e 's/"//g' "$SANDBOX/outputs" |
         tr ' ' '\n' |
         while IFS= read -r out || [ -n "$out" ]; do
-            [ -n "$out" ] && [ "$out" != "nil" ] && printf '%s\n' "$out"
+            # `if` (not an && chain) so the loop body always returns 0:
+            # a nil/no-output tangle must not trip set -e.
+            if [ -n "$out" ] && [ "$out" != "nil" ]; then
+                printf '%s\n' "$out"
+            fi
         done
 }
 

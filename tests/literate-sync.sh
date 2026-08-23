@@ -205,6 +205,19 @@ grep -q skipped "$fixture/partial.sh" && {
 }
 expect_ok ":tangle no stays in sync"
 
+# 9b. Org that only mentions :tangle in prose (tangle returns nil)
+new_fixture nilreturn
+cat >"$fixture/prose.org" <<'ORG'
+#+title: prose fixture
+Docs mentioning a property like =:tangle yes= in prose but every block
+below opts out explicitly.
+#+begin_src sh :tangle no
+echo never tangled
+#+end_src
+ORG
+commit_all
+expect_ok "Org with nil tangle result does not trip set -e"
+
 # 10. baseline tolerance
 new_fixture baseline
 mkdir -p "$fixture/b"
