@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sqlite3
 import sys
 import unittest
 from datetime import datetime, timezone
@@ -84,6 +85,39 @@ class OpenRouterBackfillTests(unittest.TestCase):
         self.assertEqual(status.output_tokens_per_minute, 10)
         persist.assert_called_once()
         self.assertEqual(persist.call_args.kwargs["source"], "live-minute")
+
+    def test_history_db_failure_does_not_destroy_live_rate(self):
+        now_end = MODULE._closed_minute_window()[1]
+        previous = MODULE.Status(
+            1,
+            1,
+            window_end=(now_end - MODULE.timedelta(minutes=1)).isoformat().replace("+00:00", "Z"),
+            usage_fetched_at=MODULE._iso_now(MODULE.datetime.now(MODULE.timezone.utc)),
+            balance_fetched_at=MODULE._iso_now(MODULE.datetime.now(MODULE.timezone.utc)),
+        )
+        with (
+            mock.patch.object(MODULE, "fetch_tokens", return_value=(321, 45)),
+            mock.patch.object(
+                MODULE.history,
+                "upsert_sample",
+                side_effect=sqlite3.OperationalError("readonly database"),
+            ),
+        ):
+            status = MODULE.fetch_status("key", previous)
+        self.assertEqual(status.input_tokens_per_minute, 321)
+        self.assertEqual(status.output_tokens_per_minute, 45)
+        self.assertIn("history storage unavailable", status.last_error)
+        self.assertIn("readonly database", status.last_error)
+
+    def test_history_diagnostics_report_storage_error(self):
+        with mock.patch.object(
+            MODULE.history,
+            "summary",
+            side_effect=sqlite3.OperationalError("locked"),
+        ):
+            info = MODULE._history_diagnostics()
+        self.assertEqual(info["rows"], 0)
+        self.assertEqual(info["history_error"], "locked")
 
     def test_stale_cache_reports_provider_error_instead_of_silently_hiding_it(self):
         cached = MODULE.Status(100, 10, window_end="2026-08-23T04:00:00Z")
