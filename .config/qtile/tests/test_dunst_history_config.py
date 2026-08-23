@@ -4,9 +4,9 @@
 from pathlib import Path
 import unittest
 
-ROOT = Path(__file__).resolve().parents[3]
-ORG = (ROOT / "dunst" / "dunst.org").read_text(encoding="utf-8")
-CONFIG = (ROOT / "dunst" / "dunstrc").read_text(encoding="utf-8")
+CONFIG_ROOT = Path(__file__).resolve().parents[2]
+ORG = (CONFIG_ROOT / "dunst" / "dunst.org").read_text(encoding="utf-8")
+CONFIG = (CONFIG_ROOT / "dunst" / "dunstrc").read_text(encoding="utf-8")
 
 
 class DunstHistoryConfigTests(unittest.TestCase):
