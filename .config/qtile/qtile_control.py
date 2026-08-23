@@ -34,7 +34,10 @@ PRIVATE_ENV_PATH = Path("~/.config/qtile/private.env").expanduser()
 WORKFLOWS_PATH = Path("~/.config/qtile/workflows.json").expanduser()
 EMACS_HELPER = Path("~/.config/qtile/qtile-desktop.el").expanduser()
 WORKFLOW_HELPER = Path("~/.config/qtile/qtile-workflow.el").expanduser()
+GPT_TODOS_SYNC = Path("~/.dotfiles/scripts/gpt-todos-sync").expanduser()
 _group_owner_roles: dict[str, str] = {}
+_gpt_todos_sync_lock = threading.Lock()
+_gpt_todos_sync_running = False
 
 
 def _geometry(item: Any) -> tuple[int, int]:
@@ -249,6 +252,40 @@ def _notify(summary: str, body: str = "") -> None:
         pass
 
 
+def _sync_gpt_todos(_qtile: Any) -> None:
+    """Run GPT TODO synchronization off the Qtile event loop."""
+    global _gpt_todos_sync_running
+    with _gpt_todos_sync_lock:
+        if _gpt_todos_sync_running:
+            _notify("GPT TODO sync", "Already syncing.")
+            return
+        _gpt_todos_sync_running = True
+    _notify("GPT TODO sync", "Synchronizing all agenda files…")
+
+    def worker() -> None:
+        global _gpt_todos_sync_running
+        try:
+            completed = subprocess.run(
+                ["bash", str(GPT_TODOS_SYNC)],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            detail = (completed.stderr or completed.stdout or "").strip()
+            if completed.returncode == 0:
+                _notify("GPT TODO sync complete", detail[-500:] or "Agenda files are synchronized.")
+            else:
+                _notify("GPT TODO sync failed", detail[-800:] or f"exit {completed.returncode}")
+        except (OSError, subprocess.SubprocessError) as error:
+            _notify("GPT TODO sync failed", str(error))
+        finally:
+            with _gpt_todos_sync_lock:
+                _gpt_todos_sync_running = False
+
+    threading.Thread(target=worker, name="qtile-gpt-todos-sync", daemon=True).start()
+
+
 def _role_to_screen_index(screens: Iterable[Any]) -> dict[str, int]:
     screens = list(screens)
     roles = screen_roles(screens)
@@ -347,10 +384,6 @@ def _owned_group_box(config_globals: dict[str, Any]):
             return groups
 
         def next_group(self):
-            # Qtile <=0.33 next_group cycles until it finds a member of
-            # self.groups; an empty visible set would spin forever and stall
-            # the Qtile event loop. Navigate only among visible groups and
-            # never loop when nothing is visible.
             group = next_visible_group(self.groups, self.qtile.current_group)
             if group is not None:
                 self.go_to_group(group)
@@ -599,6 +632,8 @@ def build_screen_widgets(
     role: str,
     config_globals: dict[str, Any],
     telemetry_widgets_factory: Callable[[str, Any], list[Any]],
+    *,
+    show_date: bool | None = None,
 ):
     from libqtile import widget
     from libqtile.lazy import lazy
@@ -609,6 +644,12 @@ def build_screen_widgets(
     foreground = palette["white"]
     items = _base_widgets(config_globals)
     role = base_role(role)
+    if show_date is None:
+        # Compatibility fallback for direct screen_widgets() callers. The
+        # generated multi-monitor layout overrides this so the left Org screen
+        # owns the single date whenever that role exists.
+        show_date = role == "center"
+    clock_format = "󰃭 %Y-%m-%d   %H:%M" if show_date else " %H:%M"
 
     if role == "center":
         items.extend(telemetry_widgets_factory(home, config_globals["colors"]))
@@ -626,10 +667,11 @@ def build_screen_widgets(
                     },
                 ),
                 widget.Clock(
+                    font="Hack Nerd Regular",
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format="%Y-%m-%d %H:%M",
+                    format=clock_format,
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
                 widget.Systray(background=background, icon_size=20, padding=4),
@@ -661,6 +703,14 @@ def build_screen_widgets(
                     },
                 ),
                 widget.TextBox(
+                    name="gpt_todos_sync_button",
+                    text=" 󰑓 SYNC ",
+                    font="Hack Nerd Regular",
+                    foreground=palette["green"],
+                    background=background,
+                    mouse_callbacks={"Button1": lazy.function(_sync_gpt_todos)},
+                ),
+                widget.TextBox(
                     name="workflow_button",
                     text=" WF ",
                     foreground=palette["orange"],
@@ -670,10 +720,11 @@ def build_screen_widgets(
                     },
                 ),
                 widget.Clock(
+                    font="Hack Nerd Regular",
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format="%H:%M",
+                    format=clock_format,
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
@@ -695,10 +746,11 @@ def build_screen_widgets(
                     markup=False,
                 ),
                 widget.Clock(
+                    font="Hack Nerd Regular",
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format="%H:%M",
+                    format=clock_format,
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
@@ -707,10 +759,11 @@ def build_screen_widgets(
         items.extend(
             [
                 widget.Clock(
+                    font="Hack Nerd Regular",
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format="%H:%M",
+                    format=clock_format,
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
@@ -770,15 +823,21 @@ def install_desktop_control(
     load_private_env()
     _install_control_scratchpad(config_globals)
 
-    def screen_widgets(role: str = "center"):
-        return build_screen_widgets(role, config_globals, telemetry_widgets_factory)
+    def screen_widgets(role: str = "center", show_date: bool | None = None):
+        return build_screen_widgets(
+            role,
+            config_globals,
+            telemetry_widgets_factory,
+            show_date=show_date,
+        )
 
     def generate_screens(output_info):
         roles = screen_roles(output_info)
+        date_role = "left" if any(base_role(role) == "left" for role in roles) else "center"
         return [
             Screen(
                 top=bar.Bar(
-                    screen_widgets(role),
+                    screen_widgets(role, show_date=base_role(role) == date_role),
                     26,
                     opacity=0.8,
                 )

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect trustworthy OpenRouter rate, balance, token, and spend telemetry."""
+"""Collect trustworthy OpenRouter rate, balance, token, spend, and history telemetry."""
 
 from __future__ import annotations
 
@@ -8,14 +8,22 @@ import concurrent.futures
 import fcntl
 import json
 import os
+import sqlite3
+import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+
+QTILE_DIR = Path(__file__).resolve().parents[1]
+if str(QTILE_DIR) not in sys.path:
+    sys.path.insert(0, str(QTILE_DIR))
+
+import openrouter_history as history
 
 API_BASE = "https://openrouter.ai/api/v1"
 AI_ICON = "\U000F09D1"
@@ -26,6 +34,9 @@ USAGE_REFRESH_SECONDS = 30
 BALANCE_REFRESH_SECONDS = 30
 REQUEST_TIMEOUT_SECONDS = 5
 DEFAULT_MAX_TPM = 10_000_000
+BACKFILL_INTERVAL_SECONDS = 6 * 60 * 60
+BACKFILL_DAYS = 365
+BACKFILL_FINE_DAYS = 7
 
 
 @dataclass(frozen=True)
@@ -43,6 +54,9 @@ class Status:
     spend_day: float | None = None
     usage_fetched_at: str | None = None
     balance_fetched_at: str | None = None
+    usage_error: str | None = None
+    balance_error: str | None = None
+    last_error: str | None = None
 
     @property
     def total_tokens_per_minute(self) -> int:
@@ -78,6 +92,8 @@ def _management_key_file() -> Path:
 
 
 def load_management_key() -> str:
+    # OPENROUTER_API_KEY remains a compatibility fallback for users who place
+    # a management key there. Analytics itself requires management-key scope.
     for env_name in ("OPENROUTER_MANAGEMENT_KEY", "OPENROUTER_API_KEY"):
         value = os.environ.get(env_name, "").strip()
         if value:
@@ -98,7 +114,7 @@ def _request_json(
     headers = {
         "Accept": "application/json",
         "Authorization": f"Bearer {key}",
-        "User-Agent": "qtile-openrouter-status/4",
+        "User-Agent": "qtile-openrouter-status/5",
     }
     if payload is not None:
         body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
@@ -111,7 +127,9 @@ def _request_json(
             return json.load(response)
     except urllib.error.HTTPError as exc:
         if exc.code in (401, 403):
-            raise RuntimeError("management key rejected") from exc
+            raise RuntimeError(
+                "management key rejected (OpenRouter Analytics requires management-key scope)"
+            ) from exc
         if exc.code == 429:
             raise RuntimeError("OpenRouter rate limited") from exc
         raise RuntimeError(f"OpenRouter HTTP {exc.code}") from exc
@@ -171,6 +189,48 @@ def parse_usage_summary(payload: dict[str, Any]) -> tuple[int, float]:
     return int(round(tokens)), spend
 
 
+def _parse_bucket_timestamp(row: dict[str, Any], granularity: str) -> datetime:
+    value = (
+        row.get(f"created_at__{granularity}")
+        or row.get(f"date__{granularity}")
+        or row.get("timestamp")
+        or row.get("date")
+    )
+    if not value:
+        raise RuntimeError("OpenRouter analytics bucket timestamp missing")
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise RuntimeError("OpenRouter analytics bucket timestamp malformed") from exc
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def parse_history_rows(payload: dict[str, Any], granularity: str) -> list[dict[str, Any]]:
+    duration = {"minute": 60, "hour": 3600, "day": 86400}.get(granularity)
+    if duration is None:
+        raise ValueError(f"unsupported history granularity: {granularity}")
+    result: list[dict[str, Any]] = []
+    for row in _rows(payload):
+        try:
+            incoming = int(round(float(row.get("tokens_prompt") or 0)))
+            outgoing = int(round(float(row.get("tokens_completion") or 0)))
+            spend = float(row.get("total_usage") or 0)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("OpenRouter history metric malformed") from exc
+        result.append(
+            {
+                "start": _parse_bucket_timestamp(row, granularity),
+                "seconds": duration,
+                "input": incoming,
+                "output": outgoing,
+                "spend": spend,
+            }
+        )
+    return result
+
+
 def _closed_minute_window(now: datetime | None = None) -> tuple[datetime, datetime]:
     now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
     end = now.replace(second=0, microsecond=0)
@@ -201,6 +261,22 @@ def fetch_usage_range(key: str, start: datetime, end: datetime) -> tuple[int, fl
         "limit": 1000,
     }
     return parse_usage_summary(_request_json("POST", "/analytics/query", key, payload))
+
+
+def fetch_history_range(
+    key: str, start: datetime, end: datetime, granularity: str
+) -> list[dict[str, Any]]:
+    payload = {
+        "metrics": ["tokens_prompt", "tokens_completion", "total_usage"],
+        "granularity": granularity,
+        "time_range": {
+            "start": start.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "end": end.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+        },
+        "limit": 1000,
+    }
+    response = _request_json("POST", "/analytics/query", key, payload)
+    return parse_history_rows(response, granularity)
 
 
 def fetch_balance(key: str) -> float:
@@ -318,15 +394,27 @@ def fetch_status(key: str, previous: Status | None = None) -> Status:
 
     input_tokens = previous.input_tokens_per_minute if previous else 0
     output_tokens = previous.output_tokens_per_minute if previous else 0
+    history_error = None
     if previous is None or previous.window_end != window_end:
         input_tokens, output_tokens = fetch_tokens(key, start, end)
         validate_rate(input_tokens, output_tokens)
+        try:
+            history.upsert_sample(
+                start,
+                RATE_WINDOW_SECONDS,
+                input_tokens,
+                output_tokens,
+                source="live-minute",
+            )
+        except (OSError, sqlite3.Error) as exc:
+            history_error = f"history storage unavailable: {exc}"
 
     values = asdict(previous) if previous else asdict(Status(input_tokens, output_tokens))
     values.update(
         input_tokens_per_minute=input_tokens,
         output_tokens_per_minute=output_tokens,
         window_end=window_end,
+        last_error=history_error,
     )
 
     usage_due = (
@@ -346,15 +434,17 @@ def fetch_status(key: str, previous: Status | None = None) -> Status:
                 try:
                     values.update(usage_future.result())
                     values["usage_fetched_at"] = _iso_now(now_utc)
-                except RuntimeError:
-                    pass
+                    values["usage_error"] = None
+                except RuntimeError as exc:
+                    values["usage_error"] = str(exc)
 
             if balance_future is not None:
                 try:
                     values["balance_usd"] = balance_future.result()
                     values["balance_fetched_at"] = _iso_now(now_utc)
-                except RuntimeError:
-                    pass
+                    values["balance_error"] = None
+                except RuntimeError as exc:
+                    values["balance_error"] = str(exc)
 
     return Status(**values)
 
@@ -372,36 +462,146 @@ def status_with_cache(key: str, *, force: bool = False) -> tuple[Status, bool]:
             return cached_status, False
         try:
             status = fetch_status(key, cached_status)
-        except RuntimeError:
+        except RuntimeError as exc:
             if cached_status:
-                return cached_status, True
+                return replace(cached_status, last_error=str(exc)), True
             raise
         _write_cache(path, status, fetched_at=time.time())
         return status, False
+
+
+def _persist_history_rows(rows: list[dict[str, Any]], source: str) -> int:
+    count = 0
+    for row in rows:
+        history.upsert_sample(
+            row["start"],
+            int(row["seconds"]),
+            int(row["input"]),
+            int(row["output"]),
+            spend=float(row["spend"]),
+            source=source,
+        )
+        count += 1
+    return count
+
+
+def backfill_history(key: str, now: datetime | None = None) -> dict[str, int]:
+    """Seed one year locally without pretending coarse history is minute data."""
+    now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    hour_end = now.replace(minute=0, second=0, microsecond=0)
+    fine_start = (hour_end - timedelta(days=BACKFILL_FINE_DAYS)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    year_start = (hour_end - timedelta(days=BACKFILL_DAYS)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    counts = {"day": 0, "hour": 0}
+    if year_start < fine_start:
+        counts["day"] = _persist_history_rows(
+            fetch_history_range(key, year_start, fine_start, "day"),
+            "backfill-day",
+        )
+    if fine_start < hour_end:
+        counts["hour"] = _persist_history_rows(
+            fetch_history_range(key, fine_start, hour_end, "hour"),
+            "backfill-hour",
+        )
+    history.set_metadata("backfill_last_success", _iso_now(now))
+    return counts
+
+
+def _launch_backfill_if_due() -> None:
+    try:
+        due = history.claim_due("backfill_last_attempt", BACKFILL_INTERVAL_SECONDS)
+    except (OSError, sqlite3.Error):
+        return
+    if not due:
+        return
+    try:
+        subprocess.Popen(
+            [sys.executable, str(Path(__file__).resolve()), "--backfill"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except OSError:
+        pass
+
+
+def _history_diagnostics() -> dict[str, Any]:
+    try:
+        info = history.summary()
+        info["backfill_last_success"] = history.get_metadata("backfill_last_success")
+        info["history_error"] = None
+        return info
+    except (OSError, sqlite3.Error) as exc:
+        return {
+            "rows": 0,
+            "oldest": None,
+            "newest": None,
+            "backfill_last_success": None,
+            "history_error": str(exc),
+        }
+
+
+def _json_payload(status: Status, stale: bool) -> dict[str, Any]:
+    payload = asdict(status)
+    payload["total_tokens_per_minute"] = status.total_tokens_per_minute
+    payload["stale"] = stale
+    info = _history_diagnostics()
+    payload["history_rows"] = info.get("rows", 0)
+    payload["history_oldest"] = info.get("oldest")
+    payload["history_newest"] = info.get("newest")
+    payload["history_backfill"] = info.get("backfill_last_success")
+    payload["history_error"] = info.get("history_error")
+    return payload
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="print machine-readable status")
     parser.add_argument("--force", action="store_true", help="ignore the short process cache")
+    parser.add_argument("--backfill", action="store_true", help="backfill persistent history and exit")
+    parser.add_argument("--history", choices=tuple(history.TIMEFRAME_SECONDS), help="print a local history range and exit")
+    parser.add_argument("--points", type=int, default=82, help="maximum local history points")
+    parser.add_argument("--doctor", action="store_true", help="print local telemetry diagnostics and exit")
     args = parser.parse_args(argv)
+
     try:
+        if args.history:
+            print(json.dumps(history.query_series(args.history, points=args.points), sort_keys=True))
+            return 0
+
+        if args.doctor:
+            info = _history_diagnostics()
+            info["management_key_file"] = str(_management_key_file())
+            info["management_key_available"] = bool(
+                os.environ.get("OPENROUTER_MANAGEMENT_KEY")
+                or os.environ.get("OPENROUTER_API_KEY")
+                or _management_key_file().exists()
+            )
+            print(json.dumps(info, sort_keys=True))
+            return 0
+
         key = load_management_key()
         if not key:
             raise RuntimeError("management key missing")
+        if args.backfill:
+            print(json.dumps(backfill_history(key), sort_keys=True))
+            return 0
         status, stale = status_with_cache(key, force=args.force)
-    except RuntimeError as exc:
-        if args.json:
+    except (RuntimeError, OSError, sqlite3.Error) as exc:
+        if args.json or args.history or args.backfill:
             print(json.dumps({"error": str(exc)}))
         else:
             short = "key?" if "key" in str(exc).lower() else "offline"
             print(render_error(short))
         return 1
+
+    _launch_backfill_if_due()
     if args.json:
-        payload = asdict(status)
-        payload["total_tokens_per_minute"] = status.total_tokens_per_minute
-        payload["stale"] = stale
-        print(json.dumps(payload, sort_keys=True))
+        print(json.dumps(_json_payload(status, stale), sort_keys=True))
     else:
         print(render(status, stale=stale))
     return 0

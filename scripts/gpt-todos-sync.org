@@ -4,19 +4,18 @@
 
 * Sync
 
-This is the canonical literate source for the task-state sync helper.  Org files
-already tracked under =gpt-todos/agenda/= are synchronized bidirectionally with
-the live Org agenda.  The durable checkout's current =HEAD= is the synchronization
-baseline: the helper fetches the upstream ref, compares Git blob identities, and
-only copies a side when that side changed relative to the baseline.  Concurrent
-local and remote edits to the same file are rejected instead of being resolved
-by filesystem timestamps.
+This is the canonical literate source for the task-state sync helper.  Every
+=.org= file in the configured recursive Org agenda tree is synchronized
+bidirectionally with =gpt-todos/agenda/=, including newly created local agenda
+files and nested project paths.  This matches the Doom configuration that builds
+=org-agenda-files= recursively from =~/Documents/Notes/org/agenda/=.
 
-Untracked files from =~/Documents/Notes/org/agenda/= are deliberately not
-imported, so unrelated agenda data cannot leak into the GPT TODO repository.
-Missing local copies are restored from the repository; repository-side deletion
-requires manual resolution.  The default durable checkout is
-=~/Documents/gpt-todos=.
+The durable checkout's current =HEAD= is the synchronization baseline: the helper
+fetches the upstream ref, compares Git blob identities, and only copies a side
+when that side changed relative to the baseline.  Concurrent local and remote
+edits to the same file are rejected instead of being resolved by filesystem
+timestamps.  Repository-side deletion still requires manual resolution.
+The default durable checkout is =~/Documents/gpt-todos=.
 
 The same command also owns deployment.  Run =gpt-todos-sync --deploy 5= to
 perform the initial sync and install the five-minute cron entry.  Git operations
@@ -188,6 +187,14 @@ list_org_paths() {
   done < <(git -C "$REPO_DIR" ls-tree -r --name-only "$ref" -- agenda)
 }
 
+list_local_org_paths() {
+  local path rel
+  while IFS= read -r -d '' path; do
+    rel="${path#"$ORG_DIR/"}"
+    printf 'agenda/%s\n' "$rel"
+  done < <(find "$ORG_DIR" \( -type f -o -type l \) -name '*.org' -print0)
+}
+
 sync_dotfiles_literate
 repair_legacy_imports
 
@@ -209,11 +216,12 @@ mapfile -t org_paths < <(
   {
     list_org_paths "$BASE"
     list_org_paths "$REMOTE_HEAD"
+    list_local_org_paths
   } | sort -u
 )
 
 if ((${#org_paths[@]} == 0)); then
-  printf 'gpt-todos-sync: no tracked agenda/*.org files; nothing to sync\n'
+  printf 'gpt-todos-sync: no agenda .org files; nothing to sync\n'
   exit 0
 fi
 
@@ -234,10 +242,15 @@ for rel in "${org_paths[@]}"; do
   fi
 
   if [[ "$base_hash" == "-" ]]; then
-    if [[ "$local_hash" != "-" && "$local_hash" != "$remote_hash" ]]; then
-      printf 'gpt-todos-sync: new remote file conflicts with local file: %s\n' "$rel" >&2
-      conflicts=$((conflicts + 1))
+    if [[ "$remote_hash" == "-" ]]; then
+      [[ "$local_hash" == "-" ]] || local_changes+=("$rel")
+      continue
     fi
+    if [[ "$local_hash" == "-" || "$local_hash" == "$remote_hash" ]]; then
+      continue
+    fi
+    printf 'gpt-todos-sync: new remote file conflicts with local file: %s\n' "$rel" >&2
+    conflicts=$((conflicts + 1))
     continue
   fi
 
@@ -264,6 +277,7 @@ git -C "$REPO_DIR" merge --ff-only "$REMOTE_HEAD"
 
 for rel in "${local_changes[@]}"; do
   local_rel="${rel#agenda/}"
+  mkdir -p "$(dirname "$REPO_DIR/$rel")"
   cp -p -- "$ORG_DIR/$local_rel" "$REPO_DIR/$rel"
 done
 

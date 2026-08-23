@@ -155,6 +155,32 @@ class QtileControlTests(unittest.TestCase):
         self.assertIn("widget.GenPollCommand", SOURCE_TEXT)
         self.assertIn('name="org_clocked_task"', SOURCE_TEXT)
 
+    def test_left_org_screen_has_gpt_todo_sync_button(self):
+        left = SOURCE_TEXT.index('elif role == "left":')
+        right = SOURCE_TEXT.index('elif role == "right":')
+        left_text = SOURCE_TEXT[left:right]
+        self.assertIn('name="gpt_todos_sync_button"', left_text)
+        self.assertIn("lazy.function(_sync_gpt_todos)", left_text)
+        self.assertIn('text=" 󰑓 SYNC "', left_text)
+
+    def test_gpt_todo_sync_is_off_event_loop_and_notifies(self):
+        self.assertIn('threading.Thread(target=worker, name="qtile-gpt-todos-sync", daemon=True).start()', SOURCE_TEXT)
+        self.assertIn('["bash", str(GPT_TODOS_SYNC)]', SOURCE_TEXT)
+        self.assertIn('"Synchronizing all agenda files…"', SOURCE_TEXT)
+        self.assertIn('"GPT TODO sync complete"', SOURCE_TEXT)
+        self.assertIn('"GPT TODO sync failed"', SOURCE_TEXT)
+
+    def test_clock_icons_and_single_date_policy(self):
+        self.assertEqual(SOURCE_TEXT.count('"󰃭 %Y-%m-%d   %H:%M"'), 1)
+        self.assertEqual(SOURCE_TEXT.count('" %H:%M"'), 1)
+        self.assertIn('clock_format = "󰃭 %Y-%m-%d   %H:%M" if show_date else " %H:%M"', SOURCE_TEXT)
+        self.assertGreaterEqual(SOURCE_TEXT.count('font="Hack Nerd Regular"'), 4)
+
+    def test_generated_layout_puts_date_on_left_or_center_for_n1(self):
+        self.assertIn('date_role = "left" if any(base_role(role) == "left" for role in roles) else "center"', SOURCE_TEXT)
+        self.assertIn('show_date=base_role(role) == date_role', SOURCE_TEXT)
+        self.assertIn('show_date = role == "center"', SOURCE_TEXT)
+
     def test_agent_zero_chat_is_centered_and_todo_is_right_aligned(self):
         self.assertIn('x=0.19,\n                    y=0.04,', SOURCE_TEXT)
         self.assertIn('x=0.42,\n                    y=0.02,', SOURCE_TEXT)

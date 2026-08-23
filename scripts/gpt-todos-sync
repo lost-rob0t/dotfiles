@@ -162,6 +162,14 @@ list_org_paths() {
   done < <(git -C "$REPO_DIR" ls-tree -r --name-only "$ref" -- agenda)
 }
 
+list_local_org_paths() {
+  local path rel
+  while IFS= read -r -d '' path; do
+    rel="${path#"$ORG_DIR/"}"
+    printf 'agenda/%s\n' "$rel"
+  done < <(find "$ORG_DIR" \( -type f -o -type l \) -name '*.org' -print0)
+}
+
 sync_dotfiles_literate
 repair_legacy_imports
 
@@ -183,11 +191,12 @@ mapfile -t org_paths < <(
   {
     list_org_paths "$BASE"
     list_org_paths "$REMOTE_HEAD"
+    list_local_org_paths
   } | sort -u
 )
 
 if ((${#org_paths[@]} == 0)); then
-  printf 'gpt-todos-sync: no tracked agenda/*.org files; nothing to sync\n'
+  printf 'gpt-todos-sync: no agenda .org files; nothing to sync\n'
   exit 0
 fi
 
@@ -208,10 +217,15 @@ for rel in "${org_paths[@]}"; do
   fi
 
   if [[ "$base_hash" == "-" ]]; then
-    if [[ "$local_hash" != "-" && "$local_hash" != "$remote_hash" ]]; then
-      printf 'gpt-todos-sync: new remote file conflicts with local file: %s\n' "$rel" >&2
-      conflicts=$((conflicts + 1))
+    if [[ "$remote_hash" == "-" ]]; then
+      [[ "$local_hash" == "-" ]] || local_changes+=("$rel")
+      continue
     fi
+    if [[ "$local_hash" == "-" || "$local_hash" == "$remote_hash" ]]; then
+      continue
+    fi
+    printf 'gpt-todos-sync: new remote file conflicts with local file: %s\n' "$rel" >&2
+    conflicts=$((conflicts + 1))
     continue
   fi
 
@@ -238,6 +252,7 @@ git -C "$REPO_DIR" merge --ff-only "$REMOTE_HEAD"
 
 for rel in "${local_changes[@]}"; do
   local_rel="${rel#agenda/}"
+  mkdir -p "$(dirname "$REPO_DIR/$rel")"
   cp -p -- "$ORG_DIR/$local_rel" "$REPO_DIR/$rel"
 done
 
