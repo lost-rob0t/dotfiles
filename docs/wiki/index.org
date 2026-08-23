@@ -20,8 +20,11 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Area | Canonical entry point | Notes |
 |------+-----------------------+-------|
 | Shell | [[file:../../bash.org][bash.org]] | Literate Bash configuration; tangles to =.bashrc=. |
-| Doom Emacs | [[file:../../.doom.d/config.org][.doom.d/config.org]] | Main Doom configuration and =init.el= source blocks. |
-| Doom packages | [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | Package declarations; tangles to =packages.el=. |
+| Doom Emacs | [[file:../../.doom.d/config.org][.doom.d/config.org]] | Main desktop Doom configuration and =init.el= source blocks. |
+| Doom packages | [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | Desktop package declarations; tangles to =packages.el=. |
+| Android reader | [[file:../../android/README.org][android/README.org]] | Lightweight native Android research reader, separate from Doom. |
+| Termux bootstrap | [[file:../../bootstrap-termux.org][bootstrap-termux.org]] | Detects Android/Termux, installs native development tools, AI guest, launchers, and widgets. |
+| Termux Doom | [[file:../../android/doom/config.org][android/doom/config.org]] | Phone-specific Doom source for StarIntel admin, Org/TODOs, languages, and AI. |
 | Qtile | [[file:../../.config/qtile/qtile-ai.org][.config/qtile/qtile-ai.org]] | Main Qtile literate source; tangles to =config.py=. |
 | OpenRouter widget | [[file:../../.config/qtile/qtile-openrouter.org][.config/qtile/qtile-openrouter.org]] | Telemetry/widget helper; tangles to =qtile_openrouter.py=. |
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
