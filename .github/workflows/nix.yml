@@ -36,7 +36,7 @@ jobs:
           set -euo pipefail
           emacs -Q --batch \
             --eval "(require 'org)" \
-            --eval "(org-babel-tangle-file ".doom.d/autoload/screen-capture.org")"
+            --eval '(org-babel-tangle-file ".doom.d/autoload/screen-capture.org")'
           git diff --exit-code -- .doom.d/autoload/screen-capture.el
       - name: Run screen capture tests
         run: bash tests/screen-capture.sh
