@@ -74,12 +74,21 @@ class OpenRouterWidgetStructureTests(unittest.TestCase):
         self.assertIn("self.qtile.call_soon_threadsafe(apply)", SOURCE_TEXT)
         self.assertIn("daemon=True", SOURCE_TEXT)
 
-    def test_graph_has_one_shared_scale_and_does_not_hide_flat_series(self):
+    def test_graph_uses_one_shared_log_scale_for_both_series(self):
         self.assertIn('ceiling = float(self.series.get("ceiling") or 0)', SOURCE_TEXT)
         self.assertIn('_draw_series("input"', SOURCE_TEXT)
         self.assertIn('_draw_series("output"', SOURCE_TEXT)
+        self.assertIn("_graph_normalized", SOURCE_TEXT)
+        self.assertIn("math.log1p", function_source("_graph_normalized"))
         self.assertNotIn("minimum = min(values)", SOURCE_TEXT)
         self.assertNotIn("if maximum <= minimum:", SOURCE_TEXT)
+
+    def test_stacked_rate_uses_smaller_font_than_single_line_metrics(self):
+        self.assertLess(assigned_constant("RATE_FONTSIZE"), assigned_constant("METRIC_FONTSIZE"))
+        source = function_source("_telemetry_widgets")
+        self.assertIn('"fontsize": METRIC_FONTSIZE', source)
+        self.assertIn('"fontsize": RATE_FONTSIZE', source)
+        self.assertIn("OpenRouterRate", source)
 
     def test_widget_poll_is_cache_only(self):
         source = function_source("_fetch_payload")

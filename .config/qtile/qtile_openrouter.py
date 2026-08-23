@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -19,7 +20,8 @@ import openrouter_history
 POLL_SECONDS = 1
 GRAPH_SAMPLES = 82
 GRAPH_WIDTH = 96
-RATE_FONTSIZE = 12
+METRIC_FONTSIZE = 12
+RATE_FONTSIZE = 10
 ROTATE_SECONDS = 5
 COLLECTOR_HEARTBEAT_STALE_SECONDS = 30
 GRAPH_RANGES = tuple(label for label, _seconds in openrouter_history.TIMEFRAMES)
@@ -205,6 +207,21 @@ def _step_graph_range(step):
         return GRAPH_RANGES[_graph_range_index]
 
 
+def _graph_normalized(value, ceiling):
+    """Compress a shared token scale without hiding the smaller I/O series.
+
+    Both input and output use this exact same log1p transform. Zero remains the
+    center line, the window ceiling remains full height, and ordering is
+    preserved while large prompt-token spikes stop crushing completion-token
+    activity into a subpixel line.
+    """
+    value = max(float(value or 0), 0.0)
+    ceiling = max(float(ceiling or 0), 0.0)
+    if value <= 0 or ceiling <= 0:
+        return 0.0
+    return min(math.log1p(value) / math.log1p(ceiling), 1.0)
+
+
 class OpenRouterCredit(base.BackgroundPoll):
     """Display current OpenRouter account balance without blocking Qtile."""
 
@@ -332,7 +349,7 @@ class OpenRouterGraphRange(base.BackgroundPoll):
 
 
 class OpenRouterIOGraph(base._Widget):
-    """Persistent input/output graph with one truthful shared Y scale."""
+    """Persistent input/output graph with one shared logarithmic Y transform."""
 
     orientations = base.ORIENTATION_HORIZONTAL
     defaults = [
@@ -341,7 +358,7 @@ class OpenRouterIOGraph(base._Widget):
         ("input_color", "#f6019d", "Prompt-token graph color."),
         ("output_color", "#2de2e6", "Completion-token graph color."),
         ("midline_color", "#92406e", "Graph center-line color."),
-        ("line_width", 1.4, "Graph line width."),
+        ("line_width", 1.8, "Graph line width."),
         ("margin_x", 2, "Horizontal graph margin."),
         ("margin_y", 2, "Vertical graph margin."),
     ]
@@ -418,7 +435,7 @@ class OpenRouterIOGraph(base._Widget):
         self.drawer.ctx.set_line_width(self.line_width)
         for index, sample in enumerate(samples):
             x = self.margin_x + ((float(sample["timestamp"]) - start) / span) * usable_width
-            normalized = min(max(float(sample.get(key, 0)) / ceiling, 0.0), 1.0)
+            normalized = _graph_normalized(sample.get(key, 0), ceiling)
             y = center_y + direction * normalized * half_height
             if len(samples) == 1:
                 self.drawer.ctx.move_to(max(self.margin_x, x - 2), y)
@@ -434,7 +451,7 @@ class OpenRouterIOGraph(base._Widget):
         center_y = self.height / 2.0
         half_height = max(center_y - self.margin_y - 1, 1)
         self.drawer.set_source_rgb(self.midline_color)
-        self.drawer.ctx.set_line_width(0.6)
+        self.drawer.ctx.set_line_width(0.5)
         self.drawer.ctx.move_to(self.margin_x, center_y)
         self.drawer.ctx.line_to(self.width - self.margin_x, center_y)
         self.drawer.ctx.stroke()
@@ -473,14 +490,19 @@ def _telemetry_widgets(home, colors):
         "update_interval": POLL_SECONDS,
         "markup": True,
         "font": "Hack Nerd Regular",
-        "fontsize": RATE_FONTSIZE,
+        "fontsize": METRIC_FONTSIZE,
         "padding": 3,
         "foreground": _color(colors, 5),
         "background": background,
     }
+    rate_common = {
+        **common,
+        "fontsize": RATE_FONTSIZE,
+        "padding": 2,
+    }
     return [
         OpenRouterCredit(script, colors, name="openrouter_credit", **common),
-        OpenRouterRate(script, colors, name="openrouter_rate", **common),
+        OpenRouterRate(script, colors, name="openrouter_rate", **rate_common),
         OpenRouterGraphRange(colors, name="openrouter_graph_range", **common),
         OpenRouterIOGraph(
             name="openrouter_io_graph",
