@@ -34,7 +34,10 @@ PRIVATE_ENV_PATH = Path("~/.config/qtile/private.env").expanduser()
 WORKFLOWS_PATH = Path("~/.config/qtile/workflows.json").expanduser()
 EMACS_HELPER = Path("~/.config/qtile/qtile-desktop.el").expanduser()
 WORKFLOW_HELPER = Path("~/.config/qtile/qtile-workflow.el").expanduser()
+GPT_TODOS_SYNC = Path("~/.dotfiles/scripts/gpt-todos-sync").expanduser()
 _group_owner_roles: dict[str, str] = {}
+_gpt_todos_sync_lock = threading.Lock()
+_gpt_todos_sync_running = False
 
 
 def _geometry(item: Any) -> tuple[int, int]:
@@ -249,6 +252,40 @@ def _notify(summary: str, body: str = "") -> None:
         pass
 
 
+def _sync_gpt_todos(_qtile: Any) -> None:
+    """Run GPT TODO synchronization off the Qtile event loop."""
+    global _gpt_todos_sync_running
+    with _gpt_todos_sync_lock:
+        if _gpt_todos_sync_running:
+            _notify("GPT TODO sync", "Already syncing.")
+            return
+        _gpt_todos_sync_running = True
+    _notify("GPT TODO sync", "Synchronizing all agenda files…")
+
+    def worker() -> None:
+        global _gpt_todos_sync_running
+        try:
+            completed = subprocess.run(
+                ["bash", str(GPT_TODOS_SYNC)],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=180,
+            )
+            detail = (completed.stderr or completed.stdout or "").strip()
+            if completed.returncode == 0:
+                _notify("GPT TODO sync complete", detail[-500:] or "Agenda files are synchronized.")
+            else:
+                _notify("GPT TODO sync failed", detail[-800:] or f"exit {completed.returncode}")
+        except (OSError, subprocess.SubprocessError) as error:
+            _notify("GPT TODO sync failed", str(error))
+        finally:
+            with _gpt_todos_sync_lock:
+                _gpt_todos_sync_running = False
+
+    threading.Thread(target=worker, name="qtile-gpt-todos-sync", daemon=True).start()
+
+
 def _role_to_screen_index(screens: Iterable[Any]) -> dict[str, int]:
     screens = list(screens)
     roles = screen_roles(screens)
@@ -347,10 +384,6 @@ def _owned_group_box(config_globals: dict[str, Any]):
             return groups
 
         def next_group(self):
-            # Qtile <=0.33 next_group cycles until it finds a member of
-            # self.groups; an empty visible set would spin forever and stall
-            # the Qtile event loop. Navigate only among visible groups and
-            # never loop when nothing is visible.
             group = next_visible_group(self.groups, self.qtile.current_group)
             if group is not None:
                 self.go_to_group(group)
@@ -626,10 +659,11 @@ def build_screen_widgets(
                     },
                 ),
                 widget.Clock(
+                    font="Hack Nerd Regular",
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format="%Y-%m-%d %H:%M",
+                    format="󰃭 %Y-%m-%d   %H:%M",
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
                 widget.Systray(background=background, icon_size=20, padding=4),
@@ -661,6 +695,14 @@ def build_screen_widgets(
                     },
                 ),
                 widget.TextBox(
+                    name="gpt_todos_sync_button",
+                    text=" 󰑓 SYNC ",
+                    font="Hack Nerd Regular",
+                    foreground=palette["green"],
+                    background=background,
+                    mouse_callbacks={"Button1": lazy.function(_sync_gpt_todos)},
+                ),
+                widget.TextBox(
                     name="workflow_button",
                     text=" WF ",
                     foreground=palette["orange"],
@@ -670,10 +712,11 @@ def build_screen_widgets(
                     },
                 ),
                 widget.Clock(
+                    font="Hack Nerd Regular",
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format="%H:%M",
+                    format=" %H:%M",
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
@@ -695,10 +738,11 @@ def build_screen_widgets(
                     markup=False,
                 ),
                 widget.Clock(
+                    font="Hack Nerd Regular",
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format="%H:%M",
+                    format=" %H:%M",
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
@@ -707,10 +751,11 @@ def build_screen_widgets(
         items.extend(
             [
                 widget.Clock(
+                    font="Hack Nerd Regular",
                     foreground=foreground,
                     background=background,
                     fontsize=12,
-                    format="%H:%M",
+                    format=" %H:%M",
                 ),
                 widget.Volume(foreground=palette["red"], background=background),
             ]
