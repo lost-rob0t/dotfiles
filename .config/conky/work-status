@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -u
+
+repo="${CONKY_WORK_REPO:-$HOME/.dotfiles}"
+
+if ! git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    printf '${color9}repo unavailable${color}\n${color3}%s${color}\n' "$repo"
+    exit 0
+fi
+
+branch=$(git -C "$repo" branch --show-current 2>/dev/null || printf '?')
+dirty=$(git -C "$repo" status --porcelain=v1 2>/dev/null | wc -l | tr -d ' ')
+last=$(git -C "$repo" log -1 --pretty='%h %s' 2>/dev/null | cut -c1-46)
+age=$(git -C "$repo" log -1 --pretty='%cr' 2>/dev/null || true)
+ahead=0
+behind=0
+if git -C "$repo" rev-parse --abbrev-ref '@{upstream}' >/dev/null 2>&1; then
+    read -r behind ahead < <(git -C "$repo" rev-list --left-right --count '@{upstream}...HEAD' 2>/dev/null || printf '0 0')
+fi
+
+clock=''
+if command -v emacsclient >/dev/null 2>&1; then
+    clock=$(emacsclient --eval '(if (and (boundp (quote org-clock-current-task)) org-clock-current-task) org-clock-current-task "")' 2>/dev/null || true)
+    clock=${clock#\"}
+    clock=${clock%\"}
+fi
+
+printf '${color2}repo${alignr}${color}%s\n' "$(basename "$repo")"
+printf '${color2}branch${alignr}${color}%s\n' "$branch"
+printf '${color2}working tree${alignr}${color}%s dirty\n' "$dirty"
+printf '${color2}upstream${alignr}${color4}↑%s${color} ${color9}↓%s${color}\n' "$ahead" "$behind"
+printf '${color2}last${alignr}${color3}%s${color}\n' "$age"
+printf '${color3}%s${color}\n' "$last"
+if [[ -n "$clock" ]]; then
+    printf '\n${color1}ORG CLOCK${alignr}${color4}ACTIVE${color}\n'
+    printf '${color2}%s${color}\n' "${clock:0:48}"
+else
+    printf '\n${color1}ORG CLOCK${alignr}${color3}idle${color}\n'
+fi

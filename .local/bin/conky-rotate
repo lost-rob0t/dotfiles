@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+profiles=(system ai work net)
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/conky"
+state_dir="${XDG_RUNTIME_DIR:-/tmp}/conky-deck-${UID}"
+mkdir -p "$state_dir"
+
+monitor_count() {
+    local count
+    count=$(xrandr --listactivemonitors 2>/dev/null | awk 'NR==1 {print $2}')
+    [[ "$count" =~ ^[0-9]+$ ]] && (( count > 0 )) && printf '%s\n' "$count" || printf '1\n'
+}
+
+active_head() {
+    if [[ -n "${CONKY_HEAD:-}" && "${CONKY_HEAD}" =~ ^[0-9]+$ ]]; then
+        printf '%s\n' "$CONKY_HEAD"
+        return
+    fi
+    if ! command -v xdotool >/dev/null 2>&1; then
+        printf '0\n'
+        return
+    fi
+    local x y
+    x=$(xdotool getmouselocation --shell 2>/dev/null | awk -F= '$1=="X" {print $2}')
+    y=$(xdotool getmouselocation --shell 2>/dev/null | awk -F= '$1=="Y" {print $2}')
+    [[ "$x" =~ ^-?[0-9]+$ && "$y" =~ ^-?[0-9]+$ ]] || { printf '0\n'; return; }
+
+    local line idx geom parsed w h ox oy
+    while IFS= read -r line; do
+        [[ "$line" =~ ^[[:space:]]*([0-9]+): ]] || continue
+        idx=${BASH_REMATCH[1]}
+        geom=$(awk '{print $3}' <<<"$line")
+        parsed=$(sed -En 's#^([0-9]+)/[0-9]+x([0-9]+)/[0-9]+\+(-?[0-9]+)\+(-?[0-9]+)$#\1 \2 \3 \4#p' <<<"$geom")
+        [[ -n "$parsed" ]] || continue
+        read -r w h ox oy <<<"$parsed"
+        if (( x >= ox && x < ox + w && y >= oy && y < oy + h )); then
+            printf '%s\n' "$idx"
+            return
+        fi
+    done < <(xrandr --listactivemonitors 2>/dev/null | tail -n +2)
+    printf '0\n'
+}
+
+profile_index() {
+    local needle=$1 i
+    for i in "${!profiles[@]}"; do
+        [[ "${profiles[$i]}" == "$needle" ]] && { printf '%s\n' "$i"; return 0; }
+    done
+    return 1
+}
+
+stop_head() {
+    local head=$1 pidfile="$state_dir/head-${head}.pid" pid
+    if [[ -f "$pidfile" ]]; then
+        pid=$(cat "$pidfile" 2>/dev/null || true)
+        if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+            for _ in {1..20}; do
+                kill -0 "$pid" 2>/dev/null || break
+                sleep 0.05
+            done
+            kill -KILL "$pid" 2>/dev/null || true
+        fi
+        rm -f "$pidfile"
+    fi
+}
+
+launch() {
+    local head=$1 profile=$2 cfg="$config_dir/${profile}.conf"
+    [[ -f "$cfg" ]] || { printf 'missing Conky profile: %s\n' "$cfg" >&2; return 1; }
+    stop_head "$head"
+    CONKY_HEAD="$head" conky -c "$cfg" >/dev/null 2>&1 &
+    local pid=$!
+    printf '%s\n' "$pid" >"$state_dir/head-${head}.pid"
+    printf '%s\n' "$profile" >"$state_dir/head-${head}.profile"
+}
+
+status() {
+    local count head profile pid state
+    count=$(monitor_count)
+    for ((head=0; head<count; head++)); do
+        profile=$(cat "$state_dir/head-${head}.profile" 2>/dev/null || printf '-')
+        pid=$(cat "$state_dir/head-${head}.pid" 2>/dev/null || printf '-')
+        state=down
+        [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null && state=up
+        printf 'head=%s profile=%s pid=%s state=%s\n' "$head" "$profile" "$pid" "$state"
+    done
+}
+
+case "${1:---all}" in
+    --all)
+        count=$(monitor_count)
+        for ((head=0; head<count; head++)); do
+            launch "$head" "${profiles[$((head % ${#profiles[@]}))]}"
+        done
+        ;;
+    --stop)
+        if [[ "${2:-}" =~ ^[0-9]+$ ]]; then
+            stop_head "$2"
+        else
+            count=$(monitor_count)
+            for ((head=0; head<count; head++)); do stop_head "$head"; done
+        fi
+        ;;
+    --status)
+        status
+        ;;
+    -n|--next|-p|--previous)
+        head=$(active_head)
+        current=$(cat "$state_dir/head-${head}.profile" 2>/dev/null || printf 'system')
+        idx=$(profile_index "$current" || printf '0')
+        if [[ "$1" == "-n" || "$1" == "--next" ]]; then
+            idx=$(( (idx + 1) % ${#profiles[@]} ))
+        else
+            idx=$(( (idx - 1 + ${#profiles[@]}) % ${#profiles[@]} ))
+        fi
+        launch "$head" "${profiles[$idx]}"
+        ;;
+    system|ai|work|net)
+        launch "$(active_head)" "$1"
+        ;;
+    *)
+        printf 'usage: conky-rotate [--all|--stop [HEAD]|--status|-n|-p|system|ai|work|net]\n' >&2
+        exit 2
+        ;;
+esac
