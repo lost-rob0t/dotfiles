@@ -60,6 +60,7 @@
         keepassxc
         xdg-utils
         dunst
+        dmenu
         gotop
         pavucontrol
         xkill
