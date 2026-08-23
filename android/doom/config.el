@@ -1,5 +1,7 @@
 ;;; config.el --- Termux Doom configuration -*- lexical-binding: t; -*-
 
+(require 'seq)
+
 (setq doom-theme 'doom-one
       display-line-numbers-type 'relative
       org-log-done 'time
