@@ -75,6 +75,15 @@ git -C "$SEED" push >/dev/null 2>&1
 run_sync
 grep -q 'remote-change' "$ORG/remote.org"
 
+# Agenda files may be symlinked into the live tree. If a live path resolves to
+# the durable file itself, deployment must treat it as already synchronized
+# instead of asking cp to copy a file onto the same inode.
+rm -- "$ORG/remote.org"
+ln -s "$REPO/agenda/remote.org" "$ORG/remote.org"
+run_sync
+[[ -L "$ORG/remote.org" ]]
+grep -q 'remote-change' "$ORG/remote.org"
+
 # Concurrent edits remain fail-closed.
 printf '* TODO local-conflict\n' > "$ORG/shared.org"
 git -C "$SEED" pull >/dev/null 2>&1
