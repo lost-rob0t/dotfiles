@@ -198,6 +198,8 @@ keys = [
     Key([mod, "shift"], "q", lazy.window.kill(),
         desc="Kill focused window (alternate)"),
 
+    Key([mod], "w", lazy.spawn("brave"), desc="Launch Brave"),
+
     Key([mod], "f", lazy.window.toggle_fullscreen(),
         desc="Toggle fullscreen for focused window"),
 
