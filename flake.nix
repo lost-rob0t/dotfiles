@@ -18,7 +18,7 @@
     };
     zara.url = "github:lost-rob0t/zara";
     org-vector.url = "github:lost-rob0t/org-vector";
-    bixby-studio.url = "github:lost-rob0t/org-vector";
+    bixby-studio.url = "github:lost-rob0t/bixby-studio";
     mousetrap.url = "github:lost-rob0t/Mousetrap";
   };
 
