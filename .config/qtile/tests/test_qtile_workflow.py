@@ -8,6 +8,8 @@ from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1] / "qtile-workflow.el"
 TEXT = SOURCE.read_text(encoding="utf-8")
+DESKTOP_SOURCE = SOURCE.parent / "qtile-desktop.el"
+DESKTOP_TEXT = DESKTOP_SOURCE.read_text(encoding="utf-8")
 
 
 class WorkflowFrameTests(unittest.TestCase):
@@ -16,6 +18,10 @@ class WorkflowFrameTests(unittest.TestCase):
         self.assertIn("(defun qtile-workflow-open (params)", TEXT)
         self.assertIn("qtile-ui-org-heading", TEXT)
         self.assertIn('completing-read "Workflow: " choices nil t', TEXT)
+
+    def test_workflow_has_no_legacy_full_size_frame_constructor(self):
+        self.assertNotIn("qtile-workflow-read", DESKTOP_TEXT)
+        self.assertNotIn("(make-frame", DESKTOP_TEXT)
 
 
 if __name__ == "__main__":

@@ -33,17 +33,16 @@ it does not poll or repeatedly reorganize existing windows.  AI-related
 windows go to workspace 3, Discord goes to workspace 9, games go to workspace
 4, and video players or video-site tabs go to workspace 6.  This includes
 ChatGPT Desktop, AI tabs in Brave, T3 Code, Emacs LLM/OpenRouter/MCP buffers,
-OpenCode or Claude Code Terminator windows, Steam/PrismLauncher/Minecraft/War
+OpenCode or Claude Code terminal windows, Steam/PrismLauncher/Minecraft/War
 Thunder, and YouTube/Twitch tabs.
 The matcher is maintained in [[file:../../.config/qtile/qtile_ai_windows.py][qtile_ai_windows.py]] and was seeded from the local ActivityWatch window bucket;
 ordinary Brave pages and terminal windows are not routed by title alone.  The
 focused newly routed window follows its destination group so it does not
 appear to disappear from the current screen.
 
-The Bash =opencode= launcher opens a dedicated Terminator window.  Pass
-=--topic=TOPIC= (or set =OPENCODE_CHAT_TOPIC=TOPIC=) to get a title of the
-form =Opencode - TOPIC=; remaining arguments go to OpenCode.  =oc= is a
-short alias for the same launcher.
+The Bash =opencode= command runs the executable directly in the current
+terminal; =oc= is a short alias for it.  Qtile's =Super+T= binding launches a
+separate Terminator window.
 
 * Desktop integration map
 Qtile-related files live under [[file:../../.config/qtile/][.config/qtile/]].  Besides the generated main config, that tree contains widgets, helper scripts, icons, autostart integration, and support code.

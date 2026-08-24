@@ -58,20 +58,6 @@
   (qtile-ui-prepare-buffer)
   (qtile-ui-bind-dismiss))
 
-(defun qtile-workflow-read (choices)
-  "Select one Qtile workflow from CHOICES in a temporary GUI frame."
-  (let ((frame (make-frame '((name . "qtile-workflow")
-                             (title . "qtile-workflow")
-                             (width . 58)
-                             (height . 10)
-                             (minibuffer . t)))))
-    (unwind-protect
-        (with-selected-frame frame
-          (select-frame-set-input-focus frame)
-          (completing-read "Qtile workflow: " choices nil t))
-      (when (frame-live-p frame)
-        (delete-frame frame)))))
-
 (defvar qtile-agent-zero-mode-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map text-mode-map)

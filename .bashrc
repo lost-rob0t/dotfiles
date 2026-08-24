@@ -261,42 +261,6 @@ fi
 
 alias wttr="curl wttr.in"
 
-function opencode() {
-    local topic="${OPENCODE_CHAT_TOPIC:-New Chat}"
-    local opencode_bin
-
-    if [[ "${1-}" == --topic=* ]]; then
-        topic="${1#--topic=}"
-        if [[ -z "$topic" ]]; then
-            printf 'opencode: --topic requires a value\n' >&2
-            return 2
-        fi
-        shift
-    elif [[ "${1-}" == "--topic" ]]; then
-        if [[ -z "${2-}" ]]; then
-            printf 'opencode: --topic requires a value\n' >&2
-            return 2
-        fi
-        topic="$2"
-        shift 2
-    fi
-
-    if [[ "${1-}" == "--" ]]; then
-        shift
-    fi
-
-    opencode_bin="$(type -P opencode || true)"
-    if [[ -z "$opencode_bin" ]]; then
-        printf 'opencode: executable not found in PATH\n' >&2
-        return 127
-    fi
-
-    topic="${topic//$'\n'/ }"
-    terminator --title "Opencode - $topic" \
-        --working-directory "$PWD" \
-        --execute "$opencode_bin" "$@"
-}
-
 alias oc='opencode'
 
 alias couchdb="mkdir -p $PWD/.database && sudo chown 1001:1001 $PWD/.database && sudo docker run -d  -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password  -v $PWD/.database:/opt/couchdb/data  -p 0.0.0.0:5984:5984 ibmcom/couchdb3" && echo $PWD/.database >> $HOME/.config/couchdb-databases

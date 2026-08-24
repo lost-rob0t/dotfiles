@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -52,35 +54,55 @@ class LiterateConfigParityTests(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
 
-    def test_opencode_launcher_is_present_in_source_and_tangle(self):
+    def test_opencode_launcher_is_direct_in_source_and_tangle(self):
         for path in (BASH_ORG, BASHRC):
             source = path.read_text(encoding="utf-8")
-            self.assertIn("function opencode()", source)
-            self.assertIn('terminator --title "Opencode - $topic"', source)
+            self.assertNotIn("function opencode()", source)
+            self.assertNotIn("terminator --title", source)
             self.assertIn("alias oc='opencode'", source)
 
-    def test_opencode_launcher_passes_topic_to_terminator(self):
-        completed = subprocess.run(
-            [
-                "bash",
-                "--noprofile",
-                "--norc",
-                "-c",
-                (
-                    f"source {BASHRC} >/dev/null 2>&1; "
-                    "terminator() { printf '%s\\n' \"$*\"; }; "
-                    "opencode --topic='Qtile AI check' -- --help"
-                ),
-            ],
-            cwd=ROOT,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+    def test_opencode_launcher_executes_the_path_command_directly(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            bin_dir = home / "bin"
+            bin_dir.mkdir()
+            (home / ".platform").write_text("test\n", encoding="utf-8")
+            executable = bin_dir / "opencode"
+            executable.write_text(
+                "#!/usr/bin/env bash\nprintf 'direct-opencode %s\\n' \"$*\"\n",
+                encoding="utf-8",
+            )
+            executable.chmod(0o755)
+            env = {
+                **os.environ,
+                "HOME": str(home),
+                "PATH": f"{bin_dir}:{os.environ.get('PATH', '')}",
+                "TERM": "dumb",
+            }
+            completed = subprocess.run(
+                [
+                    "bash",
+                    "--noprofile",
+                    "--norc",
+                    "-c",
+                    f"source {BASHRC} >/dev/null 2>&1; opencode --help",
+                ],
+                cwd=ROOT,
+                check=False,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertIn("--title Opencode - Qtile AI check", completed.stdout)
-        self.assertIn("--execute", completed.stdout)
-        self.assertIn("--help", completed.stdout)
+        self.assertIn("direct-opencode --help", completed.stdout)
+
+    def test_super_t_launches_terminator_in_source_and_tangle(self):
+        for path in (QTILE_CONFIG_ORG, QTILE_CONFIG):
+            source = path.read_text(encoding="utf-8")
+            self.assertIn(
+                'Key([mod], "t", lazy.spawn(myTerm), desc="Launch Terminator")',
+                source,
+            )
 
     def test_auto_mode_routes_new_windows_without_a_polling_timer(self):
         for path in (QTILE_CONFIG_ORG, QTILE_CONFIG):

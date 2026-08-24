@@ -210,6 +210,8 @@ keys = [
 
     Key([mod], "w", lazy.spawn("brave"), desc="Launch Brave"),
 
+    Key([mod], "t", lazy.spawn(myTerm), desc="Launch Terminator"),
+
     Key([mod], "f", lazy.window.toggle_fullscreen(),
         desc="Toggle fullscreen for focused window"),
 
