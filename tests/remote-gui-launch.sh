@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly launcher="$repo_root/scripts/remote-gui-launch"
-readonly tmp="$(mktemp -d)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly repo_root
+launcher="$repo_root/scripts/remote-gui-launch"
+readonly launcher
+tmp="$(mktemp -d)"
+readonly tmp
 trap 'rm -rf "$tmp"' EXIT
 
 cat > "$tmp/ssh" <<'EOF'
