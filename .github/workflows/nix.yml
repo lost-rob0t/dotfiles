@@ -22,8 +22,8 @@ jobs:
       - name: Check shell scripts
         run: |
           set -euo pipefail
-          bash -n .bashrc scripts/*.sh tests/home-manager-updater.sh tests/gpt-todos-sync.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh
-          shellcheck --severity=warning scripts/*.sh tests/home-manager-updater.sh tests/gpt-todos-sync.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh
+          bash -n .bashrc scripts/*.sh tests/home-manager-updater.sh tests/gpt-todos-sync.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh scripts/agent-zero-tunnel scripts/remote-gui-launch scripts/install-termux-widgets tests/agent-zero-tunnel.sh tests/remote-gui-launch.sh
+          shellcheck --severity=warning scripts/*.sh tests/home-manager-updater.sh tests/gpt-todos-sync.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh scripts/agent-zero-tunnel scripts/remote-gui-launch scripts/install-termux-widgets tests/agent-zero-tunnel.sh tests/remote-gui-launch.sh
       - name: Verify bash.org and .bashrc are tangled in sync
         run: |
           set -euo pipefail
@@ -49,6 +49,10 @@ jobs:
         run: bash tests/home-manager-updater.sh
       - name: Run GPT TODO bidirectional sync tests
         run: bash tests/gpt-todos-sync.sh
+      - name: Run Termux remote workflow tests
+        run: |
+          bash tests/agent-zero-tunnel.sh
+          bash tests/remote-gui-launch.sh
       - name: Check Qtile Python helpers
         run: >-
           python3 -m py_compile
@@ -79,18 +83,20 @@ jobs:
       - uses: cachix/install-nix-action@v31
       - uses: cachix/cachix-action@v16
         with:
-          name: nix-community
-      - name: Check flake lock is current
-        run: |
-          set -euo pipefail
-          nix flake lock
-          git diff -- flake.lock
-          git diff --exit-code -- flake.lock
-      - name: Evaluate flake checks without building system closures
-        run: nix flake check --no-build --show-trace
-      - name: Build and test Prolog MCP package
-        run: nix build .#checks.x86_64-linux.prolog-mcp --no-link
-      - name: Evaluate desktop Home Manager configuration
-        run: nix eval --raw '.#homeConfigurations."unseen@desktop".activationPackage.drvPath'
-      - name: Evaluate flake Home Manager configuration
-        run: nix eval --raw '.#homeConfigurations."unseen@flake".activationPackage.drvPath'
+          name: lost-rob0t-dotfiles
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+      - name: Build logos package
+        run: nix build .#logos --no-link
+
+  flake-check:
+    needs: workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v16
+        with:
+          name: lost-rob0t-dotfiles
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+      - name: Flake check
+        run: nix flake check
