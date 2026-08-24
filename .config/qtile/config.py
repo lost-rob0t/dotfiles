@@ -307,6 +307,23 @@ keys = [
     Key([mod, "mod1"], "l", lazy.layout.flip_right()),
     Key([mod, "mod1"], "j", lazy.layout.flip_down()),
     Key([mod, "mod1"], "k", lazy.layout.flip_up()),
+
+    # --- WALLPAPER CONTROL ---
+    Key([mod1, "shift"], "n",
+        lazy.spawn("variety --next"),
+        desc="Show next Variety wallpaper"),
+    Key([mod1, "shift"], "p",
+        lazy.spawn("variety --previous"),
+        desc="Show previous Variety wallpaper"),
+    Key([mod1, "shift"], "f",
+        lazy.spawn("variety --favorite"),
+        desc="Favorite current Variety wallpaper"),
+    Key([mod1, "shift"], "space",
+        lazy.spawn("variety --toggle-pause"),
+        desc="Pause or resume Variety rotation"),
+    Key([mod1, "shift"], "s",
+        lazy.spawn("variety --selector"),
+        desc="Open Variety wallpaper selector"),
 ]
 
 # === EMACS INTEGRATION KEYCHORD ===
@@ -632,6 +649,7 @@ floating_layout = layout.Floating(
         Match(wm_class='Arandr'),  # Display settings
         Match(wm_class='feh'),     # Image viewer
         Match(wm_class='Galculator'),
+        Match(wm_class='Variety', title='Variety Images'),
         Match(wm_class='archlinux-logout'),
         Match(wm_class='xfce4-terminal'),
         Match(wm_class='Arcolinux-welcome-app.py'),
