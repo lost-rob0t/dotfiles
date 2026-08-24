@@ -10,6 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 QTILE_ORG = ROOT / ".config" / "qtile" / "qtile-openrouter.org"
 QTILE_PY = ROOT / ".config" / "qtile" / "qtile_openrouter.py"
+QTILE_CONFIG = ROOT / ".config" / "qtile" / "config.py"
+QTILE_CONFIG_ORG = ROOT / ".config" / "qtile" / "qtile-ai.org"
 BASH_ORG = ROOT / "bash.org"
 BASHRC = ROOT / ".bashrc"
 BASE_NIX = ROOT / "nix" / "home-manager" / "mods" / "base.nix"
@@ -49,6 +51,50 @@ class LiterateConfigParityTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
+
+    def test_opencode_launcher_is_present_in_source_and_tangle(self):
+        for path in (BASH_ORG, BASHRC):
+            source = path.read_text(encoding="utf-8")
+            self.assertIn("function opencode()", source)
+            self.assertIn('terminator --title "Opencode - $topic"', source)
+            self.assertIn("alias oc='opencode'", source)
+
+    def test_opencode_launcher_passes_topic_to_terminator(self):
+        completed = subprocess.run(
+            [
+                "bash",
+                "--noprofile",
+                "--norc",
+                "-c",
+                (
+                    f"source {BASHRC} >/dev/null 2>&1; "
+                    "terminator() { printf '%s\\n' \"$*\"; }; "
+                    "opencode --topic='Qtile AI check' -- --help"
+                ),
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertIn("--title Opencode - Qtile AI check", completed.stdout)
+        self.assertIn("--execute", completed.stdout)
+        self.assertIn("--help", completed.stdout)
+
+    def test_auto_mode_routes_new_windows_without_a_polling_timer(self):
+        for path in (QTILE_CONFIG_ORG, QTILE_CONFIG):
+            source = path.read_text(encoding="utf-8")
+            self.assertIn("def auto_group_new_window(window):", source)
+            self.assertNotIn("AUTO_GROUP_INTERVAL", source)
+            self.assertNotIn("reconcile_auto_grouping", source)
+
+    def test_application_menu_binding_is_tangled(self):
+        for path in (QTILE_CONFIG_ORG, QTILE_CONFIG):
+            self.assertIn(
+                'Key([mod], "d", lazy.spawn("j4-dmenu-desktop")',
+                path.read_text(encoding="utf-8"),
+            )
 
 
 if __name__ == "__main__":

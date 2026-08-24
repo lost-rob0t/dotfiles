@@ -20,6 +20,12 @@ from libqtile.config import (
 from libqtile.lazy import lazy
 from libqtile.widget import Spacer
 from libqtile.log_utils import logger
+from qtile_ai_windows import (
+    is_ai_window,
+    is_game_window,
+    is_messenger_window,
+    is_video_window,
+)
 
 # === WINDOW SWALLOWING (requires psutil) ===
 import psutil  # For advanced window management features
@@ -119,7 +125,7 @@ group_names = [
 # Option 1: Nerd Font icons (current)
 group_labels = [
     "", "", "󰚩", "", "",
-    "", "", "", "", ""
+    "", "", "", "", ""
 ]
 
 # Option 2: Plain numbers (uncomment to use)
@@ -127,6 +133,10 @@ group_labels = [
 
 auto_group_mode = False
 auto_group_buttons = []
+_old_auto_group_timer = globals().get("auto_group_timer")
+if _old_auto_group_timer is not None:
+    _old_auto_group_timer.cancel()
+auto_group_timer = None
 
 
 def auto_group_button_colors():
@@ -367,6 +377,11 @@ keys.append(
 )
 
 # === WORKSPACE SWITCHING ===
+keys.append(
+    Key([mod], "d", lazy.spawn("j4-dmenu-desktop"),
+        desc="Application menu")
+)
+
 # Dynamically generate keybindings for all workspaces
 for i in groups:
     if isinstance(i, Group):  # Skip ScratchPad groups
@@ -540,14 +555,33 @@ layouts = [
 ]
 
 # === AUTO-ASSIGNMENT TO WORKSPACES ===
-@hook.subscribe.client_new
-def assign_app_group(client):
+AI_GROUP = group_names[2]
+GAME_GROUP = group_names[3]
+VIDEO_GROUP = group_names[5]
+MESSENGER_GROUP = group_names[8]
+
+
+def routed_group(window):
     """
-    Automatically move windows to specific workspaces based on WM_CLASS.
+    Return the Auto-mode destination for a window, if one is known.
 
     To find WM_CLASS: run 'xprop' and click a window.
     Use the FIRST field of WM_CLASS(STRING).
     """
+    try:
+        wm_classes = window.window.get_wm_class() or ()
+    except AttributeError:
+        return None
+    title = getattr(window, "name", "")
+    if is_messenger_window(wm_classes, title):
+        return MESSENGER_GROUP
+    if is_game_window(wm_classes):
+        return GAME_GROUP
+    if is_video_window(wm_classes, title):
+        return VIDEO_GROUP
+    if is_ai_window(wm_classes, title):
+        return AI_GROUP
+
     assignments = {
         # Workspace 1: Web Browsers
         group_names[0]: [
@@ -562,21 +596,23 @@ def assign_app_group(client):
             "emacs", "codium", "Code"
         ],
 
-        # Workspace 3: Graphics
+        # Workspace 3: AI and existing graphics routes
         group_names[2]: [
             "Inkscape", "Nomacs", "Ristretto", "Nitrogen", "Feh",
             "inkscape", "nomacs", "ristretto", "nitrogen", "feh",
             "gimp", "krita", "Gimp", "Krita"
         ],
 
-        # Workspace 4: Virtual Machines
+        # Workspace 4: Games and Virtual Machines
         group_names[3]: [
-            "virt-manager", "Virtual Machine Manager", "VirtualBox"
+            "virt-manager", "Virtual Machine Manager", "VirtualBox",
+            "minecraft", "war thunder", "steam", "prismlauncher",
+            "terraria.bin.x86_64",
         ],
 
-        # Workspace 6: Media
+        # Workspace 6: Video and Media
         group_names[5]: [
-            "Vlc", "vlc", "Mpv", "mpv", "Minecraft", "War Thunder"
+            "Vlc", "vlc", "Mpv", "mpv", "Feishin", "feishin"
         ],
 
         # Workspace 8: File Managers
@@ -587,21 +623,74 @@ def assign_app_group(client):
             "pcmanfm", "pcmanfm-qt",
         ],
 
-        # Workspace 9: Email
+        # Workspace 9: Messenger and Email
         group_names[8]: [
+            "Discord", "discord", "discordcanary", "discordptb",
             "Evolution", "Geary", "Mail", "Thunderbird",
             "evolution", "geary", "mail", "thunderbird"
         ],
     }
 
-    wm_class = client.window.get_wm_class()[0]
+    wm_class = (wm_classes[0] if wm_classes else "").casefold()
+    for target_group, class_list in assignments.items():
+        if any(wm_class == value.casefold() for value in class_list):
+            return target_group
+    return None
 
-    for workspace_index, class_list in enumerate(assignments.values()):
-        if wm_class in class_list:
-            target_group = list(assignments.keys())[workspace_index]
-            client.togroup(target_group)
-            client.group.toscreen(toggle=True)
-            return
+
+def update_group_layout(group):
+    if group.name not in group_names:
+        return
+    desired = "max" if len(group.windows) > 3 else ("max" if group.name == "1" else "monadtall")
+    if group.layout.name != desired:
+        group.setlayout(desired)
+
+
+def update_auto_layouts(qtile):
+    for group_name in group_names:
+        update_group_layout(qtile.groups_map[group_name])
+
+
+def apply_auto_grouping(window):
+    """Move a managed window only while Auto mode is enabled."""
+    if not auto_group_mode or not getattr(window, "group", None):
+        return
+    if window.group.name not in group_names:
+        return
+    target = routed_group(window)
+    if target and window.group.name != target:
+        source = window.group.name
+        from qtile_telemetry import telemetry_auto_route
+        telemetry_auto_route(window, source, target)
+        follows_focus = window is getattr(window.qtile, "current_window", None)
+        window.togroup(target, switch_group=follows_focus)
+    update_auto_layouts(window.qtile)
+
+
+def organize_existing_windows(qtile):
+    """Apply the same routes to windows already managed by Qtile."""
+    for group_name in group_names:
+        group = qtile.groups_map[group_name]
+        for window in tuple(group.windows):
+            target = routed_group(window)
+            if target and target != group_name:
+                from qtile_telemetry import telemetry_auto_route
+                telemetry_auto_route(window, group_name, target)
+                window.togroup(target, switch_group=False)
+        update_group_layout(group)
+    update_auto_layouts(qtile)
+
+
+@hook.subscribe.client_managed
+def auto_group_new_window(window):
+    if auto_group_mode:
+        window.qtile.call_soon(apply_auto_grouping, window)
+
+
+@hook.subscribe.group_window_add
+def enforce_auto_group(group, window):
+    if auto_group_mode and group.name in group_names:
+        group.qtile.call_soon(apply_auto_grouping, window)
 
 # === FLOATING WINDOW RULES ===
 def is_pavucontrol(window):

@@ -40,8 +40,12 @@ after the X session provides =DISPLAY= and =XAUTHORITY=.  Popup requests carry
 that display to =make-frame-on-display=, because a daemon's initial terminal is
 not a GUI terminal.  A daemon opens no window by itself, which is the safe
 fallback — =emacsclient -a emacs= instead spawned a second full-size GUI Emacs
-and then rendered the popup inside it.  The user's interactive Emacs is never
-touched or reused for popups.
+ and then rendered the popup inside it.  The user's interactive Emacs is never
+ touched or reused for popups.
+
+Popup frames explicitly inherit the active Emacs default face colors and clear
+fullscreen/maximized state.  Closing a workflow popup aborts an active
+minibuffer read before deleting the frame.
 
 * Ownership
 

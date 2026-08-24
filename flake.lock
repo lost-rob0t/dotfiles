@@ -188,11 +188,11 @@
     },
     "nixpkgs_3": {
       "locked": {
-        "lastModified": 1787204541,
-        "narHash": "sha256-OURZPknrTjQrlNyxPdqzyqmU/81Wes1CUP/Ft1Rv/YI=",
+        "lastModified": 1787414105,
+        "narHash": "sha256-WncT27+3BOkgTaJZLnCsf3LcYf9RXMuR9ONSN4rzQ7s=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "5880666fd9eb563038431edb35c2d0aa595884e6",
+        "rev": "a9e6d84f9c2f9012f5fe7d964a7851352300e61a",
         "type": "github"
       },
       "original": {
@@ -268,11 +268,11 @@
     },
     "skills": {
       "locked": {
-        "lastModified": 1787526066,
-        "narHash": "sha256-B0OPErdUMAETnNjPYk5qEpDWbejnEBlglmAglmJIql8=",
+        "lastModified": 1787543657,
+        "narHash": "sha256-lMNRulZQLbq7fRXz7vdrnsNPrUNl+WcvjuEfdbLQe94=",
         "owner": "lost-rob0t",
         "repo": "skills",
-        "rev": "74cf9e71ab79a569e0948a0ff46274a1d5e5c27e",
+        "rev": "98871042e34714747de143565e1343b0b5e533bf",
         "type": "github"
       },
       "original": {
@@ -331,11 +331,11 @@
         "nixpkgs": "nixpkgs_5"
       },
       "locked": {
-        "lastModified": 1787441179,
-        "narHash": "sha256-LhogzsnyzdHh9Gg0JDvcRIukCE47pUyeeyZwWOYimAw=",
+        "lastModified": 1787560456,
+        "narHash": "sha256-47gDwMw/BDkV2p5rYe7ED7balw1yDfK98dzNSgSzdI4=",
         "owner": "lost-rob0t",
         "repo": "zara",
-        "rev": "1a076e9921228d9d0eb18ea63225a1862f81023d",
+        "rev": "2c608e7d4d79dc76ebfcc16bf8f064174a38df3b",
         "type": "github"
       },
       "original": {

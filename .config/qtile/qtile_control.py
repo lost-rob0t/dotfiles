@@ -34,6 +34,7 @@ DEFAULT_WORKFLOWS = {
 PRIVATE_ENV_PATH = Path("~/.config/qtile/private.env").expanduser()
 WORKFLOWS_PATH = Path("~/.config/qtile/workflows.json").expanduser()
 EMACS_HELPER = Path("~/.config/qtile/qtile-desktop.el").expanduser()
+EMACS_SERVER_NAME = os.environ.get("QTILE_EMACS_SERVER", "qtile")
 WORKFLOW_HELPER = Path("~/.config/qtile/qtile-workflow.el").expanduser()
 GPT_TODOS_SYNC = Path("~/.dotfiles/scripts/gpt-todos-sync").expanduser()
 DUNST_MENU = Path("~/.config/qtile/scripts/dunst_menu.py").expanduser()
@@ -934,6 +935,8 @@ def build_screen_widgets(
                         "timeout",
                         "3",
                         "emacsclient",
+                        "-s",
+                        EMACS_SERVER_NAME,
                         "-a",
                         "false",
                         "--eval",

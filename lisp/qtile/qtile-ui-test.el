@@ -13,15 +13,23 @@
                    (file-name-directory load-file-name)))
 
 (ert-deftest qtile-ui-frame-parameters-are-popup-safe ()
-  (let ((parameters
-         (qtile-ui--frame-parameters
+  (let* ((background (face-attribute 'default :background nil nil))
+         (foreground (face-attribute 'default :foreground nil nil))
+         (parameters
+          (qtile-ui--frame-parameters
           "notifications"
           '((left . 120) (top . 46) (width . 640) (height . 620))
           nil)))
     (should (= (alist-get 'left parameters) 120))
     (should (= (alist-get 'top parameters) 46))
-    (should (equal (alist-get 'minibuffer parameters) nil))
-    (should (equal (alist-get 'mode-line-format parameters) nil))
+     (should (equal (alist-get 'minibuffer parameters) nil))
+     (should (equal (alist-get 'fullscreen parameters) nil))
+     (should (equal (alist-get 'maximized parameters) nil))
+     (should (equal (alist-get 'background-color parameters)
+                    (and (qtile-ui--usable-color-p background) background)))
+     (should (equal (alist-get 'foreground-color parameters)
+                    (and (qtile-ui--usable-color-p foreground) foreground)))
+     (should (equal (alist-get 'mode-line-format parameters) nil))
     (should (eq (alist-get 'user-position parameters) t))
     (should (= (alist-get 'menu-bar-lines parameters) 0))
     (should (= (alist-get 'tool-bar-lines parameters) 0))
@@ -40,7 +48,15 @@
                    nil
                    '((display . ":0")))
                   'frame))
-      (should (equal (car received) ":0")))))
+       (should (equal (car received) ":0")))))
+
+(ert-deftest qtile-ui-frame-theme-application-is-safe-without-doom ()
+  (let ((frame (selected-frame)))
+    (should-not (condition-case nil
+                    (progn
+                      (qtile-ui--apply-frame-theme frame)
+                      nil)
+                  (error t)))))
 
 (ert-deftest qtile-ui-prepare-buffer-removes-modeline-and-header ()
   ;; mode-line-format is buffer-local: setting it as a frame parameter was a

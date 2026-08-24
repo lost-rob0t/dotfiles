@@ -184,7 +184,7 @@ class QtileControlTests(unittest.TestCase):
         self.assertIn("widget.GenPollCommand", SOURCE_TEXT)
         self.assertIn('name="org_clocked_task"', SOURCE_TEXT)
         self.assertIn(
-            '"timeout",\n                        "3",\n                        "emacsclient",\n                        "-a",\n                        "false",',
+            '"timeout",\n                        "3",\n                        "emacsclient",\n                        "-s",\n                        EMACS_SERVER_NAME,\n                        "-a",\n                        "false",',
             SOURCE_TEXT,
         )
         self.assertIn("QTILEORG:", SOURCE_TEXT)

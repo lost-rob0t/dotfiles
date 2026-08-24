@@ -50,21 +50,35 @@
   (add-hook 'delete-frame-functions #'qtile-ui--forget-frame))
 
 (defun qtile-ui--frame-parameters (popup-id geometry minibuffer)
-  (let ((title (format "qtile-%s" popup-id)))
-    `((name . ,title)
-      (title . ,title)
-      (left . ,(qtile-ui-param 'left geometry))
-      (top . ,(qtile-ui-param 'top geometry))
-      (user-position . t)
-      (width . 80)
-      (height . 24)
-      (minibuffer . ,(if minibuffer t nil))
-      (menu-bar-lines . 0)
-      (tool-bar-lines . 0)
-      (vertical-scroll-bars . nil)
-      (horizontal-scroll-bars . nil)
-      (internal-border-width . 8)
-      (undecorated . t))))
+  (let* ((title (format "qtile-%s" popup-id))
+         (background (face-attribute 'default :background nil nil))
+         (foreground (face-attribute 'default :foreground nil nil))
+         (parameters `((name . ,title)
+                       (title . ,title)
+                       (left . ,(qtile-ui-param 'left geometry))
+                       (top . ,(qtile-ui-param 'top geometry))
+                       (user-position . t)
+                       (width . 80)
+                       (height . 24)
+                       (minibuffer . ,(if minibuffer t nil))
+                       (fullscreen . nil)
+                       (maximized . nil)
+                       (menu-bar-lines . 0)
+                       (tool-bar-lines . 0)
+                       (vertical-scroll-bars . nil)
+                       (horizontal-scroll-bars . nil)
+                       (internal-border-width . 8)
+                       (undecorated . t))))
+    (when (qtile-ui--usable-color-p background)
+      (push `(background-color . ,background) parameters))
+    (when (qtile-ui--usable-color-p foreground)
+      (push `(foreground-color . ,foreground) parameters))
+    parameters))
+
+(defun qtile-ui--usable-color-p (color)
+  "Return non-nil when COLOR is a concrete face color, not an unspecified sentinel."
+  (and (stringp color)
+       (not (member color '("unspecified" "unspecified-bg" "unspecified-fg")))))
 
 (defun qtile-ui--set-pixel-size (frame geometry)
   (let ((width (qtile-ui-param 'width geometry))
@@ -73,6 +87,19 @@
       (condition-case nil
           (set-frame-size frame width height t)
         (error nil)))))
+
+(defun qtile-ui--apply-frame-theme (frame)
+  "Apply the configured Emacs theme to a newly-created daemon frame."
+  (when (and (boundp 'doom-theme) (symbolp doom-theme))
+    (condition-case nil
+        (load-theme doom-theme t)
+      (error nil)))
+  (with-selected-frame frame
+    (dolist (spec '((:background . background-color)
+                    (:foreground . foreground-color)))
+      (let ((color (face-attribute 'default (car spec) frame t)))
+        (when (stringp color)
+          (set-frame-parameter frame (cdr spec) color))))))
 
 (defun qtile-ui--make-frame (popup-id geometry minibuffer params)
   "Create POPUP-ID on the display supplied by Qtile when available."
@@ -108,6 +135,12 @@
   "Close the popup identified by POPUP-ID, if it is still live."
   (interactive)
   (when-let ((frame (qtile-ui--live-frame popup-id)))
+    (let ((minibuffer (active-minibuffer-window)))
+      (when (and minibuffer (eq (window-frame minibuffer) frame))
+        (with-selected-frame frame
+          (condition-case nil
+              (abort-recursive-edit)
+            (quit nil)))))
     (delete-frame frame t)))
 
 (defun qtile-ui-close-current ()
@@ -139,18 +172,17 @@ the same stable popup identity again and reuses the feature's buffer.
 "
   (interactive)
   (if-let ((frame (qtile-ui--live-frame popup-id)))
-      (progn
-        (select-frame-set-input-focus frame)
-        (delete-frame frame t))
+      (qtile-ui-close popup-id)
     (let* ((geometry (qtile-ui-param 'geometry params))
             (frame (qtile-ui--make-frame
                     popup-id geometry
                     (eq (qtile-ui-param 'minibuffer params) t)
                     params))
            (function (if (symbolp renderer) renderer (intern renderer))))
-      (set-frame-parameter frame 'qtile-ui-popup-id popup-id)
-      (push (cons popup-id frame) qtile-ui-frame-registry)
-      (qtile-ui--set-pixel-size frame geometry)
+       (set-frame-parameter frame 'qtile-ui-popup-id popup-id)
+       (push (cons popup-id frame) qtile-ui-frame-registry)
+       (qtile-ui--apply-frame-theme frame)
+       (qtile-ui--set-pixel-size frame geometry)
       (with-selected-frame frame
         (condition-case error
             (prog1 (funcall function params)
