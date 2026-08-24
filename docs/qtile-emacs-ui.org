@@ -105,19 +105,22 @@ The shared frame lifecycle is provided by =qtile-ui.el=:
 - =qtile-ui-toggle POPUP-ID RENDERER PARAMS= opens or closes a stable popup.
 - =qtile-ui-close POPUP-ID= closes a live popup by identity.
 - =qtile-ui-close-current= closes the current popup from a key or button.
+- =qtile-ui-show-errors= displays the shared =*Qtile Errors*= buffer.
 - =qtile-ui-prepare-buffer= removes the bottom modeline, adds a compact top
   popup header, and disables line-number presentation.
 - =qtile-ui-bind-dismiss= binds =q= and =Escape= dismissal.
 - =qtile-ui-param KEY PARAMS= and =qtile-ui-args PARAMS= read JSON arguments.
 
-Frames use no minibuffer, menu bar, tool bar, or scroll bars by default.  The
-workflow picker opts into a minibuffer because it uses Emacs completion.  Every
+Frames use a private minibuffer, no menu bar, tool bar, or scroll bars by
+default.  Keeping the minibuffer private prevents Emacs's daemon-level
+=*Minibuf-0*= frame from being exposed as a full-size Qtile window.  Every
 dropdown gets a compact top header with its popup name and =q=/=Escape=
 dismissal hint; the bottom modeline is removed buffer-locally via
 =mode-line-format nil= plus Doom's =hide-mode-line-mode=.  Setting
 =mode-line-format= as a frame parameter has no effect.  The frame is registered
 by popup ID and is rediscovered by its frame parameter on reuse; deleted or
-stale entries are removed from the registry.
+stale entries are removed from the registry.  Rendering failures are appended
+to the Emacs =*Qtile Errors*= buffer and shown in the affected popup.
 
 =qtile-ui-org.el= supplies headings, sections, muted metadata, values,
 separators, buttons, status faces, and selected faces.  Feature modules use

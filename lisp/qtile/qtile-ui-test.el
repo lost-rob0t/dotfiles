@@ -22,7 +22,7 @@
           nil)))
     (should (= (alist-get 'left parameters) 120))
     (should (= (alist-get 'top parameters) 46))
-     (should (equal (alist-get 'minibuffer parameters) nil))
+     (should (equal (alist-get 'minibuffer parameters) t))
      (should (equal (alist-get 'fullscreen parameters) nil))
      (should (equal (alist-get 'maximized parameters) nil))
      (should (equal (alist-get 'background-color parameters)
@@ -57,6 +57,22 @@
                       (qtile-ui--apply-frame-theme frame)
                       nil)
                   (error t)))))
+
+(ert-deftest qtile-ui-logs-errors-in-a-dedicated-buffer ()
+  (let ((buffer (get-buffer qtile-ui-error-buffer-name)))
+    (when buffer
+      (kill-buffer buffer))
+    (let ((error-value
+           (condition-case error
+               (error "workflow exploded")
+             (error error))))
+      (qtile-ui--log-error "workflow" error-value))
+    (unwind-protect
+        (with-current-buffer qtile-ui-error-buffer-name
+          (should (string-match-p "workflow" (buffer-string)))
+          (should (string-match-p "workflow exploded" (buffer-string))))
+      (when-let ((buffer (get-buffer qtile-ui-error-buffer-name)))
+        (kill-buffer buffer)))))
 
 (ert-deftest qtile-ui-prepare-buffer-shows-top-header-and-removes-modeline ()
   (with-temp-buffer

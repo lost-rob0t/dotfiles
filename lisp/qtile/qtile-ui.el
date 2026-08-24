@@ -7,6 +7,9 @@
 (defvar qtile-ui-frame-registry nil
   "Alist of stable Qtile popup IDs and their live Emacs frames.")
 
+(defconst qtile-ui-error-buffer-name "*Qtile Errors*"
+  "Buffer receiving errors raised while rendering Qtile popups.")
+
 (defun qtile-ui--lookup (key alist)
   "Read KEY from JSON ALIST whether its keys are strings or symbols."
   (or (alist-get key alist nil nil #'equal)
@@ -49,7 +52,7 @@
 (unless (memq #'qtile-ui--forget-frame delete-frame-functions)
   (add-hook 'delete-frame-functions #'qtile-ui--forget-frame))
 
-(defun qtile-ui--frame-parameters (popup-id geometry minibuffer)
+(defun qtile-ui--frame-parameters (popup-id geometry _minibuffer)
   (let* ((title (format "qtile-%s" popup-id))
          (background (face-attribute 'default :background nil nil))
          (foreground (face-attribute 'default :foreground nil nil))
@@ -60,7 +63,10 @@
                        (user-position . t)
                        (width . 80)
                        (height . 24)
-                       (minibuffer . ,(if minibuffer t nil))
+                       ;; Give every popup its own minibuffer.  A nil value
+                       ;; makes Emacs expose the daemon's full-size
+                       ;; *Minibuf-0* frame to the window manager.
+                       (minibuffer . t)
                        (fullscreen . nil)
                        (maximized . nil)
                        (menu-bar-lines . 0)
@@ -87,6 +93,26 @@
       (condition-case nil
           (set-frame-size frame width height t)
         (error nil)))))
+
+(defun qtile-ui--error-message (error)
+  "Return a safe display string for ERROR."
+  (condition-case nil
+      (error-message-string error)
+    (error (format "%s" error))))
+
+(defun qtile-ui--log-error (popup-id error)
+  "Append a timestamped popup ERROR to the shared Emacs error buffer."
+  (with-current-buffer (get-buffer-create qtile-ui-error-buffer-name)
+    (goto-char (point-max))
+    (insert (format "%s [%s] %s\n"
+                    (format-time-string "%Y-%m-%d %H:%M:%S")
+                    popup-id
+                    (qtile-ui--error-message error)))))
+
+(defun qtile-ui-show-errors ()
+  "Display the shared Qtile popup error buffer."
+  (interactive)
+  (pop-to-buffer (get-buffer-create qtile-ui-error-buffer-name)))
 
 (defun qtile-ui--header-line ()
   "Return the compact top line shared by Qtile popup buffers."
@@ -159,6 +185,7 @@
       (delete-frame (selected-frame) t))))
 
 (defun qtile-ui--render-error (popup-id error)
+  (qtile-ui--log-error popup-id error)
   (let ((buffer (get-buffer-create (format "*Qtile %s*" popup-id))))
     (switch-to-buffer buffer)
     (let ((inhibit-read-only t))
@@ -180,27 +207,31 @@ the same stable popup identity again and reuses the feature's buffer.
   (interactive)
   (if-let ((frame (qtile-ui--live-frame popup-id)))
       (qtile-ui-close popup-id)
-    (let* ((geometry (qtile-ui-param 'geometry params))
-            (frame (qtile-ui--make-frame
-                    popup-id geometry
-                    (eq (qtile-ui-param 'minibuffer params) t)
-                    params))
-           (function (if (symbolp renderer) renderer (intern renderer))))
-       (set-frame-parameter frame 'qtile-ui-popup-id popup-id)
-       (push (cons popup-id frame) qtile-ui-frame-registry)
-       (qtile-ui--apply-frame-theme frame)
-       (qtile-ui--set-pixel-size frame geometry)
-      (with-selected-frame frame
-        (condition-case error
-            (prog1 (funcall function params)
-              (when (frame-live-p frame)
-                (select-frame-set-input-focus frame)
-                (qtile-ui-bind-dismiss)))
-           (error
-            (qtile-ui--render-error popup-id error)))
-           (quit
-            (qtile-ui-close popup-id)
-            nil)))))
+    (condition-case error
+        (let* ((geometry (qtile-ui-param 'geometry params))
+               (frame (qtile-ui--make-frame
+                       popup-id geometry
+                       (eq (qtile-ui-param 'minibuffer params) t)
+                       params))
+               (function (if (symbolp renderer) renderer (intern renderer))))
+          (set-frame-parameter frame 'qtile-ui-popup-id popup-id)
+          (push (cons popup-id frame) qtile-ui-frame-registry)
+          (qtile-ui--apply-frame-theme frame)
+          (qtile-ui--set-pixel-size frame geometry)
+          (with-selected-frame frame
+            (condition-case render-error
+                (prog1 (funcall function params)
+                  (when (frame-live-p frame)
+                    (select-frame-set-input-focus frame)
+                    (qtile-ui-bind-dismiss)))
+              (error
+               (qtile-ui--render-error popup-id render-error))
+              (quit
+               (qtile-ui-close popup-id)
+               nil))))
+      (error
+       (qtile-ui--log-error popup-id error)
+       nil))))
 
 (provide 'qtile-ui)
 ;;; qtile-ui.el ends here

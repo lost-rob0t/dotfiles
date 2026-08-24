@@ -129,6 +129,16 @@ class EmacsUiTests(unittest.TestCase):
         self.assertIn("display", command[-1])
         self.assertIn("load-path", command[-1])
 
+    def test_dropdown_command_uses_a_private_minibuffer_by_default(self):
+        geometry = MODULE.PopupGeometry(10, 26, 400, 300, 0, 0, 800, 600)
+        command = MODULE.build_emacsclient_command(
+            popup_id="notifications",
+            function="qtile-notifications-open",
+            geometry=geometry,
+        )
+        self.assertIn("minibuffer", command[-1])
+        self.assertIn("true", command[-1])
+
     def test_widget_offset_drives_alignment_not_a_defaulted_x(self):
         qtile = qtile_with_widget(x=777)
         screen, x, y, width, height = MODULE.widget_geometry(qtile, "trigger")

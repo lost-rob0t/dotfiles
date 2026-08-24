@@ -195,7 +195,7 @@ def build_emacsclient_command(
     geometry: PopupGeometry,
     args: dict[str, Any] | None = None,
     helper: Path = DEFAULT_HELPER,
-    minibuffer: bool = False,
+    minibuffer: bool = True,
 ) -> list[str]:
     """Build a structured, shell-free Emacs server invocation."""
     payload = {
