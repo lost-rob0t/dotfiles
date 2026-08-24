@@ -8,6 +8,8 @@ from pathlib import Path
 
 from libqtile.widget import base
 
+from notify import notify
+
 
 def _format_rate(value: float) -> str:
     amount = max(float(value), 0.0)
@@ -42,6 +44,7 @@ class NetIOGraph(base._Widget):
         self.upload = deque(maxlen=max(int(self.samples), 2))
         self._last = None
         self._last_at = None
+        self.add_callbacks({"Button1": self.show_stats, "Button3": self.show_stats})
 
     @staticmethod
     def _default_interface() -> str | None:
@@ -108,6 +111,18 @@ class NetIOGraph(base._Widget):
         self._last = current
         self._last_at = now
 
+    def show_stats(self):
+        """Show current RX/TX rates through a desktop notification."""
+        down = self.download[-1] if self.download else 0.0
+        up = self.upload[-1] if self.upload else 0.0
+        interface = self._default_interface() or "auto"
+        notify(
+            "Network I/O",
+            f"interface {interface}\n"
+            f"download {_format_rate(down)}\n"
+            f"upload {_format_rate(up)}",
+        )
+
     def _draw_series(self, values, color, ceiling, usable_height):
         if not values or ceiling <= 0:
             return
@@ -143,6 +158,18 @@ class NetIORate(base.BackgroundPoll):
         super().__init__(text="↓0B/s ↑0B/s", **config)
         self._last = None
         self._last_at = None
+        self._last_rates = (0.0, 0.0)
+        self.add_callbacks({"Button1": self.show_stats, "Button3": self.show_stats})
+
+    def show_stats(self):
+        """Show the latest numeric RX/TX rates through a notification."""
+        down, up = self._last_rates
+        notify(
+            "Network I/O",
+            f"interface {NetIOGraph._default_interface() or 'auto'}\n"
+            f"download {_format_rate(down)}\n"
+            f"upload {_format_rate(up)}",
+        )
 
     def poll(self):
         now = time.monotonic()
@@ -163,4 +190,5 @@ class NetIORate(base.BackgroundPoll):
             return "↓0B/s ↑0B/s"
         down = max((current[0] - previous[0]) / elapsed, 0.0)
         up = max((current[1] - previous[1]) / elapsed, 0.0)
+        self._last_rates = (down, up)
         return f"↓{_format_rate(down)} ↑{_format_rate(up)}"

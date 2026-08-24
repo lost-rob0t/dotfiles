@@ -13,8 +13,9 @@ standalone =emacs_ui.py=, system telemetry, Dunst adapter, and =lisp/qtile/=
 modules own reusable popup/data behavior.
 
 * Monitor configuration
-Before Qtile starts, =.xinitrc= runs =scripts/setup-monitors.sh=. The loader looks
-for an executable host profile named after the current user and hostname:
+Qtile's =startup= hook launches =scripts/setup-monitors.sh= on every Qtile start
+and restart. The loader looks for an executable host profile named after the
+current user and hostname:
 
 =~/.config/qtile/scripts/monitors/USER@HOSTNAME.sh=
 
@@ -24,7 +25,18 @@ is placed on the physical middle monitor. For an even number of outputs, the
 monitor to the right of center receives the tray. The hook also reruns when
 Qtile reconfigures screens.
 
+Monitor setup is intentionally not part of =autostart.sh= or =.xinitrc=;
+=.xinitrc= only starts Qtile after importing the display environment.
+
 The profile for this workstation is =scripts/monitors/unseen@flake.sh=.
+
+* Emacs popup server
+The Qtile startup script checks the named =qtile= Emacs server with
+=emacsclient -s qtile -a false=.  If it is absent, it starts
+=emacs --daemon=qtile= after the X session has supplied =DISPLAY= and
+=XAUTHORITY=.  Popup requests carry the live display to the shared Elisp frame
+creator, so a headless daemon can create a GUI frame without starting a second
+interactive Emacs window.
 
 * Keybindings
 Qtile owns the complete active keymap. The former SXHKD configuration was

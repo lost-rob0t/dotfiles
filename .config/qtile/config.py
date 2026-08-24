@@ -1,131 +1,132 @@
 #!/usr/bin/env python
+"""
+Qtile Configuration - Core System Setup
+This file is tangled from an org-mode file for better documentation.
+"""
+
+# === SYSTEM IMPORTS ===
 import os
+import re
+import socket
 import subprocess
+from typing import List
 
-import psutil
-from libqtile import bar, hook, layout, widget
-from libqtile.config import Drag, DropDown, Group, Key, KeyChord, Match, ScratchPad, Screen
+# === QTILE CORE IMPORTS ===
+from libqtile import layout, bar, widget, hook
+from libqtile.config import (
+    Click, Drag, Group, Key, Match, Screen, Rule,
+    KeyChord, ScratchPad, DropDown
+)
 from libqtile.lazy import lazy
+from libqtile.widget import Spacer
+from libqtile.log_utils import logger
 
-mod = "mod4"
-alt = "mod1"
-home = os.path.expanduser("~")
+# === WINDOW SWALLOWING (requires psutil) ===
+import psutil  # For advanced window management features
+
+# === GLOBAL CONFIGURATION ===
+mod = "mod4"      # Super/Windows key - primary modifier
+mod1 = "mod1"     # Alt key - secondary modifier
+mod2 = "control"  # Control key - tertiary modifier
+
+home = os.path.expanduser('~')
+monitor_setup = os.path.join(home, '.config/qtile/scripts/setup-monitors.sh')
+if not globals().get('_monitor_setup_complete', False):
+    subprocess.run([monitor_setup], check=False)
+    _monitor_setup_complete = True
+myTerm = "terminator"  # Default terminal emulator
+
+# === JAVA APPLICATION FIX ===
+# Java apps need this specific WM name or they won't render properly
+# See: https://archive.is/DOJvD
 wmname = "LG3D"
 
+# === IP ADDRESS FOR WIDGETS ===
+# Read external IP from file (populated by external script)
+def readIpFile(file_path=os.path.expanduser("~/.local/share/ip")):
+    """Read IP address from file for weather widget geolocation."""
+    try:
+        with open(file_path, "r") as file:
+            return file.read().strip()
+    except FileNotFoundError:
+        logger.warning(f"IP file not found at {file_path}")
+        return "0.0.0.0"
 
-def read_ip(path=os.path.expanduser("~/.local/share/ip")):
-    with open(path, encoding="utf-8") as stream:
-        return stream.read().strip()
+myIp = readIpFile()
 
+# === THERMAL SENSOR TAG ===
+# AMD CPUs use "Tctl", Intel uses "Package id 0"
+thermalTag = "Tctl"
 
-my_ip = read_ip()
-colors = [
-    ["#170c32"] * 2,
-    ["#202146"] * 2,
-    ["#92406e"] * 2,
-    ["#fba922"] * 2,
-    ["#2de2e6"] * 2,
-    ["#f3f4f5"] * 2,
-    ["#f6019d"] * 2,
-    ["#62FF00"] * 2,
-    ["#dd546e"] * 2,
-    ["#9700cc"] * 2,
+# === GROUP INITIALIZATION ===
+# Initialized here, populated in Workspace Configuration section
+groups = []
+
+# === COLOR SCHEME ===
+def init_colors():
+    """
+    Initialize color palette.
+    Returns list of [hex, hex] pairs for Qtile compatibility.
+    """
+    return [
+        ["#170c32", "#170c32"],  # 0: Deep background
+        ["#202146", "#202146"],  # 1: Background
+        ["#92406e", "#92406e"],  # 2: Borders/accents
+        ["#fba922", "#fba922"],  # 3: Clock/important
+        ["#2de2e6", "#2de2e6"],  # 4: Graphs/active
+        ["#f3f4f5", "#f3f4f5"],  # 5: Primary text
+        ["#f6019d", "#f6019d"],  # 6: Media/highlights
+        ["#62FF00", "#62FF00"],  # 7: Neon green (reserve)
+        ["#dd546e", "#dd546e"],  # 8: Current workspace
+        ["#9700cc", "#9700cc"],  # 9: Active workspaces
+    ]
+
+colors = init_colors()
+
+# === LAYOUT THEME ===
+def init_layout_theme():
+    """
+    Visual theme for window layouts.
+    Applied to all tiling layouts for consistency.
+    """
+    return {
+        "margin": 5,                  # Pixels between windows
+        "border_width": 2,            # Window border thickness
+        "border_focus": colors[2],    # Focused window border
+        "border_normal": colors[1],   # Unfocused window border
+    }
+
+layout_theme = init_layout_theme()
+
+# === STARTUP HOOKS ===
+
+@hook.subscribe.startup_once
+def start_once():
+    """
+    Execute autostart script ONCE per login session.
+    Script location: ~/.config/qtile/scripts/autostart.sh
+    """
+    home = os.path.expanduser('~')
+    subprocess.call([home + '/.config/qtile/scripts/autostart.sh'])
+
+# === WORKSPACE NAMES ===
+group_names = [
+    "1", "2", "3", "4", "5",
+    "6", "7", "8", "9", "0"
 ]
 
+# === WORKSPACE LABELS ===
+# Option 1: Nerd Font icons (current)
+group_labels = [
+    "", "", "󰚩", "", "",
+    "", "", "", "", ""
+]
 
-group_names = list("1234567890")
-group_labels = ["", "", "", "", "", "", "", "", "", ""]
-default_group_layouts = {
-    name: "max" if name == "1" else "monadtall" for name in group_names
-}
-auto_group_routes = {
-    "1": {
-        "navigator",
-        "firefox",
-        "vivaldi-stable",
-        "vivaldi-snapshot",
-        "chromium",
-        "google-chrome",
-        "brave",
-        "brave-browser",
-    },
-    "2": {"emacs", "codium"},
-    "3": {"inkscape", "nomacs", "ristretto", "nitrogen", "feh", "gimp", "krita"},
-    "4": {"virt-manager", "virtual machine manager"},
-    "6": {"vlc", "mpv", "minecraft", "war thunder"},
-    "8": {
-        "thunar",
-        "nemo",
-        "caja",
-        "nautilus",
-        "org.gnome.nautilus",
-        "pcmanfm",
-        "pcmanfm-qt",
-    },
-    "9": {"evolution", "geary", "mail", "thunderbird"},
-}
+# Option 2: Plain numbers (uncomment to use)
+# group_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+
 auto_group_mode = False
 auto_group_buttons = []
-
-groups = [
-    Group(name=name, label=label, layout=default_group_layouts[name])
-    for name, label in zip(group_names, group_labels)
-]
-
-
-def routed_group(window):
-    try:
-        wm_classes = window.window.get_wm_class() or ()
-    except AttributeError:
-        return None
-
-    normalized = {value.casefold() for value in wm_classes if value}
-    for group_name, classes in auto_group_routes.items():
-        if normalized & classes:
-            return group_name
-    return None
-
-
-def update_group_layout(group):
-    if group.name not in default_group_layouts:
-        return
-
-    desired = "max" if len(group.windows) > 3 else default_group_layouts[group.name]
-    if group.layout.name != desired:
-        group.setlayout(desired)
-
-
-def update_auto_layouts(qtile):
-    for group_name in group_names:
-        update_group_layout(qtile.groups_map[group_name])
-
-
-def apply_auto_grouping(window):
-    if not auto_group_mode or not getattr(window, "group", None):
-        return
-    if window.group.name not in group_names:
-        return
-
-    target = routed_group(window)
-    if target and window.group.name != target:
-        source = window.group.name
-        from qtile_telemetry import telemetry_auto_route
-        telemetry_auto_route(window, source, target)
-        window.togroup(target, switch_group=False)
-
-    update_auto_layouts(window.qtile)
-
-
-def organize_existing_windows(qtile):
-    for group_name in group_names:
-        group = qtile.groups_map[group_name]
-        for window in tuple(group.windows):
-            target = routed_group(window)
-            if target and target != group_name:
-                from qtile_telemetry import telemetry_auto_route
-                telemetry_auto_route(window, group_name, target)
-                window.togroup(target, switch_group=False)
-    update_auto_layouts(qtile)
 
 
 def auto_group_button_colors():
@@ -145,284 +146,9 @@ def toggle_auto_group_mode(qtile):
     global auto_group_mode
     auto_group_mode = not auto_group_mode
     from qtile_telemetry import telemetry_event
+
     telemetry_event("auto_mode_changed", enabled=auto_group_mode)
-    if auto_group_mode:
-        organize_existing_windows(qtile)
     update_auto_group_buttons()
-
-
-@hook.subscribe.startup_once
-def startup_once():
-    subprocess.call([home + "/.config/qtile/scripts/autostart.sh"])
-
-
-@hook.subscribe.startup
-def startup():
-    subprocess.Popen(["xsetroot", "-cursor_name", "left_ptr"])
-
-
-@hook.subscribe.client_managed
-def auto_group_new_window(window):
-    if auto_group_mode:
-        window.qtile.call_soon(apply_auto_grouping, window)
-
-
-@hook.subscribe.group_window_add
-def enforce_auto_group(group, window):
-    if auto_group_mode and group.name in group_names:
-        group.qtile.call_soon(apply_auto_grouping, window)
-
-
-@hook.subscribe.client_killed
-def update_layout_after_close(window):
-    if auto_group_mode:
-        window.qtile.call_soon(update_auto_layouts, window.qtile)
-
-
-@lazy.function
-def kill_focused_window(qtile):
-    if qtile.current_window:
-        qtile.current_window.kill()
-
-
-def adjacent_screen(qtile, step):
-    screens = sorted(qtile.screens, key=lambda screen: screen.x)
-    target = screens.index(qtile.current_screen) + step
-    if 0 <= target < len(screens):
-        return screens[target]
-    return None
-
-
-@lazy.function
-def focus_adjacent_screen(qtile, step):
-    target = adjacent_screen(qtile, step)
-    if target:
-        qtile.focus_screen(qtile.screens.index(target))
-
-
-@lazy.function
-def move_window_screen(qtile, step):
-    target = adjacent_screen(qtile, step)
-    if qtile.current_window and target:
-        qtile.current_window.togroup(target.group.name)
-        qtile.focus_screen(qtile.screens.index(target))
-
-
-@lazy.function
-def span_focused_window(qtile):
-    window = qtile.current_window
-    if not window:
-        return
-
-    left = min(screen.x for screen in qtile.screens)
-    top = min(screen.y for screen in qtile.screens)
-    right = max(screen.x + screen.width for screen in qtile.screens)
-    bottom = max(screen.y + screen.height for screen in qtile.screens)
-
-    window.fullscreen = False
-    window.floating = True
-    window.place(left, top, right - left, bottom - top, 0, None, above=True)
-
-
-keys = [
-    Key([mod], "f", lazy.window.toggle_fullscreen()),
-    Key([mod], "q", kill_focused_window),
-    Key([mod, "shift"], "q", kill_focused_window),
-    Key([mod, "shift"], "r", lazy.restart()),
-    Key([mod], "n", lazy.layout.normalize()),
-    Key([mod, "control"], "f", span_focused_window()),
-    Key([mod], "space", lazy.next_layout()),
-    Key([mod, "shift"], "f", lazy.layout.flip()),
-    Key([mod, "shift"], "space", lazy.window.toggle_floating()),
-]
-for key in ("Up", "Left", "k", "h"):
-    keys.append(Key([mod], key, lazy.layout.previous()))
-for key in ("Down", "Right", "j", "l"):
-    keys.append(Key([mod], key, lazy.layout.next()))
-for key, commands in {
-    "l": (lazy.layout.grow_right(), lazy.layout.grow(), lazy.layout.increase_ratio(), lazy.layout.delete()),
-    "Right": (lazy.layout.grow_right(), lazy.layout.grow(), lazy.layout.increase_ratio(), lazy.layout.delete()),
-    "h": (lazy.layout.grow_left(), lazy.layout.shrink(), lazy.layout.decrease_ratio(), lazy.layout.add()),
-    "Left": (lazy.layout.grow_left(), lazy.layout.shrink(), lazy.layout.decrease_ratio(), lazy.layout.add()),
-    "k": (lazy.layout.grow_up(), lazy.layout.grow(), lazy.layout.decrease_nmaster()),
-    "Up": (lazy.layout.grow_up(), lazy.layout.grow(), lazy.layout.decrease_nmaster()),
-    "j": (lazy.layout.grow_down(), lazy.layout.shrink(), lazy.layout.increase_nmaster()),
-    "Down": (lazy.layout.grow_down(), lazy.layout.shrink(), lazy.layout.increase_nmaster()),
-}.items():
-    keys.append(Key([mod, "control"], key, *commands))
-for key, command in {
-    "k": lazy.layout.flip_up(),
-    "j": lazy.layout.flip_down(),
-    "l": lazy.layout.flip_right(),
-    "h": lazy.layout.flip_left(),
-}.items():
-    keys.append(Key([mod, alt], key, command))
-for key, command in {
-    "k": lazy.layout.shuffle_up(),
-    "Up": lazy.layout.shuffle_up(),
-    "j": lazy.layout.shuffle_down(),
-    "Down": lazy.layout.shuffle_down(),
-    "h": lazy.layout.shuffle_left(),
-    "l": lazy.layout.shuffle_right(),
-}.items():
-    keys.append(Key([mod, "shift"], key, command))
-
-keys.append(
-    KeyChord(
-        [mod],
-        "e",
-        [
-            Key([], "e", lazy.spawn("emacsclient -c -a 'emacs'"), desc="Dashboard"),
-            Key([], "a", lazy.spawn("emacsclient -c -a 'emacs' --eval '(emms)' --eval '(emms-play-directory-tree nsaspy/music-dir)'"), desc="EMMS"),
-            Key([], "b", lazy.spawn("emacsclient -c -a 'emacs' --eval '(ibuffer)'"), desc="Ibuffer"),
-            Key([], "d", lazy.spawn("emacsclient -c -a 'emacs' --eval '(dired nil)'"), desc="Dired"),
-            Key([], "n", lazy.spawn("emacsclient -c -a 'emacs' --eval '(elfeed-update)' --eval '(elfeed)'"), desc="Elfeed"),
-            Key([], "s", lazy.spawn("emacsclient -c -a 'emacs' --eval '(+eshell/here)'"), desc="Eshell"),
-            Key([], "v", lazy.spawn("emacsclient -c -a 'emacs' --eval '(lish-vterm)'"), desc="Vterm"),
-            Key([], "p", lazy.spawn("emacsclient -c -a 'emacs' --eval '(addmacs)'"), desc="Addmacs"),
-            Key([], "y", lazy.spawn("emacsclient -c -a 'emacs' --eval '(+gptel/here)'"), desc="GPTel"),
-        ],
-        name="emacs",
-    )
-)
-for group in groups:
-    keys.extend(
-        [
-            Key([mod], group.name, lazy.group[group.name].toscreen()),
-            Key([mod, "shift"], group.name, lazy.window.togroup(group.name), lazy.group[group.name].toscreen()),
-        ]
-    )
-keys.extend(
-    [
-        Key([mod], "Tab", lazy.screen.next_group()),
-        Key([mod, "shift"], "Tab", lazy.screen.prev_group()),
-        Key([alt], "Tab", lazy.screen.next_group()),
-        Key([alt, "shift"], "Tab", lazy.screen.prev_group()),
-    ]
-)
-
-
-def dropdown(name, command, **kwargs):
-    return DropDown(name, command, height=0.8, width=0.8, x=0.1, y=0.1, on_focus_lost_hide=False, **kwargs)
-
-
-groups.extend(
-    [
-        ScratchPad("termpad", [DropDown("term", "terminator")]),
-        ScratchPad("browserPad", [dropdown("browser", ["nyxt"])]),
-        ScratchPad(
-            "editorPad",
-            [
-                dropdown("emacs", home + "/.config/qtile/scripts/eclient.sh", match=Match(title="floating"), opacity=0.95),
-                dropdown("org-capture", home + "/.config/qtile/scripts/org-capture.sh", match=Match(title="org-capture"), opacity=0.95),
-            ],
-        ),
-        ScratchPad("passwords", [dropdown("keepassxc", "keepassxc", opacity=0.95)]),
-        ScratchPad("media", [dropdown("feishin", "feishin", match=Match(wm_class="feishin"), opacity=0.95)]),
-    ]
-)
-keys.extend(
-    [
-        Key([mod, "shift"], "v", lazy.spawn("zara --dictate"), desc="Zara dictation"),
-        Key([mod], "F1", lazy.spawn("brave"), desc="Launch Brave"),
-        Key([mod], "z", lazy.spawn(home + "/.config/emacs/bin/doom +everywhere"), desc="Emacs Everywhere"),
-        Key([mod], "w", lazy.spawn("brave"), desc="Launch Brave"),
-        Key([mod], "c", lazy.spawn("conky -c " + home + "/.config/qtile/scripts/system-overview"), desc="Launch system overview"),
-        Key([mod, "control"], "c", lazy.spawn("pkill -f conky"), desc="Stop Conky"),
-        Key([mod], "v", lazy.spawn("pavucontrol"), desc="Open volume control"),
-        Key([mod, "shift"], "t", lazy.spawn("terminator"), desc="Launch terminal"),
-        Key([mod], "Return", lazy.spawn("emacsclient -c -a emacs --eval '(+vterm/here projectile-current-project-on-switch)'"), desc="Project VTerm"),
-        Key([mod], "Escape", lazy.spawn("xkill"), desc="Kill selected window"),
-        Key([mod, "shift"], "Return", lazy.spawn("emacsclient -c -a emacs --eval '(dired nil)'"), desc="Open Dired"),
-        Key([mod], "d", lazy.spawn("j4-dmenu-desktop"), desc="Application menu"),
-        Key([mod, "shift"], "s", lazy.reload_config(), desc="Reload Qtile config"),
-        Key([mod, "shift"], "x", lazy.shutdown(), desc="Shut down Qtile"),
-        Key([mod, "control", alt], "l", lazy.spawn("pkill -f mousetrap"), desc="Release pointer lock"),
-        Key(["control", alt], "Next", lazy.spawn("conky-rotate -n"), desc="Next Conky"),
-        Key(["control", alt], "Prior", lazy.spawn("conky-rotate -p"), desc="Previous Conky"),
-        Key(["control", alt], "c", lazy.spawn("catfish"), desc="Search files"),
-        Key([alt], "t", lazy.spawn("variety -t"), desc="Trash wallpaper"),
-        Key([alt], "n", lazy.spawn("variety -n"), desc="Next wallpaper"),
-        Key([alt], "p", lazy.spawn("variety -p"), desc="Previous wallpaper"),
-        Key([alt], "f", lazy.spawn("variety -f"), desc="Favorite wallpaper"),
-        Key([alt, "shift"], "t", lazy.spawn(home + "/.config/qtile/scripts/set-pywal.sh -t"), desc="Trash wallpaper and refresh colors"),
-        Key([alt, "shift"], "n", lazy.spawn(home + "/.config/qtile/scripts/set-pywal.sh -n"), desc="Next wallpaper and refresh colors"),
-        Key([alt, "shift"], "p", lazy.spawn(home + "/.config/qtile/scripts/set-pywal.sh -p"), desc="Previous wallpaper and refresh colors"),
-        Key([alt, "shift"], "f", lazy.spawn(home + "/.config/qtile/scripts/set-pywal.sh -f"), desc="Favorite wallpaper and refresh colors"),
-        Key([alt, "shift"], "u", lazy.spawn(home + "/.config/qtile/scripts/set-pywal.sh -u"), desc="Refresh wallpaper colors"),
-        Key(["control", alt], "o", lazy.spawn(home + "/.config/qtile/scripts/picom-toggle.sh"), desc="Toggle Picom"),
-        Key([alt], "l", lazy.spawn("mousetrap -t 30 -b 30 -l 30 -r 30"), desc="Lock pointer"),
-        Key([], "Print", lazy.spawn(home + "/.local/bin/spectacle --fullscreen --background --nonotify"), desc="Capture desktop"),
-        Key([mod], "Print", lazy.spawn(home + "/.local/bin/spectacle --region --background --nonotify"), desc="Capture region"),
-        Key([], "F12", lazy.spawn("xfce4-terminal --drop-down"), desc="Drop-down terminal"),
-        Key([], "XF86AudioRaiseVolume", lazy.spawn("amixer set Master 10%+"), desc="Raise volume"),
-        Key([], "XF86AudioLowerVolume", lazy.spawn("amixer set Master 10%-"), desc="Lower volume"),
-        Key([], "XF86AudioMute", lazy.spawn("amixer -D pulse set Master 1+ toggle"), desc="Toggle mute"),
-        Key([], "XF86MonBrightnessUp", lazy.spawn("xbacklight -inc 10"), desc="Raise brightness"),
-        Key([], "XF86MonBrightnessDown", lazy.spawn("xbacklight -dec 10"), desc="Lower brightness"),
-        Key(["control", "shift"], "Escape", lazy.spawn(home + "/.config/qtile/scripts/setup-monitors.sh"), desc="Reapply monitor profile"),
-        Key([mod, "shift"], "F1", lazy.group["browserPad"].dropdown_toggle("browser")),
-        Key([mod], "F12", lazy.group["termpad"].dropdown_toggle("term")),
-        Key([mod, "shift"], "E", lazy.group["editorPad"].dropdown_toggle("emacs")),
-        Key([mod], "F3", lazy.group["passwords"].dropdown_toggle("keepassxc")),
-        Key([mod], "x", lazy.group["editorPad"].dropdown_toggle("org-capture")),
-        Key([mod, "shift"], "M", lazy.group["media"].dropdown_toggle("feishin")),
-        Key([alt], "Right", focus_adjacent_screen(1)),
-        Key([alt], "Left", focus_adjacent_screen(-1)),
-        Key([mod, "shift"], "Right", move_window_screen(1)),
-        Key([mod, "shift"], "Left", move_window_screen(-1)),
-    ]
-)
-
-theme = {"margin": 5, "border_width": 2, "border_focus": colors[2], "border_normal": colors[1]}
-layouts = [layout.MonadTall(**theme), layout.MonadWide(**theme), layout.Matrix(**theme), layout.Bsp(**theme), layout.Floating(**theme), layout.RatioTile(**theme), layout.Max(**theme)]
-
-
-auto_fullscreen = False
-focus_on_window_activation = "smart"
-reconfigure_screens = True
-auto_minimize = False
-follow_mouse_focus = False
-bring_front_click = False
-cursor_warp = False
-
-
-@hook.subscribe.client_new
-def swallow(window):
-    pid = window.window.get_net_wm_pid()
-    if pid is None:
-        return
-    try:
-        parent_pid = psutil.Process(pid).ppid()
-    except psutil.Error:
-        return
-    clients = {client.window.get_net_wm_pid(): wid for wid, client in window.qtile.windows_map.items()}
-    for _ in range(5):
-        if not parent_pid:
-            return
-        if parent_pid in clients:
-            parent = window.qtile.windows_map.get(clients[parent_pid])
-            if parent:
-                parent.minimized = True
-                window.parent = parent
-            return
-        try:
-            parent_pid = psutil.Process(parent_pid).ppid()
-        except psutil.Error:
-            return
-
-
-@hook.subscribe.client_killed
-def unswallow(window):
-    if getattr(window, "parent", None):
-        window.parent.minimized = False
-
-
-widget_defaults = {"font": "Hack Nerd Regular", "fontsize": 12, "padding": 2, "background": colors[1]}
-
-
-def sep(padding=10):
-    return widget.Sep(linewidth=1, padding=padding, foreground=colors[2], background=colors[1])
 
 
 def auto_group_button():
@@ -440,73 +166,852 @@ def auto_group_button():
     auto_group_buttons.append(button)
     return button
 
-
-def widgets():
-    return [
-        auto_group_button(),
-        sep(5),
-        widget.GroupBox(font="3270 Nerd Font", visible_groups=group_names, fontsize=18, margin_y=2, margin_x=2, padding_y=-6, padding_x=6, borderwidth=0, active=colors[9], inactive=colors[5], rounded=True, highlight_method="text", this_current_screen_border=colors[8], foreground=colors[2], background=colors[1]),
-        sep(),
-        widget.CurrentLayout(font="Hack Bold", foreground=colors[5], background=colors[1]),
-        sep(),
-        widget.WindowName(font="Hack", fontsize=12, foreground=colors[5], background=colors[1]),
-        widget.Pomodoro(foreground=colors[2], background=colors[1]),
-        sep(),
-        widget.Mpris2(background=colors[1], foreground=colors[6], scroll_fixed_width=True, poll_interval=1, width=100, padding=10, size=60, linewidth=60, max_chars=60, markup=False),
-        widget.GenPollCommand(cmd=["curl", "-s", "--max-time", "5", f"https://wttr.in/@{my_ip}?u&format=%f+%C"], parse=lambda output: output.strip() or "weather n/a", update_interval=300),
-        sep(5),
-        widget.ThermalSensor(foreground=colors[5], foreground_alert=colors[6], background=colors[1], metric=True, padding=3, threshold=70, tag_sensor="Tctl"),
-        sep(),
-        widget.Net(foreground=colors[6], background=colors[1]),
-        widget.TextBox(font="FontAwesome", text="  ", foreground=colors[6], background=colors[1], padding=0, fontsize=16),
-        widget.CPUGraph(border_color=colors[2], fill_color=colors[4], graph_color=colors[4], background=colors[1], border_width=1, line_width=1, core="all", type="box"),
-        sep(),
-        widget.Memory(font="Hack", format="Mem:{MemUsed: 0.2f}G", update_interval=1, fontsize=12, foreground=colors[6], background=colors[1], measure_mem="G"),
-        sep(),
-        widget.TextBox(font="FontAwesome", text="  ", foreground=colors[3], background=colors[1], padding=0, fontsize=16),
-        widget.Clock(foreground=colors[5], background=colors[1], fontsize=12, format="%Y-%m-%d %H:%M", mouse_callbacks={"Button1": lambda: os.system('notify-send -a qtile "$(date "+%Y-%m-%d %H:%M")" "$(cal)"')}),
-        sep(),
-        widget.Volume(foreground=colors[2], background=colors[1], volume_up_command="amixer set Master 10%+", volume_down_command="amixer set Master 10%-"),
-    ]
-
-
-def screen_widgets(systray=False):
-    items = widgets()
-    if systray:
-        items.append(widget.Systray(background=colors[1], icon_size=20, padding=4))
-    return items
-
-
-def generate_screens(output_info):
-    tray_output = sorted(output_info, key=lambda output: output.rect.x)[
-        len(output_info) // 2
-    ]
-    return [
-        Screen(
-            top=bar.Bar(
-                screen_widgets(output is tray_output),
-                26,
-                opacity=0.8,
-            )
-        )
-        for output in output_info
-    ]
-
-
-mouse = [
-    Drag([mod], "Button1", lazy.window.set_position_floating(), start=lazy.window.get_position()),
-    Drag([mod], "Button3", lazy.window.set_size_floating(), start=lazy.window.get_size()),
+# === DEFAULT LAYOUTS PER WORKSPACE ===
+group_layouts = [
+    "max",        # 1: Browsers (fullscreen)
+    "monadtall",  # 2: Editors (side-by-side)
+    "monadtall",  # 3: Graphics
+    "monadtall",  # 4: VMs
+    "monadtall",  # 5: General
+    "monadtall",  # 6: Media
+    "monadtall",  # 7: General
+    "monadtall",  # 8: File managers
+    "monadtall",  # 9: Email
+    "monadtall",  # 0: General
 ]
-floating_layout = layout.Floating(
-    float_rules=[
-        *layout.Floating.default_float_rules,
-        *[Match(wm_class=name) for name in ("confirmreset", "makebranch", "maketag", "ssh-askpass", "Arcolinux-welcome-app.py", "Arcolinux-calamares-tool.py", "confirm", "dialog", "download", "error", "file_progress", "notification", "splash", "toolbar", "Arandr", "feh", "Galculator", "archlinux-logout", "xfce4-terminal")],
-        *[Match(title=name) for name in ("branchdialog", "pinentry", "floating", "Minecraft", "Emacs Everywhere", "Atomic Chrome", "org-capture", "Feishin")],
-    ],
-    fullscreen_border_width=0,
-    border_width=0,
+
+# === INITIALIZE WORKSPACES ===
+for i in range(len(group_names)):
+    groups.append(
+        Group(
+            name=group_names[i],
+            layout=group_layouts[i].lower(),
+            label=group_labels[i],
+        )
+    )
+
+# === CORE KEYBINDINGS ===
+keys = [
+    # --- WINDOW MANAGEMENT ---
+    Key([mod], "q", lazy.window.kill(),
+        desc="Kill focused window"),
+    Key([mod, "shift"], "q", lazy.window.kill(),
+        desc="Kill focused window (alternate)"),
+
+    Key([mod], "f", lazy.window.toggle_fullscreen(),
+        desc="Toggle fullscreen for focused window"),
+
+    Key([mod, "shift"], "space", lazy.window.toggle_floating(),
+        desc="Toggle floating for focused window"),
+
+    # --- LAYOUT MANAGEMENT ---
+    Key([mod], "space", lazy.next_layout(),
+        desc="Switch to next layout"),
+
+    Key([mod], "n", lazy.layout.normalize(),
+        desc="Reset all window sizes"),
+
+    # --- QTILE SYSTEM ---
+    Key([mod, "shift"], "r", lazy.restart(),
+        desc="Restart Qtile (reload config)"),
+
+    # --- NAVIGATION: VIM KEYS ---
+    Key([mod], "h", lazy.layout.left(),
+        desc="Move focus to left window"),
+    Key([mod], "l", lazy.layout.right(),
+        desc="Move focus to right window"),
+    Key([mod], "j", lazy.layout.down(),
+        desc="Move focus to window below"),
+    Key([mod], "k", lazy.layout.up(),
+        desc="Move focus to window above"),
+
+    # --- NAVIGATION: ARROW KEYS ---
+    Key([mod], "Left", lazy.layout.left()),
+    Key([mod], "Right", lazy.layout.right()),
+    Key([mod], "Down", lazy.layout.down()),
+    Key([mod], "Up", lazy.layout.up()),
+
+    # --- WINDOW MOVEMENT: VIM KEYS ---
+    Key([mod, "shift"], "h", lazy.layout.shuffle_left(),
+        desc="Move window to the left"),
+    Key([mod, "shift"], "l", lazy.layout.shuffle_right(),
+        desc="Move window to the right"),
+    Key([mod, "shift"], "j", lazy.layout.shuffle_down(),
+        desc="Move window down"),
+    Key([mod, "shift"], "k", lazy.layout.shuffle_up(),
+        desc="Move window up"),
+
+    # --- WINDOW MOVEMENT: ARROW KEYS ---
+    Key([mod, "shift"], "Left", lazy.layout.swap_left()),
+    Key([mod, "shift"], "Right", lazy.layout.swap_right()),
+    Key([mod, "shift"], "Down", lazy.layout.shuffle_down()),
+    Key([mod, "shift"], "Up", lazy.layout.shuffle_up()),
+
+    # --- WINDOW RESIZING: HORIZONTAL (VIM) ---
+    Key([mod, "control"], "h",
+        lazy.layout.grow_left(),
+        lazy.layout.shrink(),
+        lazy.layout.decrease_ratio(),
+        lazy.layout.add(),
+        desc="Grow window to the left"),
+
+    Key([mod, "control"], "l",
+        lazy.layout.grow_right(),
+        lazy.layout.grow(),
+        lazy.layout.increase_ratio(),
+        lazy.layout.delete(),
+        desc="Grow window to the right"),
+
+    # --- WINDOW RESIZING: HORIZONTAL (ARROWS) ---
+    Key([mod, "control"], "Left",
+        lazy.layout.grow_left(),
+        lazy.layout.shrink(),
+        lazy.layout.decrease_ratio(),
+        lazy.layout.add()),
+
+    Key([mod, "control"], "Right",
+        lazy.layout.grow_right(),
+        lazy.layout.grow(),
+        lazy.layout.increase_ratio(),
+        lazy.layout.delete()),
+
+    # --- WINDOW RESIZING: VERTICAL (VIM) ---
+    Key([mod, "control"], "k",
+        lazy.layout.grow_up(),
+        lazy.layout.grow(),
+        lazy.layout.decrease_nmaster(),
+        desc="Grow window upward"),
+
+    Key([mod, "control"], "j",
+        lazy.layout.grow_down(),
+        lazy.layout.shrink(),
+        lazy.layout.increase_nmaster(),
+        desc="Grow window downward"),
+
+    # --- WINDOW RESIZING: VERTICAL (ARROWS) ---
+    Key([mod, "control"], "Up",
+        lazy.layout.grow_up(),
+        lazy.layout.grow(),
+        lazy.layout.decrease_nmaster()),
+
+    Key([mod, "control"], "Down",
+        lazy.layout.grow_down(),
+        lazy.layout.shrink(),
+        lazy.layout.increase_nmaster()),
+
+    # --- LAYOUT MANIPULATION ---
+    Key([mod, "shift"], "f", lazy.layout.flip(),
+        desc="Flip layout orientation"),
+
+    Key([mod, "mod1"], "h", lazy.layout.flip_left()),
+    Key([mod, "mod1"], "l", lazy.layout.flip_right()),
+    Key([mod, "mod1"], "j", lazy.layout.flip_down()),
+    Key([mod, "mod1"], "k", lazy.layout.flip_up()),
+]
+
+# === EMACS INTEGRATION KEYCHORD ===
+# Mod+E then [key] for Emacs-specific commands
+keys.append(
+    KeyChord([mod], "e", [
+        Key([], "e",
+            lazy.spawn("emacsclient -c -a 'emacs'"),
+            desc='Launch Emacs dashboard'),
+
+        Key([], "b",
+            lazy.spawn("emacsclient -c -a 'emacs' --eval '(ibuffer)'"),
+            desc='Emacs buffer list'),
+
+        Key([], "d",
+            lazy.spawn("emacsclient -c -a 'emacs' --eval '(dired nil)'"),
+            desc='Emacs file manager (Dired)'),
+
+        Key([], "n",
+            lazy.spawn("emacsclient -c -a 'emacs' --eval '(elfeed-update)' --eval '(elfeed)'"),
+            desc='Emacs RSS reader (Elfeed)'),
+
+        Key([], "s",
+            lazy.spawn("emacsclient -c -a 'emacs' --eval '(+eshell/here)'"),
+            desc='Emacs shell (Eshell)'),
+
+        Key([], "v",
+            lazy.spawn("emacsclient -c -a 'emacs' --eval '(lish-vterm)'"),
+            desc='Emacs terminal (Vterm)'),
+
+        Key([], "a",
+            lazy.spawn("emacsclient -c -a 'emacs' --eval '(emms)' --eval '(emms-play-directory-tree nsaspy/music-dir)'"),
+            desc='Emacs music player (EMMS)'),
+
+        Key([], "y",
+            lazy.spawn("emacsclient -c -a 'emacs' --eval '(+gptel/here)'"),
+            desc='Emacs AI chat (GPTel)'),
+    ], name="Emacs")
 )
 
+# === WORKSPACE SWITCHING ===
+# Dynamically generate keybindings for all workspaces
+for i in groups:
+    if isinstance(i, Group):  # Skip ScratchPad groups
+        keys.extend([
+            # Go to workspace
+            Key([mod], i.name, lazy.group[i.name].toscreen(),
+                desc=f"Switch to workspace {i.name}"),
 
+            # Move window to workspace and follow
+            Key([mod, "shift"], i.name,
+                lazy.window.togroup(i.name),
+                lazy.group[i.name].toscreen(),
+                desc=f"Move window to workspace {i.name}"),
+
+            # Cycle through workspaces with Tab
+            Key([mod], "Tab", lazy.screen.next_group(),
+                desc="Next workspace"),
+            Key([mod, "shift"], "Tab", lazy.screen.prev_group(),
+                desc="Previous workspace"),
+
+            # Alt+Tab for workspace cycling (familiar for Windows users)
+            Key(["mod1"], "Tab", lazy.screen.next_group()),
+            Key(["mod1", "shift"], "Tab", lazy.screen.prev_group()),
+        ])
+
+# === SCRATCHPAD DEFINITIONS ===
+PAVUCONTROL_WM_CLASS = "pavucontrol"
+PAVUCONTROL_SIZE_RATIO = 0.9
+
+groups.extend([
+    # --- TERMINAL SCRATCHPAD ---
+    ScratchPad("termpad", [
+        DropDown(
+            "term",
+            myTerm,
+            opacity=1.0,
+            height=0.8,
+            width=0.8,
+            x=0.1,
+            y=0.1,
+        )
+    ]),
+
+    # --- BROWSER SCRATCHPAD ---
+    ScratchPad("browserPad", [
+        DropDown(
+            "browser",
+            ["nyxt"],  # Using Nyxt for keyboard-driven browsing
+            height=0.8,
+            width=0.8,
+            x=0.1,
+            y=0.1,
+            on_focus_lost_hide=False  # Stay visible when unfocused
+        )
+    ]),
+
+    # --- EMACS SCRATCHPADS ---
+    ScratchPad("editorPad", [
+        # Main floating Emacs
+        DropDown(
+            "emacs",
+            home + '/.config/qtile/scripts/eclient.sh',
+            match=Match(title='floating'),  # Match window title
+            height=0.8,
+            width=0.8,
+            x=0.1,
+            y=0.1,
+            opacity=0.95,
+            on_focus_lost_hide=False
+        ),
+
+        # Org-capture for quick notes
+        DropDown(
+            "org-capture",
+            home + '/.config/qtile/scripts/org-capture.sh',
+            match=Match(title='org-capture'),
+            height=0.8,
+            width=0.8,
+            x=0.1,
+            y=0.1,
+            opacity=0.95,
+            on_focus_lost_hide=False
+        )
+    ]),
+
+    # --- PASSWORD MANAGER ---
+    ScratchPad("passwords", [
+        DropDown(
+            "keepassxc",
+            "keepassxc",
+            height=0.8,
+            width=0.8,
+            x=0.1,
+            y=0.1,
+            opacity=0.95,
+            on_focus_lost_hide=False
+        )
+    ]),
+
+    # --- MEDIA PLAYER ---
+    ScratchPad("media", [
+        DropDown(
+            "sonixd",
+            "sonixd",
+            match=Match(wm_class='sonixd'),
+            height=0.8,
+            width=0.8,
+            x=0.1,
+            y=0.1,
+            opacity=0.95,
+            on_focus_lost_hide=False
+        )
+    ]),
+
+    # --- AUDIO CONTROL ---
+    ScratchPad("audioPad", [
+        DropDown(
+            "pavucontrol",
+            "pavucontrol",
+            match=Match(wm_instance_class=PAVUCONTROL_WM_CLASS),
+            height=PAVUCONTROL_SIZE_RATIO,
+            width=PAVUCONTROL_SIZE_RATIO,
+            x=(1 - PAVUCONTROL_SIZE_RATIO) / 2,
+            y=(1 - PAVUCONTROL_SIZE_RATIO) / 2,
+            opacity=1.0,
+            on_focus_lost_hide=False,
+        )
+    ]),
+])
+
+# === SCRATCHPAD KEYBINDINGS ===
+keys.extend([
+    Key([mod], 'F12',
+        lazy.group['termpad'].dropdown_toggle('term'),
+        desc="Toggle terminal scratchpad"),
+
+    Key([mod, "shift"], 'F1',
+        lazy.group['browserPad'].dropdown_toggle('browser'),
+        desc="Toggle browser scratchpad"),
+
+    Key([mod, "shift"], "E",
+        lazy.group['editorPad'].dropdown_toggle('emacs'),
+        desc="Toggle Emacs scratchpad"),
+
+    Key([mod], "x",
+        lazy.group['editorPad'].dropdown_toggle('org-capture'),
+        desc="Toggle Org-capture scratchpad"),
+
+    Key([mod], "F3",
+        lazy.group['passwords'].dropdown_toggle('keepassxc'),
+        desc="Toggle KeePassXC scratchpad"),
+
+    Key([mod, "shift"], "M",
+        lazy.group['media'].dropdown_toggle('sonixd'),
+        desc="Toggle media player scratchpad"),
+
+    Key([mod], "v",
+        lazy.group['audioPad'].dropdown_toggle('pavucontrol'),
+        desc="Toggle Pavucontrol scratchpad"),
+])
+
+# === LAYOUT DEFINITIONS ===
+layouts = [
+    layout.MonadTall(**layout_theme),
+    layout.MonadWide(**layout_theme),
+    layout.Matrix(**layout_theme),
+    layout.Bsp(**layout_theme),
+    layout.Floating(**layout_theme),
+    layout.RatioTile(**layout_theme),
+    layout.Max(**layout_theme),
+]
+
+# === AUTO-ASSIGNMENT TO WORKSPACES ===
+@hook.subscribe.client_new
+def assign_app_group(client):
+    """
+    Automatically move windows to specific workspaces based on WM_CLASS.
+
+    To find WM_CLASS: run 'xprop' and click a window.
+    Use the FIRST field of WM_CLASS(STRING).
+    """
+    assignments = {
+        # Workspace 1: Web Browsers
+        group_names[0]: [
+            "Navigator", "Firefox", "Vivaldi-stable", "Vivaldi-snapshot",
+            "Chromium", "Google-chrome", "Brave", "Brave-browser",
+            "navigator", "firefox", "vivaldi-stable", "vivaldi-snapshot",
+            "chromium", "google-chrome", "brave", "brave-browser",
+        ],
+
+        # Workspace 2: Editors
+        group_names[1]: [
+            "emacs", "codium", "Code"
+        ],
+
+        # Workspace 3: Graphics
+        group_names[2]: [
+            "Inkscape", "Nomacs", "Ristretto", "Nitrogen", "Feh",
+            "inkscape", "nomacs", "ristretto", "nitrogen", "feh",
+            "gimp", "krita", "Gimp", "Krita"
+        ],
+
+        # Workspace 4: Virtual Machines
+        group_names[3]: [
+            "virt-manager", "Virtual Machine Manager", "VirtualBox"
+        ],
+
+        # Workspace 6: Media
+        group_names[5]: [
+            "Vlc", "vlc", "Mpv", "mpv", "Minecraft", "War Thunder"
+        ],
+
+        # Workspace 8: File Managers
+        group_names[7]: [
+            "Thunar", "Nemo", "Caja", "Nautilus", "org.gnome.Nautilus",
+            "Pcmanfm", "Pcmanfm-qt",
+            "thunar", "nemo", "caja", "nautilus", "org.gnome.nautilus",
+            "pcmanfm", "pcmanfm-qt",
+        ],
+
+        # Workspace 9: Email
+        group_names[8]: [
+            "Evolution", "Geary", "Mail", "Thunderbird",
+            "evolution", "geary", "mail", "thunderbird"
+        ],
+    }
+
+    wm_class = client.window.get_wm_class()[0]
+
+    for workspace_index, class_list in enumerate(assignments.values()):
+        if wm_class in class_list:
+            target_group = list(assignments.keys())[workspace_index]
+            client.togroup(target_group)
+            client.group.toscreen(toggle=True)
+            return
+
+# === FLOATING WINDOW RULES ===
+def is_pavucontrol(window):
+    return PAVUCONTROL_WM_CLASS in (window.window.get_wm_class() or [])
+
+
+@hook.subscribe.client_new
+def set_floating(window):
+    """Auto-float transient windows and specific window types."""
+    if (window.window.get_wm_transient_for() or
+        window.window.get_wm_type() in ['dialog', 'utility', 'toolbar', 'splash']):
+        window.floating = True
+
+
+@hook.subscribe.client_managed
+def configure_pavucontrol(window):
+    """Keep the Pavucontrol scratchpad above other windows."""
+    if not is_pavucontrol(window):
+        return
+    window.keep_above(True)
+
+
+floating_layout = layout.Floating(
+    float_rules=[
+        # Default Qtile floating rules
+        *layout.Floating.default_float_rules,
+
+        # Git GUI dialogs
+        Match(wm_class='confirmreset'),
+        Match(wm_class='makebranch'),
+        Match(wm_class='maketag'),
+        Match(title='branchdialog'),
+
+        # System dialogs
+        Match(wm_class='ssh-askpass'),
+        Match(title='pinentry'),  # GPG password entry
+        Match(wm_class='confirm'),
+        Match(wm_class='dialog'),
+        Match(wm_class='download'),
+        Match(wm_class='error'),
+        Match(wm_class='file_progress'),
+        Match(wm_class='notification'),
+        Match(wm_class='splash'),
+        Match(wm_class='toolbar'),
+
+        # Specific applications
+        Match(wm_class='Arandr'),  # Display settings
+        Match(wm_class='feh'),     # Image viewer
+        Match(wm_class='Galculator'),
+        Match(wm_class='archlinux-logout'),
+        Match(wm_class='xfce4-terminal'),
+        Match(wm_class='Arcolinux-welcome-app.py'),
+        Match(wm_class='Arcolinux-calamares-tool.py'),
+
+        # Custom floating windows (by title)
+        Match(title='floating'),  # Emacs floating frames
+        Match(title='Minecraft'),
+        Match(title='Emacs Everywhere'),
+        Match(title='Atomic Chrome'),
+        Match(title="org-capture"),
+        Match(title="Sonixd"),
+    ],
+    fullscreen_border_width=0,
+    border_width=0
+)
+
+main = None  # Required for Qtile
+
+# === WINDOW TO SCREEN FUNCTIONS ===
+
+@lazy.function
+def window_to_prev_group(qtile):
+    """Move focused window to previous workspace."""
+    if qtile.currentWindow is not None:
+        i = qtile.groups.index(qtile.currentGroup)
+        qtile.currentWindow.togroup(qtile.groups[i - 1].name)
+
+@lazy.function
+def window_to_next_group(qtile):
+    """Move focused window to next workspace."""
+    if qtile.currentWindow is not None:
+        i = qtile.groups.index(qtile.currentGroup)
+        qtile.currentWindow.togroup(qtile.groups[i + 1].name)
+
+def window_to_previous_screen(qtile, switch_group=False, switch_screen=False):
+    """
+    Move window to previous screen.
+
+    Args:
+        switch_group: Move workspace to that screen
+        switch_screen: Move focus to that screen
+    """
+    i = qtile.screens.index(qtile.current_screen)
+    if i != 0:
+        group = qtile.screens[i - 1].group.name
+        qtile.current_window.togroup(group, switch_group=switch_group)
+        if switch_screen:
+            qtile.cmd_to_screen(i - 1)
+
+def window_to_next_screen(qtile, switch_group=False, switch_screen=False):
+    """
+    Move window to next screen.
+
+    Args:
+        switch_group: Move workspace to that screen
+        switch_screen: Move focus to that screen
+    """
+    i = qtile.screens.index(qtile.current_screen)
+    if i + 1 != len(qtile.screens):
+        group = qtile.screens[i + 1].group.name
+        qtile.current_window.togroup(group, switch_group=switch_group)
+        if switch_screen:
+            qtile.cmd_to_screen(i + 1)
+
+# === MULTI-MONITOR KEYBINDINGS ===
+keys.extend([
+    # Switch monitor focus
+    Key([mod1], "Right", lazy.next_screen(),
+        desc="Focus next monitor"),
+    Key([mod1], "Left", lazy.prev_screen(),
+        desc="Focus previous monitor"),
+
+    # Move window to different monitor
+    Key([mod, "shift"], "Right",
+        lazy.function(window_to_next_screen, switch_screen=True),
+        desc="Move window to next monitor"),
+    Key([mod, "shift"], "Left",
+        lazy.function(window_to_previous_screen, switch_screen=True),
+        desc="Move window to previous monitor"),
+])
+
+# === SCREEN BEHAVIOR ===
+auto_fullscreen = False  # Don't auto-fullscreen windows
+focus_on_window_activation = "smart"  # Smart focus (urgent windows get focus)
+reconfigure_screens = True   # Reconfigure on screen change
+auto_minimize = False        # Don't auto-minimize unfocused windows
+
+# === MOUSE BEHAVIOR ===
+follow_mouse_focus = True    # Focus follows mouse
+bring_front_click = False    # Don't raise window on click
+cursor_warp = True           # Warp cursor to focused window (good for games!)
+
+# === WIDGET DEFAULTS ===
+def init_widgets_defaults():
+    """Default styling for all widgets."""
+    return dict(
+        font="Hack Nerd Regular",
+        fontsize=12,
+        padding=2,
+        background=colors[1]
+    )
+
+widget_defaults = init_widgets_defaults()
+
+# === WIDGET LIST DEFINITION ===
+def init_widgets_list():
+    """
+    Build the complete widget list for the status bar.
+
+    Widgets are displayed left-to-right in this order:
+    - GroupBox: Workspace indicators
+    - CurrentLayout: Active tiling layout
+    - WindowName: Focused window title
+    - Pomodoro: Timer widget
+    - Mpris2: Media player info
+    - Wttr: Weather (uses external IP for location)
+    - ThermalSensor: CPU temperature
+    - Net: Network stats
+    - CPUGraph: CPU usage graph
+    - Memory: RAM usage
+    - Clock: Date and time
+    - Volume: Audio level
+    """
+    prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
+
+    widgets_list = [
+        # --- WORKSPACE INDICATOR ---
+        widget.GroupBox(
+                font="Symbols Nerd Font",
+            fontsize=25,
+            margin_y=1,
+            margin_x=1,
+            padding_y=-6,
+            padding_x=2,
+            borderwidth=0,
+            disable_drag=True,
+            active=colors[9],              # Active workspace color
+            inactive=colors[5],            # Inactive workspace color
+            rounded=True,
+            highlight_method="text",
+            this_current_screen_border=colors[8],  # Current workspace
+            foreground=colors[2],
+            background=colors[1]
+        ),
+
+        widget.Sep(
+            margin_x=5,
+            linewidth=1,
+            padding=10,
+            foreground=colors[2],
+            background=colors[1]
+        ),
+
+        # --- CURRENT LAYOUT ---
+        widget.CurrentLayout(
+            font="Noto Sans Bold",
+            foreground=colors[5],
+            background=colors[1]
+        ),
+
+        widget.Sep(
+            linewidth=1,
+            padding=10,
+            foreground=colors[2],
+            background=colors[1]
+        ),
+
+        # --- WINDOW TITLE ---
+        widget.WindowName(
+            font="Noto Sans",
+            fontsize=12,
+            foreground=colors[5],
+            background=colors[1],
+        ),
+
+        # --- POMODORO TIMER ---
+        widget.Pomodoro(
+            foreground=colors[2],
+            background=colors[1],
+        ),
+
+        widget.Sep(
+            linewidth=1,
+            padding=10,
+            foreground=colors[2],
+            background=colors[1]
+        ),
+
+        # --- MEDIA PLAYER INFO ---
+        widget.Mpris2(
+            background=colors[1],
+            foreground=colors[6],
+            scroll_fixed_width=True,
+            poll_interval=1,
+            width=100,
+            padding=10,
+            size=60,
+            linewidth=60,
+            max_chars=60
+        ),
+
+        # --- WEATHER ---
+        widget.GenPollCommand(
+            cmd=["python3", home + "/.config/qtile/scripts/weather_status.py"],
+            update_interval=300,
+            foreground=colors[3],
+            background=colors[1],
+        ),
+
+        widget.Sep(
+            linewidth=1,
+            padding=5,
+            foreground=colors[2],
+            background=colors[1]
+        ),
+
+        # --- CPU TEMPERATURE ---
+        # Note: Disable in VirtualBox/VMs - may cause issues
+        widget.ThermalSensor(
+            foreground=colors[5],
+            foreground_alert=colors[6],
+            background=colors[1],
+            metric=True,
+            padding=3,
+            threshold=70,  # Alert above 70°C
+            tag_sensor=thermalTag  # "Tctl" for AMD, "Package id 0" for Intel
+        ),
+
+        widget.Sep(
+            linewidth=1,
+            padding=10,
+            foreground=colors[2],
+            background=colors[1]
+        ),
+
+        # --- NETWORK STATS ---
+        widget.Net(
+            forground=colors[6],
+            background=colors[1]
+        ),
+
+        # --- CPU GRAPH ---
+        widget.TextBox(
+            font="FontAwesome",
+            text="  ",
+            foreground=colors[6],
+            background=colors[1],
+            padding=0,
+            fontsize=16
+        ),
+
+        widget.CPUGraph(
+            border_color=colors[2],
+            fill_color=colors[4],
+            graph_color=colors[4],
+            background=colors[1],
+            border_width=1,
+            line_width=1,
+            core="all",
+            type="box"
+        ),
+
+        widget.Sep(
+            linewidth=1,
+            padding=10,
+            foreground=colors[2],
+            background=colors[1]
+        ),
+
+        # --- MEMORY USAGE ---
+        widget.Memory(
+            font="Noto Sans",
+            format='Mem:{MemUsed: 0.2f}G',
+            update_interval=1,
+            fontsize=12,
+            foreground=colors[6],
+            background=colors[1],
+            measure_mem="G",
+        ),
+
+        widget.Sep(
+            linewidth=1,
+            padding=10,
+            foreground=colors[2],
+            background=colors[1]
+        ),
+
+        # --- CLOCK ---
+        widget.TextBox(
+            font="FontAwesome",
+            text="  ",
+            foreground=colors[3],
+            background=colors[1],
+            padding=0,
+            fontsize=16
+        ),
+
+        widget.Clock(
+            foreground=colors[5],
+            background=colors[1],
+            fontsize=12,
+            format="%Y-%m-%d %H:%M"
+        ),
+
+        widget.Sep(
+            linewidth=1,
+            padding=10,
+            foreground=colors[2],
+            background=colors[1]
+        ),
+
+        # --- VOLUME ---
+        widget.Volume(
+            foreground=colors[2],
+            background=colors[1],
+            volume_up_command="amixer set Master 10%+",
+            volume_down_command="amixer set Master 10%-",
+        )
+    ]
+
+    return widgets_list
+
+# === WINDOW SWALLOWING FEATURE ===
+
+@hook.subscribe.client_new
+def _swallow(window):
+    """
+    Hide the terminal that launched a GUI application.
+
+    Example: Running 'firefox' from terminal will hide the terminal
+    until Firefox is closed.
+
+    Requires: psutil library
+    """
+    pid = window.window.get_net_wm_pid()
+    ppid = psutil.Process(pid).ppid()
+    cpids = {
+        c.window.get_net_wm_pid(): wid
+        for wid, c in window.qtile.windows_map.items()
+    }
+
+    # Check up to 5 parent processes
+    for i in range(5):
+        if not ppid:
+            return
+        if ppid in cpids:
+            parent = window.qtile.windows_map.get(cpids[ppid])
+            parent.minimized = True
+            window.parent = parent
+            return
+        ppid = psutil.Process(ppid).ppid()
+
+@hook.subscribe.client_killed
+def _unswallow(window):
+    """Restore the terminal when swallowed window closes."""
+    if hasattr(window, 'parent'):
+        window.parent.minimized = False
+
+# === MOUSE BINDINGS ===
+mouse = [
+    # Mod+Left click: Move floating windows
+    Drag(
+        [mod], "Button1",
+        lazy.window.set_position_floating(),
+        start=lazy.window.get_position()
+    ),
+
+    # Mod+Right click: Resize floating windows
+    Drag(
+        [mod], "Button3",
+        lazy.window.set_size_floating(),
+        start=lazy.window.get_size()
+    )
+]
+
+# The telemetry layer owns the topology-aware bars and dynamic screen list.
 from qtile_telemetry import install_telemetry
 install_telemetry(globals())
+
+# === END OF CONFIGURATION ===
+# This file was tangled from an org-mode file.
+# There once was a human who wrote this config lmao

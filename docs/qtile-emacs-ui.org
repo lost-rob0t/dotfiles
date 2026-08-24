@@ -21,7 +21,7 @@ widget geometry + owning physical screen
 .config/qtile/emacs_ui.py
     |
     v
-asynchronous emacsclient --eval with JSON arguments
+asynchronous emacsclient -s qtile --eval with JSON arguments
     |
     v
 lisp/qtile/qtile-ui.el
@@ -30,6 +30,18 @@ lisp/qtile/qtile-ui.el
 feature renderer: qtile-desktop, qtile-workflow, qtile-notifications,
 qtile-services
 #+end_example
+
+* Named Emacs server
+
+Popups connect to the named server =qtile= (=QTILE_EMACS_SERVER=; set it empty
+to use the default server).  When the server is not running, Qtile starts it
+as =emacs --daemon=qtile=.  The Qtile autostart script performs the same check
+after the X session provides =DISPLAY= and =XAUTHORITY=.  Popup requests carry
+that display to =make-frame-on-display=, because a daemon's initial terminal is
+not a GUI terminal.  A daemon opens no window by itself, which is the safe
+fallback — =emacsclient -a emacs= instead spawned a second full-size GUI Emacs
+and then rendered the popup inside it.  The user's interactive Emacs is never
+touched or reused for popups.
 
 * Ownership
 
@@ -95,8 +107,11 @@ The shared frame lifecycle is provided by =qtile-ui.el=:
 
 Frames use no minibuffer, menu bar, tool bar, or scroll bars by default.  The
 workflow picker opts into a minibuffer because it uses Emacs completion.  The
-frame is registered by popup ID and is rediscovered by its frame parameter on
-reuse; deleted or stale entries are removed from the registry.
+modeline is removed buffer-locally via =mode-line-format nil= plus Doom's
+=hide-mode-line-mode= — setting =mode-line-format= as a frame parameter has no
+effect, which is why Doom's modeline originally kept rendering.  The frame is
+registered by popup ID and is rediscovered by its frame parameter on reuse;
+deleted or stale entries are removed from the registry.
 
 =qtile-ui-org.el= supplies headings, sections, muted metadata, values,
 separators, buttons, status faces, and selected faces.  Feature modules use
@@ -247,6 +262,11 @@ The three alignments are relative to the trigger widget:
 - =left= starts at the widget's left edge.
 - =center= centers the popup over the widget.
 - =right= ends at the widget's right edge.
+
+Widget positions are read from Qtile's =offset=/=length= attributes (with
+=x=/=width= as a legacy fallback).  Reading a nonexistent =x= silently yielded
+zero and anchored every popup at the screen's left edge; the offset-based
+lookup is covered by regression tests.
 
 The vertical anchor is the bar bottom.  The horizontal position is clamped to
 the owning physical screen, including non-zero monitor origins and different

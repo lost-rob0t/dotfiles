@@ -164,9 +164,10 @@ def group_indicator_geometry(
     offset: int | float,
     width: int | float,
     padding_x: int | float,
+    borderwidth: int | float,
 ) -> tuple[int | float, int | float]:
     """Inset the screen indicator to the glyph area without moving its center."""
-    inset = max(float(padding_x), 0.0)
+    inset = max(float(padding_x) + float(borderwidth), 0.0)
     if float(width) <= inset * 2:
         return offset, width
     aligned_offset = float(offset) + inset
@@ -392,10 +393,20 @@ def _select_workflow(qtile: Any, config_globals: dict[str, Any]) -> None:
 
 
 def _parse_clock_output(output: str) -> str:
-    value = _decode_emacs_string(output)
-    if not value:
-        return "Org: no clock"
-    return f"Org: {value}"
+    """Accept only sentinel-prefixed output; merged stderr is never a task.
+
+    Qtile's command poller merges stderr into stdout, and emacsclient errors
+    begin with a nix store path.  The Elisp probe therefore prefixes real
+    answers with ``QTILEORG:`` and anything else means Emacs is offline.
+    """
+    for raw in (output or "").splitlines():
+        line = raw.strip()
+        if line.startswith("QTILEORG:"):
+            task = line[len("QTILEORG:") :].strip()
+            if task and task != "none":
+                return f"Org: {task[:55]}"
+            return "Org: no clock"
+    return "Org: offline"
 
 
 def _owned_group_box(config_globals: dict[str, Any]):
@@ -449,6 +460,7 @@ def _owned_group_box(config_globals: dict[str, Any]):
                     offset,
                     width,
                     self.padding_x,
+                    self.borderwidth,
                 )
                 self.drawbox(
                     visual_offset,
@@ -466,13 +478,16 @@ def _owned_group_box(config_globals: dict[str, Any]):
             self.draw_at_default_position()
 
     return OwnedGroupBox(
-        font="3270 Nerd Font",
+        # Keep the icon font's metrics truthful: these private-use glyphs are
+        # provided by Symbols Nerd Font, while a missing font name falls back
+        # to a narrower face and makes the highlight miss the rendered icon.
+        font="Symbols Nerd Font",
         visible_groups=group_names,
         fontsize=18,
         margin_y=2,
         margin_x=2,
         padding_y=-4,
-        padding_x=6,
+        padding_x=2,
         borderwidth=2,
         active=palette["white"],
         inactive=palette["muted"],
@@ -512,8 +527,36 @@ def _base_widgets(config_globals: dict[str, Any]):
     return items
 
 
+def _cpu_stats(_qtile: Any) -> None:
+    import psutil
+
+    cores = psutil.cpu_percent(interval=None, percpu=True)
+    load = " ".join(f"{value:.1f}" for value in os.getloadavg())
+    body = (
+        f"total {psutil.cpu_percent(interval=None):.0f}%\n"
+        f"cores {' '.join(f'{value:.0f}%' for value in cores)}\n"
+        f"load {load}"
+    )
+    _notify("CPU", body)
+
+
+def _memory_stats(_qtile: Any) -> None:
+    import psutil
+
+    virtual = psutil.virtual_memory()
+    swap = psutil.swap_memory()
+    gib = 1024**3
+    body = (
+        f"RAM {virtual.used / gib:.1f}G/{virtual.total / gib:.1f}G used ({virtual.percent:.0f}%)\n"
+        f"available {virtual.available / gib:.1f}G\n"
+        f"swap {swap.used / gib:.1f}G/{swap.total / gib:.1f}G ({swap.percent:.0f}%)"
+    )
+    _notify("Memory", body)
+
+
 def _system_telemetry(config_globals: dict[str, Any]):
     from libqtile import widget
+    from libqtile.lazy import lazy
     from qtile_net_io import NetIOGraph, NetIORate
     from qtile_system import DiskIOGraph, RootFree, telemetry_icon_cell
 
@@ -535,21 +578,39 @@ def _system_telemetry(config_globals: dict[str, Any]):
             core="all",
             graph_color=palette["cyan"],
             fill_color=palette["purple"],
+            mouse_callbacks={
+                "Button1": lazy.function(_cpu_stats),
+                "Button3": lazy.function(_cpu_stats),
+            },
             **graph_common,
         ),
-        telemetry_icon_cell("󰍛", palette["green"], background, name="memory_icon"),
+        telemetry_icon_cell(
+            "󰢮",
+            palette["green"],
+            background,
+            name="memory_icon",
+            width=14,
+        ),
         widget.Memory(
-            format="{Available: .1f}{mm} free",
+            format="{Available:.1f}{mm} free",
             measure_mem="G",
             update_interval=1,
             foreground=palette["green"],
             background=background,
             fontsize=11,
             padding=2,
+            mouse_callbacks={
+                "Button1": lazy.function(_memory_stats),
+                "Button3": lazy.function(_memory_stats),
+            },
         ),
         widget.MemoryGraph(
             graph_color=palette["green"],
             fill_color=palette["violet"],
+            mouse_callbacks={
+                "Button1": lazy.function(_memory_stats),
+                "Button3": lazy.function(_memory_stats),
+            },
             **graph_common,
         ),
         telemetry_icon_cell(
@@ -557,6 +618,7 @@ def _system_telemetry(config_globals: dict[str, Any]):
             palette["white"],
             background,
             name="network_icon",
+            width=18,
         ),
         widget.TextBox(
             text=(
@@ -791,7 +853,15 @@ def build_screen_widgets(
         # generated multi-monitor layout overrides this so the left Org screen
         # owns the single date whenever that role exists.
         show_date = role == "center"
-    clock_format = "󰃭 %Y-%m-%d   %H:%M" if show_date else " %H:%M"
+    date_icon = f'<span foreground="{palette["yellow"]}">󰃭</span>'
+    clock_icon = f'<span foreground="{palette["yellow"]}"></span>'
+    icon_gap = "\u00a0\u00a0"
+    date_clock_gap = "\u00a0\u00a0\u00a0"
+    clock_format = (
+        f"{date_icon}{icon_gap}%Y-%m-%d{date_clock_gap}{clock_icon}{icon_gap}%H:%M"
+        if show_date
+        else f"{clock_icon}{icon_gap}%H:%M"
+    )
     clock_callbacks = (
         {
             "Button1": lazy.function(
@@ -816,6 +886,7 @@ def build_screen_widgets(
             background=background,
             fontsize=12,
             format=clock_format,
+            markup=True,
             mouse_callbacks=clock_callbacks,
         )
 
@@ -852,13 +923,22 @@ def build_screen_widgets(
     elif role == "left":
         clock_expression = (
             "(if (and (boundp 'org-clock-current-task) org-clock-current-task) "
-            "(substring-no-properties org-clock-current-task) nil)"
+            "(concat \"QTILEORG:\" (substring-no-properties org-clock-current-task)) "
+            "\"QTILEORG:none\")"
         )
         items.extend(
             [
                 widget.GenPollCommand(
                     name="org_clocked_task",
-                    cmd=["timeout", "3", "emacsclient", "--eval", clock_expression],
+                    cmd=[
+                        "timeout",
+                        "3",
+                        "emacsclient",
+                        "-a",
+                        "false",
+                        "--eval",
+                        clock_expression,
+                    ],
                     parse=_parse_clock_output,
                     update_interval=5,
                     foreground=palette["pink"],
@@ -901,7 +981,10 @@ def build_screen_widgets(
                 ),
                 widget.TextBox(
                     name="services_button",
-                    text=" SVC ",
+                    text="󰒟",
+                    font="Hack Nerd Regular",
+                    fontsize=13,
+                    padding=6,
                     foreground=palette["electric_blue"],
                     background=background,
                     mouse_callbacks={"Button1": lazy.function(_toggle_services)},
@@ -953,6 +1036,8 @@ def install_desktop_control(
 
     load_private_env()
     _install_emacs_popup_float_rules(config_globals)
+    screen_cache: list[Screen] = []
+
     def screen_widgets(role: str = "center", show_date: bool | None = None):
         return build_screen_widgets(
             role,
@@ -964,16 +1049,19 @@ def install_desktop_control(
     def generate_screens(output_info):
         roles = screen_roles(output_info)
         date_role = "left" if any(base_role(role) == "left" for role in roles) else "center"
-        return [
-            Screen(
-                top=bar.Bar(
-                    screen_widgets(role, show_date=base_role(role) == date_role),
-                    26,
-                    opacity=0.8,
+        while len(screen_cache) < len(roles):
+            index = len(screen_cache)
+            role = roles[index]
+            screen_cache.append(
+                Screen(
+                    top=bar.Bar(
+                        screen_widgets(role, show_date=base_role(role) == date_role),
+                        26,
+                        opacity=0.8,
+                    )
                 )
             )
-            for role in roles
-        ]
+        return screen_cache[: len(roles)]
 
     config_globals["screen_widgets"] = screen_widgets
     config_globals["generate_screens"] = generate_screens

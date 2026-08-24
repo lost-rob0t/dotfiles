@@ -26,7 +26,32 @@
     (should (= (alist-get 'menu-bar-lines parameters) 0))
     (should (= (alist-get 'tool-bar-lines parameters) 0))
     (should (equal (alist-get 'vertical-scroll-bars parameters) nil))
-    (should (equal (alist-get 'horizontal-scroll-bars parameters) nil))))
+     (should (equal (alist-get 'horizontal-scroll-bars parameters) nil))))
+
+(ert-deftest qtile-ui-makes-popup-on-qtile-display ()
+  (let (received)
+    (cl-letf (((symbol-function 'make-frame-on-display)
+               (lambda (display parameters)
+                 (setq received (list display parameters))
+                 'frame)))
+      (should (eq (qtile-ui--make-frame
+                   "test"
+                   '((left . 10) (top . 20) (width . 400) (height . 300))
+                   nil
+                   '((display . ":0")))
+                  'frame))
+      (should (equal (car received) ":0")))))
+
+(ert-deftest qtile-ui-prepare-buffer-removes-modeline-and-header ()
+  ;; mode-line-format is buffer-local: setting it as a frame parameter was a
+  ;; no-op, which is why Doom's modeline kept rendering inside popups.
+  (with-temp-buffer
+    (let ((doom-hide-mode-line (fboundp 'hide-mode-line-mode)))
+      (qtile-ui-prepare-buffer)
+      (should (null mode-line-format))
+      (should (null header-line-format))
+      (when doom-hide-mode-line
+        (should (bound-and-true-p hide-mode-line-mode))))))
 
 (ert-deftest qtile-ui-dismissal-keys-are-installed ()
   (with-temp-buffer

@@ -11,6 +11,8 @@ from typing import Any, Iterable
 import psutil
 from libqtile.widget import base
 
+from notify import notify
+
 
 def format_binary_bytes(value: int | float | None) -> str:
     """Format bytes with binary units while keeping the bar compact."""
@@ -200,9 +202,9 @@ def telemetry_icon_cell(
     background: str,
     *,
     name: str | None = None,
-    width: int = 24,
+    width: int | None = 24,
 ):
-    """Build a fixed-width icon cell so glyph bearings cannot clip graphs."""
+    """Build an icon cell, optionally reserving a fixed width for graphs."""
     from libqtile import widget
 
     config = {
@@ -212,8 +214,9 @@ def telemetry_icon_cell(
         "foreground": color,
         "background": background,
         "padding": 0,
-        "width": width,
     }
+    if width is not None:
+        config["width"] = width
     if name:
         config["name"] = name
     return widget.TextBox(**config)
@@ -226,9 +229,23 @@ class RootFree(base.BackgroundPoll):
 
     def __init__(self, **config):
         super().__init__(text="? free", **config)
+        self.add_callbacks({"Button1": self.show_stats, "Button3": self.show_stats})
 
     def poll(self):
         return root_free_text()
+
+    def show_stats(self):
+        """Show root filesystem usage through a desktop notification."""
+        try:
+            usage = psutil.disk_usage("/")
+        except (OSError, AttributeError, psutil.Error):
+            notify("Root filesystem", "usage unavailable")
+            return
+        notify(
+            "Root filesystem",
+            f"free {format_binary_bytes(usage.free)} of {format_binary_bytes(usage.total)}\n"
+            f"used {format_binary_bytes(usage.used)} ({usage.percent:.0f}%)",
+        )
 
 
 class DiskIOGraph(base._Widget):
@@ -249,6 +266,18 @@ class DiskIOGraph(base._Widget):
         super().__init__(width, **config)
         self.add_defaults(self.defaults)
         self.sampler = DiskIOSampler(self.samples)
+        self.add_callbacks({"Button1": self.show_stats, "Button3": self.show_stats})
+
+    def show_stats(self):
+        """Show current root disk read/write rates through a notification."""
+        read = self.sampler.read[-1] if self.sampler.read else 0.0
+        write = self.sampler.write[-1] if self.sampler.write else 0.0
+        notify(
+            "Root disk I/O",
+            f"read {format_binary_bytes(read)}/s\n"
+            f"write {format_binary_bytes(write)}/s\n"
+            f"free {root_free_text()}",
+        )
 
     def timer_setup(self):
         self._update()
