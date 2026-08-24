@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import importlib.util
+import shutil
+import subprocess
 import sys
 import unittest
 from dataclasses import dataclass
@@ -45,8 +47,9 @@ class Widget:
     def __init__(self, bar, name="trigger", x=100, width=80):
         self.bar = bar
         self.name = name
-        self.x = x
-        self.width = width
+        # Qtile bar widgets expose offset/length; x/width are the legacy path.
+        self.offset = x
+        self.length = width
         self.height = bar.height
 
 
@@ -101,7 +104,7 @@ class EmacsUiTests(unittest.TestCase):
     def test_changed_widget_width_recomputes_right_alignment(self):
         qtile = qtile_with_widget(x=400, width=80)
         first = MODULE.popup_geometry(qtile, "trigger", width=200, height=200, align="right")
-        qtile.screens[0].top.widgets[0].width = 140
+        qtile.screens[0].top.widgets[0].length = 140
         second = MODULE.popup_geometry(qtile, "trigger", width=200, height=200, align="right")
         self.assertEqual(second.left - first.left, 60)
 
@@ -118,22 +121,65 @@ class EmacsUiTests(unittest.TestCase):
             args={"backend": "emacs"},
             minibuffer=True,
         )
-        self.assertEqual(command[:2], ["emacsclient", "--eval"])
-        self.assertNotIn("-a", command)
+        self.assertEqual(command[:5], ["emacsclient", "-s", "qtile", "-a", "false"])
         self.assertIn("json-read-from-string", command[-1])
         self.assertNotIn("shell=True", command[-1])
         self.assertIn("notifications", command[-1])
         self.assertIn("minibuffer", command[-1])
+        self.assertIn("display", command[-1])
         self.assertIn("load-path", command[-1])
 
-    def test_missing_server_never_spawns_emacs_and_notifies_user(self):
-        completed = mock.Mock(returncode=1, stdout="", stderr="emacsclient: can't find socket; have you started the server?")
-        with mock.patch.object(MODULE.subprocess, "run", return_value=completed), \
+    def test_widget_offset_drives_alignment_not_a_defaulted_x(self):
+        qtile = qtile_with_widget(x=777)
+        screen, x, y, width, height = MODULE.widget_geometry(qtile, "trigger")
+        self.assertEqual(x, 777)
+
+    def test_legacy_widgets_without_offset_still_align(self):
+        qtile = qtile_with_widget(x=333)
+        widget = qtile.screens[0].top.widgets[0]
+        del widget.offset
+        del widget.length
+        widget.x = 333
+        widget.width = 90
+        self.assertEqual(MODULE.widget_geometry(qtile, "trigger")[1], 333)
+        self.assertEqual(MODULE.widget_geometry(qtile, "trigger")[3], 90)
+
+    def test_missing_server_starts_headless_daemon_and_retries(self):
+        missing = subprocess.CompletedProcess(
+            ["emacsclient"], 1, "", "emacsclient: can't find socket; have you started the server?"
+        )
+        success = subprocess.CompletedProcess(["emacsclient"], 0, "nil", "")
+        with mock.patch.object(MODULE, "_try_client", side_effect=[missing, success]) as client, \
+             mock.patch.object(MODULE, "_start_named_daemon", return_value=True) as daemon, \
              mock.patch.object(MODULE, "_notify_user") as notify, \
              mock.patch.object(MODULE, "_report_error"):
-            MODULE._run_client(object(), ["emacsclient", "--eval", "(+ 1 1)"])
+            MODULE._run_client(object(), ["emacsclient", "-s", "qtile", "--eval", "(+ 1 1)"])
+        daemon.assert_called_once_with()
+        self.assertEqual(client.call_count, 2)
+        notify.assert_not_called()
+
+    def test_missing_server_never_spawns_emacs_and_notifies_user(self):
+        missing = subprocess.CompletedProcess(
+            ["emacsclient"], 1, "", "emacsclient: can't find socket; have you started the server?"
+        )
+        with mock.patch.object(MODULE, "_try_client", return_value=missing), \
+             mock.patch.object(MODULE, "_start_named_daemon", return_value=False), \
+             mock.patch.object(MODULE, "_notify_user") as notify, \
+             mock.patch.object(MODULE, "_report_error"):
+            MODULE._run_client(object(), ["emacsclient", "-s", "qtile", "--eval", "(+ 1 1)"])
         notify.assert_called_once()
         self.assertIn("server", notify.call_args.args[1].lower())
+
+    def test_daemon_start_uses_named_headless_daemon(self):
+        emacs = shutil.which("emacs")
+        if emacs is None:
+            self.skipTest("emacs not on PATH")
+        completed = subprocess.CompletedProcess([], 0, "Starting Emacs daemon.", "")
+        with mock.patch.object(MODULE.shutil, "which", return_value="/usr/bin/emacs"), \
+             mock.patch.object(MODULE.subprocess, "run", return_value=completed) as run:
+            self.assertTrue(MODULE._start_named_daemon())
+        self.assertEqual(run.call_args.args[0], ["/usr/bin/emacs", "--daemon=qtile"])
+        self.assertNotIn("-c", run.call_args.args[0])
 
     def test_launch_is_scheduled_on_worker_without_waiting_in_qtile(self):
         qtile = qtile_with_widget()

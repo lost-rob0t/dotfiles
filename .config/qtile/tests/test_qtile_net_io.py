@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest import mock
 
 SOURCE = Path(__file__).resolve().parents[1] / "qtile_net_io.py"
+sys.path.insert(0, str(SOURCE.parent))
 SOURCE_TEXT = SOURCE.read_text(encoding="utf-8")
 
 
@@ -23,8 +24,13 @@ def _install_libqtile_stub() -> None:
         def __init__(self, width=0, **config):
             self.width = width
             self.height = config.get("height", 26)
+            self.mouse_callbacks = config.get("mouse_callbacks", {})
             for key, value in config.items():
                 setattr(self, key, value)
+
+        def add_callbacks(self, defaults):
+            defaults.update(self.mouse_callbacks)
+            self.mouse_callbacks = defaults
 
         def add_defaults(self, defaults):
             for name, value, _desc in defaults:

@@ -15,6 +15,7 @@
          (choices (or (qtile-workflow--get 'choices args) '()))
          (choices (if (vectorp choices) (append choices nil) choices)))
     (switch-to-buffer (get-buffer-create "*Qtile Workflows*"))
+    (qtile-ui-prepare-buffer)
     (erase-buffer)
     (qtile-ui-org-heading "WORKFLOWS")
     (qtile-ui-org-muted "Select a desktop workflow to apply.\n\n")

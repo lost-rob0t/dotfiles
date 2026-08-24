@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest import mock
 
 SOURCE = Path(__file__).resolve().parents[1] / "qtile_system.py"
+sys.path.insert(0, str(SOURCE.parent))
 WIDGET_MODULE = None
 
 
@@ -25,12 +26,17 @@ def _install_libqtile_stub():
         def __init__(self, width=0, **config):
             self.width = width
             self.height = config.get("height", 26)
+            self.mouse_callbacks = config.get("mouse_callbacks", {})
             self.__dict__.update(config)
 
         def add_defaults(self, defaults):
             for name, value, _description in defaults:
                 if not hasattr(self, name):
                     setattr(self, name, value)
+
+        def add_callbacks(self, defaults):
+            defaults.update(self.mouse_callbacks)
+            self.mouse_callbacks = defaults
 
     class BackgroundPoll(Widget):
         pass
@@ -153,6 +159,8 @@ class QtileSystemTests(unittest.TestCase):
         self.assertEqual(cell["padding"], 0)
         disk = MODULE.telemetry_icon_cell("DISK", "orange", "background", width=18)
         self.assertEqual(disk["width"], 18)
+        compact = MODULE.telemetry_icon_cell("RAM", "green", "background", width=None)
+        self.assertNotIn("width", compact)
 
 
 if __name__ == "__main__":

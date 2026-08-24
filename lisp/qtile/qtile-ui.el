@@ -2,6 +2,7 @@
 
 (require 'cl-lib)
 (require 'json)
+(require 'subr-x)
 
 (defvar qtile-ui-frame-registry nil
   "Alist of stable Qtile popup IDs and their live Emacs frames.")
@@ -58,8 +59,6 @@
       (width . 80)
       (height . 24)
       (minibuffer . ,(if minibuffer t nil))
-      (mode-line-format . nil)
-      (header-line-format . nil)
       (menu-bar-lines . 0)
       (tool-bar-lines . 0)
       (vertical-scroll-bars . nil)
@@ -75,10 +74,25 @@
           (set-frame-size frame width height t)
         (error nil)))))
 
+(defun qtile-ui--make-frame (popup-id geometry minibuffer params)
+  "Create POPUP-ID on the display supplied by Qtile when available."
+  (let ((frame-parameters (qtile-ui--frame-parameters popup-id geometry minibuffer))
+        (display (qtile-ui-param 'display params)))
+    (if (and (stringp display)
+             (not (string-empty-p display))
+             (fboundp 'make-frame-on-display))
+        (make-frame-on-display display frame-parameters)
+      (make-frame frame-parameters))))
+
 (defun qtile-ui-prepare-buffer ()
   "Apply shared dropdown buffer defaults without changing feature content."
+  ;; mode-line-format is a buffer-local variable, not a frame parameter:
+  ;; setting it on the frame did nothing, which is why Doom's modeline kept
+  ;; rendering.  Doom additionally needs its own minor mode disabled.
   (setq-local mode-line-format nil)
   (setq-local header-line-format nil)
+  (when (fboundp 'hide-mode-line-mode)
+    (hide-mode-line-mode 1))
   (setq-local truncate-lines nil)
   (setq-local cursor-type t)
   (when (fboundp 'display-line-numbers-mode)
@@ -129,9 +143,10 @@ the same stable popup identity again and reuses the feature's buffer.
         (select-frame-set-input-focus frame)
         (delete-frame frame t))
     (let* ((geometry (qtile-ui-param 'geometry params))
-           (frame (make-frame
-                   (qtile-ui--frame-parameters
-                    popup-id geometry (eq (qtile-ui-param 'minibuffer params) t))))
+            (frame (qtile-ui--make-frame
+                    popup-id geometry
+                    (eq (qtile-ui-param 'minibuffer params) t)
+                    params))
            (function (if (symbolp renderer) renderer (intern renderer))))
       (set-frame-parameter frame 'qtile-ui-popup-id popup-id)
       (push (cons popup-id frame) qtile-ui-frame-registry)

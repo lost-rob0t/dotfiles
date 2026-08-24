@@ -154,7 +154,7 @@ class QtileControlTests(unittest.TestCase):
         self.assertIn("_system_telemetry(config_globals)", center_text)
         self.assertIn("widget.CPUGraph", SOURCE_TEXT)
         self.assertIn("widget.MemoryGraph", SOURCE_TEXT)
-        self.assertIn('format="{Available: .1f}{mm} free"', SOURCE_TEXT)
+        self.assertIn('format="{Available:.1f}{mm} free"', SOURCE_TEXT)
 
     def test_system_telemetry_keeps_order_and_uses_fixed_icon_cells(self):
         self.assertIn("from qtile_system import DiskIOGraph, RootFree, telemetry_icon_cell", SOURCE_TEXT)
@@ -163,6 +163,10 @@ class QtileControlTests(unittest.TestCase):
         self.assertLess(SOURCE_TEXT.index('name="network_icon"'), SOURCE_TEXT.index('name="disk_icon"'))
         self.assertIn('name="root_free"', SOURCE_TEXT)
         self.assertIn('name="root_disk_io"', SOURCE_TEXT)
+        self.assertIn('name="memory_icon",', SOURCE_TEXT)
+        self.assertIn('name="network_icon",', SOURCE_TEXT)
+        self.assertIn("width=14,", SOURCE_TEXT)
+        self.assertIn("width=18,", SOURCE_TEXT)
 
     def test_exactly_one_legacy_systray_and_notifications_every_role(self):
         self.assertEqual(SOURCE_TEXT.count("widget.Systray"), 1)
@@ -179,7 +183,11 @@ class QtileControlTests(unittest.TestCase):
     def test_org_poll_uses_async_genpollcommand(self):
         self.assertIn("widget.GenPollCommand", SOURCE_TEXT)
         self.assertIn('name="org_clocked_task"', SOURCE_TEXT)
-        self.assertIn('cmd=["timeout", "3", "emacsclient", "--eval", clock_expression]', SOURCE_TEXT)
+        self.assertIn(
+            '"timeout",\n                        "3",\n                        "emacsclient",\n                        "-a",\n                        "false",',
+            SOURCE_TEXT,
+        )
+        self.assertIn("QTILEORG:", SOURCE_TEXT)
 
     def test_left_org_screen_has_gpt_todo_sync_button(self):
         left = SOURCE_TEXT.index('elif role == "left":')
@@ -209,8 +217,11 @@ class QtileControlTests(unittest.TestCase):
         self.assertEqual(SOURCE_TEXT.count("widget.Pomodoro"), 2)
 
     def test_clock_icons_single_date_and_click_actions(self):
-        self.assertEqual(SOURCE_TEXT.count('"󰃭 %Y-%m-%d   %H:%M"'), 1)
-        self.assertEqual(SOURCE_TEXT.count('" %H:%M"'), 1)
+        self.assertIn('date_icon = f\'<span foreground="{palette["yellow"]}">󰃭</span>\'', SOURCE_TEXT)
+        self.assertIn('clock_icon = f\'<span foreground="{palette["yellow"]}"></span>\'', SOURCE_TEXT)
+        self.assertIn('icon_gap = "\\u00a0\\u00a0"', SOURCE_TEXT)
+        self.assertIn('date_clock_gap = "\\u00a0\\u00a0\\u00a0"', SOURCE_TEXT)
+        self.assertIn("markup=True", SOURCE_TEXT)
         self.assertIn("lazy.function(_show_month_calendar)", SOURCE_TEXT)
         self.assertIn('"qtile-org-agenda-day"', SOURCE_TEXT)
         self.assertIn('"full_date_clock"', SOURCE_TEXT)

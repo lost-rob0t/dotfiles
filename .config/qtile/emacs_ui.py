@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import shutil
 import subprocess
 import threading
 from dataclasses import asdict, dataclass
@@ -12,6 +14,11 @@ from typing import Any, Iterable
 
 
 DEFAULT_HELPER = Path("~/.config/qtile/qtile-desktop.el").expanduser()
+# Popups live in a *named* Emacs server so the user's interactive Emacs is
+# never touched: a missing server is started headlessly as a daemon, which by
+# definition opens no window (unlike `emacsclient -a emacs`, which spawned a
+# second full-size GUI).  Override or disable with QTILE_EMACS_SERVER="".
+SERVER_NAME = os.environ.get("QTILE_EMACS_SERVER", "qtile")
 
 
 @dataclass(frozen=True)
@@ -89,6 +96,28 @@ def _widget_bar(qtile: Any, widget: Any) -> tuple[Any, Any] | None:
     return None
 
 
+def _widget_offset(widget: Any) -> int:
+    """Horizontal position inside the bar.
+
+    Qtile bar widgets expose ``offset``/``length``; older or stubbed widgets
+    may only provide ``x``/``width``.  Reading a nonexistent ``x`` silently
+    returned 0 and anchored every popup at the screen's left edge.
+    """
+    for attribute in ("offset", "offsetx", "x"):
+        value = getattr(widget, attribute, None)
+        if value is not None:
+            return _number(value)
+    return 0
+
+
+def _widget_length(widget: Any) -> int:
+    for attribute in ("length", "width"):
+        value = getattr(widget, attribute, None)
+        if value is not None:
+            return max(_number(value, 1), 1)
+    return 1
+
+
 def widget_geometry(qtile: Any, widget_name: str) -> tuple[Any, int, int, int, int] | None:
     """Return ``(screen, x, y, width, height)`` in desktop pixels."""
     widget = find_named_widget(qtile, widget_name)
@@ -99,9 +128,9 @@ def widget_geometry(qtile: Any, widget_name: str) -> tuple[Any, int, int, int, i
         return None
     bar, screen = owner
     screen_x, screen_y, _screen_width, _screen_height = _screen_rect(screen)
-    width = max(_number(getattr(widget, "width", 1), 1), 1)
-    height = max(_number(getattr(widget, "height", getattr(bar, "size", 1)), 1), 1)
-    x = screen_x + _number(getattr(widget, "x", 0))
+    width = _widget_length(widget)
+    height = max(_number(getattr(widget, "height", 1), 1), 1)
+    x = screen_x + _widget_offset(widget)
 
     position = str(getattr(bar, "position", "top")).casefold()
     bar_height = max(_number(getattr(bar, "height", getattr(bar, "size", height)), height), 1)
@@ -173,6 +202,9 @@ def build_emacsclient_command(
         "geometry": asdict(geometry),
         "args": args or {},
         "minibuffer": bool(minibuffer),
+        # A daemon starts without an initial GUI terminal. Pass Qtile's live
+        # display so the Elisp side can create the popup on that X display.
+        "display": os.environ.get("DISPLAY"),
     }
     expression = (
         "(progn "
@@ -182,10 +214,14 @@ def build_emacsclient_command(
         f"(qtile-ui-toggle {json.dumps(popup_id)} {json.dumps(function)} "
         f"(json-read-from-string {_json_elisp_string(payload)})))"
     )
-    # Never launch a fallback Emacs.  Without the user's running server the
-    # client fails immediately and the worker reports it; an alternate editor
-    # would open a second full-size window instead of the anchored popup.
-    return ["emacsclient", "--eval", expression]
+    # Never launch a fallback *editor*.  The named daemon fallback is
+    # headless: `emacs --daemon=NAME` opens no window, unlike
+    # `emacsclient -a emacs` which spawned a second full-size GUI frame.
+    command = ["emacsclient"]
+    if SERVER_NAME:
+        command += ["-s", SERVER_NAME]
+    command += ["-a", "false", "--eval", expression]
+    return command
 
 
 def _report_error(qtile: Any, message: str) -> None:
@@ -197,8 +233,6 @@ def _report_error(qtile: Any, message: str) -> None:
 
 
 def _notify_user(summary: str, body: str) -> None:
-    import shutil
-
     notifier = shutil.which("notify-send")
     if not notifier:
         return
@@ -212,23 +246,53 @@ def _notify_user(summary: str, body: str) -> None:
         pass
 
 
-def _run_client(qtile: Any, command: list[str]) -> None:
+def _is_missing_server(completed: subprocess.CompletedProcess[str]) -> bool:
+    detail = (completed.stderr or completed.stdout or "").lower()
+    return "socket" in detail or "server" in detail or "no such file" in detail
+
+
+def _start_named_daemon() -> bool:
+    """Start the headless named daemon; it never opens a window."""
+    if not SERVER_NAME:
+        return False
+    emacs = shutil.which("emacs")
+    if not emacs:
+        return False
     try:
         completed = subprocess.run(
+            [emacs, f"--daemon={SERVER_NAME}"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return completed.returncode == 0
+
+
+def _try_client(command: list[str]) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(
             command,
             check=False,
             capture_output=True,
             text=True,
-            timeout=20,
+            timeout=60,
         )
     except (OSError, subprocess.SubprocessError) as error:
-        _report_error(qtile, f"Qtile Emacs popup unavailable: {error}")
-        _notify_user("Qtile popup unavailable", str(error))
-        return
-    if completed.returncode != 0:
-        detail = (completed.stderr or completed.stdout or "emacsclient failed").strip()
+        return subprocess.CompletedProcess(command, 1, "", str(error))
+
+
+def _run_client(qtile: Any, command: list[str]) -> None:
+    result = _try_client(command)
+    if result.returncode != 0 and _is_missing_server(result):
+        if _start_named_daemon():
+            result = _try_client(command)
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "emacsclient failed").strip()
         _report_error(qtile, f"Qtile Emacs popup failed: {detail[-500:]}")
-        if "socket" in detail.lower() or "server" in detail.lower():
+        if _is_missing_server(result):
             _notify_user(
                 "Qtile popup unavailable",
                 "Emacs server is not running; start Emacs and try again.",
