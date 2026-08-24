@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly tunnel="$repo_root/scripts/agent-zero-tunnel"
-readonly tmp="$(mktemp -d)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly repo_root
+tunnel="$repo_root/scripts/agent-zero-tunnel"
+readonly tunnel
+tmp="$(mktemp -d)"
+readonly tmp
 trap 'rm -rf "$tmp"' EXIT
 
 cat > "$tmp/ssh" <<'EOF'
