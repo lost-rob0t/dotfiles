@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly PROGRAM="${0##*/}"
+
+usage() {
+  cat <<'EOF'
+Usage: remote-gui-launch [SSH_TARGET] [DESKTOP_ENTRY] [TMUX_SESSION]
+
+Launch a GUI application on an existing remote X11 desktop and keep it alive
+inside a detached tmux session.
+
+Defaults:
+  SSH_TARGET     $REMOTE_GUI_SSH_TARGET or "flake"
+  DESKTOP_ENTRY  $REMOTE_GUI_DESKTOP_ENTRY or "chatgpt.desktop"
+  TMUX_SESSION   $REMOTE_GUI_TMUX_SESSION or "chatgpt"
+
+Optional environment:
+  REMOTE_GUI_SERVER_ALIVE_INTERVAL  SSH keepalive interval (default: 5)
+  REMOTE_GUI_SERVER_ALIVE_COUNT_MAX unanswered keepalives (default: 6)
+  REMOTE_GUI_REFRESH_XAUTH          auto, never, or always (default: auto)
+EOF
+}
+
+fail() {
+  printf '%s: %s\n' "$PROGRAM" "$*" >&2
+  exit 1
+}
+
+is_uint() {
+  [[ "$1" =~ ^[0-9]+$ ]]
+}
+
+case "${1:-}" in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+esac
+
+command -v ssh >/dev/null 2>&1 || fail "ssh is required"
+
+readonly ssh_target="${1:-${REMOTE_GUI_SSH_TARGET:-flake}}"
+readonly desktop_entry="${2:-${REMOTE_GUI_DESKTOP_ENTRY:-chatgpt.desktop}}"
+readonly tmux_session="${3:-${REMOTE_GUI_TMUX_SESSION:-chatgpt}}"
+readonly alive_interval="${REMOTE_GUI_SERVER_ALIVE_INTERVAL:-5}"
+readonly alive_count="${REMOTE_GUI_SERVER_ALIVE_COUNT_MAX:-6}"
+readonly refresh_mode="${REMOTE_GUI_REFRESH_XAUTH:-auto}"
+
+[[ -n "$ssh_target" ]] || fail "SSH target must not be empty"
+[[ -n "$desktop_entry" ]] || fail "desktop entry must not be empty"
+[[ -n "$tmux_session" ]] || fail "tmux session must not be empty"
+is_uint "$alive_interval" || fail "invalid keepalive interval: $alive_interval"
+is_uint "$alive_count" || fail "invalid keepalive count: $alive_count"
+case "$refresh_mode" in
+  auto|never|always) ;;
+  *) fail "REMOTE_GUI_REFRESH_XAUTH must be auto, never, or always" ;;
+esac
+
+ssh_opts=(
+  -o "ServerAliveInterval=$alive_interval"
+  -o "ServerAliveCountMax=$alive_count"
+)
+
+refresh_xauth() {
+  printf 'Refreshing the live X11 cookie on %s...\n' "$ssh_target" >&2
+  ssh -t "${ssh_opts[@]}" "$ssh_target" bash -s <<'REMOTE_AUTH'
+set -euo pipefail
+
+auth_file="$({
+  ps -eo args= 2>/dev/null || true
+} | awk '
+  /[X]org/ {
+    for (i = 1; i <= NF; i++) {
+      if ($i == "-auth" && i < NF) {
+        print $(i + 1)
+        exit
+      }
+    }
+  }
+')"
+
+if [[ -z "$auth_file" ]]; then
+  printf 'remote-gui-launch: could not discover Xorg -auth file\n' >&2
+  exit 1
+fi
+
+printf 'Xorg authority: %s\n' "$auth_file" >&2
+sudo xauth -f "$auth_file" nlist :0 |
+  xauth -f "$HOME/.Xauthority" nmerge -
+REMOTE_AUTH
+}
+
+run_remote() {
+  ssh "${ssh_opts[@]}" "$ssh_target" bash -s -- "$desktop_entry" "$tmux_session" <<'REMOTE_LAUNCH'
+set -euo pipefail
+
+entry="$1"
+session="$2"
+
+if command -v systemctl >/dev/null 2>&1; then
+  while IFS='=' read -r name value; do
+    case "$name" in
+      DISPLAY|XAUTHORITY|XDG_RUNTIME_DIR|DBUS_SESSION_BUS_ADDRESS)
+        export "$name=$value"
+        ;;
+    esac
+  done < <(systemctl --user show-environment 2>/dev/null || true)
+fi
+
+: "${DISPLAY:=:0}"
+: "${XAUTHORITY:=$HOME/.Xauthority}"
+: "${XDG_RUNTIME_DIR:=/run/user/$(id -u)}"
+: "${DBUS_SESSION_BUS_ADDRESS:=unix:path=$XDG_RUNTIME_DIR/bus}"
+export DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+
+if [[ "$entry" == */* ]]; then
+  desktop_file="${entry/#\~/$HOME}"
+else
+  desktop_file=''
+  for dir in \
+    "$HOME/.local/share/applications" \
+    "$HOME/.nix-profile/share/applications" \
+    "/etc/profiles/per-user/$USER/share/applications" \
+    /run/current-system/sw/share/applications; do
+    if [[ -f "$dir/$entry" ]]; then
+      desktop_file="$dir/$entry"
+      break
+    fi
+  done
+fi
+
+if [[ -z "${desktop_file:-}" || ! -f "$desktop_file" ]]; then
+  printf 'remote-gui-launch: desktop entry not found: %s\n' "$entry" >&2
+  exit 127
+fi
+
+exe="$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' "$desktop_file" | head -1)"
+if [[ -z "$exe" || ! -x "$exe" ]]; then
+  printf 'remote-gui-launch: invalid Exec line in %s\n' "$desktop_file" >&2
+  exit 127
+fi
+
+if pgrep -f -- "$exe" >/dev/null 2>&1; then
+  printf '%s is already running on %s\n' "$entry" "$DISPLAY"
+  exit 0
+fi
+
+command -v tmux >/dev/null 2>&1 || {
+  printf 'remote-gui-launch: tmux is required on the desktop host\n' >&2
+  exit 127
+}
+
+safe_session="${session//[^[:alnum:]_.-]/_}"
+log="/tmp/${safe_session}.log"
+: > "$log"
+
+tmux kill-session -t "$session" 2>/dev/null || true
+printf -v launch '%q ' env \
+  DISPLAY="$DISPLAY" \
+  XAUTHORITY="$XAUTHORITY" \
+  XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
+  DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
+  "$exe"
+printf -v quoted_log '%q' "$log"
+tmux new-session -d -s "$session" "$launch >>$quoted_log 2>&1"
+
+sleep 2
+if pgrep -f -- "$exe" >/dev/null 2>&1; then
+  printf 'Started %s in tmux session %s on %s\n' "$entry" "$session" "$DISPLAY"
+  exit 0
+fi
+
+cat "$log" >&2 || true
+if grep -Fq 'Authorization required' "$log" 2>/dev/null ||
+   grep -Fq 'Missing X server or $DISPLAY' "$log" 2>/dev/null; then
+  exit 42
+fi
+
+printf 'remote-gui-launch: application exited during startup\n' >&2
+exit 1
+REMOTE_LAUNCH
+}
+
+if [[ "$refresh_mode" == always ]]; then
+  refresh_xauth
+fi
+
+if run_remote; then
+  exit 0
+fi
+status=$?
+
+if [[ "$status" -eq 42 && "$refresh_mode" == auto ]]; then
+  refresh_xauth
+  run_remote
+  exit $?
+fi
+
+exit "$status"
