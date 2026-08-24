@@ -15,6 +15,9 @@ fetches the upstream ref, compares Git blob identities, and only copies a side
 when that side changed relative to the baseline.  Concurrent local and remote
 edits to the same file are rejected instead of being resolved by filesystem
 timestamps.  Repository-side deletion still requires manual resolution.
+Before copying, the helper also compares filesystem identity: when a live agenda
+path is a symlink or other alias that already resolves to the durable file, that
+path is treated as synchronized instead of invoking =cp= on the same inode.
 The default durable checkout is =~/Documents/gpt-todos=.
 
 The same command also owns deployment.  Run =gpt-todos-sync --deploy 5= to
@@ -179,6 +182,17 @@ file_blob() {
   git -C "$REPO_DIR" hash-object "$file"
 }
 
+copy_if_distinct() {
+  local src="$1"
+  local dst="$2"
+
+  if [[ -e "$dst" && "$src" -ef "$dst" ]]; then
+    return 0
+  fi
+
+  cp -p -- "$src" "$dst"
+}
+
 list_org_paths() {
   local ref="$1"
   local rel
@@ -278,7 +292,7 @@ git -C "$REPO_DIR" merge --ff-only "$REMOTE_HEAD"
 for rel in "${local_changes[@]}"; do
   local_rel="${rel#agenda/}"
   mkdir -p "$(dirname "$REPO_DIR/$rel")"
-  cp -p -- "$ORG_DIR/$local_rel" "$REPO_DIR/$rel"
+  copy_if_distinct "$ORG_DIR/$local_rel" "$REPO_DIR/$rel"
 done
 
 if ((${#local_changes[@]})); then
@@ -298,7 +312,7 @@ mapfile -t org_paths < <(list_org_paths HEAD | sort -u)
 for rel in "${org_paths[@]}"; do
   local_rel="${rel#agenda/}"
   mkdir -p "$(dirname "$ORG_DIR/$local_rel")"
-  cp -p -- "$REPO_DIR/$rel" "$ORG_DIR/$local_rel"
+  copy_if_distinct "$REPO_DIR/$rel" "$ORG_DIR/$local_rel"
 done
 #+end_src
 
