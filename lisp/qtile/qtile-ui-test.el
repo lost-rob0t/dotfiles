@@ -58,14 +58,12 @@
                       nil)
                   (error t)))))
 
-(ert-deftest qtile-ui-prepare-buffer-removes-modeline-and-header ()
-  ;; mode-line-format is buffer-local: setting it as a frame parameter was a
-  ;; no-op, which is why Doom's modeline kept rendering inside popups.
+(ert-deftest qtile-ui-prepare-buffer-shows-top-header-and-removes-modeline ()
   (with-temp-buffer
     (let ((doom-hide-mode-line (fboundp 'hide-mode-line-mode)))
       (qtile-ui-prepare-buffer)
       (should (null mode-line-format))
-      (should (null header-line-format))
+      (should (string-match-p "Qtile" (car header-line-format)))
       (when doom-hide-mode-line
         (should (bound-and-true-p hide-mode-line-mode))))))
 
@@ -129,7 +127,39 @@
                    "coding"))
                 ((symbol-function 'qtile-ui-close-current) (lambda () nil)))
         (qtile-workflow-open
-         '((args . ((choices . ["coding" "desktop" "focus"]))))))
-      (should (equal received '("coding" "desktop" "focus"))))))
+         '((args . ((choices . ["coding" "desktop" "focus"])
+                    (default . "desktop"))))))
+      (should (equal received '("coding" "desktop" "focus" "[Cancel]"))))))
+
+(ert-deftest qtile-workflow-cancel-closes-without-applying-a-workflow ()
+  (with-temp-buffer
+    (let (received closed)
+      (cl-letf (((symbol-function 'completing-read)
+                 (lambda (_prompt choices &rest args)
+                   (setq received (list choices args))
+                   "[Cancel]"))
+                ((symbol-function 'qtile-ui-close-current)
+                 (lambda () (setq closed t))))
+        (should-not
+         (qtile-workflow-open
+          '((args . ((choices . ["coding"])
+                     (default . "desktop")))))))
+      (should closed)
+      (should (equal (car received) '("coding" "[Cancel]")))
+      (should (equal (nth 2 (cadr received)) "desktop"))
+      (should (equal (nth 4 (cadr received)) "desktop")))))
+
+(ert-deftest qtile-workflow-quit-closes-the-popup ()
+  (with-temp-buffer
+    (let (closed)
+      (cl-letf (((symbol-function 'completing-read)
+                 (lambda (&rest _args) (signal 'quit nil)))
+                ((symbol-function 'qtile-ui-close-current)
+                 (lambda () (setq closed t))))
+        (should-not
+         (qtile-workflow-open
+          '((args . ((choices . ["coding"])
+                     (default . "coding")))))))
+      (should closed))))
 
 ;;; qtile-ui-test.el ends here

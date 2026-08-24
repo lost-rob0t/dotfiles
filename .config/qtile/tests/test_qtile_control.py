@@ -247,6 +247,8 @@ class QtileControlTests(unittest.TestCase):
         self.assertIn('function="qtile-workflow-open"', SOURCE_TEXT)
         self.assertIn('align="right"', SOURCE_TEXT)
         self.assertIn("minibuffer=True", SOURCE_TEXT)
+        self.assertIn('"default":', SOURCE_TEXT)
+        self.assertIn("DEFAULT_WORKFLOW_NAME", SOURCE_TEXT)
 
     def test_services_is_a_shared_popup_example(self):
         self.assertIn('name="services_button"', SOURCE_TEXT)

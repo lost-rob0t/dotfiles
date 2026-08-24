@@ -88,6 +88,13 @@
           (set-frame-size frame width height t)
         (error nil)))))
 
+(defun qtile-ui--header-line ()
+  "Return the compact top line shared by Qtile popup buffers."
+  (let* ((popup-id (frame-parameter nil 'qtile-ui-popup-id))
+         (title (if popup-id (format "Qtile %s" popup-id) "Qtile")))
+    (list (propertize (format " %s " title) 'face 'mode-line)
+          (propertize "  q/Escape close " 'face 'shadow))))
+
 (defun qtile-ui--apply-frame-theme (frame)
   "Apply the configured Emacs theme to a newly-created daemon frame."
   (when (and (boundp 'doom-theme) (symbolp doom-theme))
@@ -117,7 +124,7 @@
   ;; setting it on the frame did nothing, which is why Doom's modeline kept
   ;; rendering.  Doom additionally needs its own minor mode disabled.
   (setq-local mode-line-format nil)
-  (setq-local header-line-format nil)
+  (setq-local header-line-format (qtile-ui--header-line))
   (when (fboundp 'hide-mode-line-mode)
     (hide-mode-line-mode 1))
   (setq-local truncate-lines nil)
@@ -189,8 +196,11 @@ the same stable popup identity again and reuses the feature's buffer.
               (when (frame-live-p frame)
                 (select-frame-set-input-focus frame)
                 (qtile-ui-bind-dismiss)))
-          (error
-           (qtile-ui--render-error popup-id error)))))))
+           (error
+            (qtile-ui--render-error popup-id error)))
+           (quit
+            (qtile-ui-close popup-id)
+            nil)))))
 
 (provide 'qtile-ui)
 ;;; qtile-ui.el ends here

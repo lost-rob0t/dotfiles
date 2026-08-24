@@ -31,6 +31,7 @@ DEFAULT_WORKFLOWS = {
         "screens": {"left": "1", "center": "2", "right": "6", "aux": "8"},
     }
 }
+DEFAULT_WORKFLOW_NAME = "desktop"
 PRIVATE_ENV_PATH = Path("~/.config/qtile/private.env").expanduser()
 WORKFLOWS_PATH = Path("~/.config/qtile/workflows.json").expanduser()
 EMACS_HELPER = Path("~/.config/qtile/qtile-desktop.el").expanduser()
@@ -350,6 +351,7 @@ def _select_workflow(qtile: Any, config_globals: dict[str, Any]) -> None:
 
     workflows = load_workflows()
     names = sorted(workflows)
+    default = DEFAULT_WORKFLOW_NAME if DEFAULT_WORKFLOW_NAME in workflows else names[0]
     geometry = emacs_ui.popup_geometry(
         qtile,
         "workflow_button",
@@ -364,7 +366,7 @@ def _select_workflow(qtile: Any, config_globals: dict[str, Any]) -> None:
         popup_id="workflow",
         function="qtile-workflow-open",
         geometry=geometry,
-        args={"choices": names},
+        args={"choices": names, "default": default},
         helper=WORKFLOW_HELPER,
         minibuffer=True,
     )

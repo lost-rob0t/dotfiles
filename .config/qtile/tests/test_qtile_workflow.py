@@ -17,7 +17,10 @@ class WorkflowFrameTests(unittest.TestCase):
         self.assertIn("(require 'qtile-ui)", TEXT)
         self.assertIn("(defun qtile-workflow-open (params)", TEXT)
         self.assertIn("qtile-ui-org-heading", TEXT)
-        self.assertIn('completing-read "Workflow: " choices nil t', TEXT)
+        self.assertIn('completing-read "Workflow: " picker-choices nil t', TEXT)
+        self.assertIn("qtile-workflow-cancel-label", TEXT)
+        self.assertIn("default", TEXT)
+        self.assertIn("(quit", TEXT)
 
     def test_workflow_has_no_legacy_full_size_frame_constructor(self):
         self.assertNotIn("qtile-workflow-read", DESKTOP_TEXT)

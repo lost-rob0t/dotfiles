@@ -31,7 +31,7 @@ class QtileEmacsControlTests(unittest.TestCase):
 
     def test_org_todos_and_workflow_picker_are_emacs_native(self):
         self.assertIn('(org-agenda nil "t")', TEXT)
-        self.assertIn('completing-read "Workflow: " choices nil t', WORKFLOW_TEXT)
+        self.assertIn('completing-read "Workflow: " picker-choices nil t', WORKFLOW_TEXT)
         self.assertNotIn('completing-read "Qtile workflow: "', TEXT)
 
     def test_shared_renderer_arguments_are_accepted_by_legacy_popups(self):
