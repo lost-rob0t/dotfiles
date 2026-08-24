@@ -6,16 +6,16 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1771271862,
-        "narHash": "sha256-WE0YqEdLjY7TuC058cOL6ZSq5GcPRlpCw5t9DL8cHIw=",
+        "lastModified": 1787553960,
+        "narHash": "sha256-/qmpm3GHTWzwEW1o+uQv+r1dyDWqh4nmwkqSNVYt89A=",
         "owner": "lost-rob0t",
-        "repo": "org-vector",
-        "rev": "c82bd94dec20cb39bf1c2cbe585a153d468c23e9",
+        "repo": "bixby-studio",
+        "rev": "38e08fd4b6b49d83d106cfd2d786e4329ed99256",
         "type": "github"
       },
       "original": {
         "owner": "lost-rob0t",
-        "repo": "org-vector",
+        "repo": "bixby-studio",
         "type": "github"
       }
     },
@@ -156,16 +156,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1763421233,
-        "narHash": "sha256-Stk9ZYRkGrnnpyJ4eqt9eQtdFWRRIvMxpNRf4sIegnw=",
+        "lastModified": 1735563628,
+        "narHash": "sha256-OnSAY7XDSx7CtDoqNh8jwVwh4xNL/2HaJxGjryLWzX8=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "89c2b2330e733d6cdb5eae7b899326930c2c0648",
+        "rev": "b134951a4c9f3c995fd7be05f3243f8ecd65d798",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-unstable",
+        "ref": "nixos-24.05",
         "repo": "nixpkgs",
         "type": "github"
       }
