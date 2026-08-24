@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import tempfile
+import types
 import unittest
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from unittest import mock
 
 SOURCE = Path(__file__).resolve().parents[1] / "qtile_control.py"
 SPEC = importlib.util.spec_from_file_location("qtile_control", SOURCE)
@@ -135,12 +138,12 @@ class QtileControlTests(unittest.TestCase):
 
     def test_center_has_one_combined_network_graph(self):
         self.assertIn("from qtile_net_io import NetIOGraph", SOURCE_TEXT)
+        self.assertIn("NetIORate", SOURCE_TEXT)
         self.assertEqual(SOURCE_TEXT.count("NetIOGraph("), 1)
         self.assertNotIn("widget.NetGraph(", SOURCE_TEXT)
         self.assertIn('name="combined_network_io"', SOURCE_TEXT)
         self.assertIn('download_color=palette["electric_blue"]', SOURCE_TEXT)
         self.assertIn('upload_color=palette["pink"]', SOURCE_TEXT)
-        self.assertIn('format="↓{down}{down_suffix} ↑{up}{up_suffix}"', SOURCE_TEXT)
         self.assertIn('foreground="{palette[\"electric_blue\"]}">↓', SOURCE_TEXT)
         self.assertIn('foreground="{palette[\"pink\"]}">↑', SOURCE_TEXT)
 
@@ -153,12 +156,22 @@ class QtileControlTests(unittest.TestCase):
         self.assertIn("widget.MemoryGraph", SOURCE_TEXT)
         self.assertIn('format="{Available: .1f}{mm} free"', SOURCE_TEXT)
 
+    def test_system_telemetry_keeps_order_and_uses_fixed_icon_cells(self):
+        self.assertIn("from qtile_system import DiskIOGraph, RootFree, telemetry_icon_cell", SOURCE_TEXT)
+        self.assertLess(SOURCE_TEXT.index('name="cpu_icon"'), SOURCE_TEXT.index('name="memory_icon"'))
+        self.assertLess(SOURCE_TEXT.index('name="memory_icon"'), SOURCE_TEXT.index('name="network_icon"'))
+        self.assertLess(SOURCE_TEXT.index('name="network_icon"'), SOURCE_TEXT.index('name="disk_icon"'))
+        self.assertIn('name="root_free"', SOURCE_TEXT)
+        self.assertIn('name="root_disk_io"', SOURCE_TEXT)
+
     def test_exactly_one_legacy_systray_and_notifications_every_role(self):
         self.assertEqual(SOURCE_TEXT.count("widget.Systray"), 1)
         self.assertIn('cmd=["python3", script, "--status"]', SOURCE_TEXT)
-        self.assertIn('lazy.spawn(f"python3 {shlex.quote(script)} --menu")', SOURCE_TEXT)
+        self.assertIn("lazy.function(_toggle_notifications, config_globals, widget_name)", SOURCE_TEXT)
         self.assertIn('lazy.spawn("dunstctl set-paused toggle")', SOURCE_TEXT)
         self.assertIn("items.append(_notification_widget(config_globals, role))", SOURCE_TEXT)
+        self.assertIn('backend == "emacs"', SOURCE_TEXT)
+        self.assertIn("DUNST_MENU", SOURCE_TEXT)
 
     def test_volume_uses_outrun_red(self):
         self.assertIn('widget.Volume(foreground=palette["red"]', SOURCE_TEXT)
@@ -166,6 +179,7 @@ class QtileControlTests(unittest.TestCase):
     def test_org_poll_uses_async_genpollcommand(self):
         self.assertIn("widget.GenPollCommand", SOURCE_TEXT)
         self.assertIn('name="org_clocked_task"', SOURCE_TEXT)
+        self.assertIn('cmd=["timeout", "3", "emacsclient", "--eval", clock_expression]', SOURCE_TEXT)
 
     def test_left_org_screen_has_gpt_todo_sync_button(self):
         left = SOURCE_TEXT.index('elif role == "left":')
@@ -173,7 +187,8 @@ class QtileControlTests(unittest.TestCase):
         left_text = SOURCE_TEXT[left:right]
         self.assertIn('name="gpt_todos_sync_button"', left_text)
         self.assertIn("lazy.function(_sync_gpt_todos)", left_text)
-        self.assertIn('text=" 󰑓 SYNC "', left_text)
+        self.assertIn('text="󰑓"', left_text)
+        self.assertNotIn("SYNC", left_text)
 
     def test_gpt_todo_sync_is_off_event_loop_and_notifies(self):
         self.assertIn('threading.Thread(target=worker, name="qtile-gpt-todos-sync", daemon=True).start()', SOURCE_TEXT)
@@ -196,9 +211,9 @@ class QtileControlTests(unittest.TestCase):
     def test_clock_icons_single_date_and_click_actions(self):
         self.assertEqual(SOURCE_TEXT.count('"󰃭 %Y-%m-%d   %H:%M"'), 1)
         self.assertEqual(SOURCE_TEXT.count('" %H:%M"'), 1)
-        self.assertIn('dropdown_toggle("org-agenda-day")', SOURCE_TEXT)
         self.assertIn("lazy.function(_show_month_calendar)", SOURCE_TEXT)
-        self.assertIn("org-agenda-list nil (current-time) 1", SOURCE_TEXT)
+        self.assertIn('"qtile-org-agenda-day"', SOURCE_TEXT)
+        self.assertIn('"full_date_clock"', SOURCE_TEXT)
         expected = MODULE.month_calendar_text(datetime(2026, 8, 23, 12, 0))
         self.assertIn("August 2026", expected)
         self.assertIn("23", expected)
@@ -210,11 +225,57 @@ class QtileControlTests(unittest.TestCase):
 
     def test_agenda_and_todo_dropdowns_are_right_aligned(self):
         self.assertIn('"org-agenda-day"', SOURCE_TEXT)
-        self.assertIn('x=0.38,\n                    y=0.02,', SOURCE_TEXT)
-        self.assertIn('x=0.42,\n                    y=0.02,', SOURCE_TEXT)
-        self.assertIn('x=0.19,\n                    y=0.04,', SOURCE_TEXT)
-        self.assertIn('qtile-workflow.el', SOURCE_TEXT)
-        self.assertIn("qtile-workflow-read-right", SOURCE_TEXT)
+        self.assertIn('"org-todos"', SOURCE_TEXT)
+        self.assertIn('"agent-zero"', SOURCE_TEXT)
+        self.assertIn('"right",', SOURCE_TEXT)
+        self.assertIn('"left",', SOURCE_TEXT)
+        self.assertNotIn("on_focus_lost_hide=True", SOURCE_TEXT)
+
+    def test_workflow_picker_uses_shared_widget_geometry(self):
+        self.assertIn('"workflow_button"', SOURCE_TEXT)
+        self.assertIn('function="qtile-workflow-open"', SOURCE_TEXT)
+        self.assertIn('align="right"', SOURCE_TEXT)
+        self.assertIn("minibuffer=True", SOURCE_TEXT)
+
+    def test_services_is_a_shared_popup_example(self):
+        self.assertIn('name="services_button"', SOURCE_TEXT)
+        self.assertIn('"qtile-services-open"', SOURCE_TEXT)
+        self.assertIn('"services_button"', SOURCE_TEXT)
+
+    def test_shared_emacs_popups_are_floating_windows(self):
+        for title in (
+            "qtile-agent-zero",
+            "qtile-org-todos",
+            "qtile-org-agenda-day",
+            "qtile-workflow",
+            "qtile-notifications",
+            "qtile-services",
+        ):
+            self.assertIn(f'"{title}"', SOURCE_TEXT)
+        self.assertIn("_install_emacs_popup_float_rules(config_globals)", SOURCE_TEXT)
+
+    def test_shared_emacs_float_rules_are_added_once(self):
+        config_module = types.ModuleType("libqtile.config")
+
+        class Match:
+            def __init__(self, **rules):
+                self._rules = rules
+
+        config_module.Match = Match
+
+        floating_layout = type("Floating", (), {"float_rules": [Match(title="qtile-services")]})()
+        config = {"floating_layout": floating_layout}
+        with mock.patch.dict(sys.modules, {"libqtile.config": config_module}):
+            MODULE._install_emacs_popup_float_rules(config)
+            MODULE._install_emacs_popup_float_rules(config)
+        titles = [rule._rules.get("title") for rule in floating_layout.float_rules]
+        self.assertEqual(titles.count("qtile-services"), 1)
+        self.assertIn("qtile-agent-zero", titles)
+
+    def test_named_emacs_popups_use_shared_geometry_launcher(self):
+        self.assertEqual(SOURCE_TEXT.count("_toggle_emacs_popup,"), 3)
+        self.assertIn("import emacs_ui", SOURCE_TEXT)
+        self.assertIn("emacs_ui.toggle_emacs_dropdown", SOURCE_TEXT)
 
 
 if __name__ == "__main__":

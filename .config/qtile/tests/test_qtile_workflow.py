@@ -11,11 +11,11 @@ TEXT = SOURCE.read_text(encoding="utf-8")
 
 
 class WorkflowFrameTests(unittest.TestCase):
-    def test_workflow_picker_is_right_aligned_and_top_aligned(self):
-        self.assertIn("(left . 1.0)", TEXT)
-        self.assertIn("(top . 0.0)", TEXT)
-        self.assertIn("(user-position . t)", TEXT)
-        self.assertIn('completing-read "Qtile workflow: "', TEXT)
+    def test_workflow_picker_uses_shared_popup_renderer(self):
+        self.assertIn("(require 'qtile-ui)", TEXT)
+        self.assertIn("(defun qtile-workflow-open (params)", TEXT)
+        self.assertIn("qtile-ui-org-heading", TEXT)
+        self.assertIn('completing-read "Workflow: " choices nil t', TEXT)
 
 
 if __name__ == "__main__":

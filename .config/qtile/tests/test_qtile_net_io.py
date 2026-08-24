@@ -31,7 +31,11 @@ def _install_libqtile_stub() -> None:
                 if not hasattr(self, name):
                     setattr(self, name, value)
 
+    class BackgroundPoll(Widget):
+        pass
+
     base._Widget = Widget
+    base.BackgroundPoll = BackgroundPoll
     base.ORIENTATION_HORIZONTAL = 1
     widget.base = base
     libqtile.widget = widget
@@ -72,6 +76,20 @@ class NetIOGraphTests(unittest.TestCase):
             graph._update()
         self.assertEqual(list(graph.download), [300.0])
         self.assertEqual(list(graph.upload), [150.0])
+
+    def test_numeric_rate_reuses_rx_tx_direction_and_elapsed_interval(self):
+        rate = MODULE.NetIORate()
+        with mock.patch.object(MODULE.NetIOGraph, "_read_bytes", side_effect=[(1000, 500), (1600, 800)]), \
+             mock.patch.object(MODULE.time, "monotonic", side_effect=[10.0, 12.0]):
+            self.assertEqual(rate.poll(), "↓0B/s ↑0B/s")
+            self.assertEqual(rate.poll(), "↓300B/s ↑150B/s")
+
+    def test_numeric_rate_clamps_counter_resets(self):
+        rate = MODULE.NetIORate()
+        with mock.patch.object(MODULE.NetIOGraph, "_read_bytes", side_effect=[(1000, 500), (10, 5)]), \
+             mock.patch.object(MODULE.time, "monotonic", side_effect=[10.0, 12.0]):
+            rate.poll()
+            self.assertEqual(rate.poll(), "↓0B/s ↑0B/s")
 
     def test_default_route_detection_ignores_loopback_fallback(self):
         route = "Iface Destination Gateway Flags RefCnt Use Metric Mask MTU Window IRTT\neth0 00000000 01020304 0003 0 0 0 00000000 0 0 0\n"
