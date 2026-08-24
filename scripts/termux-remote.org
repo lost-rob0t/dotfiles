@@ -1,0 +1,417 @@
+#+title: Termux Remote Desktop Workflows
+#+author: lost-rob0t
+#+startup: overview
+#+property: header-args:sh :comments no :mkdirp yes
+
+* Purpose
+
+Canonical literate source for the small remote-workflow commands used from
+Termux.  These helpers keep mobile SSH sessions short-lived while persistent
+remote processes and tunnels live under tmux.
+
+The default desktop SSH target is =flake=.  Every target, port, desktop entry,
+and keepalive value remains overrideable with environment variables.
+
+* Remote GUI launcher
+
+=remote-gui-launch= joins an already-running X11 desktop on the remote host.  It
+resolves the application from its desktop entry, restores the graphical session
+environment, and keeps the application under a detached remote tmux session.
+
+If the X11 cookie is stale, the first launch exits with a dedicated status and
+the client performs an interactive cookie refresh from the authority file used
+by the live Xorg process.  This deliberately imports the narrow existing cookie
+rather than weakening X11 access control with =xhost +=.
+
+#+begin_src sh :tangle remote-gui-launch
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly PROGRAM="${0##*/}"
+
+usage() {
+  cat <<'EOF'
+Usage: remote-gui-launch [SSH_TARGET] [DESKTOP_ENTRY] [TMUX_SESSION]
+
+Launch a GUI application on an existing remote X11 desktop and keep it alive
+inside a detached tmux session.
+
+Defaults:
+  SSH_TARGET     $REMOTE_GUI_SSH_TARGET or "flake"
+  DESKTOP_ENTRY  $REMOTE_GUI_DESKTOP_ENTRY or "chatgpt.desktop"
+  TMUX_SESSION   $REMOTE_GUI_TMUX_SESSION or "chatgpt"
+
+Optional environment:
+  REMOTE_GUI_SERVER_ALIVE_INTERVAL  SSH keepalive interval (default: 5)
+  REMOTE_GUI_SERVER_ALIVE_COUNT_MAX unanswered keepalives (default: 6)
+  REMOTE_GUI_REFRESH_XAUTH          auto, never, or always (default: auto)
+EOF
+}
+
+fail() {
+  printf '%s: %s\n' "$PROGRAM" "$*" >&2
+  exit 1
+}
+
+is_uint() {
+  [[ "$1" =~ ^[0-9]+$ ]]
+}
+
+case "${1:-}" in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+esac
+
+command -v ssh >/dev/null 2>&1 || fail "ssh is required"
+
+readonly ssh_target="${1:-${REMOTE_GUI_SSH_TARGET:-flake}}"
+readonly desktop_entry="${2:-${REMOTE_GUI_DESKTOP_ENTRY:-chatgpt.desktop}}"
+readonly tmux_session="${3:-${REMOTE_GUI_TMUX_SESSION:-chatgpt}}"
+readonly alive_interval="${REMOTE_GUI_SERVER_ALIVE_INTERVAL:-5}"
+readonly alive_count="${REMOTE_GUI_SERVER_ALIVE_COUNT_MAX:-6}"
+readonly refresh_mode="${REMOTE_GUI_REFRESH_XAUTH:-auto}"
+
+[[ -n "$ssh_target" ]] || fail "SSH target must not be empty"
+[[ -n "$desktop_entry" ]] || fail "desktop entry must not be empty"
+[[ -n "$tmux_session" ]] || fail "tmux session must not be empty"
+is_uint "$alive_interval" || fail "invalid keepalive interval: $alive_interval"
+is_uint "$alive_count" || fail "invalid keepalive count: $alive_count"
+case "$refresh_mode" in
+  auto|never|always) ;;
+  *) fail "REMOTE_GUI_REFRESH_XAUTH must be auto, never, or always" ;;
+esac
+
+ssh_opts=(
+  -o "ServerAliveInterval=$alive_interval"
+  -o "ServerAliveCountMax=$alive_count"
+)
+
+refresh_xauth() {
+  printf 'Refreshing the live X11 cookie on %s...\n' "$ssh_target" >&2
+  ssh -t "${ssh_opts[@]}" "$ssh_target" bash -s <<'REMOTE_AUTH'
+set -euo pipefail
+
+auth_file="$({
+  ps -eo args= 2>/dev/null || true
+} | awk '
+  /[X]org/ {
+    for (i = 1; i <= NF; i++) {
+      if ($i == "-auth" && i < NF) {
+        print $(i + 1)
+        exit
+      }
+    }
+  }
+')"
+
+if [[ -z "$auth_file" ]]; then
+  printf 'remote-gui-launch: could not discover Xorg -auth file\n' >&2
+  exit 1
+fi
+
+printf 'Xorg authority: %s\n' "$auth_file" >&2
+sudo xauth -f "$auth_file" nlist :0 |
+  xauth -f "$HOME/.Xauthority" nmerge -
+REMOTE_AUTH
+}
+
+run_remote() {
+  ssh "${ssh_opts[@]}" "$ssh_target" bash -s -- "$desktop_entry" "$tmux_session" <<'REMOTE_LAUNCH'
+set -euo pipefail
+
+entry="$1"
+session="$2"
+
+if command -v systemctl >/dev/null 2>&1; then
+  while IFS='=' read -r name value; do
+    case "$name" in
+      DISPLAY|XAUTHORITY|XDG_RUNTIME_DIR|DBUS_SESSION_BUS_ADDRESS)
+        export "$name=$value"
+        ;;
+    esac
+  done < <(systemctl --user show-environment 2>/dev/null || true)
+fi
+
+: "${DISPLAY:=:0}"
+: "${XAUTHORITY:=$HOME/.Xauthority}"
+: "${XDG_RUNTIME_DIR:=/run/user/$(id -u)}"
+: "${DBUS_SESSION_BUS_ADDRESS:=unix:path=$XDG_RUNTIME_DIR/bus}"
+export DISPLAY XAUTHORITY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
+
+if [[ "$entry" == */* ]]; then
+  desktop_file="${entry/#\~/$HOME}"
+else
+  desktop_file=''
+  for dir in \
+    "$HOME/.local/share/applications" \
+    "$HOME/.nix-profile/share/applications" \
+    "/etc/profiles/per-user/$USER/share/applications" \
+    /run/current-system/sw/share/applications; do
+    if [[ -f "$dir/$entry" ]]; then
+      desktop_file="$dir/$entry"
+      break
+    fi
+  done
+fi
+
+if [[ -z "${desktop_file:-}" || ! -f "$desktop_file" ]]; then
+  printf 'remote-gui-launch: desktop entry not found: %s\n' "$entry" >&2
+  exit 127
+fi
+
+exe="$(sed -n 's/^Exec=\([^ ]*\).*/\1/p' "$desktop_file" | head -1)"
+if [[ -z "$exe" || ! -x "$exe" ]]; then
+  printf 'remote-gui-launch: invalid Exec line in %s\n' "$desktop_file" >&2
+  exit 127
+fi
+
+if pgrep -f -- "$exe" >/dev/null 2>&1; then
+  printf '%s is already running on %s\n' "$entry" "$DISPLAY"
+  exit 0
+fi
+
+command -v tmux >/dev/null 2>&1 || {
+  printf 'remote-gui-launch: tmux is required on the desktop host\n' >&2
+  exit 127
+}
+
+safe_session="${session//[^[:alnum:]_.-]/_}"
+log="/tmp/${safe_session}.log"
+: > "$log"
+
+tmux kill-session -t "$session" 2>/dev/null || true
+printf -v launch '%q ' env \
+  DISPLAY="$DISPLAY" \
+  XAUTHORITY="$XAUTHORITY" \
+  XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
+  DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
+  "$exe"
+printf -v quoted_log '%q' "$log"
+tmux new-session -d -s "$session" "$launch >>$quoted_log 2>&1"
+
+sleep 2
+if pgrep -f -- "$exe" >/dev/null 2>&1; then
+  printf 'Started %s in tmux session %s on %s\n' "$entry" "$session" "$DISPLAY"
+  exit 0
+fi
+
+cat "$log" >&2 || true
+if grep -Fq 'Authorization required' "$log" 2>/dev/null ||
+   grep -Fq 'Missing X server or $DISPLAY' "$log" 2>/dev/null; then
+  exit 42
+fi
+
+printf 'remote-gui-launch: application exited during startup\n' >&2
+exit 1
+REMOTE_LAUNCH
+}
+
+if [[ "$refresh_mode" == always ]]; then
+  refresh_xauth
+fi
+
+if run_remote; then
+  exit 0
+fi
+status=$?
+
+if [[ "$status" -eq 42 && "$refresh_mode" == auto ]]; then
+  refresh_xauth
+  run_remote
+  exit $?
+fi
+
+exit "$status"
+#+end_src
+
+* Agent Zero tunnel
+
+The tunnel binds only to loopback by default and uses SSH protocol keepalives
+aggressively enough for a phone moving between networks.  The helper is intended
+to run under a local Termux tmux session when launched from a widget.
+
+#+begin_src sh :tangle agent-zero-tunnel
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly PROGRAM="${0##*/}"
+
+usage() {
+  cat <<'EOF'
+Usage: agent-zero-tunnel [SSH_TARGET] [REMOTE_PORT] [LOCAL_PORT]
+
+Open an SSH local-forward to Agent Zero on a remote PC.
+
+Defaults:
+  SSH_TARGET   $A0_SSH_TARGET or "flake"
+  REMOTE_PORT  $A0_REMOTE_PORT or 50080
+  LOCAL_PORT   $A0_LOCAL_PORT or REMOTE_PORT
+
+Optional environment:
+  A0_REMOTE_HOST                  remote Agent Zero bind host (default: 127.0.0.1)
+  A0_BIND_ADDR                    local bind address (default: 127.0.0.1)
+  A0_SERVER_ALIVE_INTERVAL        SSH keepalive interval (default: 5)
+  A0_SERVER_ALIVE_COUNT_MAX       unanswered keepalives (default: 6)
+
+Example from Termux:
+  agent-zero-tunnel flake 50080
+
+Then open:
+  http://127.0.0.1:50080
+EOF
+}
+
+fail() {
+  printf '%s: %s\n' "$PROGRAM" "$*" >&2
+  exit 1
+}
+
+is_port() {
+  [[ "$1" =~ ^[0-9]+$ ]] && (( 1 <= 10#$1 && 10#$1 <= 65535 ))
+}
+
+is_uint() {
+  [[ "$1" =~ ^[0-9]+$ ]]
+}
+
+case "${1:-}" in
+  -h|--help)
+    usage
+    exit 0
+    ;;
+esac
+
+command -v ssh >/dev/null 2>&1 || fail "ssh is required"
+
+readonly ssh_target="${1:-${A0_SSH_TARGET:-flake}}"
+readonly remote_port="${2:-${A0_REMOTE_PORT:-50080}}"
+readonly local_port="${3:-${A0_LOCAL_PORT:-$remote_port}}"
+readonly remote_host="${A0_REMOTE_HOST:-127.0.0.1}"
+readonly bind_addr="${A0_BIND_ADDR:-127.0.0.1}"
+readonly alive_interval="${A0_SERVER_ALIVE_INTERVAL:-5}"
+readonly alive_count="${A0_SERVER_ALIVE_COUNT_MAX:-6}"
+
+[[ -n "$ssh_target" ]] || fail "SSH target must not be empty"
+is_port "$remote_port" || fail "invalid remote port: $remote_port"
+is_port "$local_port" || fail "invalid local port: $local_port"
+is_uint "$alive_interval" || fail "invalid keepalive interval: $alive_interval"
+is_uint "$alive_count" || fail "invalid keepalive count: $alive_count"
+
+printf 'Agent Zero: http://%s:%s\n' "$bind_addr" "$local_port"
+printf 'Tunnel: %s -> %s:%s via %s\n' \
+  "$bind_addr:$local_port" "$remote_host" "$remote_port" "$ssh_target"
+
+exec ssh \
+  -NT \
+  -L "$bind_addr:$local_port:$remote_host:$remote_port" \
+  -o ExitOnForwardFailure=yes \
+  -o "ServerAliveInterval=$alive_interval" \
+  -o "ServerAliveCountMax=$alive_count" \
+  "$ssh_target"
+#+end_src
+
+* Termux widget installer
+
+The bootstrap already owns the first five general widgets.  This installer adds
+the remote-workflow layer without replacing those shortcuts.
+
+#+begin_src sh :tangle install-termux-widgets
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+readonly PROGRAM="${0##*/}"
+readonly repo_root="${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}"
+readonly shortcuts="$HOME/.shortcuts"
+
+fail() {
+  printf '%s: %s\n' "$PROGRAM" "$*" >&2
+  exit 1
+}
+
+[[ -n "${PREFIX:-}" && "$PREFIX" == /data/data/com.termux/files/usr* ]] ||
+  fail "run this inside Termux"
+command -v tmux >/dev/null 2>&1 || fail "tmux is required; run: pkg install tmux"
+
+install -m 0755 "$repo_root/scripts/remote-gui-launch" "$PREFIX/bin/remote-gui-launch"
+install -m 0755 "$repo_root/scripts/agent-zero-tunnel" "$PREFIX/bin/agent-zero-tunnel"
+
+mkdir -p "$shortcuts"
+chmod 0700 "$shortcuts"
+
+cat > "$shortcuts/06-Org-Capture" <<'WIDGET_ORG_CAPTURE'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+exec emacsclient-termux -t --eval '(org-capture)'
+WIDGET_ORG_CAPTURE
+
+cat > "$shortcuts/07-SSH-Flake" <<'WIDGET_SSH_FLAKE'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+exec ssh \
+  -o ServerAliveInterval=5 \
+  -o ServerAliveCountMax=6 \
+  flake
+WIDGET_SSH_FLAKE
+
+cat > "$shortcuts/08-Remote-ChatGPT" <<'WIDGET_REMOTE_CHATGPT'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+if remote-gui-launch flake chatgpt.desktop chatgpt; then
+  command -v termux-toast >/dev/null 2>&1 && termux-toast 'Remote ChatGPT is running' || true
+  exit 0
+fi
+printf '\nRemote ChatGPT failed. Press enter to close...'
+read -r _
+exit 1
+WIDGET_REMOTE_CHATGPT
+
+cat > "$shortcuts/09-Agent-Zero" <<'WIDGET_AGENT_ZERO'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+session='agent-zero-tunnel'
+port="${A0_LOCAL_PORT:-50080}"
+
+if ! tmux has-session -t "$session" 2>/dev/null; then
+  printf -v tunnel '%q ' agent-zero-tunnel \
+    "${A0_SSH_TARGET:-flake}" \
+    "${A0_REMOTE_PORT:-50080}" \
+    "$port"
+  tmux new-session -d -s "$session" "$tunnel"
+  sleep 1
+fi
+
+url="http://127.0.0.1:$port"
+if command -v termux-open-url >/dev/null 2>&1; then
+  termux-open-url "$url"
+else
+  printf '%s\n' "$url"
+  printf 'Press enter to close...'
+  read -r _
+fi
+WIDGET_AGENT_ZERO
+
+cat > "$shortcuts/10-Sync-Dotfiles" <<'WIDGET_SYNC_DOTFILES'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+git -C "$HOME/.dotfiles" pull --ff-only
+exec "$HOME/.dotfiles/scripts/install-termux-widgets"
+WIDGET_SYNC_DOTFILES
+
+chmod 0700 \
+  "$shortcuts/06-Org-Capture" \
+  "$shortcuts/07-SSH-Flake" \
+  "$shortcuts/08-Remote-ChatGPT" \
+  "$shortcuts/09-Agent-Zero" \
+  "$shortcuts/10-Sync-Dotfiles"
+
+if command -v am >/dev/null 2>&1 &&
+   pm list packages 2>/dev/null | grep -q '^package:com\.termux\.widget$'; then
+  am broadcast -n com.termux.widget/.TermuxWidgetProvider \
+    -a com.termux.widget.ACTION_REFRESH_WIDGET --ei appWidgetId 0 >/dev/null 2>&1 || true
+fi
+
+printf 'Installed Termux remote workflow widgets in %s\n' "$shortcuts"
+#+end_src
