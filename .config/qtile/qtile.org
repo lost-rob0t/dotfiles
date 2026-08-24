@@ -7,6 +7,11 @@ Do not make lasting edits directly in =config.py=. Edit =qtile-ai.org= first, ta
 
 The OpenRouter telemetry helper follows the same rule: [[file:qtile-openrouter.org][qtile-openrouter.org]] is canonical and generates =qtile_openrouter.py=.
 
+Complex click-driven bar panels use the shared [[file:../../docs/qtile-emacs-ui.org][Qtile and Emacs dropdown UI]]
+runtime helpers.  The canonical Qtile source still owns bar composition; the
+standalone =emacs_ui.py=, system telemetry, Dunst adapter, and =lisp/qtile/=
+modules own reusable popup/data behavior.
+
 * Monitor configuration
 Before Qtile starts, =.xinitrc= runs =scripts/setup-monitors.sh=. The loader looks
 for an executable host profile named after the current user and hostname:

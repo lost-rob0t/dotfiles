@@ -12,6 +12,10 @@ The primary Qtile configuration is literate:
 
 The main Org source describes itself as modular and self-documenting.  Prefer improving that source when documenting a concrete keybinding or widget rather than duplicating the detail here.
 
+Complex click-driven panels use the shared [[file:../qtile-emacs-ui.org][Qtile and Emacs dropdown UI]]
+boundary.  Qtile computes the triggering widget's physical geometry and
+Emacs renders the dashboard; callers do not provide fixed monitor coordinates.
+
 * Important invariants
 The repository editing rules require Qtile sync/reload behavior to:
 - use the shared =git-sync= implementation;

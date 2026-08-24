@@ -413,7 +413,10 @@ class OpenRouterIOGraph(base._Widget):
 
         def worker():
             try:
-                series = openrouter_history.query_series(label, points=self.samples)
+                series = openrouter_history.query_series(
+                    label,
+                    points=min(self.samples, max(int(self.width), 1)),
+                )
             except Exception:
                 series = None
 
