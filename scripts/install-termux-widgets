@@ -1,0 +1,96 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+readonly PROGRAM="${0##*/}"
+readonly repo_root="${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}"
+readonly shortcuts="$HOME/.shortcuts"
+
+fail() {
+  printf '%s: %s\n' "$PROGRAM" "$*" >&2
+  exit 1
+}
+
+[[ -n "${PREFIX:-}" && "$PREFIX" == /data/data/com.termux/files/usr* ]] ||
+  fail "run this inside Termux"
+command -v tmux >/dev/null 2>&1 || fail "tmux is required; run: pkg install tmux"
+
+install -m 0755 "$repo_root/scripts/remote-gui-launch" "$PREFIX/bin/remote-gui-launch"
+install -m 0755 "$repo_root/scripts/agent-zero-tunnel" "$PREFIX/bin/agent-zero-tunnel"
+
+mkdir -p "$shortcuts"
+chmod 0700 "$shortcuts"
+
+cat > "$shortcuts/06-Org-Capture" <<'WIDGET_ORG_CAPTURE'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+exec emacsclient-termux -t --eval '(org-capture)'
+WIDGET_ORG_CAPTURE
+
+cat > "$shortcuts/07-SSH-Flake" <<'WIDGET_SSH_FLAKE'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+exec ssh \
+  -o ServerAliveInterval=5 \
+  -o ServerAliveCountMax=6 \
+  flake
+WIDGET_SSH_FLAKE
+
+cat > "$shortcuts/08-Remote-ChatGPT" <<'WIDGET_REMOTE_CHATGPT'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+if remote-gui-launch flake chatgpt.desktop chatgpt; then
+  command -v termux-toast >/dev/null 2>&1 && termux-toast 'Remote ChatGPT is running' || true
+  exit 0
+fi
+printf '\nRemote ChatGPT failed. Press enter to close...'
+read -r _
+exit 1
+WIDGET_REMOTE_CHATGPT
+
+cat > "$shortcuts/09-Agent-Zero" <<'WIDGET_AGENT_ZERO'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+session='agent-zero-tunnel'
+port="${A0_LOCAL_PORT:-50080}"
+
+if ! tmux has-session -t "$session" 2>/dev/null; then
+  printf -v tunnel '%q ' agent-zero-tunnel \
+    "${A0_SSH_TARGET:-flake}" \
+    "${A0_REMOTE_PORT:-50080}" \
+    "$port"
+  tmux new-session -d -s "$session" "$tunnel"
+  sleep 1
+fi
+
+url="http://127.0.0.1:$port"
+if command -v termux-open-url >/dev/null 2>&1; then
+  termux-open-url "$url"
+else
+  printf '%s\n' "$url"
+  printf 'Press enter to close...'
+  read -r _
+fi
+WIDGET_AGENT_ZERO
+
+cat > "$shortcuts/10-Sync-Dotfiles" <<'WIDGET_SYNC_DOTFILES'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+git -C "$HOME/.dotfiles" pull --ff-only
+exec "$HOME/.dotfiles/scripts/install-termux-widgets"
+WIDGET_SYNC_DOTFILES
+
+chmod 0700 \
+  "$shortcuts/06-Org-Capture" \
+  "$shortcuts/07-SSH-Flake" \
+  "$shortcuts/08-Remote-ChatGPT" \
+  "$shortcuts/09-Agent-Zero" \
+  "$shortcuts/10-Sync-Dotfiles"
+
+if command -v am >/dev/null 2>&1 &&
+   pm list packages 2>/dev/null | grep -q '^package:com\.termux\.widget$'; then
+  am broadcast -n com.termux.widget/.TermuxWidgetProvider \
+    -a com.termux.widget.ACTION_REFRESH_WIDGET --ei appWidgetId 0 >/dev/null 2>&1 || true
+fi
+
+printf 'Installed Termux remote workflow widgets in %s\n' "$shortcuts"
