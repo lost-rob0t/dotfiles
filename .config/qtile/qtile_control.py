@@ -750,7 +750,8 @@ def build_screen_widgets(
             [
                 widget.GenPollCommand(
                     name="org_clocked_task",
-                    cmd=["emacsclient", "-a", "emacs", "--eval", clock_expression],
+                    # Background polling must never fall back to launching a GUI.
+                    cmd=["emacsclient", "-s", "qtile", "-a", "false", "--eval", clock_expression],
                     parse=_parse_clock_output,
                     update_interval=5,
                     foreground=palette["pink"],
