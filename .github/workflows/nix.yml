@@ -51,6 +51,8 @@ jobs:
         run: bash tests/gpt-todos-sync.sh
       - name: Run OpenCode YOLO tmpfs tests
         run: bash tests/opencode-yolo.sh
+      - name: Run Brave MCP protocol tests
+        run: python3 tests/brave-mcp.py
       - name: Run Termux remote workflow tests
         run: |
           bash tests/agent-zero-tunnel.sh
@@ -96,6 +98,8 @@ jobs:
         run: nix flake check --no-build --show-trace
       - name: Build and test Prolog MCP package
         run: nix build .#checks.x86_64-linux.prolog-mcp --no-link
+      - name: Build Brave MCP package
+        run: nix build .#checks.x86_64-linux.brave-mcp --no-link
       - name: Evaluate desktop Home Manager configuration
         run: nix eval --raw '.#homeConfigurations."unseen@desktop".activationPackage.drvPath'
       - name: Evaluate flake Home Manager configuration
