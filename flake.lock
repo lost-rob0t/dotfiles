@@ -8,11 +8,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1787553960,
-        "narHash": "sha256-/qmpm3GHTWzwEW1o+uQv+r1dyDWqh4nmwkqSNVYt89A=",
+        "lastModified": 1787633052,
+        "narHash": "sha256-bGxIG9zVncIlipI3SI4d+IVjVaojrplSgYXyvFHnc3w=",
         "owner": "lost-rob0t",
         "repo": "bixby-studio",
-        "rev": "38e08fd4b6b49d83d106cfd2d786e4329ed99256",
+        "rev": "0e00b2ef28fc35ff7372ba23e304b44b355acb8e",
         "type": "github"
       },
       "original": {
