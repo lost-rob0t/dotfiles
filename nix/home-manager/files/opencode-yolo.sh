@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 set -euo pipefail
 
 real_opencode="${OPENCODE_REAL_BIN:?OPENCODE_REAL_BIN must point to the real opencode binary}"
@@ -145,7 +146,7 @@ cleanup() {
   fi
   return "$status"
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
 
 export OPENCODE_YOLO=1
 export OPENCODE_YOLO_WORKSPACE="$workspace"
