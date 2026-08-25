@@ -17,7 +17,7 @@
   config = with lib; mkIf config.dev.nim.enable {
     home.packages  = with pkgs; [
         nimble
-        nim-unwrapped-2
+        nim-unwrapped
         nimlsp
 
     ];
