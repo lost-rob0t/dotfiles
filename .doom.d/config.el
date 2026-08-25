@@ -954,6 +954,21 @@ strings."
       :desc "Test MCP filesystem" :n "y m f" #'+mcp/test-filesystem
       :desc "Test MCP MPRIS" :n "y m m" #'+mcp/test-mpris)
 
+(autoload #'nsa/consortium-connect "consortium-loader" nil t)
+(autoload #'nsa/consortium-start "consortium-loader" nil t)
+(autoload #'nsa/consortium-status "consortium-loader" nil t)
+(autoload #'nsa/consortium-cancel "consortium-loader" nil t)
+(autoload #'nsa/consortium-events "consortium-loader" nil t)
+(autoload #'nsa/consortium-disconnect "consortium-loader" nil t)
+
+(map! :leader
+      :desc "Start Consortium task" :n "y c s" #'nsa/consortium-start
+      :desc "Connect Consortium daemon" :n "y c c" #'nsa/consortium-connect
+      :desc "Consortium status" :n "y c S" #'nsa/consortium-status
+      :desc "Cancel Consortium run" :n "y c x" #'nsa/consortium-cancel
+      :desc "Replay Consortium events" :n "y c e" #'nsa/consortium-events
+      :desc "Disconnect Consortium" :n "y c d" #'nsa/consortium-disconnect)
+
 (use-package! flashcards
   :commands (org-gptel-generate-flashcards))
 
