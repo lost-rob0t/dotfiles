@@ -52,6 +52,7 @@
       lib = nixpkgs.lib;
       pkgs = nixpkgs.legacyPackages.${system};
       prologMcp = pkgs.callPackage ./nix/packages/prolog-mcp.nix { };
+      braveMcp = pkgs.callPackage ./nix/packages/brave-mcp { };
 
       sharedArgs = {
         inherit self disko;
@@ -176,6 +177,7 @@
         install-logos = installLogos;
         install-logos-gui = installLogosGui;
         prolog-mcp = prologMcp;
+        brave-mcp = braveMcp;
         inherit flash-logos;
         unseen-home = homeConfigurations."unseen@logos".activationPackage;
       };
@@ -195,6 +197,7 @@
         logos = logos.config.system.build.toplevel;
         install-logos = installLogos;
         prolog-mcp = prologMcp;
+        brave-mcp = braveMcp;
         unseen-home = homeConfigurations."unseen@logos".activationPackage;
         unseen-flake-home = homeConfigurations."unseen@flake".activationPackage;
         unseen-desktop-home = homeConfigurations."unseen@desktop".activationPackage;
