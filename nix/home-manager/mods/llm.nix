@@ -1,9 +1,7 @@
 { lib, pkgs, inputs, config, ... }:
 
 let
-  system = pkgs.stdenv.hostPlatform.system;
-  unstable = (builtins.getFlake "github:NixOS/nixpkgs/8e2eeb9477c9d40009a5bd51cd3eef2f5abb26f1").legacyPackages.${system};
-  comfyui = unstable.comfyui.override { withManager = true; };
+  comfyui = pkgs.comfyui.override { withManager = true; };
 
   # Keep the OpenCode policy wrapper in dotfiles, not in the reusable skills
   # repository.  Normal invocations are passed through unchanged; only
