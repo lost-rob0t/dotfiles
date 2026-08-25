@@ -2,13 +2,13 @@
   description = "NixOS configuration and installer for logos";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     disko = {
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     home-manager = {
-      url = "github:nix-community/home-manager/release-26.05";
+      url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     skills.url = "github:lost-rob0t/skills";
@@ -16,10 +16,22 @@
       url = "github:lost-rob0t/chatgpt-desktop";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    zara.url = "github:lost-rob0t/zara";
-    org-vector.url = "github:lost-rob0t/org-vector";
-    bixby-studio.url = "github:lost-rob0t/bixby-studio";
-    mousetrap.url = "github:lost-rob0t/Mousetrap";
+    zara = {
+      url = "github:lost-rob0t/zara";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    org-vector = {
+      url = "github:lost-rob0t/org-vector";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    bixby-studio = {
+      url = "github:lost-rob0t/bixby-studio";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    mousetrap = {
+      url = "github:lost-rob0t/Mousetrap";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
