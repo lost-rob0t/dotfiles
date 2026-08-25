@@ -28,6 +28,10 @@
     enable = true;
   };
 
+  braveMcp = {
+    enable = true;
+  };
+
   proxmoxMcp = {
     enable = true;
   };
