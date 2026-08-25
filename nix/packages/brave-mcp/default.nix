@@ -21,7 +21,6 @@ writeShellApplication {
   meta = {
     description = "Thin MCP stdio adapter over the Brave Search CLI";
     homepage = "https://github.com/brave/brave-search-cli";
-    license = lib.licenses.mpl20;
     mainProgram = "brave-mcp";
     platforms = lib.platforms.linux;
   };
