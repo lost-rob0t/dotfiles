@@ -1,3 +1,3 @@
 #!/usr/bin/env sh
 # launch emacs
-emacsclient -c -F "'(name . \"floating\"))"
+emacsclient -s qtile -a false -c -F "'(name . \"floating\"))"

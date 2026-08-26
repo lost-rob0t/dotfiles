@@ -127,6 +127,45 @@ class OpenRouterHistoryTests(unittest.TestCase):
         series = MODULE.query_series("1h", points=5, now=end, path=self.db)
         self.assertLessEqual(len(series["samples"]), 5)
 
+    def test_one_year_aggregation_uses_display_columns_for_regular_history(self):
+        start = datetime(2025, 8, 24, tzinfo=timezone.utc)
+        for day in range(365):
+            MODULE.upsert_sample(
+                int(start.timestamp()) + day * 86400,
+                86400,
+                86400 + day,
+                8640,
+                source="backfill-day",
+                path=self.db,
+            )
+        series = MODULE.query_series(
+            "1y",
+            points=96,
+            now=datetime(2026, 8, 24, tzinfo=timezone.utc),
+            path=self.db,
+        )
+        self.assertLessEqual(len(series["samples"]), 96)
+        self.assertTrue(any(sample["bucket_seconds"] > 86400 for sample in series["samples"]))
+
+    def test_sparse_one_year_history_keeps_real_gaps_when_budget_is_small(self):
+        start = datetime(2025, 8, 24, tzinfo=timezone.utc)
+        MODULE.upsert_sample(start, 86400, 100, 10, path=self.db)
+        MODULE.upsert_sample(
+            int(start.timestamp()) + 180 * 86400,
+            86400,
+            200,
+            20,
+            path=self.db,
+        )
+        series = MODULE.query_series(
+            "1y",
+            points=1,
+            now=datetime(2026, 8, 24, tzinfo=timezone.utc),
+            path=self.db,
+        )
+        self.assertEqual(len(series["samples"]), 2)
+        self.assertTrue(all(sample["bucket_seconds"] == 86400 for sample in series["samples"]))
+
     def test_claim_due_is_atomic_interval_gate(self):
         self.assertTrue(MODULE.claim_due("backfill", 3600, path=self.db))
         self.assertFalse(MODULE.claim_due("backfill", 3600, path=self.db))

@@ -7,6 +7,12 @@
 (require 'url)
 (require 'url-http)
 
+(let ((qtile-ui-directory (expand-file-name "~/.dotfiles/lisp/qtile")))
+  (when (file-directory-p qtile-ui-directory)
+    (add-to-list 'load-path qtile-ui-directory)))
+(require 'qtile-ui)
+(require 'qtile-ui-org)
+
 (defconst qtile-desktop-private-env
   (expand-file-name "~/.config/qtile/private.env"))
 (defvar-local qtile-agent-zero-context-id nil)
@@ -34,26 +40,23 @@
   (set-frame-parameter nil 'name title)
   (set-frame-parameter nil 'title title))
 
-(defun qtile-org-todos-open ()
+(defun qtile-org-todos-open (&optional _params)
   "Show the global TODO list in the current Qtile scratch frame."
   (interactive)
   (qtile-desktop--title "qtile-org-todos")
   (org-agenda nil "t")
-  (delete-other-windows))
+  (delete-other-windows)
+  (qtile-ui-prepare-buffer)
+  (qtile-ui-bind-dismiss))
 
-(defun qtile-workflow-read (choices)
-  "Select one Qtile workflow from CHOICES in a temporary GUI frame."
-  (let ((frame (make-frame '((name . "qtile-workflow")
-                             (title . "qtile-workflow")
-                             (width . 58)
-                             (height . 10)
-                             (minibuffer . t)))))
-    (unwind-protect
-        (with-selected-frame frame
-          (select-frame-set-input-focus frame)
-          (completing-read "Qtile workflow: " choices nil t))
-      (when (frame-live-p frame)
-        (delete-frame frame)))))
+(defun qtile-org-agenda-day (_params)
+  "Show today's one-day Org agenda in a Qtile popup."
+  (interactive)
+  (qtile-desktop--title "qtile-org-agenda-day")
+  (org-agenda-list nil (current-time) 1)
+  (delete-other-windows)
+  (qtile-ui-prepare-buffer)
+  (qtile-ui-bind-dismiss))
 
 (defvar qtile-agent-zero-mode-map
   (let ((map (make-sparse-keymap)))
@@ -91,7 +94,7 @@
   (setq qtile-agent-zero-prompt-start (point))
   (goto-char (point-max)))
 
-(defun qtile-agent-zero-open ()
+(defun qtile-agent-zero-open (&optional _params)
   "Open or reuse the Qtile Agent Zero scratch buffer."
   (interactive)
   (qtile-desktop--title "qtile-agent-zero")
@@ -99,6 +102,7 @@
     (switch-to-buffer buffer)
     (unless (derived-mode-p 'qtile-agent-zero-mode)
       (qtile-agent-zero-mode))
+    (qtile-ui-prepare-buffer)
     (when (= (buffer-size) 0)
       (insert "Agent Zero from Qtile\n\n")
       (qtile-agent-zero--insert-prompt))

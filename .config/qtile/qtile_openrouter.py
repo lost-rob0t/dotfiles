@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import math
 import os
-import shutil
 import subprocess
 import threading
 import time
@@ -16,6 +15,7 @@ from libqtile.lazy import lazy
 from libqtile.widget import base
 
 import openrouter_history
+from notify import notify
 
 POLL_SECONDS = 1
 GRAPH_SAMPLES = 192
@@ -34,6 +34,9 @@ _sync_in_progress = False
 _graph_lock = threading.Lock()
 _graph_range_index = 0
 _graph_range_changed_at = time.monotonic()
+_graph_rotation_paused = False
+_metric_rotation_lock = threading.Lock()
+_metric_rotation_paused = False
 
 
 def _color(colors, index):
@@ -127,16 +130,7 @@ def _start_collector(script):
 
 
 def _notify(summary, body="", urgency="normal"):
-    notifier = shutil.which("dunstify") or shutil.which("notify-send")
-    if not notifier:
-        return
-    command = [notifier, "-a", "Qtile", "-u", urgency, summary]
-    if body:
-        command.append(body)
-    try:
-        subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except OSError:
-        pass
+    notify(summary, body, urgency=urgency)
 
 
 def _git_sync_command():
@@ -191,11 +185,37 @@ def _rotate_graph_range(now=None):
     global _graph_range_index, _graph_range_changed_at
     with _graph_lock:
         now = time.monotonic() if now is None else float(now)
-        elapsed = now - _graph_range_changed_at
-        if elapsed >= ROTATE_SECONDS:
-            steps = max(int(elapsed // ROTATE_SECONDS), 1)
-            _graph_range_index = (_graph_range_index + steps) % len(GRAPH_RANGES)
-            _graph_range_changed_at += steps * ROTATE_SECONDS
+        if not _graph_rotation_paused:
+            elapsed = now - _graph_range_changed_at
+            if elapsed >= ROTATE_SECONDS:
+                steps = max(int(elapsed // ROTATE_SECONDS), 1)
+                _graph_range_index = (_graph_range_index + steps) % len(GRAPH_RANGES)
+                _graph_range_changed_at += steps * ROTATE_SECONDS
+        return GRAPH_RANGES[_graph_range_index]
+
+
+def _graph_range_label():
+    with _graph_lock:
+        return GRAPH_RANGES[_graph_range_index]
+
+
+def _graph_rotation_paused_state():
+    with _graph_lock:
+        return _graph_rotation_paused
+
+
+def _pause_graph_rotation():
+    global _graph_rotation_paused
+    with _graph_lock:
+        _graph_rotation_paused = True
+        return GRAPH_RANGES[_graph_range_index]
+
+
+def _resume_graph_rotation():
+    global _graph_rotation_paused, _graph_range_changed_at
+    with _graph_lock:
+        _graph_rotation_paused = False
+        _graph_range_changed_at = time.monotonic()
         return GRAPH_RANGES[_graph_range_index]
 
 
@@ -205,6 +225,23 @@ def _step_graph_range(step):
         _graph_range_index = (_graph_range_index + int(step)) % len(GRAPH_RANGES)
         _graph_range_changed_at = time.monotonic()
         return GRAPH_RANGES[_graph_range_index]
+
+
+def _metric_rotation_paused_state():
+    with _metric_rotation_lock:
+        return _metric_rotation_paused
+
+
+def _pause_metric_rotation():
+    global _metric_rotation_paused
+    with _metric_rotation_lock:
+        _metric_rotation_paused = True
+
+
+def _resume_metric_rotation():
+    global _metric_rotation_paused
+    with _metric_rotation_lock:
+        _metric_rotation_paused = False
 
 
 def _graph_normalized(value, ceiling):
@@ -227,6 +264,66 @@ def _bucket_bounds(sample):
     center = float(sample.get("timestamp") or 0)
     duration = max(float(sample.get("bucket_seconds") or 1), 1.0)
     return center - duration / 2.0, center + duration / 2.0
+
+
+def _stats_text(payload, label, series, history_info):
+    """Build the right-click OpenRouter statistics notification body."""
+    paused = _graph_rotation_paused_state()
+    lines = [f"range {label} ({'paused' if paused else 'rotating'})"]
+    if series:
+        samples = series.get("samples", [])
+        if samples:
+            last = samples[-1]
+            lines.append(
+                "tokens/m in {} out {}".format(
+                    _compact_count(last.get("input", 0)),
+                    _compact_count(last.get("output", 0)),
+                )
+            )
+            lines.append(
+                "ceiling {}/m, {} buckets".format(
+                    _compact_count(series.get("ceiling", 0)), len(samples)
+                )
+            )
+        else:
+            lines.append("no history in range")
+    else:
+        lines.append("history unavailable")
+    if history_info and history_info.get("rows"):
+        lines.append(
+            "stored {} rows, {} → {}".format(
+                history_info["rows"], history_info.get("oldest"), history_info.get("newest")
+            )
+        )
+    if payload:
+        if payload.get("balance_usd") is not None:
+            lines.append("balance ${:.2f}".format(float(payload["balance_usd"])))
+        tokens = payload.get("tokens_hour")
+        if tokens is not None:
+            lines.append("tokens hour/day/week {}".format(_compact_count(tokens)))
+        spend = payload.get("spend_day")
+        if spend is not None:
+            lines.append("spend day ${:.2f}".format(float(spend)))
+        if payload.get("last_error"):
+            lines.append("error {}".format(payload["last_error"]))
+    return "\n".join(lines)
+
+
+def _show_openrouter_stats():
+    """Display current telemetry and history statistics via notification."""
+    payload = _fetch_payload(None) or {}
+    label = _graph_range_label()
+    series = None
+    history_info = None
+    try:
+        series = openrouter_history.query_series(label, points=96)
+    except Exception:
+        series = None
+    try:
+        history_info = openrouter_history.summary()
+    except Exception:
+        history_info = None
+    _notify("OpenRouter stats", _stats_text(payload, label, series, history_info))
 
 
 class OpenRouterCredit(base.BackgroundPoll):
@@ -264,6 +361,27 @@ class OpenRouterRate(base.BackgroundPoll):
         self.script = script
         self.colors = colors
         super().__init__(text="AI …", **config)
+        self.add_callbacks({"Button3": self.show_stats})
+
+    def show_stats(self):
+        """Right-click statistics notification for the live rate."""
+        payload = _fetch_payload(self.script) or {}
+        lines = []
+        incoming = payload.get("input_tokens_per_minute")
+        outgoing = payload.get("output_tokens_per_minute")
+        if incoming is None and outgoing is None:
+            lines.append("rate unavailable")
+        else:
+            lines.append(
+                "in {}/m out {}/m".format(
+                    _compact_count(incoming or 0), _compact_count(outgoing or 0)
+                )
+            )
+        if payload.get("last_error"):
+            lines.append("error {}".format(payload["last_error"]))
+        if payload.get("stale"):
+            lines.append("data stale")
+        _notify("OpenRouter rate", "\n".join(lines))
 
     def poll(self):
         payload = _fetch_payload(self.script)
@@ -296,21 +414,59 @@ class OpenRouterRotatingMetric(base.BackgroundPoll):
             if metric == "tokens"
             else (("D", "spend_day"), ("W", "spend_week"), ("M", "spend_month"))
         )
-        self.icon = "" if metric == "tokens" else ""
+        self.icon = "" if metric == "tokens" else ""
         super().__init__(text=f"{self.icon} …", **config)
-        self.add_callbacks({"Button4": self.previous, "Button5": self.next})
+        self.add_callbacks(
+            {
+                "Button1": self.activate,
+                "Button2": self.resume,
+                "Button3": self.show_stats,
+                "Button4": self.previous,
+                "Button5": self.next,
+            }
+        )
+
+    def activate(self):
+        """Pause all text metrics and advance this metric once."""
+        _pause_metric_rotation()
+        self.index = (self.index + 1) % len(self.specs)
+        self.last_rotate = time.monotonic()
+        self.force_update()
+
+    def resume(self):
+        """Middle-click resumes automatic rotation."""
+        _resume_metric_rotation()
+        self.last_rotate = time.monotonic()
+        self.force_update()
+
+    def show_stats(self):
+        """Right-click shows every configured period's value."""
+        payload = _fetch_payload(self.script) or {}
+        lines = []
+        for label, key in self.specs:
+            value = payload.get(key)
+            if value is None:
+                rendered = "!" if payload.get("usage_error") else "—"
+            elif self.metric == "tokens":
+                rendered = _compact_count(value)
+            else:
+                rendered = f"${float(value):.2f}"
+            lines.append(f"{label} {rendered}")
+        _notify(f"OpenRouter {self.metric}", "\n".join(lines))
 
     def previous(self):
         self.index = (self.index - 1) % len(self.specs)
         self.last_rotate = time.monotonic()
-        self.tick()
+        self.force_update()
 
     def next(self):
         self.index = (self.index + 1) % len(self.specs)
         self.last_rotate = time.monotonic()
-        self.tick()
+        self.force_update()
 
     def _maybe_rotate(self):
+        if _metric_rotation_paused_state():
+            return
         now = time.monotonic()
         if now - self.last_rotate >= ROTATE_SECONDS:
             self.index = (self.index + 1) % len(self.specs)
@@ -340,15 +496,38 @@ class OpenRouterGraphRange(base.BackgroundPoll):
     def __init__(self, colors, **config):
         self.colors = colors
         super().__init__(text="󰓅 1m", **config)
-        self.add_callbacks({"Button1": self.next, "Button4": self.previous, "Button5": self.next})
+        self.add_callbacks(
+            {
+                "Button1": self.activate,
+                "Button2": self.resume,
+                "Button3": self.show_stats,
+                "Button4": self.previous,
+                "Button5": self.next,
+            }
+        )
+
+    def activate(self):
+        """Pause range rotation and advance to the next range once."""
+        _pause_graph_rotation()
+        _step_graph_range(1)
+        self.force_update()
+
+    def resume(self):
+        """Middle-click resumes automatic rotation."""
+        _resume_graph_rotation()
+        self.force_update()
+
+    def show_stats(self):
+        """Right-click shows statistics without changing the graph."""
+        _show_openrouter_stats()
 
     def previous(self):
         _step_graph_range(-1)
-        self.tick()
+        self.force_update()
 
     def next(self):
         _step_graph_range(1)
-        self.tick()
+        self.force_update()
 
     def poll(self):
         label = _rotate_graph_range()
@@ -391,7 +570,10 @@ class OpenRouterIOGraph(base._Widget):
 
         def worker():
             try:
-                series = openrouter_history.query_series(label, points=self.samples)
+                series = openrouter_history.query_series(
+                    label,
+                    points=min(self.samples, max(int(self.width), 1)),
+                )
             except Exception:
                 series = None
 

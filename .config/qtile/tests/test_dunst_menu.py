@@ -30,7 +30,15 @@ class DunstMenuTests(unittest.TestCase):
         }
         self.assertEqual(
             MODULE.history_entries(payload),
-            [{"id": 42, "app": "Emacs", "summary": "Build done", "body": "Everything passed"}],
+            [{
+                "id": 42,
+                "app": "Emacs",
+                "summary": "Build done",
+                "body": "Everything passed",
+                "urgency": "normal",
+                "timestamp": "",
+                "category": "",
+            }],
         )
 
     def test_menu_contains_dnd_clear_and_every_history_entry(self):

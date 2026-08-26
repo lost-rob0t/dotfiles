@@ -1,0 +1,148 @@
+#+title: RAGE #108 - Emacs UI and notification backend
+
+* Run identity
+- Consumed issue :: #108
+- Branch :: =rage/108-emacs-ui-notifications=
+- RAGE start commit :: =301f5a53aae127055947897d709e4241d88e35b0=
+
+* Evidence
+
+The current control-plane slice is already merged into =master=.  It owns
+topology-aware bars, the Dmenu notification menu, static Qtile scratchpad
+dropdowns, an asynchronous Agent Zero client, and a temporary Emacs workflow
+picker.  The network graph and OpenRouter history graph have focused tests and
+are intentionally not rewritten by this slice.
+
+The date agenda dropdown is configured with =on_focus_lost_hide=True= while the
+other Emacs dropdowns use different lifecycle settings.  This is the direct
+cause of the reported flash/disappear behavior: the newly created Emacs frame
+can immediately be treated as focus loss by Qtile.  Dropdown positions are
+also fixed fractions rather than derived from the clicked widget's geometry.
+
+The Dmenu helper already flattens all records returned by =dunstctl history=,
+but it owns its parser and command actions directly.  There is no persistent
+notification backend setting or reusable Qtile-to-Emacs popup boundary.
+
+* Design
+
+** Ownership
+
+- =emacs_ui.py= owns widget lookup, monitor geometry, alignment, argument
+  serialization, and asynchronous popup invocation.  It never accepts raw
+  desktop coordinates from feature callers.
+- =ui_settings.py= owns the small persistent UI settings document and atomic
+  backend selection.  Invalid or unreadable settings use the safe Dmenu
+  default.
+- =dunst_history.py= owns the Dunst history adapter and normalized notification
+  records.  Dmenu and Emacs callers consume this adapter rather than parsing
+  Dunst independently.
+- =qtile-notifications.el= owns the Emacs notification dashboard presentation.
+  It uses the same generic frame lifecycle module as the other dashboards.
+- Existing Agent Zero and Org behavior remain intact.  The first implementation
+  keeps the existing ScratchPad path as a compatibility fallback while moving
+  geometry/settings/data decisions into testable helpers.
+
+** Invariants
+
+- Network colors remain cyan/blue RX/download and pink/red TX/upload.
+- OpenRouter graphs retain provider bucket extents and never interpolate gaps.
+- Dmenu remains a supported notification backend.
+- Qtile event-loop callbacks do not wait for Emacs, Dunst, or Git subprocesses.
+- Settings and workflow writes are atomic.
+- Agent Zero credentials are never serialized into popup arguments or logs.
+- A popup is positioned beneath the triggering widget's owning physical screen,
+  including screens with non-zero origins and changing monitor widths.
+
+** Failure and recovery
+
+- Missing widgets return an explicit result and do not raise from a click path.
+- Missing Emacs falls back to the configured existing backend and reports a
+  useful notification rather than blocking Qtile.
+- Invalid UI settings fall back to =dmenu=.
+- Dunst parse failures produce an empty history with status data preserved.
+- Repeated popup opens reuse the stable popup identity; stale frame state is
+  discarded on the next invocation.
+
+* Live-session evidence and fixes
+
+Live desktop verification exposed defects the first structural tests missed;
+each is now covered by a behavioral regression:
+
+- ~Wrong type argument: obarrayp~ — JSON arrays arrive in Emacs as vectors;
+  the workflow renderer now converts the choices vector into a completion
+  list before =completing-read=.
+- ~Wrong number of arguments~ — legacy =qtile-org-todos-open= and
+  =qtile-agent-zero-open= renderers accepted no parameters while the shared
+  launcher always passes =params=; both now take =(&optional _params)=.
+- Full-size windows instead of dropdowns — the Emacs popup frames were being
+  tiled because their =qtile-*= titles were absent from the floating layout;
+  =install_desktop_control= now adds them once, duplicate-safely.
+- Two Emacs windows per click — =emacsclient -a emacs= (and also =-a "")=
+  launches a full GUI Emacs when the server is down and then renders the popup
+  inside it.  All Qtile popup/clock invocations now run without any alternate
+  editor; a missing server fails in the worker and surfaces a desktop
+  notification.  The Org clock probe is additionally bounded by =timeout 3=.
+- Standalone helpers could not =(require 'qtile-ui)= — the generated
+  expression and each helper now extend =load-path= themselves.
+- Popups must survive restarts — =qtile-ui--live-frame= rediscovers frames by
+  the =qtile-ui-popup-id= frame parameter when the registry is empty, and
+  frames request =user-position= so the computed geometry is honored.
+- Disk-free padding — the disk icon uses a compact 18-pixel cell and the
+  free-space widget uses zero horizontal padding.
+- ~auto not found~ — the stock =widget.Net(interface="auto")= never resolves
+  on this host; it was replaced by =NetIORate=, which reuses the verified
+  graph's default-route/counter sampler for truthful ↓/↑ rates.
+
+* Run results
+
+- 185 Qtile Python tests: OK.
+- 8 Emacs ERT tests: OK.
+- =py_compile= over all Qtile Python: OK.
+- =qtile check -c config.py=: valid (mypy/stubtest unavailable locally).
+- =scripts/check-literate-sync=: OK (21 Org sources, 25 outputs, baseline tolerated).
+- =tests/literate-sync.sh=: 15/15.
+- =tests/home-manager-updater.sh= and =tests/gpt-todos-sync.sh=: PASS.
+- =nix flake check --no-build=: all checks passed; all four Home Manager
+  profiles evaluate.
+- Live: Qtile reloaded cleanly; bar rebuilt with =NetIORate= and the disk
+  cluster; no Emacs respawn without a server; popup geometry derived from the
+  clicked widget (verified in the generated expression: correct screen origin,
+  bar-bottom top, clamped left).
+
+* Remaining limitations
+
+- Popup windows require the user's running Emacs server; without it Qtile
+  notifies instead of rendering.  This is the intended no-fallback contract.
+- Manual verification of the visual dropdown presentation (anchoring under
+  A0/TODO/WF/date/notifications/SERVICES on each monitor) still needs a live
+  Emacs server session.
+- The workflow picker keeps the existing simple JSON workflow schema and
+  =apply_workflow= activation semantics; richer capture/launch/cleanup
+  planning remains separate follow-up work.
+
+* Acceptance criteria
+
+1. Geometry helpers pass alignment, clamp, origin, width-change, and topology
+   tests.
+2. The notification setting supports missing, invalid, Dmenu, and Emacs values
+   with atomic persistence.
+3. Dmenu still exposes every adapted history record and its existing actions.
+4. The Emacs notification renderer has shared frame parameters, DND/status,
+   refresh, clear confirmation, backend switching, and q/Escape dismissal.
+5. The date agenda no longer uses the focus-loss lifecycle that caused the
+   flash, and its popup geometry is derived from the date widget.
+6. The GPT TODO control is one refresh icon without literal SYNC text.
+7. Existing focused Python tests and literate parity remain green.
+8. Documentation describes the ownership boundary and a fourth SERVICES
+   dropdown example.
+
+* Rejected alternatives
+
+- Rewriting the working network/OpenRouter implementations is unsupported by
+  current evidence and would enlarge the regression surface.
+- Adding raw X/Y values to each widget would duplicate monitor math and break
+  topology changes.
+- Replacing Dmenu with Emacs would violate the user's current working UI
+  preference and the compatibility requirement.
+- A full workflow-schema rewrite is deferred until the control-plane follow-up
+  has a concrete issue and acceptance boundary.
