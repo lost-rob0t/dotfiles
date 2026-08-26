@@ -23,6 +23,23 @@ OpenRouter telemetry is rate-oriented rather than balance-oriented. The bar repo
 
 The dynamic =Super+Ctrl+Shift+R= binding belongs to the OpenRouter telemetry helper.  Keep its documentation and generated implementation synchronized with =qtile-openrouter.org=.
 
+* Auto workspace routing
+The Qtile Auto mode button reconciles windows once per second while it is
+enabled.  AI-related windows go to workspace 3, Discord goes to workspace 9,
+games go to workspace 4, and video players or video-site tabs go to workspace
+6.  This includes ChatGPT Desktop, AI tabs in Brave, T3 Code,
+Emacs LLM/OpenRouter/MCP buffers, OpenCode or Claude Code Terminator windows,
+Steam/PrismLauncher/Minecraft/War Thunder, and YouTube/Twitch tabs.
+The matcher is maintained in [[file:../../.config/qtile/qtile_ai_windows.py][qtile_ai_windows.py]] and was seeded from the local ActivityWatch window bucket;
+ordinary Brave pages and terminal windows are not routed by title alone.  The
+one-second pass uses Qtile's event loop timer and performs no subprocess or
+network work.
+
+The Bash =opencode= launcher opens a dedicated Terminator window.  Pass
+=--topic=TOPIC= (or set =OPENCODE_CHAT_TOPIC=TOPIC=) to get a title of the
+form =Opencode - TOPIC=; remaining arguments go to OpenCode.  =oc= is a
+short alias for the same launcher.
+
 * Desktop integration map
 Qtile-related files live under [[file:../../.config/qtile/][.config/qtile/]].  Besides the generated main config, that tree contains widgets, helper scripts, icons, autostart integration, and support code.
 

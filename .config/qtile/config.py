@@ -6,6 +6,7 @@ import psutil
 from libqtile import bar, hook, layout, widget
 from libqtile.config import Drag, DropDown, Group, Key, KeyChord, Match, ScratchPad, Screen
 from libqtile.lazy import lazy
+from qtile_ai_windows import is_ai_window, is_game_window, is_messenger_window, is_video_window
 
 mod = "mod4"
 alt = "mod1"
@@ -34,7 +35,11 @@ colors = [
 
 
 group_names = list("1234567890")
-group_labels = ["", "", "", "", "", "", "", "", "", ""]
+group_labels = ["", "", "", "", "", "", "", "", "", ""]
+AI_GROUP = group_names[2]
+GAME_GROUP = group_names[3]
+VIDEO_GROUP = group_names[5]
+MESSENGER_GROUP = group_names[8]
 default_group_layouts = {
     name: "max" if name == "1" else "monadtall" for name in group_names
 }
@@ -52,7 +57,7 @@ auto_group_routes = {
     "2": {"emacs", "codium"},
     "3": {"inkscape", "nomacs", "ristretto", "nitrogen", "feh", "gimp", "krita"},
     "4": {"virt-manager", "virtual machine manager"},
-    "6": {"vlc", "mpv", "minecraft", "war thunder"},
+    "6": {"vlc", "mpv", "feishin"},
     "8": {
         "thunar",
         "nemo",
@@ -62,10 +67,12 @@ auto_group_routes = {
         "pcmanfm",
         "pcmanfm-qt",
     },
-    "9": {"evolution", "geary", "mail", "thunderbird"},
+    "9": {"discord", "discordcanary", "discordptb", "evolution", "geary", "mail", "thunderbird"},
 }
 auto_group_mode = False
 auto_group_buttons = []
+auto_group_timer = None
+AUTO_GROUP_INTERVAL = 1.0
 
 groups = [
     Group(name=name, label=label, layout=default_group_layouts[name])
@@ -78,6 +85,16 @@ def routed_group(window):
         wm_classes = window.window.get_wm_class() or ()
     except AttributeError:
         return None
+
+    title = getattr(window, "name", "")
+    if is_messenger_window(wm_classes, title):
+        return MESSENGER_GROUP
+    if is_game_window(wm_classes):
+        return GAME_GROUP
+    if is_video_window(wm_classes, title):
+        return VIDEO_GROUP
+    if is_ai_window(wm_classes, title):
+        return AI_GROUP
 
     normalized = {value.casefold() for value in wm_classes if value}
     for group_name, classes in auto_group_routes.items():
@@ -128,6 +145,33 @@ def organize_existing_windows(qtile):
     update_auto_layouts(qtile)
 
 
+def stop_auto_group_reconciliation():
+    global auto_group_timer
+    if auto_group_timer is not None:
+        auto_group_timer.cancel()
+        auto_group_timer = None
+
+
+def schedule_auto_group_reconciliation(qtile):
+    global auto_group_timer
+    if not auto_group_mode:
+        return
+    if auto_group_timer is None or auto_group_timer.cancelled():
+        auto_group_timer = qtile.call_later(
+            AUTO_GROUP_INTERVAL,
+            reconcile_auto_grouping,
+            qtile,
+        )
+
+
+def reconcile_auto_grouping(qtile):
+    global auto_group_timer
+    auto_group_timer = None
+    if auto_group_mode:
+        organize_existing_windows(qtile)
+        schedule_auto_group_reconciliation(qtile)
+
+
 def auto_group_button_colors():
     return "#000000", colors[7] if auto_group_mode else colors[8]
 
@@ -148,7 +192,15 @@ def toggle_auto_group_mode(qtile):
     telemetry_event("auto_mode_changed", enabled=auto_group_mode)
     if auto_group_mode:
         organize_existing_windows(qtile)
+        schedule_auto_group_reconciliation(qtile)
+    else:
+        stop_auto_group_reconciliation()
     update_auto_group_buttons()
+
+
+@hook.subscribe.shutdown
+def stop_auto_group_watch():
+    stop_auto_group_reconciliation()
 
 
 @hook.subscribe.startup_once

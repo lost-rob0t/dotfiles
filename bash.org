@@ -407,6 +407,50 @@ I use [[https://wttr.in]] for my weather
 alias wttr="curl wttr.in"
 #+end_src
 
+*** OpenCode
+Launch OpenCode in a dedicated Terminator window.  Use =--topic=TOPIC= to put the
+chat topic in the window title; the remaining arguments are passed to the
+OpenCode executable.
+#+begin_src sh :tangle .bashrc
+function opencode() {
+    local topic="${OPENCODE_CHAT_TOPIC:-New Chat}"
+    local opencode_bin
+
+    if [[ "${1-}" == --topic=* ]]; then
+        topic="${1#--topic=}"
+        if [[ -z "$topic" ]]; then
+            printf 'opencode: --topic requires a value\n' >&2
+            return 2
+        fi
+        shift
+    elif [[ "${1-}" == "--topic" ]]; then
+        if [[ -z "${2-}" ]]; then
+            printf 'opencode: --topic requires a value\n' >&2
+            return 2
+        fi
+        topic="$2"
+        shift 2
+    fi
+
+    if [[ "${1-}" == "--" ]]; then
+        shift
+    fi
+
+    opencode_bin="$(type -P opencode || true)"
+    if [[ -z "$opencode_bin" ]]; then
+        printf 'opencode: executable not found in PATH\n' >&2
+        return 127
+    fi
+
+    topic="${topic//$'\n'/ }"
+    terminator --title "Opencode - $topic" \
+        --working-directory "$PWD" \
+        --execute "$opencode_bin" "$@"
+}
+
+alias oc='opencode'
+#+end_src
+
 Run a couchdb docker container
 
 #+begin_src sh :tangle .bashrc
@@ -625,4 +669,3 @@ esac
 
 [fn:2] https://taingram.org/blog/emacs-client.html
 [fn:1] https://github.com/labbots/bash-oneliners#terminal
-
