@@ -40,11 +40,7 @@
           exit 2
         fi
 
-        if ${pkgs.feh}/bin/feh --bg-fill "$wallpaper"; then
-          exit 0
-        fi
-
-        exec ${pkgs.nitrogen}/bin/nitrogen --set-zoom-fill --save "$wallpaper"
+        exec ${pkgs.feh}/bin/feh --bg-fill "$wallpaper"
       '';
     };
 
