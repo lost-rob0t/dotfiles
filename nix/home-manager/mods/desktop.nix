@@ -24,6 +24,30 @@
       force = true;
     };
 
+    # Variety's generated scripts are intentionally ignored by git. Keep the
+    # Qtile wallpaper hook declarative so a Home Manager activation restores
+    # the custom setter that variety.conf already references.
+    home.file.".config/variety/scripts/set_qtile.sh" = {
+      executable = true;
+      force = true;
+      text = ''
+        #!${pkgs.bash}/bin/bash
+        set -euo pipefail
+
+        wallpaper="''${1:-}"
+        if [[ -z "$wallpaper" || ! -f "$wallpaper" ]]; then
+          printf 'set_qtile.sh: invalid wallpaper: %s\n' "$wallpaper" >&2
+          exit 2
+        fi
+
+        if ${pkgs.feh}/bin/feh --bg-fill "$wallpaper"; then
+          exit 0
+        fi
+
+        exec ${pkgs.nitrogen}/bin/nitrogen --set-zoom-fill --save "$wallpaper"
+      '';
+    };
+
     # Put Brave in XDG_DATA_HOME as well as the Nix profile. j4-dmenu-desktop
     # always searches the user application directory, so discovery no longer
     # depends solely on XDG_DATA_DIRS inherited by the current X session.
