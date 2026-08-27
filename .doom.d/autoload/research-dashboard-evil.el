@@ -1,0 +1,39 @@
+;;; research-dashboard-evil.el --- Evil integration for research dashboard -*- lexical-binding: t; -*-
+
+(require 'subr-x)
+
+(defconst nsa/research-dashboard-evil--normal-bindings
+  '(("g" . nsa/research-dashboard-refresh)
+    ("RET" . nsa/research-dashboard-view)
+    ("a" . nsa/research-dashboard-approve)
+    ("r" . nsa/research-dashboard-reject)
+    ("e" . nsa/research-dashboard-errors)
+    ("s" . nsa/research-dashboard-search)
+    ("/" . nsa/research-dashboard-search)
+    ("f" . nsa/research-dashboard-filter)
+    ("c" . nsa/research-dashboard-clear-filters)
+    ("L" . nsa/research-dashboard-toggle-legacy)
+    ("?" . nsa/research-dashboard-help))
+  "Research dashboard commands available from Evil normal state.")
+
+(defun nsa/research-dashboard-evil--apply-normal-bindings ()
+  "Install dashboard-local Evil normal-state bindings in the current buffer."
+  (dolist (binding nsa/research-dashboard-evil--normal-bindings)
+    (evil-local-set-key 'normal (kbd (car binding)) (cdr binding))))
+
+;;;###autoload
+(defun nsa/research-dashboard-evil-setup ()
+  "Make research dashboard controls work directly in Evil normal state."
+  (if (fboundp 'evil-local-set-key)
+      (nsa/research-dashboard-evil--apply-normal-bindings)
+    (let ((dashboard (current-buffer)))
+      (with-eval-after-load 'evil
+        (when (buffer-live-p dashboard)
+          (with-current-buffer dashboard
+            (nsa/research-dashboard-evil--apply-normal-bindings)))))))
+
+;;;###autoload
+(add-hook 'nsa/research-dashboard-mode-hook #'nsa/research-dashboard-evil-setup)
+
+(provide 'research-dashboard-evil)
+;;; research-dashboard-evil.el ends here
