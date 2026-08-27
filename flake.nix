@@ -2,13 +2,13 @@
   description = "NixOS configuration and installer for logos";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     disko = {
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     home-manager = {
-      url = "github:nix-community/home-manager/release-26.05";
+      url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     skills.url = "github:lost-rob0t/skills";
@@ -16,10 +16,22 @@
       url = "github:lost-rob0t/chatgpt-desktop";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    zara.url = "github:lost-rob0t/zara";
-    org-vector.url = "github:lost-rob0t/org-vector";
-    bixby-studio.url = "github:lost-rob0t/org-vector";
-    mousetrap.url = "github:lost-rob0t/Mousetrap";
+    zara = {
+      url = "github:lost-rob0t/zara";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    org-vector = {
+      url = "github:lost-rob0t/org-vector";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    bixby-studio = {
+      url = "github:lost-rob0t/bixby-studio";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    mousetrap = {
+      url = "github:lost-rob0t/Mousetrap";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -40,6 +52,7 @@
       lib = nixpkgs.lib;
       pkgs = nixpkgs.legacyPackages.${system};
       prologMcp = pkgs.callPackage ./nix/packages/prolog-mcp.nix { };
+      braveMcp = pkgs.callPackage ./nix/packages/brave-mcp { };
 
       sharedArgs = {
         inherit self disko;
@@ -164,6 +177,7 @@
         install-logos = installLogos;
         install-logos-gui = installLogosGui;
         prolog-mcp = prologMcp;
+        brave-mcp = braveMcp;
         inherit flash-logos;
         unseen-home = homeConfigurations."unseen@logos".activationPackage;
       };
@@ -183,6 +197,7 @@
         logos = logos.config.system.build.toplevel;
         install-logos = installLogos;
         prolog-mcp = prologMcp;
+        brave-mcp = braveMcp;
         unseen-home = homeConfigurations."unseen@logos".activationPackage;
         unseen-flake-home = homeConfigurations."unseen@flake".activationPackage;
         unseen-desktop-home = homeConfigurations."unseen@desktop".activationPackage;

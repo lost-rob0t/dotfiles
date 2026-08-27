@@ -1,11 +1,27 @@
 { lib, pkgs, inputs, config, ... }:
 
 let
-  system = pkgs.stdenv.hostPlatform.system;
-  unstable = (builtins.getFlake "github:NixOS/nixpkgs/8e2eeb9477c9d40009a5bd51cd3eef2f5abb26f1").legacyPackages.${system};
-  comfyui = unstable.comfyui.override { withManager = true; };
+  comfyui = pkgs.comfyui.override { withManager = true; };
+
+  # Keep the OpenCode policy wrapper in dotfiles, not in the reusable skills
+  # repository.  Normal invocations are passed through unchanged; only
+  # `opencode --yolo` creates the StarIntel V4 tmpfs/Prolog-RLM environment.
+  opencodeYoloRuntime = pkgs.writeShellApplication {
+    name = "opencode-yolo-runtime";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = builtins.readFile ../files/opencode-yolo.sh;
+  };
+
+  opencodeWrapped = pkgs.writeShellScriptBin "opencode" ''
+    export OPENCODE_REAL_BIN="${pkgs.opencode}/bin/opencode"
+    exec "${opencodeYoloRuntime}/bin/opencode-yolo-runtime" "$@"
+  '';
 in
 {
+  imports = [
+    ./brave-mcp.nix
+  ];
+
   options = with lib; {
     llm = {
       enable = mkEnableOption "Enable LLM and zara utils";
@@ -13,6 +29,11 @@ in
   };
 
   config = with lib; mkIf config.llm.enable {
+    # Brave Search MCP is part of the default LLM tool plane. Authentication
+    # remains runtime/user state (`bx config set-key` or BRAVE_SEARCH_API_KEY),
+    # so the API key never enters the Nix store.
+    braveMcp.enable = mkDefault true;
+
     # Install required packages for MCP servers
     home.packages = with pkgs; [
       inputs.zara.packages.${stdenv.hostPlatform.system}.zarathushtra
@@ -24,7 +45,7 @@ in
 
       # LLM Editors and desktop clients
       inputs.chatgpt-desktop.packages.${stdenv.hostPlatform.system}.default
-      opencode
+      opencodeWrapped
       claude-code
 
       # Local generative AI

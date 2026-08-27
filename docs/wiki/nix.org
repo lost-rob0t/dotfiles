@@ -65,6 +65,29 @@ If =home-manager= is not installed globally, bootstrap through Nix:
 
 See [[file:../logos-home-manager-bootstrap.md][Logos Home Manager bootstrap]] for the existing Logos-specific notes.
 
+* LLM tooling and Brave Search MCP
+[[file:../../nix/home-manager/mods/llm.nix][llm.nix]] owns the LLM tool plane.  Enabling =llm.enable= enables the reusable [[file:../../nix/home-manager/mods/brave-mcp.nix][Brave MCP module]] by default, installs Brave's =bx= CLI plus the typed =brave-mcp= stdio adapter, and exposes that MCP server to OpenCode through the shared MCP Home Manager integration.  A host may still override =braveMcp.enable = false= explicitly.
+
+The Brave Search API key is runtime user state and must not be written into Nix configuration or the Nix store.  After switching the Home Manager profile, configure it interactively:
+
+#+begin_src shell
+  bx config set-key
+#+end_src
+
+On Linux, =bx= stores its user configuration under =~/.config/brave-search/config.json=.  For ephemeral sessions, =BRAVE_SEARCH_API_KEY= is also supported:
+
+#+begin_src shell
+  export BRAVE_SEARCH_API_KEY='...'
+#+end_src
+
+Prefer =bx config set-key= without putting the key on the command line so it does not enter shell history.  Verify the CLI before starting OpenCode:
+
+#+begin_src shell
+  bx context "NixOS Home Manager documentation" --max-tokens 1024
+#+end_src
+
+The MCP adapter exposes bounded, typed search tools rather than arbitrary =bx= argv or shell execution.  Its package lives at [[file:../../nix/packages/brave-mcp/][nix/packages/brave-mcp/]] and its protocol regression test is [[file:../../tests/brave-mcp.py][tests/brave-mcp.py]].
+
 * Editing rule
 Host-specific composition belongs under =nix/home-manager/systems/= or =nix/nixos/hosts/=.  Reusable behavior belongs in modules rather than being copied between hosts.  Keep =flake.nix= focused on wiring outputs together.
 

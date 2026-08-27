@@ -10,16 +10,18 @@ Usage: agent-zero-tunnel [SSH_TARGET] [REMOTE_PORT] [LOCAL_PORT]
 Open an SSH local-forward to Agent Zero on a remote PC.
 
 Defaults:
-  SSH_TARGET   $A0_SSH_TARGET or "op"
+  SSH_TARGET   $A0_SSH_TARGET or "flake"
   REMOTE_PORT  $A0_REMOTE_PORT or 50080
   LOCAL_PORT   $A0_LOCAL_PORT or REMOTE_PORT
 
 Optional environment:
-  A0_REMOTE_HOST  Remote Agent Zero bind host (default: 127.0.0.1)
-  A0_BIND_ADDR    Local bind address (default: 127.0.0.1)
+  A0_REMOTE_HOST                  remote Agent Zero bind host (default: 127.0.0.1)
+  A0_BIND_ADDR                    local bind address (default: 127.0.0.1)
+  A0_SERVER_ALIVE_INTERVAL        SSH keepalive interval (default: 5)
+  A0_SERVER_ALIVE_COUNT_MAX       unanswered keepalives (default: 6)
 
 Example from Termux:
-  agent-zero-tunnel op 50080
+  agent-zero-tunnel flake 50080
 
 Then open:
   http://127.0.0.1:50080
@@ -35,6 +37,10 @@ is_port() {
   [[ "$1" =~ ^[0-9]+$ ]] && (( 1 <= 10#$1 && 10#$1 <= 65535 ))
 }
 
+is_uint() {
+  [[ "$1" =~ ^[0-9]+$ ]]
+}
+
 case "${1:-}" in
   -h|--help)
     usage
@@ -44,15 +50,19 @@ esac
 
 command -v ssh >/dev/null 2>&1 || fail "ssh is required"
 
-readonly ssh_target="${1:-${A0_SSH_TARGET:-op}}"
+readonly ssh_target="${1:-${A0_SSH_TARGET:-flake}}"
 readonly remote_port="${2:-${A0_REMOTE_PORT:-50080}}"
 readonly local_port="${3:-${A0_LOCAL_PORT:-$remote_port}}"
 readonly remote_host="${A0_REMOTE_HOST:-127.0.0.1}"
 readonly bind_addr="${A0_BIND_ADDR:-127.0.0.1}"
+readonly alive_interval="${A0_SERVER_ALIVE_INTERVAL:-5}"
+readonly alive_count="${A0_SERVER_ALIVE_COUNT_MAX:-6}"
 
 [[ -n "$ssh_target" ]] || fail "SSH target must not be empty"
 is_port "$remote_port" || fail "invalid remote port: $remote_port"
 is_port "$local_port" || fail "invalid local port: $local_port"
+is_uint "$alive_interval" || fail "invalid keepalive interval: $alive_interval"
+is_uint "$alive_count" || fail "invalid keepalive count: $alive_count"
 
 printf 'Agent Zero: http://%s:%s\n' "$bind_addr" "$local_port"
 printf 'Tunnel: %s -> %s:%s via %s\n' \
@@ -62,6 +72,6 @@ exec ssh \
   -NT \
   -L "$bind_addr:$local_port:$remote_host:$remote_port" \
   -o ExitOnForwardFailure=yes \
-  -o ServerAliveInterval=30 \
-  -o ServerAliveCountMax=3 \
+  -o "ServerAliveInterval=$alive_interval" \
+  -o "ServerAliveCountMax=$alive_count" \
   "$ssh_target"

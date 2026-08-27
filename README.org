@@ -11,6 +11,7 @@ In particular, keep literate Org sources and their tangled/generated outputs syn
 + [[./bash.org][Bash]]
 + [[./.doom.d/config.org][Desktop Emacs config]]
 + [[./bootstrap-termux.org][Termux bootstrap]]
++ [[./scripts/termux-remote.org][Termux remote desktop workflows]]
 + [[./android/doom/config.org][Termux Doom config]]
 + [[./android/README.org][Android Emacs reader]]
 + [[./.config/qtile/qtile-ai.org][Qtile literate config]]
@@ -52,6 +53,25 @@ emacs-termux
 doom-termux sync
 ai
 #+end_src
+
+The remote desktop helpers and extra Termux widgets are maintained in [[./scripts/termux-remote.org][scripts/termux-remote.org]].  They add fast SSH recovery for the =flake= desktop, remote ChatGPT startup under tmux, Org capture, an Agent Zero local-forward widget, and a visible dotfiles sync shortcut.
+
+Install or refresh them after pulling the repository:
+
+#+begin_src sh
+pkg install tmux
+git -C ~/.dotfiles pull --ff-only
+bash ~/.dotfiles/scripts/install-termux-widgets
+#+end_src
+
+The two remote commands are also usable directly after installation:
+
+#+begin_src sh
+remote-gui-launch flake chatgpt.desktop chatgpt
+agent-zero-tunnel flake 50080
+#+end_src
+
+The Agent Zero tunnel forwards the remote loopback service to =http://127.0.0.1:50080= on the phone.  Both remote workflows use five-second SSH keepalives by default and remain configurable through the environment variables documented in the literate source.
 
 The canonical bootstrap source is [[./bootstrap-termux.org][bootstrap-termux.org]].  The phone-specific Doom source is [[./android/doom/config.org][android/doom/config.org]].  The lightweight native Android research reader under [[./android/][android/]] remains separate.
 
