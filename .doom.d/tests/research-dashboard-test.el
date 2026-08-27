@@ -68,5 +68,45 @@
     "2026-08-27T04:00:00-04:00")
    :type 'user-error))
 
+(ert-deftest nsa/research-dashboard-gh-uses-async-processes ()
+  (let (spec)
+    (cl-letf (((symbol-function 'executable-find)
+               (lambda (_program) "/usr/bin/gh"))
+              ((symbol-function 'make-process)
+               (lambda (&rest process-spec)
+                 (setq spec process-spec)
+                 'fake-process)))
+      (with-temp-buffer
+        (nsa/research-dashboard--gh
+         (current-buffer) (lambda (&rest _ignored)) '("api" "user"))
+        (should (equal (plist-get spec :command) '("gh" "api" "user")))
+        (should (eq (plist-get spec :connection-type) 'pipe))
+        (should (functionp (plist-get spec :sentinel)))))))
+
+(ert-deftest nsa/research-dashboard-source-forbids-blocking-process-apis ()
+  (let ((source-file (symbol-file 'nsa/research-dashboard-refresh 'defun)))
+    (should source-file)
+    (with-temp-buffer
+      (insert-file-contents source-file)
+      (let ((source (buffer-string)))
+        (dolist (forbidden '("(process-file" "(process-lines" "(call-process"
+                             "(call-process-region" "(shell-command"
+                             "(shell-command-to-string" "(start-process-shell-command"
+                             "(make-thread" "(accept-process-output" "(sleep-for"))
+          (should-not (string-match-p (regexp-quote forbidden) source)))
+        (should (string-match-p (regexp-quote "(make-process") source))))))
+
+(ert-deftest nsa/research-dashboard-refresh-schedules-and-returns ()
+  (let (called)
+    (with-temp-buffer
+      (nsa/research-dashboard-mode)
+      (cl-letf (((symbol-function 'nsa/research-dashboard--discover)
+                 (lambda (generation)
+                   (setq called generation))))
+        (nsa/research-dashboard-refresh)
+        (should called)
+        (should nsa/research-dashboard--scanning)
+        (should (= called nsa/research-dashboard--generation))))))
+
 (provide 'research-dashboard-test)
 ;;; research-dashboard-test.el ends here
