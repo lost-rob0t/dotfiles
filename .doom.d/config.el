@@ -88,11 +88,13 @@ The optional argument NEW-WINDOW is not used."
 (add-hook 'before-save-hook 'time-stamp nil)
 
 (autoload #'nsa/research-approve-and-push "research-approval" nil t)
+(autoload #'nsa/research-reject-and-push "research-approval" nil t)
 
 (map! :after org
       :localleader
       :map org-mode-map
-      :desc "Approve research and push" "A" #'nsa/research-approve-and-push)
+      :desc "Approve research and push" "A" #'nsa/research-approve-and-push
+      :desc "Reject research and push" "R" #'nsa/research-reject-and-push)
 
 (defun org-ask-location ()
   (let* ((org-refile-targets '((nil :maxlevel . 9)))

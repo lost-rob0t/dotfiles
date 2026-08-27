@@ -56,21 +56,29 @@ For package/module changes:
   doom sync
 #+end_src
 
-* Approving a project research record
-From a tracked =research/*.org= or =rage/*.org= buffer, invoke
-=M-x nsa/research-approve-and-push= or use =SPC m A=.  The command adds:
+* Deciding a project research record
+From a tracked =research/*.org= buffer, invoke
+=M-x nsa/research-approve-and-push= or =M-x nsa/research-reject-and-push=,
+or use =SPC m A= / =SPC m R=.  The command updates only these canonical fields:
 
 #+begin_example
-#+approval: APPROVED
-#+approved_at: [YYYY-MM-DD Day HH:MM ZONE]
+#+approval_schema: prolog-rlm.research-approval.v1
+#+approval_state: APPROVED
+#+approval_actor: HUMAN
+#+approval_evidence: DURABLE-REFERENCE
+#+approval_base_commit: 40-HEX-COMMIT
+#+approval_base_blob: 40-HEX-BLOB
+#+approval_decided_at: 2026-08-27T12:00:00Z
 #+end_example
 
-Before changing the file, it requires a completely clean repository, a named
-current branch, one configured upstream branch, and one GitHub push URL.  It
-runs =git push --dry-run= against that exact upstream, displays the exact Org
-diff, and asks for confirmation before creating a file-only commit and pushing.
-It never checks out, creates, or guesses a branch.  A failed push leaves the
-verified approval commit local and reports the Git error.
+The command rejects dirty repositories, detached HEAD, ambiguous upstreams,
+non-GitHub push URLs, noncanonical or duplicate approval layouts, lifecycle
+statuses used as approval, and checked legacy markers.  It records
+the current HEAD and its exact file blob before editing, runs =git push
+--dry-run=, displays the field-only diff and push target, and asks for explicit
+confirmation before creating a file-only commit.  It never checks out, creates,
+or guesses a branch.  A failed push leaves the verified local commit in place
+and reports the error.  Prose and model output never supply approval state.
 
 * Documentation discipline
 Put configuration rationale next to the executable Org source whenever it explains a specific setting.  Use this wiki for architecture, ownership, workflow, and navigation.  This keeps the literate config genuinely literate instead of making readers hunt through two competing manuals.
