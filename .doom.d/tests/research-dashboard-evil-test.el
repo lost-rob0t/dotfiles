@@ -19,22 +19,23 @@
     ("c" . nsa/research-dashboard-clear-filters)
     ("L" . nsa/research-dashboard-toggle-legacy)
     ("?" . nsa/research-dashboard-help))
-  "Normal-state dashboard bindings that must work under Evil.")
+  "Dashboard bindings that must work in Evil command states.")
 
 (ert-deftest nsa/research-dashboard-evil-integration-is-installed ()
   (should (fboundp 'nsa/research-dashboard-evil-setup))
   (should (memq #'nsa/research-dashboard-evil-setup
                 nsa/research-dashboard-mode-hook)))
 
-(ert-deftest nsa/research-dashboard-evil-normal-state-gets-dashboard-keys ()
+(ert-deftest nsa/research-dashboard-evil-command-states-get-dashboard-keys ()
   (should (fboundp 'nsa/research-dashboard-evil-setup))
   (let (calls)
     (cl-letf (((symbol-function 'evil-local-set-key)
                (lambda (state key command)
                  (push (list state (key-description key) command) calls))))
       (nsa/research-dashboard-evil-setup))
-    (dolist (binding nsa/research-dashboard-evil-test--expected-bindings)
-      (should (member (list 'normal (car binding) (cdr binding)) calls)))))
+    (dolist (state '(normal motion))
+      (dolist (binding nsa/research-dashboard-evil-test--expected-bindings)
+        (should (member (list state (car binding) (cdr binding)) calls))))))
 
 (provide 'research-dashboard-evil-test)
 ;;; research-dashboard-evil-test.el ends here
