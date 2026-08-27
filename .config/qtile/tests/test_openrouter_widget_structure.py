@@ -102,6 +102,10 @@ class OpenRouterWidgetStructureTests(unittest.TestCase):
         self.assertIn("self.drawer.ctx.line_to(x1, y)", source)
         self.assertNotIn('float(sample["timestamp"]) - start', source)
 
+    def test_long_range_budget_follows_pixel_width(self):
+        source = method_source("OpenRouterIOGraph", "_update")
+        self.assertIn("points=min(self.samples, max(int(self.width), 1))", source)
+
     def test_stacked_rate_uses_smaller_font_than_single_line_metrics(self):
         self.assertLess(assigned_constant("RATE_FONTSIZE"), assigned_constant("METRIC_FONTSIZE"))
         source = function_source("_telemetry_widgets")

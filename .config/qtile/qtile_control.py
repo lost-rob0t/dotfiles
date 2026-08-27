@@ -6,7 +6,6 @@ import ast
 import calendar
 import json
 import os
-import shlex
 import subprocess
 import threading
 from datetime import datetime
@@ -38,6 +37,17 @@ EMACS_HELPER = Path("~/.config/qtile/qtile-desktop.el").expanduser()
 WORKFLOW_HELPER = Path("~/.config/qtile/qtile-workflow.el").expanduser()
 GPT_TODOS_SYNC = Path("~/.dotfiles/scripts/gpt-todos-sync").expanduser()
 DUNST_MENU = Path("~/.config/qtile/scripts/dunst_menu.py").expanduser()
+DUNST_HISTORY = Path("~/.config/qtile/scripts/dunst_history.py").expanduser()
+EMACS_NOTIFICATIONS_HELPER = Path("~/.dotfiles/lisp/qtile/qtile-notifications.el").expanduser()
+EMACS_SERVICES_HELPER = Path("~/.dotfiles/lisp/qtile/qtile-services.el").expanduser()
+EMACS_POPUP_TITLES = (
+    "qtile-agent-zero",
+    "qtile-org-todos",
+    "qtile-org-agenda-day",
+    "qtile-workflow",
+    "qtile-notifications",
+    "qtile-services",
+)
 _group_owner_roles: dict[str, str] = {}
 _gpt_todos_sync_lock = threading.Lock()
 _gpt_todos_sync_running = False
@@ -154,9 +164,10 @@ def group_indicator_geometry(
     offset: int | float,
     width: int | float,
     padding_x: int | float,
+    borderwidth: int | float,
 ) -> tuple[int | float, int | float]:
     """Inset the screen indicator to the glyph area without moving its center."""
-    inset = max(float(padding_x), 0.0)
+    inset = max(float(padding_x) + float(borderwidth), 0.0)
     if float(width) <= inset * 2:
         return offset, width
     aligned_offset = float(offset) + inset
@@ -241,24 +252,6 @@ def _decode_emacs_string(output: str) -> str | None:
     except (SyntaxError, ValueError):
         return output.strip('"')
     return value if isinstance(value, str) else str(value)
-
-
-def _emacs_eval(expression: str, *, timeout: float = 300.0) -> str | None:
-    helper = str(EMACS_HELPER)
-    form = "(progn " f"(load-file {json.dumps(helper)}) " f"{expression})"
-    try:
-        completed = subprocess.run(
-            ["emacsclient", "-a", "emacs", "--eval", form],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    if completed.returncode != 0:
-        return None
-    return _decode_emacs_string(completed.stdout)
 
 
 def _notify(summary: str, body: str = "") -> None:
@@ -352,15 +345,45 @@ def apply_workflow(qtile: Any, workflow: dict[str, Any], config_globals: dict[st
 
 
 def _select_workflow(qtile: Any, config_globals: dict[str, Any]) -> None:
+    import emacs_ui
+
     workflows = load_workflows()
     names = sorted(workflows)
-    lisp_names = "(" + " ".join(json.dumps(name) for name in names) + ")"
+    geometry = emacs_ui.popup_geometry(
+        qtile,
+        "workflow_button",
+        width=520,
+        height=380,
+        align="right",
+    )
+    if geometry is None:
+        _notify("Qtile workflow unavailable", "workflow_button was not found")
+        return
+    command = emacs_ui.build_emacsclient_command(
+        popup_id="workflow",
+        function="qtile-workflow-open",
+        geometry=geometry,
+        args={"choices": names},
+        helper=WORKFLOW_HELPER,
+        minibuffer=True,
+    )
 
     def worker() -> None:
-        helper = json.dumps(str(WORKFLOW_HELPER))
-        selected = _emacs_eval(
-            f"(progn (load-file {helper}) (qtile-workflow-read-right '{lisp_names}))"
-        )
+        try:
+            completed = subprocess.run(
+                command,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+        except (OSError, subprocess.SubprocessError) as error:
+            _notify("Qtile workflow failed", str(error))
+            return
+        if completed.returncode != 0:
+            _notify("Qtile workflow failed", (completed.stderr or "emacsclient failed")[-500:])
+            return
+        selected = _decode_emacs_string(completed.stdout)
         if not selected or selected not in workflows:
             return
         qtile.call_soon_threadsafe(apply_workflow, qtile, workflows[selected], config_globals)
@@ -369,49 +392,21 @@ def _select_workflow(qtile: Any, config_globals: dict[str, Any]) -> None:
     threading.Thread(target=worker, name="qtile-workflow-picker", daemon=True).start()
 
 
-def _emacs_frame_command(function: str, title: str) -> str:
-    expression = (
-        "(progn "
-        f"(load-file (expand-file-name {json.dumps(str(EMACS_HELPER))})) "
-        f"({function}))"
-    )
-    frame = f'((name . "{title}") (title . "{title}"))'
-    return " ".join(
-        [
-            "emacsclient",
-            "-c",
-            "-a",
-            "emacs",
-            "-F",
-            shlex.quote(frame),
-            "--eval",
-            shlex.quote(expression),
-        ]
-    )
-
-
-def _emacs_agenda_day_frame_command(title: str) -> str:
-    expression = "(progn (require 'org-agenda) (org-agenda-list nil (current-time) 1))"
-    frame = f'((name . "{title}") (title . "{title}"))'
-    return " ".join(
-        [
-            "emacsclient",
-            "-c",
-            "-a",
-            "emacs",
-            "-F",
-            shlex.quote(frame),
-            "--eval",
-            shlex.quote(expression),
-        ]
-    )
-
-
 def _parse_clock_output(output: str) -> str:
-    value = _decode_emacs_string(output)
-    if not value:
-        return "Org: no clock"
-    return f"Org: {value}"
+    """Accept only sentinel-prefixed output; merged stderr is never a task.
+
+    Qtile's command poller merges stderr into stdout, and emacsclient errors
+    begin with a nix store path.  The Elisp probe therefore prefixes real
+    answers with ``QTILEORG:`` and anything else means Emacs is offline.
+    """
+    for raw in (output or "").splitlines():
+        line = raw.strip()
+        if line.startswith("QTILEORG:"):
+            task = line[len("QTILEORG:") :].strip()
+            if task and task != "none":
+                return f"Org: {task[:55]}"
+            return "Org: no clock"
+    return "Org: offline"
 
 
 def _owned_group_box(config_globals: dict[str, Any]):
@@ -465,6 +460,7 @@ def _owned_group_box(config_globals: dict[str, Any]):
                     offset,
                     width,
                     self.padding_x,
+                    self.borderwidth,
                 )
                 self.drawbox(
                     visual_offset,
@@ -482,13 +478,16 @@ def _owned_group_box(config_globals: dict[str, Any]):
             self.draw_at_default_position()
 
     return OwnedGroupBox(
-        font="3270 Nerd Font",
+        # Keep the icon font's metrics truthful: these private-use glyphs are
+        # provided by Symbols Nerd Font, while a missing font name falls back
+        # to a narrower face and makes the highlight miss the rendered icon.
+        font="Symbols Nerd Font",
         visible_groups=group_names,
         fontsize=18,
         margin_y=2,
         margin_x=2,
         padding_y=-4,
-        padding_x=6,
+        padding_x=2,
         borderwidth=2,
         active=palette["white"],
         inactive=palette["muted"],
@@ -528,9 +527,38 @@ def _base_widgets(config_globals: dict[str, Any]):
     return items
 
 
+def _cpu_stats(_qtile: Any) -> None:
+    import psutil
+
+    cores = psutil.cpu_percent(interval=None, percpu=True)
+    load = " ".join(f"{value:.1f}" for value in os.getloadavg())
+    body = (
+        f"total {psutil.cpu_percent(interval=None):.0f}%\n"
+        f"cores {' '.join(f'{value:.0f}%' for value in cores)}\n"
+        f"load {load}"
+    )
+    _notify("CPU", body)
+
+
+def _memory_stats(_qtile: Any) -> None:
+    import psutil
+
+    virtual = psutil.virtual_memory()
+    swap = psutil.swap_memory()
+    gib = 1024**3
+    body = (
+        f"RAM {virtual.used / gib:.1f}G/{virtual.total / gib:.1f}G used ({virtual.percent:.0f}%)\n"
+        f"available {virtual.available / gib:.1f}G\n"
+        f"swap {swap.used / gib:.1f}G/{swap.total / gib:.1f}G ({swap.percent:.0f}%)"
+    )
+    _notify("Memory", body)
+
+
 def _system_telemetry(config_globals: dict[str, Any]):
     from libqtile import widget
-    from qtile_net_io import NetIOGraph
+    from libqtile.lazy import lazy
+    from qtile_net_io import NetIOGraph, NetIORate
+    from qtile_system import DiskIOGraph, RootFree, telemetry_icon_cell
 
     palette = outrun_palette(config_globals["colors"])
     background = palette["background"]
@@ -545,43 +573,56 @@ def _system_telemetry(config_globals: dict[str, Any]):
         "width": 52,
     }
     return [
-        widget.TextBox(
-            text="",
-            font="Hack Nerd Regular",
-            foreground=palette["cyan"],
-            background=background,
-            padding=2,
-        ),
+        telemetry_icon_cell("", palette["cyan"], background, name="cpu_icon"),
         widget.CPUGraph(
             core="all",
             graph_color=palette["cyan"],
             fill_color=palette["purple"],
+            mouse_callbacks={
+                "Button1": lazy.function(_cpu_stats),
+                "Button3": lazy.function(_cpu_stats),
+            },
             **graph_common,
         ),
-        widget.TextBox(
-            text="󰍛",
-            font="Hack Nerd Regular",
-            foreground=palette["green"],
-            background=background,
-            padding=2,
+        telemetry_icon_cell(
+            "󰢮",
+            palette["green"],
+            background,
+            name="memory_icon",
+            width=14,
         ),
         widget.Memory(
-            format="{Available: .1f}{mm} free",
+            format="{Available:.1f}{mm} free",
             measure_mem="G",
             update_interval=1,
             foreground=palette["green"],
             background=background,
             fontsize=11,
             padding=2,
+            mouse_callbacks={
+                "Button1": lazy.function(_memory_stats),
+                "Button3": lazy.function(_memory_stats),
+            },
         ),
         widget.MemoryGraph(
             graph_color=palette["green"],
             fill_color=palette["violet"],
+            mouse_callbacks={
+                "Button1": lazy.function(_memory_stats),
+                "Button3": lazy.function(_memory_stats),
+            },
             **graph_common,
+        ),
+        telemetry_icon_cell(
+            "󰖩",
+            palette["white"],
+            background,
+            name="network_icon",
+            width=18,
         ),
         widget.TextBox(
             text=(
-                f'󰖩 <span foreground="{palette["electric_blue"]}">↓</span>'
+                f'<span foreground="{palette["electric_blue"]}">↓</span>'
                 f'<span foreground="{palette["pink"]}">↑</span>'
             ),
             markup=True,
@@ -599,16 +640,125 @@ def _system_telemetry(config_globals: dict[str, Any]):
             upload_color=palette["pink"],
             background=background,
         ),
-        widget.Net(
-            interface="auto",
-            format="↓{down}{down_suffix} ↑{up}{up_suffix}",
+        NetIORate(
             update_interval=1,
             foreground=palette["ice"],
             background=background,
             fontsize=11,
             padding=2,
         ),
+        telemetry_icon_cell("󰋊", palette["orange"], background, name="disk_icon", width=18),
+        RootFree(
+            name="root_free",
+            update_interval=1,
+            foreground=palette["orange"],
+            background=background,
+            fontsize=11,
+            padding=0,
+        ),
+        DiskIOGraph(
+            name="root_disk_io",
+            width=64,
+            frequency=1,
+            samples=60,
+            read_color=palette["electric_blue"],
+            write_color=palette["pink"],
+            background=background,
+        ),
     ]
+
+
+def _toggle_emacs_popup(
+    qtile: Any,
+    popup_id: str,
+    widget_name: str,
+    function: str,
+    width: int,
+    height: int,
+    align: str,
+    helper: Path = EMACS_HELPER,
+    args: dict[str, Any] | None = None,
+) -> None:
+    import emacs_ui
+
+    result = emacs_ui.toggle_emacs_dropdown(
+        qtile,
+        widget_name=widget_name,
+        popup_id=popup_id,
+        function=function,
+        width=width,
+        height=height,
+        align=align,
+        helper=helper,
+        args=args,
+    )
+    if not result.started:
+        _notify("Qtile popup unavailable", result.reason)
+
+
+def _toggle_notifications(qtile: Any, config_globals: dict[str, Any], widget_name: str) -> None:
+    from ui_settings import get_notification_ui
+
+    backend = get_notification_ui()
+    if backend == "emacs":
+        _toggle_emacs_popup(
+            qtile,
+            "notifications",
+            widget_name,
+            "qtile-notifications-open",
+            640,
+            620,
+            "right",
+            helper=EMACS_NOTIFICATIONS_HELPER,
+            args={
+                "backend": backend,
+                "history-command": str(DUNST_HISTORY),
+            },
+        )
+        return
+    script = str(DUNST_MENU)
+    try:
+        subprocess.Popen(
+            ["python3", script, "--menu"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError as error:
+        _notify("Dmenu notifications unavailable", str(error))
+
+
+def _toggle_services(qtile: Any) -> None:
+    _toggle_emacs_popup(
+        qtile,
+        "services",
+        "services_button",
+        "qtile-services-open",
+        560,
+        460,
+        "right",
+        helper=EMACS_SERVICES_HELPER,
+    )
+
+
+def _install_emacs_popup_float_rules(config_globals: dict[str, Any]) -> None:
+    """Keep shared Emacs dashboards floating at their requested pixel size."""
+    from libqtile.config import Match
+
+    floating_layout = config_globals.get("floating_layout")
+    rules = getattr(floating_layout, "float_rules", None)
+    if not isinstance(rules, list):
+        return
+    existing_titles = {
+        getattr(rule, "_rules", {}).get("title")
+        for rule in rules
+        if isinstance(getattr(rule, "_rules", None), dict)
+    }
+    rules.extend(
+        Match(title=title)
+        for title in EMACS_POPUP_TITLES
+        if title not in existing_titles
+    )
 
 
 def _notification_widget(config_globals: dict[str, Any], role: str):
@@ -617,8 +767,9 @@ def _notification_widget(config_globals: dict[str, Any], role: str):
 
     palette = outrun_palette(config_globals["colors"])
     script = config_globals["home"] + "/.config/qtile/scripts/dunst_menu.py"
+    widget_name = f"notifications_{role}"
     return widget.GenPollCommand(
-        name=f"notifications_{role}",
+        name=widget_name,
         cmd=["python3", script, "--status"],
         parse=lambda output: output.strip() or " ?",
         update_interval=1,
@@ -628,7 +779,7 @@ def _notification_widget(config_globals: dict[str, Any], role: str):
         background=palette["background"],
         padding=3,
         mouse_callbacks={
-            "Button1": lazy.spawn(f"python3 {shlex.quote(script)} --menu"),
+            "Button1": lazy.function(_toggle_notifications, config_globals, widget_name),
             "Button3": lazy.spawn("dunstctl set-paused toggle"),
             "Button4": lazy.spawn("dunstctl history-pop"),
             "Button5": lazy.spawn("dunstctl close"),
@@ -702,20 +853,40 @@ def build_screen_widgets(
         # generated multi-monitor layout overrides this so the left Org screen
         # owns the single date whenever that role exists.
         show_date = role == "center"
-    clock_format = "󰃭 %Y-%m-%d   %H:%M" if show_date else " %H:%M"
+    date_icon = f'<span foreground="{palette["yellow"]}">󰃭</span>'
+    clock_icon = f'<span foreground="{palette["yellow"]}"></span>'
+    icon_gap = "\u00a0\u00a0"
+    date_clock_gap = "\u00a0\u00a0\u00a0"
+    clock_format = (
+        f"{date_icon}{icon_gap}%Y-%m-%d{date_clock_gap}{clock_icon}{icon_gap}%H:%M"
+        if show_date
+        else f"{clock_icon}{icon_gap}%H:%M"
+    )
     clock_callbacks = (
-        {"Button1": lazy.group["qtileControl"].dropdown_toggle("org-agenda-day")}
+        {
+            "Button1": lazy.function(
+                _toggle_emacs_popup,
+                "org-agenda-day",
+                "full_date_clock",
+                "qtile-org-agenda-day",
+                720,
+                560,
+                "right",
+            )
+        }
         if show_date
         else {"Button1": lazy.function(_show_month_calendar)}
     )
 
     def clock_widget():
         return widget.Clock(
+            name="full_date_clock" if show_date else f"time_clock_{role}",
             font="Hack Nerd Regular",
             foreground=foreground,
             background=background,
             fontsize=12,
             format=clock_format,
+            markup=True,
             mouse_callbacks=clock_callbacks,
         )
 
@@ -733,7 +904,15 @@ def build_screen_widgets(
                     foreground=palette["cyan"],
                     background=background,
                     mouse_callbacks={
-                        "Button1": lazy.group["qtileControl"].dropdown_toggle("agent-zero")
+                        "Button1": lazy.function(
+                            _toggle_emacs_popup,
+                            "agent-zero",
+                            "agent_zero_button",
+                            "qtile-agent-zero-open",
+                            720,
+                            560,
+                            "left",
+                        )
                     },
                 ),
                 clock_widget(),
@@ -744,14 +923,22 @@ def build_screen_widgets(
     elif role == "left":
         clock_expression = (
             "(if (and (boundp 'org-clock-current-task) org-clock-current-task) "
-            "(substring-no-properties org-clock-current-task) nil)"
+            "(concat \"QTILEORG:\" (substring-no-properties org-clock-current-task)) "
+            "\"QTILEORG:none\")"
         )
         items.extend(
             [
                 widget.GenPollCommand(
                     name="org_clocked_task",
-                    # Background polling must never fall back to launching a GUI.
-                    cmd=["emacsclient", "-s", "qtile", "-a", "false", "--eval", clock_expression],
+                    cmd=[
+                        "timeout",
+                        "3",
+                        "emacsclient",
+                        "-a",
+                        "false",
+                        "--eval",
+                        clock_expression,
+                    ],
                     parse=_parse_clock_output,
                     update_interval=5,
                     foreground=palette["pink"],
@@ -764,12 +951,20 @@ def build_screen_widgets(
                     foreground=palette["cyan"],
                     background=background,
                     mouse_callbacks={
-                        "Button1": lazy.group["qtileControl"].dropdown_toggle("org-todos")
+                        "Button1": lazy.function(
+                            _toggle_emacs_popup,
+                            "org-todos",
+                            "org_todos_button",
+                            "qtile-org-todos-open",
+                            720,
+                            560,
+                            "right",
+                        )
                     },
                 ),
                 widget.TextBox(
                     name="gpt_todos_sync_button",
-                    text=" 󰑓 SYNC ",
+                    text="󰑓",
                     font="Hack Nerd Regular",
                     foreground=palette["green"],
                     background=background,
@@ -783,6 +978,16 @@ def build_screen_widgets(
                     mouse_callbacks={
                         "Button1": lazy.function(_select_workflow, config_globals)
                     },
+                ),
+                widget.TextBox(
+                    name="services_button",
+                    text="󰒟",
+                    font="Hack Nerd Regular",
+                    fontsize=13,
+                    padding=6,
+                    foreground=palette["electric_blue"],
+                    background=background,
+                    mouse_callbacks={"Button1": lazy.function(_toggle_services)},
                 ),
                 widget.Pomodoro(foreground=palette["pink"], background=background),
                 clock_widget(),
@@ -821,56 +1026,6 @@ def build_screen_widgets(
     return items
 
 
-def _install_control_scratchpad(config_globals: dict[str, Any]) -> None:
-    from libqtile.config import DropDown, Match, ScratchPad
-
-    groups = config_globals.get("groups")
-    if not isinstance(groups, list):
-        return
-    if any(getattr(group, "name", None) == "qtileControl" for group in groups):
-        return
-    groups.append(
-        ScratchPad(
-            "qtileControl",
-            [
-                DropDown(
-                    "org-todos",
-                    _emacs_frame_command("qtile-org-todos-open", "qtile-org-todos"),
-                    height=0.68,
-                    width=0.58,
-                    x=0.42,
-                    y=0.02,
-                    opacity=0.97,
-                    on_focus_lost_hide=True,
-                    match=Match(title="qtile-org-todos"),
-                ),
-                DropDown(
-                    "org-agenda-day",
-                    _emacs_agenda_day_frame_command("qtile-org-agenda-day"),
-                    height=0.72,
-                    width=0.62,
-                    x=0.38,
-                    y=0.02,
-                    opacity=0.97,
-                    on_focus_lost_hide=True,
-                    match=Match(title="qtile-org-agenda-day"),
-                ),
-                DropDown(
-                    "agent-zero",
-                    _emacs_frame_command("qtile-agent-zero-open", "qtile-agent-zero"),
-                    height=0.72,
-                    width=0.62,
-                    x=0.19,
-                    y=0.04,
-                    opacity=0.97,
-                    on_focus_lost_hide=False,
-                    match=Match(title="qtile-agent-zero"),
-                ),
-            ],
-        )
-    )
-
-
 def install_desktop_control(
     config_globals: dict[str, Any],
     telemetry_widgets_factory: Callable[[str, Any], list[Any]],
@@ -880,7 +1035,8 @@ def install_desktop_control(
     from libqtile.config import Screen
 
     load_private_env()
-    _install_control_scratchpad(config_globals)
+    _install_emacs_popup_float_rules(config_globals)
+    screen_cache: list[Screen] = []
 
     def screen_widgets(role: str = "center", show_date: bool | None = None):
         return build_screen_widgets(
@@ -893,16 +1049,19 @@ def install_desktop_control(
     def generate_screens(output_info):
         roles = screen_roles(output_info)
         date_role = "left" if any(base_role(role) == "left" for role in roles) else "center"
-        return [
-            Screen(
-                top=bar.Bar(
-                    screen_widgets(role, show_date=base_role(role) == date_role),
-                    26,
-                    opacity=0.8,
+        while len(screen_cache) < len(roles):
+            index = len(screen_cache)
+            role = roles[index]
+            screen_cache.append(
+                Screen(
+                    top=bar.Bar(
+                        screen_widgets(role, show_date=base_role(role) == date_role),
+                        26,
+                        opacity=0.8,
+                    )
                 )
             )
-            for role in roles
-        ]
+        return screen_cache[: len(roles)]
 
     config_globals["screen_widgets"] = screen_widgets
     config_globals["generate_screens"] = generate_screens

@@ -68,6 +68,10 @@ mod1 = "mod1"     # Alt key - secondary modifier
 mod2 = "control"  # Control key - tertiary modifier
 
 home = os.path.expanduser('~')
+monitor_setup = os.path.join(home, '.config/qtile/scripts/setup-monitors.sh')
+if not globals().get('_monitor_setup_complete', False):
+    subprocess.run([monitor_setup], check=False)
+    _monitor_setup_complete = True
 myTerm = "terminator"  # Default terminal emulator
 
 # === JAVA APPLICATION FIX ===
@@ -162,12 +166,21 @@ layout_theme = init_layout_theme()
 * Startup & Autostart
 :PROPERTIES:
 :DESCRIPTION: Programs to run when Qtile starts
-:DEPENDENCIES: Requires autostart.sh script in ~/.config/qtile/scripts/
+:DEPENDENCIES: Requires autostart.sh and setup-monitors.sh in ~/.config/qtile/scripts/
 :END:
 
 ** What Gets Started
 - *startup_once*: Runs ONCE when Qtile first starts (per session)
-- *startup*: Runs EVERY TIME Qtile restarts (Mod+Shift+R)
+
+** Monitor profile
+Qtile applies the monitor profile synchronously while loading the
+configuration, before screen and bar objects are created. The selector
+chooses the executable profile named
+=$USER@$HOSTNAME.sh= under =scripts/monitors/=, so each host keeps its own
+output layout without putting monitor setup in =autostart.sh= or =.xinitrc=.
+The process-level guard prevents a normal in-process config reload from
+re-running =xrandr= while Qtile is rebuilding its bars; a fresh Qtile process
+runs the profile again.
 
 ** Expected autostart.sh contents
 Your script should handle:
@@ -188,13 +201,6 @@ def start_once():
     home = os.path.expanduser('~')
     subprocess.call([home + '/.config/qtile/scripts/autostart.sh'])
 
-@hook.subscribe.startup
-def start_always():
-    """
-    Execute on EVERY Qtile restart.
-    Currently: Set cursor to default arrow (left_ptr).
-    """
-    subprocess.Popen(['xsetroot', '-cursor_name', 'left_ptr'])
 #+end_src
 
 * Workspace Configuration
@@ -230,12 +236,53 @@ group_names = [
 # === WORKSPACE LABELS ===
 # Option 1: Nerd Font icons (current)
 group_labels = [
-    "", "", "", "", "",
-    "", "", "", "", ""
+    "", "", "󰚩", "", "",
+    "", "", "", "", ""
 ]
 
 # Option 2: Plain numbers (uncomment to use)
 # group_labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+
+auto_group_mode = False
+auto_group_buttons = []
+
+
+def auto_group_button_colors():
+    return "#000000", colors[7] if auto_group_mode else colors[8]
+
+
+def update_auto_group_buttons():
+    foreground, background = auto_group_button_colors()
+    for button in auto_group_buttons:
+        button.foreground = foreground
+        button.background = background
+        button.draw()
+
+
+@lazy.function
+def toggle_auto_group_mode(qtile):
+    global auto_group_mode
+    auto_group_mode = not auto_group_mode
+    from qtile_telemetry import telemetry_event
+
+    telemetry_event("auto_mode_changed", enabled=auto_group_mode)
+    update_auto_group_buttons()
+
+
+def auto_group_button():
+    foreground, background = auto_group_button_colors()
+    button = widget.TextBox(
+        name=f"auto_group_mode_{len(auto_group_buttons)}",
+        text="AUTO",
+        font="Hack Nerd Regular",
+        fontsize=12,
+        padding=8,
+        foreground=foreground,
+        background=background,
+        mouse_callbacks={"Button1": toggle_auto_group_mode},
+    )
+    auto_group_buttons.append(button)
+    return button
 
 # === DEFAULT LAYOUTS PER WORKSPACE ===
 group_layouts = [
@@ -280,6 +327,7 @@ for i in range(len(group_names)):
 |------------------+---------------------------|
 | Mod+Q            | Kill window               |
 | Mod+F            | Toggle fullscreen         |
+| Mod+W            | Launch Brave              |
 | Mod+Space        | Next layout               |
 | Mod+H/J/K/L      | Navigate windows (Vim)    |
 | Mod+Arrows       | Navigate windows          |
@@ -287,6 +335,12 @@ for i in range(len(group_names)):
 | Mod+Shift+H/J/K/L| Move windows              |
 | Mod+Shift+Space  | Toggle floating           |
 | Mod+Tab          | Next workspace            |
+| Mod+V            | Toggle Pavucontrol        |
+| Alt+Shift+N      | Next Variety wallpaper   |
+| Alt+Shift+P      | Previous Variety wallpaper|
+| Alt+Shift+F      | Favorite current wallpaper|
+| Alt+Shift+Space  | Pause/resume rotation    |
+| Alt+Shift+S      | Open Variety selector    |
 | Mod+[1-0]        | Go to workspace           |
 | Mod+Shift+[1-0]  | Move window to workspace  |
 
@@ -298,6 +352,8 @@ keys = [
         desc="Kill focused window"),
     Key([mod, "shift"], "q", lazy.window.kill(),
         desc="Kill focused window (alternate)"),
+
+    Key([mod], "w", lazy.spawn("brave"), desc="Launch Brave"),
 
     Key([mod], "f", lazy.window.toggle_fullscreen(),
         desc="Toggle fullscreen for focused window"),
@@ -408,6 +464,23 @@ keys = [
     Key([mod, "mod1"], "l", lazy.layout.flip_right()),
     Key([mod, "mod1"], "j", lazy.layout.flip_down()),
     Key([mod, "mod1"], "k", lazy.layout.flip_up()),
+
+    # --- WALLPAPER CONTROL ---
+    Key([mod1, "shift"], "n",
+        lazy.spawn("variety --next"),
+        desc="Show next Variety wallpaper"),
+    Key([mod1, "shift"], "p",
+        lazy.spawn("variety --previous"),
+        desc="Show previous Variety wallpaper"),
+    Key([mod1, "shift"], "f",
+        lazy.spawn("variety --favorite"),
+        desc="Favorite current Variety wallpaper"),
+    Key([mod1, "shift"], "space",
+        lazy.spawn("variety --toggle-pause"),
+        desc="Pause or resume Variety rotation"),
+    Key([mod1, "shift"], "s",
+        lazy.spawn("variety --selector"),
+        desc="Open Variety wallpaper selector"),
 ]
 
 # === EMACS INTEGRATION KEYCHORD ===
@@ -492,6 +565,7 @@ Think of them as "quake-style" dropdowns for ANY application.
 4. *Org Capture* (Mod+X): Quick note taking
 5. *KeePassXC* (Mod+F3): Password manager
 6. *Media* (Mod+Shift+M): Music player (Sonixd)
+7. *Audio* (Mod+V): Pavucontrol mixer
 
 ** Technical Notes
 - Windows are 80% screen size, centered
@@ -500,6 +574,8 @@ Think of them as "quake-style" dropdowns for ANY application.
 
 #+begin_src python
 # === SCRATCHPAD DEFINITIONS ===
+PAVUCONTROL_WM_CLASS = "pavucontrol"
+PAVUCONTROL_SIZE_RATIO = 0.9
 
 groups.extend([
     # --- TERMINAL SCRATCHPAD ---
@@ -585,6 +661,21 @@ groups.extend([
             on_focus_lost_hide=False
         )
     ]),
+
+    # --- AUDIO CONTROL ---
+    ScratchPad("audioPad", [
+        DropDown(
+            "pavucontrol",
+            "pavucontrol",
+            match=Match(wm_instance_class=PAVUCONTROL_WM_CLASS),
+            height=PAVUCONTROL_SIZE_RATIO,
+            width=PAVUCONTROL_SIZE_RATIO,
+            x=(1 - PAVUCONTROL_SIZE_RATIO) / 2,
+            y=(1 - PAVUCONTROL_SIZE_RATIO) / 2,
+            opacity=1.0,
+            on_focus_lost_hide=False,
+        )
+    ]),
 ])
 
 # === SCRATCHPAD KEYBINDINGS ===
@@ -612,6 +703,10 @@ keys.extend([
     Key([mod, "shift"], "M",
         lazy.group['media'].dropdown_toggle('sonixd'),
         desc="Toggle media player scratchpad"),
+
+    Key([mod], "v",
+        lazy.group['audioPad'].dropdown_toggle('pavucontrol'),
+        desc="Toggle Pavucontrol scratchpad"),
 ])
 #+end_src
 
@@ -727,16 +822,29 @@ def assign_app_group(client):
         if wm_class in class_list:
             target_group = list(assignments.keys())[workspace_index]
             client.togroup(target_group)
-            client.group.cmd_toscreen(toggle=True)
+            client.group.toscreen(toggle=True)
             return
 
 # === FLOATING WINDOW RULES ===
+def is_pavucontrol(window):
+    return PAVUCONTROL_WM_CLASS in (window.window.get_wm_class() or [])
+
+
 @hook.subscribe.client_new
 def set_floating(window):
     """Auto-float transient windows and specific window types."""
     if (window.window.get_wm_transient_for() or
         window.window.get_wm_type() in ['dialog', 'utility', 'toolbar', 'splash']):
         window.floating = True
+
+
+@hook.subscribe.client_managed
+def configure_pavucontrol(window):
+    """Keep the Pavucontrol scratchpad above other windows."""
+    if not is_pavucontrol(window):
+        return
+    window.keep_above(True)
+
 
 floating_layout = layout.Floating(
     float_rules=[
@@ -765,6 +873,7 @@ floating_layout = layout.Floating(
         Match(wm_class='Arandr'),  # Display settings
         Match(wm_class='feh'),     # Image viewer
         Match(wm_class='Galculator'),
+        Match(wm_class='Variety', title='Variety Images'),
         Match(wm_class='archlinux-logout'),
         Match(wm_class='xfce4-terminal'),
         Match(wm_class='Arcolinux-welcome-app.py'),
@@ -932,12 +1041,12 @@ def init_widgets_list():
     widgets_list = [
         # --- WORKSPACE INDICATOR ---
         widget.GroupBox(
-            font="3270 Nerd Font",
+                font="Symbols Nerd Font",
             fontsize=25,
             margin_y=1,
             margin_x=1,
             padding_y=-6,
-            padding_x=6,
+            padding_x=2,
             borderwidth=0,
             disable_drag=True,
             active=colors[9],              # Active workspace color
@@ -1006,11 +1115,11 @@ def init_widgets_list():
         ),
 
         # --- WEATHER ---
-        widget.Wttr(
-            format='%f %C',  # Temperature and condition
-            location={f'@{myIp}': 'Home'},  # Use external IP for location
-            units="u",  # Imperial units
-            update_interval=300,  # Update every 5 minutes
+        widget.GenPollCommand(
+            cmd=["python3", home + "/.config/qtile/scripts/weather_status.py"],
+            update_interval=300,
+            foreground=colors[3],
+            background=colors[1],
         ),
 
         widget.Sep(
@@ -1126,49 +1235,6 @@ def init_widgets_list():
 
     return widgets_list
 
-# === SCREEN-SPECIFIC WIDGET LISTS ===
-
-def init_widgets_screen1():
-    """
-    Primary monitor widget list.
-    Includes system tray (only one tray per Qtile instance).
-    """
-    widgets_screen1 = init_widgets_list()
-    widgets_screen1.append(
-        widget.Systray(
-            background=colors[1],
-            icon_size=20,
-            padding=4
-        )
-    )
-    return widgets_screen1
-
-def init_widgets_screen2():
-    """
-    Secondary monitor widget list.
-    No system tray (can only have one).
-    """
-    widgets_screen2 = init_widgets_list()
-    return widgets_screen2
-
-# Initialize widget lists
-widgets_screen1 = init_widgets_screen1()
-widgets_screen2 = init_widgets_screen2()
-
-# === SCREEN DEFINITIONS ===
-def init_screens():
-    """
-    Initialize screens with status bars.
-
-    Creates one screen per physical monitor.
-    Primary screen gets system tray, others don't.
-    """
-    return [
-        Screen(top=bar.Bar(widgets=init_widgets_screen1(), size=26, opacity=0.8)),
-        Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=26, opacity=0.8))
-    ]
-
-screens = init_screens()
 #+end_src
 
 * Advanced Features
@@ -1244,6 +1310,10 @@ mouse = [
         start=lazy.window.get_size()
     )
 ]
+
+# The telemetry layer owns the topology-aware bars and dynamic screen list.
+from qtile_telemetry import install_telemetry
+install_telemetry(globals())
 #+end_src
 
 * Configuration Notes & Tips

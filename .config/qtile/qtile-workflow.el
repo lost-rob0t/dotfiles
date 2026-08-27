@@ -1,21 +1,31 @@
-;;; qtile-workflow.el --- right-aligned Qtile workflow picker -*- lexical-binding: t; -*-
+;;; qtile-workflow.el --- Qtile workflow picker -*- lexical-binding: t; -*-
+
+(add-to-list 'load-path (expand-file-name "~/.dotfiles/lisp/qtile"))
+(require 'qtile-ui)
+(require 'qtile-ui-org)
+
+(defun qtile-workflow--get (key object)
+  (or (alist-get key object nil nil #'equal)
+      (alist-get (symbol-name key) object nil nil #'equal)
+      (alist-get (intern (symbol-name key)) object nil nil #'eq)))
+
+(defun qtile-workflow-open (params)
+  "Select a workflow from a shared, widget-anchored Qtile popup."
+  (let* ((args (qtile-ui-args params))
+         (choices (or (qtile-workflow--get 'choices args) '()))
+         (choices (if (vectorp choices) (append choices nil) choices)))
+    (switch-to-buffer (get-buffer-create "*Qtile Workflows*"))
+    (qtile-ui-prepare-buffer)
+    (erase-buffer)
+    (qtile-ui-org-heading "WORKFLOWS")
+    (qtile-ui-org-muted "Select a desktop workflow to apply.\n\n")
+    (let ((selected (completing-read "Workflow: " choices nil t)))
+      (prog1 selected
+        (qtile-ui-close-current)))))
 
 (defun qtile-workflow-read-right (choices)
-  "Select one Qtile workflow from CHOICES in a top-right utility frame."
-  (let ((frame (make-frame '((name . "qtile-workflow")
-                             (title . "qtile-workflow")
-                             (width . 58)
-                             (height . 10)
-                             (minibuffer . t)
-                             (left . 1.0)
-                             (top . 0.0)
-                             (user-position . t)))))
-    (unwind-protect
-        (with-selected-frame frame
-          (select-frame-set-input-focus frame)
-          (completing-read "Qtile workflow: " choices nil t))
-      (when (frame-live-p frame)
-        (delete-frame frame)))))
+  "Compatibility wrapper for callers that still provide CHOICES directly."
+  (completing-read "Qtile workflow: " choices nil t))
 
 (provide 'qtile-workflow)
 ;;; qtile-workflow.el ends here

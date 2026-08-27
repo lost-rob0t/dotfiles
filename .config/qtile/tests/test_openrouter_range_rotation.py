@@ -26,7 +26,16 @@ def _install_libqtile_stub() -> None:
         pass
 
     class BackgroundPoll:
-        pass
+        def __init__(self, text="", **config):
+            self.text = text
+            self.mouse_callbacks = config.get("mouse_callbacks", {})
+
+        def add_callbacks(self, defaults):
+            defaults.update(self.mouse_callbacks)
+            self.mouse_callbacks = defaults
+
+        def force_update(self):
+            return None
 
     class Widget:
         pass
@@ -59,6 +68,7 @@ class OpenRouterRangeRotationTests(unittest.TestCase):
     def setUp(self):
         MODULE._graph_range_index = 0
         MODULE._graph_range_changed_at = 100.0
+        MODULE._metric_rotation_paused = False
 
     def test_exact_requested_range_order(self):
         self.assertEqual(
@@ -120,6 +130,46 @@ class OpenRouterRangeRotationTests(unittest.TestCase):
     def test_missing_bucket_duration_never_creates_zero_width_sample(self):
         start, end = MODULE._bucket_bounds({"timestamp": 10.0, "bucket_seconds": 0})
         self.assertGreater(end, start)
+
+    def test_metric_click_pauses_all_text_rotations_and_middle_click_resumes(self):
+        colors = [str(index) for index in range(10)]
+        tokens = MODULE.OpenRouterRotatingMetric("status", colors, "tokens")
+        spend = MODULE.OpenRouterRotatingMetric("status", colors, "spend")
+        self.assertEqual(
+            set(tokens.mouse_callbacks),
+            {"Button1", "Button2", "Button3", "Button4", "Button5"},
+        )
+
+        with mock.patch.object(tokens, "force_update") as refresh:
+            tokens.activate()
+            refresh.assert_called_once_with()
+        self.assertTrue(MODULE._metric_rotation_paused_state())
+        self.assertEqual(tokens.index, 1)
+
+        initial = spend.index
+        spend.last_rotate = 100.0
+        with mock.patch.object(MODULE.time, "monotonic", return_value=100.0 + MODULE.ROTATE_SECONDS):
+            spend._maybe_rotate()
+        self.assertEqual(spend.index, initial)
+
+        with mock.patch.object(spend, "force_update") as refresh:
+            spend.resume()
+            refresh.assert_called_once_with()
+        self.assertFalse(MODULE._metric_rotation_paused_state())
+
+    def test_graph_left_click_pauses_and_advances_once(self):
+        colors = [str(index) for index in range(10)]
+        graph = MODULE.OpenRouterGraphRange(colors)
+        with mock.patch.object(graph, "force_update") as refresh:
+            graph.activate()
+            refresh.assert_called_once_with()
+        self.assertTrue(MODULE._graph_rotation_paused_state())
+        self.assertEqual(MODULE._graph_range_label(), "5m")
+
+        with mock.patch.object(graph, "force_update") as refresh:
+            graph.resume()
+            refresh.assert_called_once_with()
+        self.assertFalse(MODULE._graph_rotation_paused_state())
 
 
 if __name__ == "__main__":
