@@ -490,7 +490,7 @@ def _owned_group_box(config_globals: dict[str, Any]):
         margin_y=2,
         margin_x=2,
         padding_y=-4,
-        padding_x=2,
+        padding_x=6,
         borderwidth=2,
         active=palette["white"],
         inactive=palette["muted"],
