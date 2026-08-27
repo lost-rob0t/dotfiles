@@ -18,7 +18,6 @@
     ./llm.nix
     ./screen-capture.nix
     ./prolog-mcp.nix
-    ./brave-mcp.nix
     ./proxmox-mcp.nix
     ./discord-mcp.nix
     ./unifi-mcp.nix
