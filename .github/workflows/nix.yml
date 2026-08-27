@@ -49,6 +49,12 @@ jobs:
         run: bash tests/home-manager-updater.sh
       - name: Run GPT TODO bidirectional sync tests
         run: bash tests/gpt-todos-sync.sh
+      - name: Run research approval ERT tests
+        run: >-
+          emacs -Q --batch
+          -L .doom.d/autoload
+          -l .doom.d/tests/research-approval-test.el
+          -f ert-run-tests-batch-and-exit
       - name: Run OpenCode YOLO tmpfs tests
         run: bash tests/opencode-yolo.sh
       - name: Run Brave MCP protocol tests

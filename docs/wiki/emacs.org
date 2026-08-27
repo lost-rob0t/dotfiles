@@ -10,6 +10,7 @@ The Doom configuration is literate.
 | [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/config.el][config.el]] | Main Emacs/Doom behavior. |
 | [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/init.el][init.el]] | Doom module selection from an explicitly tangled block. |
 | [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | [[file:../../.doom.d/packages.el][packages.el]] | Doom package declarations. |
+| [[file:../../.doom.d/autoload/research-approval.org][.doom.d/autoload/research-approval.org]] | [[file:../../.doom.d/autoload/research-approval.el][research-approval.el]] | Fail-safe research/RAGE approval, commit, and push workflow. |
 | [[file:../../.doom.d/snippets/][.doom.d/snippets/]] | n/a | Yasnippet and Org helper snippets. |
 
 The top of =config.org= declares =config.el= as its default tangle target, while individual blocks may override the target.  Read block-level =:tangle= arguments before assuming one Org file produces only one output.
@@ -54,6 +55,30 @@ For package/module changes:
 #+begin_src shell
   doom sync
 #+end_src
+
+* Deciding a project research record
+From a tracked =research/*.org= buffer, invoke
+=M-x nsa/research-approve-and-push= or =M-x nsa/research-reject-and-push=,
+or use =SPC m A= / =SPC m R=.  The command updates only these canonical fields:
+
+#+begin_example
+#+approval_schema: prolog-rlm.research-approval.v1
+#+approval_state: APPROVED
+#+approval_actor: HUMAN
+#+approval_evidence: DURABLE-REFERENCE
+#+approval_base_commit: 40-HEX-COMMIT
+#+approval_base_blob: 40-HEX-BLOB
+#+approval_decided_at: 2026-08-27T12:00:00Z
+#+end_example
+
+The command rejects dirty repositories, detached HEAD, ambiguous upstreams,
+non-GitHub push URLs, noncanonical or duplicate approval layouts, lifecycle
+statuses used as approval, and checked legacy markers.  It records
+the current HEAD and its exact file blob before editing, runs =git push
+--dry-run=, displays the field-only diff and push target, and asks for explicit
+confirmation before creating a file-only commit.  It never checks out, creates,
+or guesses a branch.  A failed push leaves the verified local commit in place
+and reports the error.  Prose and model output never supply approval state.
 
 * Documentation discipline
 Put configuration rationale next to the executable Org source whenever it explains a specific setting.  Use this wiki for architecture, ownership, workflow, and navigation.  This keeps the literate config genuinely literate instead of making readers hunt through two competing manuals.
