@@ -18,6 +18,10 @@ let
   '';
 in
 {
+  imports = [
+    ./brave-mcp.nix
+  ];
+
   options = with lib; {
     llm = {
       enable = mkEnableOption "Enable LLM and zara utils";
@@ -25,6 +29,11 @@ in
   };
 
   config = with lib; mkIf config.llm.enable {
+    # Brave Search MCP is part of the default LLM tool plane. Authentication
+    # remains runtime/user state (`bx config set-key` or BRAVE_SEARCH_API_KEY),
+    # so the API key never enters the Nix store.
+    braveMcp.enable = mkDefault true;
+
     # Install required packages for MCP servers
     home.packages = with pkgs; [
       inputs.zara.packages.${stdenv.hostPlatform.system}.zarathushtra
