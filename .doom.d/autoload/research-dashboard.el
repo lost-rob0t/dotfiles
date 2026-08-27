@@ -455,8 +455,8 @@
                          generation login
                          (delete-dups
                           (cons login (if org-ok (split-string org-output "\n" t) nil)))))))
-                  (list "api" "--paginate" "user/orgs" "--jq" ".[].login")))))))
-     (list "api" "user" "--jq" ".login")))))
+                  (list "api" "--paginate" "user/orgs" "--jq" ".[].login"))))))))
+     (list "api" "user" "--jq" ".login"))))
 
 (defun nsa/research-dashboard-refresh ()
   "Refresh asynchronously; no GitHub operation waits on the Emacs UI thread."
