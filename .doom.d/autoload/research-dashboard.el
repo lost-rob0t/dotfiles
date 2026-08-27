@@ -16,7 +16,7 @@
   :type '(repeat string))
 
 (defcustom nsa/research-dashboard-max-workers 6
-  "Maximum concurrent research-file fetches."
+  "Maximum concurrent repository-tree and research-file fetches."
   :type 'integer)
 
 (defcustom nsa/research-dashboard-show-legacy-default nil
@@ -366,26 +366,51 @@
                  generation nil (format "%s: %s" id (error-message-string error-data)))))))))
      (list "api" (format "repos/%s/git/blobs/%s" repo blob)))))
 
-(defun nsa/research-dashboard--start-job (generation hit)
-  (pcase-let ((`(,repo ,branch ,path ,blob) hit))
-    (if (not (string-empty-p branch))
-        (nsa/research-dashboard--blob-job generation repo branch path blob)
-      (let ((dashboard (current-buffer)))
-        (nsa/research-dashboard--gh-json
-         dashboard
-         (lambda (ok result)
-           (when (and (buffer-live-p dashboard)
-                      (= generation (buffer-local-value 'nsa/research-dashboard--generation dashboard)))
-             (with-current-buffer dashboard
-               (if ok
-                   (let ((resolved (nsa/research-dashboard--get "default_branch" result)))
-                     (if resolved
-                         (nsa/research-dashboard--blob-job generation repo resolved path blob)
-                       (nsa/research-dashboard--job-done
-                        generation nil (format "%s:%s: no default branch" repo path))))
-                 (nsa/research-dashboard--job-done
-                  generation nil (format "%s:%s: %s" repo path result))))))
-         (list "api" (format "repos/%s" repo)))))))
+(defun nsa/research-dashboard--tree-job (generation repo branch)
+  "Enumerate research files from REPO's current default BRANCH tree."
+  (let ((dashboard (current-buffer)))
+    (nsa/research-dashboard--gh-json
+     dashboard
+     (lambda (ok result)
+       (when (and (buffer-live-p dashboard)
+                  (= generation (buffer-local-value 'nsa/research-dashboard--generation dashboard)))
+         (with-current-buffer dashboard
+           (cond
+            ((not ok)
+             (nsa/research-dashboard--job-done
+              generation nil (format "%s@%s tree: %s" repo branch result)))
+            ((nsa/research-dashboard--get "truncated" result)
+             (nsa/research-dashboard--job-done
+              generation nil
+              (format "%s@%s: recursive Git tree was truncated; research scan is incomplete"
+                      repo branch)))
+            (t
+             (dolist (entry (nsa/research-dashboard--get "tree" result))
+               (let ((path (nsa/research-dashboard--get "path" entry))
+                     (type (nsa/research-dashboard--get "type" entry))
+                     (blob (nsa/research-dashboard--get "sha" entry)))
+                 (when (and (string= type "blob") blob
+                            (nsa/research-dashboard--candidate-path-p path))
+                   (let ((id (concat repo ":" path)))
+                     (unless (gethash id nsa/research-dashboard--seen)
+                       (puthash id t nsa/research-dashboard--seen)
+                       (setq nsa/research-dashboard--queue
+                             (nconc nsa/research-dashboard--queue
+                                    (list (list 'blob repo branch path blob)))))))))
+             (nsa/research-dashboard--job-done generation))))))
+     (list "api" "--method" "GET"
+           (format "repos/%s/git/trees/%s" repo (url-hexify-string branch))
+           "-f" "recursive=1"))))
+
+(defun nsa/research-dashboard--start-job (generation job)
+  (pcase job
+    (`(tree ,repo ,branch)
+     (nsa/research-dashboard--tree-job generation repo branch))
+    (`(blob ,repo ,branch ,path ,blob)
+     (nsa/research-dashboard--blob-job generation repo branch path blob))
+    (_
+     (nsa/research-dashboard--job-done
+      generation nil (format "Invalid dashboard job: %S" job)))))
 
 (defun nsa/research-dashboard--pump (generation)
   (while (and (= generation nsa/research-dashboard--generation)
@@ -395,10 +420,18 @@
     (nsa/research-dashboard--start-job generation (pop nsa/research-dashboard--queue)))
   (nsa/research-dashboard--schedule-render))
 
-(defun nsa/research-dashboard--search-owner (generation owner login)
-  (let* ((dashboard (current-buffer))
-         (scope (if (string= owner login) (concat "user:" owner) (concat "org:" owner)))
-         (query (format "research in:path extension:org %s" scope)))
+(defun nsa/research-dashboard--owner-repos-args (owner login)
+  (if (string= owner login)
+      (list "api" "--method" "GET" "--paginate" "user/repos"
+            "-f" "affiliation=owner" "-f" "per_page=100"
+            "--jq" ".[] | [.full_name, (.default_branch // \"\")] | @tsv")
+    (list "api" "--method" "GET" "--paginate" (format "orgs/%s/repos" owner)
+          "-f" "type=all" "-f" "per_page=100"
+          "--jq" ".[] | [.full_name, (.default_branch // \"\")] | @tsv")))
+
+(defun nsa/research-dashboard--list-owner-repos (generation owner login)
+  "List OWNER repositories and queue current default-branch tree scans."
+  (let ((dashboard (current-buffer)))
     (nsa/research-dashboard--gh
      dashboard
      (lambda (ok output)
@@ -406,26 +439,25 @@
                   (= generation (buffer-local-value 'nsa/research-dashboard--generation dashboard)))
          (with-current-buffer dashboard
            (if (not ok)
-               (push (format "%s: %s" owner (string-trim output)) nsa/research-dashboard--errors)
+               (push (format "%s repositories: %s" owner (string-trim output))
+                     nsa/research-dashboard--errors)
              (dolist (line (split-string output "\n" t))
-               (pcase-let ((`(,repo ,branch ,path ,blob) (split-string line "\t" nil)))
-                 (let ((id (and repo path (concat repo ":" path))))
-                   (when (and id (nsa/research-dashboard--candidate-path-p path)
-                              (not (gethash id nsa/research-dashboard--seen)))
-                     (puthash id t nsa/research-dashboard--seen)
-                     (setq nsa/research-dashboard--queue
-                           (nconc nsa/research-dashboard--queue
-                                  (list (list repo (or branch "") path blob)))))))))
+               (pcase-let ((`(,repo ,branch) (split-string line "\t" nil)))
+                 (if (or (not repo) (string-empty-p (or branch "")))
+                     (push (format "%s: repository has no default branch" (or repo owner))
+                           nsa/research-dashboard--errors)
+                   (setq nsa/research-dashboard--queue
+                         (nconc nsa/research-dashboard--queue
+                                (list (list 'tree repo branch))))))))
            (cl-decf nsa/research-dashboard--searches-left)
            (nsa/research-dashboard--pump generation)
            (nsa/research-dashboard--finish))))
-     (list "api" "--method" "GET" "--paginate" "search/code"
-           "-f" (concat "q=" query) "-f" "per_page=100"
-           "--jq" ".items[] | [.repository.full_name, (.repository.default_branch // \"\"), .path, .sha] | @tsv"))))
+     (nsa/research-dashboard--owner-repos-args owner login))))
 
 (defun nsa/research-dashboard--start-searches (generation login owners)
   (setq nsa/research-dashboard--searches-left (length owners))
-  (dolist (owner owners) (nsa/research-dashboard--search-owner generation owner login))
+  (dolist (owner owners)
+    (nsa/research-dashboard--list-owner-repos generation owner login))
   (nsa/research-dashboard--finish))
 
 (defun nsa/research-dashboard--discover (generation)
@@ -461,7 +493,7 @@
      (list "api" "user" "--jq" ".login"))))
 
 (defun nsa/research-dashboard-refresh ()
-  "Refresh asynchronously; no GitHub operation waits on the Emacs UI thread."
+  "Refresh asynchronously from current default-branch repository trees."
   (interactive)
   (cl-incf nsa/research-dashboard--generation)
   (nsa/research-dashboard--cancel)
@@ -536,6 +568,7 @@
     (princ "L    show/hide unmigrated review-ready research\n")
     (princ "e    show scan/decision errors\n")
     (princ "?    this help\n\n")
+    (princ "Discovery reads each visible repository's current default-branch tree.\n")
     (princ "By default only canonical PENDING research is visible.\n")
     (princ "UNMIGRATED means REVIEW/RESEARCHED/VERIFIED without the canonical approval block.\n")))
 
