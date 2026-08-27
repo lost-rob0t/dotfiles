@@ -1,0 +1,292 @@
+#+title: Fail-safe research approval
+#+property: header-args :emacs-lisp :tangle ./research-approval.el :results none
+
+This command records human approval in a project research record and publishes
+only that marker.  It deliberately uses the current branch's configured
+upstream instead of selecting or creating a branch.
+
+#+begin_src emacs-lisp
+;;; research-approval.el -*- lexical-binding: t; -*-
+
+(require 'cl-lib)
+(require 'org)
+(require 'subr-x)
+
+(defconst nsa/research-approval--path-regexp
+  "\\`\\(?:research\\|rage\\)/.+\\.org\\'"
+  "Repository-relative paths accepted by the approval command.")
+
+(defun nsa/research-approval--git-result (directory &rest arguments)
+  "Run Git with ARGUMENTS in DIRECTORY and return (STATUS . OUTPUT)."
+  (with-temp-buffer
+    (let ((default-directory (file-name-as-directory directory)))
+      (cons (apply #'process-file
+                   "git" nil (list (current-buffer) t) nil arguments)
+            (string-trim-right (buffer-string))))))
+
+(defun nsa/research-approval--git (directory &rest arguments)
+  "Run Git with ARGUMENTS in DIRECTORY and return its output.
+Signal a `user-error' when Git fails."
+  (pcase-let ((`(,status . ,output)
+               (apply #'nsa/research-approval--git-result
+                      directory arguments)))
+    (unless (zerop status)
+      (user-error "Git %s failed%s"
+                  (string-join arguments " ")
+                  (if (string-empty-p output) "" (format ": %s" output))))
+    output))
+
+(defun nsa/research-approval--git-lines (directory &rest arguments)
+  "Run Git with ARGUMENTS in DIRECTORY and return nonempty output lines."
+  (split-string
+   (apply #'nsa/research-approval--git directory arguments) "\n" t))
+
+(defun nsa/research-approval--one (description values)
+  "Return the only member of VALUES or reject ambiguous DESCRIPTION."
+  (unless (= (length values) 1)
+    (user-error "Cannot prove %s: expected one value, found %d"
+                description (length values)))
+  (car values))
+
+(defun nsa/research-approval--eligible-path-p (path)
+  "Return non-nil when PATH names a research or RAGE Org record."
+  (and (not (string-prefix-p "../" path))
+       (string-match-p nsa/research-approval--path-regexp path)))
+
+(defun nsa/research-approval--github-url-p (url)
+  "Return non-nil when URL is an unambiguous GitHub repository URL."
+  (string-match-p
+   (concat "\\`\\(?:git@github\\.com:"
+           "\\|ssh://git@github\\.com/"
+           "\\|https://github\\.com/\\)"
+           "[^/[:space:]]+/[^/[:space:]]+\\(?:\\.git\\)?/?\\'")
+   url))
+
+(defun nsa/research-approval--context (&optional require-clean)
+  "Return verified Git context for the current buffer.
+When REQUIRE-CLEAN is non-nil, reject every tracked, staged, or untracked
+working-tree change."
+  (unless (and buffer-file-name (file-regular-p buffer-file-name))
+    (user-error "This buffer is not visiting a regular file"))
+  (when (file-remote-p buffer-file-name)
+    (user-error "Remote files are not supported"))
+  (when (buffer-modified-p)
+    (user-error "Save or discard existing buffer edits before approval"))
+  (let* ((file (file-truename buffer-file-name))
+         (directory (file-name-directory file))
+         (root (file-name-as-directory
+                (file-truename
+                 (nsa/research-approval--git directory
+                                             "rev-parse" "--show-toplevel"))))
+         (path (file-relative-name file root)))
+    (unless (nsa/research-approval--eligible-path-p path)
+      (user-error "%s is not a research/ or rage/ Org record" path))
+    (nsa/research-approval--git root "ls-files" "--error-unmatch" "--" path)
+    (when require-clean
+      (let ((status (nsa/research-approval--git
+                     root "status" "--porcelain=v1" "--untracked-files=all")))
+        (unless (string-empty-p status)
+          (user-error "Repository has changes beyond this approval:\n%s" status))))
+    (let* ((branch-result
+            (nsa/research-approval--git-result
+             root "symbolic-ref" "--quiet" "--short" "HEAD"))
+           (branch (cdr branch-result)))
+      (unless (and (zerop (car branch-result)) (not (string-empty-p branch)))
+        (user-error "Detached HEAD: approval requires a named current branch"))
+      (let* ((remote
+              (nsa/research-approval--one
+               (format "remote for branch %s" branch)
+               (nsa/research-approval--git-lines
+                root "config" "--get-all" (format "branch.%s.remote" branch))))
+             (merge-ref
+              (nsa/research-approval--one
+               (format "upstream branch for %s" branch)
+               (nsa/research-approval--git-lines
+                root "config" "--get-all" (format "branch.%s.merge" branch)))))
+        (when (string= remote ".")
+          (user-error "Branch %s tracks a local branch, not GitHub" branch))
+        (unless (string-prefix-p "refs/heads/" merge-ref)
+          (user-error "Upstream %s is not a remote branch" merge-ref))
+        (let* ((upstream-branch (string-remove-prefix "refs/heads/" merge-ref))
+               (upstream
+                (nsa/research-approval--git
+                 root "rev-parse" "--abbrev-ref" "--symbolic-full-name"
+                 "@{upstream}"))
+               (expected-upstream (concat remote "/" upstream-branch))
+               (push-url
+                (nsa/research-approval--one
+                 (format "push URL for remote %s" remote)
+                 (nsa/research-approval--git-lines
+                  root "remote" "get-url" "--push" "--all" remote))))
+          (unless (string= upstream expected-upstream)
+            (user-error "Upstream mismatch: configured %s, resolved %s"
+                        expected-upstream upstream))
+          (unless (nsa/research-approval--github-url-p push-url)
+            (user-error "Push URL is not a proven GitHub repository: %s" push-url))
+          (list :root root
+                :path path
+                :branch branch
+                :remote remote
+                :merge-ref merge-ref
+                :upstream upstream
+                :push-url push-url
+                :head (nsa/research-approval--git root "rev-parse" "HEAD")))))))
+
+(defun nsa/research-approval--insert-marker (timestamp)
+  "Insert an explicit approval marker using TIMESTAMP in the current Org file."
+  (let ((case-fold-search t))
+    (save-excursion
+      (goto-char (point-min))
+      (when (re-search-forward "^#\\+approval:[ \t]*" nil t)
+        (user-error "This record already contains an approval marker"))
+      (goto-char (point-min))
+      (cond ((re-search-forward "^#\\+status:.*$" nil t) (forward-line 1))
+            ((re-search-forward "^#\\+title:.*$" nil t) (forward-line 1))
+            (t (goto-char (point-min))))
+      (unless (bolp) (insert "\n"))
+      (insert "#+approval: APPROVED\n"
+              "#+approved_at: " timestamp "\n"))))
+
+(defun nsa/research-approval--same-target-p (before after)
+  "Return non-nil when BEFORE and AFTER describe the same checkout target."
+  (cl-every (lambda (key) (equal (plist-get before key) (plist-get after key)))
+            '(:root :path :branch :remote :merge-ref :upstream :push-url :head)))
+
+(defun nsa/research-approval--only-intended-edit-p (context)
+  "Return non-nil when CONTEXT's file is the sole unstaged repository edit."
+  (let* ((root (plist-get context :root))
+         (path (plist-get context :path)))
+    (and (equal (nsa/research-approval--git-lines
+                 root "status" "--porcelain=v1" "--untracked-files=all")
+                (list (concat " M " path)))
+         (equal (nsa/research-approval--git-lines
+                 root "diff" "--name-only" "--")
+                (list path))
+         (null (nsa/research-approval--git-lines
+                root "diff" "--cached" "--name-only" "--")))))
+
+(defun nsa/research-approval--safe-to-restore-p (context)
+  "Return non-nil when CONTEXT's file is still the sole repository change."
+  (let* ((root (plist-get context :root))
+         (path (plist-get context :path))
+         (status (nsa/research-approval--git-lines
+                  root "status" "--porcelain=v1" "--untracked-files=all")))
+    (and (equal (nsa/research-approval--git root "rev-parse" "HEAD")
+                (plist-get context :head))
+         (= (length status) 1)
+         (string-suffix-p (concat " " path) (car status))
+         (equal (nsa/research-approval--git-lines
+                 root "diff" "HEAD" "--name-only" "--" path)
+                (list path)))))
+
+(defun nsa/research-approval--restore-buffer (contents point)
+  "Restore current buffer to CONTENTS and POINT, then save it."
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (insert contents)
+    (goto-char (min point (point-max)))
+    (save-buffer)))
+
+(defun nsa/research-approval--preview (context)
+  "Display the approval diff described by CONTEXT."
+  (let* ((root (plist-get context :root))
+         (path (plist-get context :path))
+         (diff (nsa/research-approval--git
+                root "diff" "--no-ext-diff" "--no-color" "--" path))
+         (buffer (get-buffer-create "*Research approval preview*")))
+    (with-current-buffer buffer
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert (format "Approval target\n  file: %s\n  branch: %s\n"
+                        path (plist-get context :branch)))
+        (insert (format "  upstream: %s\n  push URL: %s\n\n"
+                        (plist-get context :upstream)
+                        (plist-get context :push-url)))
+        (insert diff "\n")
+        (diff-mode)
+        (goto-char (point-min))))
+    (display-buffer buffer)))
+
+;;;###autoload
+(defun nsa/research-approve-and-push ()
+  "Approve the current research Org record, commit it alone, and push upstream.
+
+The command refuses existing edits, untracked files, detached HEAD, ambiguous
+branch configuration, non-GitHub push URLs, and any target change during the
+workflow.  It previews the exact Org diff and performs a Git push dry-run
+before asking for final confirmation."
+  (interactive)
+  (let* ((context (nsa/research-approval--context t))
+         (root (plist-get context :root))
+         (path (plist-get context :path))
+         (remote (plist-get context :remote))
+         (merge-ref (plist-get context :merge-ref))
+         (original (buffer-substring-no-properties (point-min) (point-max)))
+         (original-point (point))
+         (timestamp (format-time-string "[%Y-%m-%d %a %H:%M %z]"))
+         (commit-message
+          (format "docs(research): approve %s" (file-name-base path)))
+         approval-contents
+         committed)
+    (nsa/research-approval--git
+     root "push" "--dry-run" "--porcelain" remote (concat "HEAD:" merge-ref))
+    (unwind-protect
+        (progn
+          (nsa/research-approval--insert-marker timestamp)
+          (setq approval-contents
+                (buffer-substring-no-properties (point-min) (point-max)))
+          (save-buffer)
+          (unless (equal approval-contents
+                           (buffer-substring-no-properties (point-min) (point-max)))
+            (user-error "A save hook changed more than the approval marker"))
+          (unless (nsa/research-approval--only-intended-edit-p context)
+            (user-error "Repository changed during approval; refusing to commit"))
+          (nsa/research-approval--preview context)
+          (unless (yes-or-no-p
+                   (format "Commit only %s and push %s to %s? "
+                           path (plist-get context :branch)
+                           (plist-get context :upstream)))
+            (user-error "Approval cancelled; file restored"))
+          (let ((current (nsa/research-approval--context nil)))
+            (unless (and (nsa/research-approval--same-target-p context current)
+                         (nsa/research-approval--only-intended-edit-p context))
+              (user-error "Checkout or working tree changed; refusing to commit")))
+          (nsa/research-approval--git
+           root "commit" "--only" "-m" commit-message "--" path)
+          (setq committed t)
+          (unless (and
+                   (equal (nsa/research-approval--git root "rev-parse" "HEAD^")
+                          (plist-get context :head))
+                   (equal (nsa/research-approval--git-lines
+                           root "diff-tree" "--no-commit-id" "--name-only" "-r" "HEAD")
+                          (list path))
+                   (string-empty-p
+                    (nsa/research-approval--git
+                     root "status" "--porcelain=v1" "--untracked-files=all")))
+            (user-error "Commit verification failed; nothing was pushed"))
+          (let ((current (nsa/research-approval--context t)))
+            (unless (and (equal (plist-get context :root) (plist-get current :root))
+                         (equal (plist-get context :path) (plist-get current :path))
+                         (equal (plist-get context :branch) (plist-get current :branch))
+                         (equal (plist-get context :remote) (plist-get current :remote))
+                         (equal (plist-get context :merge-ref) (plist-get current :merge-ref))
+                         (equal (plist-get context :upstream) (plist-get current :upstream))
+                         (equal (plist-get context :push-url) (plist-get current :push-url)))
+              (user-error "Push target changed after commit; nothing was pushed")))
+          (nsa/research-approval--git
+           root "push" "--porcelain" remote (concat "HEAD:" merge-ref))
+          (message "Approved %s, committed it alone, and pushed %s"
+                   path (plist-get context :upstream)))
+      (unless committed
+        (when (and approval-contents
+                   (equal (buffer-substring-no-properties (point-min) (point-max))
+                          (with-temp-buffer
+                            (insert-file-contents buffer-file-name)
+                            (buffer-string)))
+                   (nsa/research-approval--safe-to-restore-p context))
+          (ignore-errors
+            (nsa/research-approval--git root "restore" "--staged" "--" path))
+          (nsa/research-approval--restore-buffer original original-point))))))
+
+(provide 'research-approval)
+#+end_src

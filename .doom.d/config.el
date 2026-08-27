@@ -87,6 +87,13 @@ The optional argument NEW-WINDOW is not used."
       time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
 (add-hook 'before-save-hook 'time-stamp nil)
 
+(autoload #'nsa/research-approve-and-push "research-approval" nil t)
+
+(map! :after org
+      :localleader
+      :map org-mode-map
+      :desc "Approve research and push" "A" #'nsa/research-approve-and-push)
+
 (defun org-ask-location ()
   (let* ((org-refile-targets '((nil :maxlevel . 9)))
          (hd (condition-case nil

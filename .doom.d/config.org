@@ -355,6 +355,19 @@ i needed this to keep track of when i modify an org roam file so when i export i
       time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
 (add-hook 'before-save-hook 'time-stamp nil)
 #+end_src
+*** Research approval
+Approve a tracked =research/*.org= or =rage/*.org= record from its current
+checkout.  The command previews the marker diff and proves the current GitHub
+upstream before it commits or pushes anything.
+
+#+begin_src emacs-lisp
+(autoload #'nsa/research-approve-and-push "research-approval" nil t)
+
+(map! :after org
+      :localleader
+      :map org-mode-map
+      :desc "Approve research and push" "A" #'nsa/research-approve-and-push)
+#+end_src
 *** org capture
 Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][source.]]
 #+begin_src emacs-lisp

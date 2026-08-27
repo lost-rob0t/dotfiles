@@ -10,6 +10,7 @@ The Doom configuration is literate.
 | [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/config.el][config.el]] | Main Emacs/Doom behavior. |
 | [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/init.el][init.el]] | Doom module selection from an explicitly tangled block. |
 | [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | [[file:../../.doom.d/packages.el][packages.el]] | Doom package declarations. |
+| [[file:../../.doom.d/autoload/research-approval.org][.doom.d/autoload/research-approval.org]] | [[file:../../.doom.d/autoload/research-approval.el][research-approval.el]] | Fail-safe research/RAGE approval, commit, and push workflow. |
 | [[file:../../.doom.d/snippets/][.doom.d/snippets/]] | n/a | Yasnippet and Org helper snippets. |
 
 The top of =config.org= declares =config.el= as its default tangle target, while individual blocks may override the target.  Read block-level =:tangle= arguments before assuming one Org file produces only one output.
@@ -54,6 +55,22 @@ For package/module changes:
 #+begin_src shell
   doom sync
 #+end_src
+
+* Approving a project research record
+From a tracked =research/*.org= or =rage/*.org= buffer, invoke
+=M-x nsa/research-approve-and-push= or use =SPC m A=.  The command adds:
+
+#+begin_example
+#+approval: APPROVED
+#+approved_at: [YYYY-MM-DD Day HH:MM ZONE]
+#+end_example
+
+Before changing the file, it requires a completely clean repository, a named
+current branch, one configured upstream branch, and one GitHub push URL.  It
+runs =git push --dry-run= against that exact upstream, displays the exact Org
+diff, and asks for confirmation before creating a file-only commit and pushing.
+It never checks out, creates, or guesses a branch.  A failed push leaves the
+verified approval commit local and reports the Git error.
 
 * Documentation discipline
 Put configuration rationale next to the executable Org source whenever it explains a specific setting.  Use this wiki for architecture, ownership, workflow, and navigation.  This keeps the literate config genuinely literate instead of making readers hunt through two competing manuals.
