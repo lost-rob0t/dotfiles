@@ -407,6 +407,13 @@ I use [[https://wttr.in]] for my weather
 alias wttr="curl wttr.in"
 #+end_src
 
+*** OpenCode
+OpenCode is invoked directly from the current terminal.  =oc= is a short alias
+for the executable.
+#+begin_src sh :tangle .bashrc
+alias oc='opencode'
+#+end_src
+
 Run a couchdb docker container
 
 #+begin_src sh :tangle .bashrc
@@ -625,4 +632,3 @@ esac
 
 [fn:2] https://taingram.org/blog/emacs-client.html
 [fn:1] https://github.com/labbots/bash-oneliners#terminal
-

@@ -12,6 +12,10 @@ The primary Qtile configuration is literate:
 
 The main Org source describes itself as modular and self-documenting.  Prefer improving that source when documenting a concrete keybinding or widget rather than duplicating the detail here.
 
+Complex click-driven panels use the shared [[file:../qtile-emacs-ui.org][Qtile and Emacs dropdown UI]]
+boundary.  Qtile computes the triggering widget's physical geometry and
+Emacs renders the dashboard; callers do not provide fixed monitor coordinates.
+
 * Important invariants
 The repository editing rules require Qtile sync/reload behavior to:
 - use the shared =git-sync= implementation;
@@ -22,6 +26,23 @@ The repository editing rules require Qtile sync/reload behavior to:
 OpenRouter telemetry is rate-oriented rather than balance-oriented. The bar reports prompt and completion tokens from the trailing 60-second window as tokens per minute, polls the analytics helper every five seconds, and graphs five minutes of sampled rates. The balance and 30-day counters are deliberately omitted. The graph suppresses constant series and adaptively scales moving series so a much larger prompt stream does not visually erase completion traffic.
 
 The dynamic =Super+Ctrl+Shift+R= binding belongs to the OpenRouter telemetry helper.  Keep its documentation and generated implementation synchronized with =qtile-openrouter.org=.
+
+* Auto workspace routing
+The Qtile Auto mode button routes newly managed windows while it is enabled;
+it does not poll or repeatedly reorganize existing windows.  AI-related
+windows go to workspace 3, Discord goes to workspace 9, games go to workspace
+4, and video players or video-site tabs go to workspace 6.  This includes
+ChatGPT Desktop, AI tabs in Brave, T3 Code, Emacs LLM/OpenRouter/MCP buffers,
+OpenCode or Claude Code terminal windows, Steam/PrismLauncher/Minecraft/War
+Thunder, and YouTube/Twitch tabs.
+The matcher is maintained in [[file:../../.config/qtile/qtile_ai_windows.py][qtile_ai_windows.py]] and was seeded from the local ActivityWatch window bucket;
+ordinary Brave pages and terminal windows are not routed by title alone.  The
+focused newly routed window follows its destination group so it does not
+appear to disappear from the current screen.
+
+The Bash =opencode= command runs the executable directly in the current
+terminal; =oc= is a short alias for it.  Qtile's =Super+T= binding launches a
+separate Terminator window.
 
 * Desktop integration map
 Qtile-related files live under [[file:../../.config/qtile/][.config/qtile/]].  Besides the generated main config, that tree contains widgets, helper scripts, icons, autostart integration, and support code.

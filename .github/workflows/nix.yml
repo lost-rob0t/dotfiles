@@ -17,8 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: devops-actions/actionlint@f9ec6b423d04a7f7a9f6872b1a16fd8313a7db62
-      - name: Install shell tooling
-        run: sudo apt-get update && sudo apt-get install -y emacs-nox shellcheck
+      - name: Install shell and Qtile test tooling
+        run: sudo apt-get update && sudo apt-get install -y emacs-nox shellcheck python3-psutil
       - name: Check shell scripts
         run: |
           set -euo pipefail

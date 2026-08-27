@@ -32,6 +32,12 @@ The Home Manager tree is split into:
 - [[file:../../nix/home-manager/mods/][mods/]] - reusable modules;
 - [[file:../../nix/home-manager/systems/][systems/]] - host/profile composition.
 
+The canonical skills input installs the shared skill catalog into the configured
+OpenCode, Claude, and generic Agent Skills user paths (including the
+=.agents/skills= path consumed by Codex-compatible clients).  Keep durable skill
+changes in the skills repository; this dotfiles repository only selects the input
+revision and enables the client adapters.
+
 * Installer applications
 The flake exposes =install-logos= and =install-logos-gui=.  Their shell implementations live under [[file:../../scripts/][scripts/]].
 

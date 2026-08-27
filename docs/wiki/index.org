@@ -14,6 +14,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:nix.org][Nix and Home Manager]] - flake outputs, hosts, profiles, installers, and module layout.
 - [[file:emacs.org][Emacs and Doom]] - Doom literate sources and Emacs-related code in the repository.
 - [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, and desktop integration.
+- [[file:../qtile-emacs-ui.org][Qtile and Emacs dropdown UI]] - shared popup lifecycle, widget-relative geometry, notification backends, and dashboard ownership.
 - [[file:maintenance.org][Maintenance]] - safe edit/tangle/test workflow and useful verification commands.
 
 * Repository map

@@ -8,6 +8,16 @@ from pathlib import Path
 
 from libqtile.widget import base
 
+from notify import notify
+
+
+def _format_rate(value: float) -> str:
+    amount = max(float(value), 0.0)
+    for suffix in ("B/s", "KiB/s", "MiB/s", "GiB/s"):
+        if amount < 1024 or suffix == "GiB/s":
+            return f"{amount:.0f}{suffix}"
+        amount /= 1024
+
 
 class NetIOGraph(base._Widget):
     """Draw download and upload rates together on one shared linear scale.
@@ -34,6 +44,7 @@ class NetIOGraph(base._Widget):
         self.upload = deque(maxlen=max(int(self.samples), 2))
         self._last = None
         self._last_at = None
+        self.add_callbacks({"Button1": self.show_stats, "Button3": self.show_stats})
 
     @staticmethod
     def _default_interface() -> str | None:
@@ -86,16 +97,31 @@ class NetIOGraph(base._Widget):
     def _update(self):
         now = time.monotonic()
         current = self._read_bytes()
-        if current is not None and self._last is not None and self._last_at is not None:
+        if current is None:
+            self._last = None
+            self._last_at = None
+            return
+        if self._last is not None and self._last_at is not None:
             elapsed = max(now - self._last_at, 0.001)
             down = max((current[0] - self._last[0]) / elapsed, 0.0)
             up = max((current[1] - self._last[1]) / elapsed, 0.0)
             self.download.append(down)
             self.upload.append(up)
             self.draw()
-        if current is not None:
-            self._last = current
-            self._last_at = now
+        self._last = current
+        self._last_at = now
+
+    def show_stats(self):
+        """Show current RX/TX rates through a desktop notification."""
+        down = self.download[-1] if self.download else 0.0
+        up = self.upload[-1] if self.upload else 0.0
+        interface = self._default_interface() or "auto"
+        notify(
+            "Network I/O",
+            f"interface {interface}\n"
+            f"download {_format_rate(down)}\n"
+            f"upload {_format_rate(up)}",
+        )
 
     def _draw_series(self, values, color, ceiling, usable_height):
         if not values or ceiling <= 0:
@@ -121,3 +147,48 @@ class NetIOGraph(base._Widget):
         self._draw_series(self.download, self.download_color, ceiling, usable_height)
         self._draw_series(self.upload, self.upload_color, ceiling, usable_height)
         self.draw_at_default_position()
+
+
+class NetIORate(base.BackgroundPoll):
+    """Display RX/download and TX/upload rates from the graph sampler."""
+
+    orientations = base.ORIENTATION_HORIZONTAL
+
+    def __init__(self, **config):
+        super().__init__(text="↓0B/s ↑0B/s", **config)
+        self._last = None
+        self._last_at = None
+        self._last_rates = (0.0, 0.0)
+        self.add_callbacks({"Button1": self.show_stats, "Button3": self.show_stats})
+
+    def show_stats(self):
+        """Show the latest numeric RX/TX rates through a notification."""
+        down, up = self._last_rates
+        notify(
+            "Network I/O",
+            f"interface {NetIOGraph._default_interface() or 'auto'}\n"
+            f"download {_format_rate(down)}\n"
+            f"upload {_format_rate(up)}",
+        )
+
+    def poll(self):
+        now = time.monotonic()
+        current = NetIOGraph._read_bytes()
+        if current is None:
+            self._last = None
+            self._last_at = None
+            return "↓? ↑?"
+        if self._last is None or self._last_at is None:
+            self._last = current
+            self._last_at = now
+            return "↓0B/s ↑0B/s"
+        previous = self._last
+        elapsed = now - self._last_at
+        self._last = current
+        self._last_at = now
+        if elapsed <= 0:
+            return "↓0B/s ↑0B/s"
+        down = max((current[0] - previous[0]) / elapsed, 0.0)
+        up = max((current[1] - previous[1]) / elapsed, 0.0)
+        self._last_rates = (down, up)
+        return f"↓{_format_rate(down)} ↑{_format_rate(up)}"

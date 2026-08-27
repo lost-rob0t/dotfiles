@@ -1,0 +1,335 @@
+#+title: Qtile and Emacs Dropdown UI
+#+startup: overview
+#+options: toc:2 num:nil
+
+* Purpose
+
+Qtile owns desktop geometry and invocation.  Emacs owns the contents and
+interactive presentation of complex dashboards.  The shared boundary prevents
+each bar feature from growing its own frame construction, focus-loss behavior,
+coordinate math, and cleanup rules.
+
+The current implementation is intentionally small:
+
+#+begin_example
+Qtile widget
+    |
+    v
+widget geometry + owning physical screen
+    |
+    v
+.config/qtile/emacs_ui.py
+    |
+    v
+asynchronous emacsclient -s qtile --eval with JSON arguments
+    |
+    v
+lisp/qtile/qtile-ui.el
+    |
+    v
+feature renderer: qtile-desktop, qtile-workflow, qtile-notifications,
+qtile-services
+#+end_example
+
+* Named Emacs server
+
+Popups connect to the named server =qtile= (=QTILE_EMACS_SERVER=; set it empty
+to use the default server).  When the server is not running, Qtile starts it
+as =emacs --daemon=qtile=.  The Qtile autostart script performs the same check
+after the X session provides =DISPLAY= and =XAUTHORITY=.  Popup requests carry
+that display to =make-frame-on-display=, because a daemon's initial terminal is
+not a GUI terminal.  A daemon opens no window by itself, which is the safe
+fallback — =emacsclient -a emacs= instead spawned a second full-size GUI Emacs
+ and then rendered the popup inside it.  The user's interactive Emacs is never
+ touched or reused for popups.
+
+Popup frames explicitly inherit the active Emacs default face colors and clear
+fullscreen/maximized state.  Closing a workflow popup aborts an active
+minibuffer read before deleting the frame.
+
+* Ownership
+
+| Owner | Responsibilities |
+|-------+------------------|
+| Qtile | Widget lookup, physical monitor geometry, bar position, topology, invocation, window state |
+| =emacs_ui.py= | Widget-relative popup geometry, alignment, clamping, structured arguments, asynchronous launch |
+| =qtile-ui.el= | Stable popup identity, frame registry, frame parameters, focus, close/toggle, stale cleanup, dismissal keys |
+| Feature Elisp | Buffer contents, Org/status rendering, controls, feature-local async work |
+| =ui_settings.py= | Persistent presentation settings and atomic writes |
+| =dunst_history.py= | One normalized adapter for all Dunst history consumers |
+| =qtile_control.py= | Role-based bar composition and feature-to-UI wiring |
+
+The literate sources remain authoritative for the core Qtile runtime:
+
+- [[file:../.config/qtile/qtile-ai.org][qtile-ai.org]] tangles [[file:../.config/qtile/config.py][config.py]].
+- [[file:../.config/qtile/qtile-openrouter.org][qtile-openrouter.org]] tangles [[file:../.config/qtile/qtile_openrouter.py][qtile_openrouter.py]].
+- The standalone popup/adapter modules are source files, not tangled outputs.
+- [[file:../.config/dunst/dunst.org][dunst.org]] tangles [[file:../.config/dunst/dunstrc][dunstrc]].
+
+Do not patch a generated Qtile file while leaving its Org source stale.  The
+popup helpers are loaded by the generated OpenRouter/control path and are kept
+as focused standalone modules because they are not Org-generated artifacts.
+
+* Public Python API
+
+#+begin_src python
+from emacs_ui import popup_geometry, toggle_emacs_dropdown
+
+result = toggle_emacs_dropdown(
+    qtile,
+    widget_name="services_button",
+    popup_id="services",
+    function="qtile-services-open",
+    width=560,
+    height=460,
+    align="right",
+)
+#+end_src
+
+=align= is =left=, =center=, or =right=.  Callers name the trigger widget;
+they do not supply absolute desktop coordinates.  =popup_geometry= resolves
+the widget's bar and owning screen, attaches the popup to the bar's bottom,
+and clamps it inside that physical screen.  Screen origins need not be zero.
+The calculation is repeated on every click, so changed widget widths and
+monitor hotplug/reconfiguration are handled by the next invocation.
+
+=build_emacsclient_command= is the lower-level testable API for structured
+arguments.  It emits an argv list, never a shell command.  =toggle_emacs_dropdown=
+returns a =PopupLaunch= result immediately and performs the Emacs client call
+in a daemon worker, so Qtile's event loop does not wait for Emacs.
+
+* Public Elisp API
+
+The shared frame lifecycle is provided by =qtile-ui.el=:
+
+- =qtile-ui-toggle POPUP-ID RENDERER PARAMS= opens or closes a stable popup.
+- =qtile-ui-close POPUP-ID= closes a live popup by identity.
+- =qtile-ui-close-current= closes the current popup from a key or button.
+- =qtile-ui-show-errors= displays the shared =*Qtile Errors*= buffer.
+- =qtile-ui-prepare-buffer= removes the bottom modeline, adds a compact top
+  popup header, and disables line-number presentation.
+- =qtile-ui-bind-dismiss= binds =q= and =Escape= dismissal.
+- =qtile-ui-param KEY PARAMS= and =qtile-ui-args PARAMS= read JSON arguments.
+
+Frames use a private minibuffer, no menu bar, tool bar, or scroll bars by
+default.  Keeping the minibuffer private prevents Emacs's daemon-level
+=*Minibuf-0*= frame from being exposed as a full-size Qtile window.  Every
+dropdown gets a compact top header with its popup name and =q=/=Escape=
+dismissal hint; the bottom modeline is removed buffer-locally via
+=mode-line-format nil= plus Doom's =hide-mode-line-mode=.  Setting
+=mode-line-format= as a frame parameter has no effect.  The frame is registered
+by popup ID and is rediscovered by its frame parameter on reuse; deleted or
+stale entries are removed from the registry.  Rendering failures are appended
+to the Emacs =*Qtile Errors*= buffer and shown in the affected popup.
+
+=qtile-ui-org.el= supplies headings, sections, muted metadata, values,
+separators, buttons, status faces, and selected faces.  Feature modules use
+these primitives instead of duplicating frame boilerplate.
+
+* Current dropdowns
+
+** Agent Zero
+
+=qtile-agent-zero-open= remains in the existing =qtile-desktop.el= helper.
+Agent Zero still uses asynchronous =url-retrieve=, the conversation context
+ID, reset/new-context behavior, and private environment/API-key handling.  Its
+Qtile button now calls =toggle_emacs_dropdown= using the =agent_zero_button=
+geometry.  Credentials never enter the structured popup arguments.
+
+** Org TODO and date agenda
+
+=qtile-org-todos-open= uses the shared frame defaults.  The full date uses
+=qtile-org-agenda-day= and the =full_date_clock= widget.  It opens today's
+one-day agenda directly under that widget, stays open because it is no longer
+an =on_focus_lost_hide= ScratchPad, toggles closed on the second click, and
+supports =q=/=Escape=.  Time-only clocks retain the existing Dunst month
+calendar behavior.
+
+** Workflow picker
+
+The workflow selection call now derives right-aligned geometry from
+=workflow_button= and runs its Emacs client call in a worker.  =desktop= is
+preselected when available, while =[Cancel]= and =Escape=/=C-g= close the
+picker without applying a workflow.  The current workflow data contract
+remains backward-compatible with the existing simple JSON shape:
+
+#+begin_src json
+{
+  "coding": {
+    "auto_group": true,
+    "screens": {
+      "left": "1",
+      "center": "2",
+      "right": "7",
+      "aux": "8"
+    }
+  }
+}
+#+end_src
+
+Screen roles are resolved against current physical geometry by
+=apply_workflow=; unavailable roles and duplicate group assignments are
+skipped safely.  Rich capture, launch-missing, cleanup planning, and edit
+actions remain a separate workflow-model slice rather than being hidden in the
+popup renderer.
+
+** Notifications
+
+The notification widget preserves the existing Dmenu backend and right-click
+DND behavior.  The left click reads =~/.config/qtile/ui-settings.json= through
+=get_notification_ui=:
+
+#+begin_src json
+{
+  "notification_ui": "emacs"
+}
+#+end_src
+
+Supported values are =dmenu= and =emacs=.  Missing, malformed, or invalid
+settings safely select =dmenu=.  =set_notification_ui= writes atomically with
+a temporary file, fsync, and =os.replace=.  The setting is independent of
+workflow state and can also be changed by the Dmenu/Emacs buttons in the
+notification UI.
+
+=dunst_history.py= is the sole Dunst JSON adapter.  It normalizes IDs,
+application names, summaries, bodies, timestamps, categories, and urgency and
+returns every record in Dunst history.  The existing =dunst_menu.py= consumes
+the same parser, so the Dmenu UI is not removed or silently replaced.
+
+=qtile-notifications.el= requests the normalized snapshot with
+=make-process=, displays all returned records without a twenty-entry cap, and
+provides urgency/source/summary/body faces, selected notification highlighting,
+replay, refresh, DND toggle, two-step clear confirmation, and backend buttons.
+
+** SERVICES: a fourth dropdown
+
+The implemented SERVICES example is a user-service status dashboard:
+
+#+begin_example
+services_button
+    -> _toggle_services
+    -> toggle_emacs_dropdown(... "qtile-services-open" ...)
+    -> qtile-services.el
+    -> async systemctl --user list-units
+#+end_example
+
+The left bar contains =services_button=.  =qtile-services-open= renders the
+running user services, lets the user select one, refreshes asynchronously, and
+requires a second explicit activation before restarting the selected service.
+A new simple dropdown therefore needs one named Qtile widget, one renderer,
+and one shared-launcher call; it does not need raw coordinates, custom frame
+parameters, or manual modeline cleanup.
+
+* Native system telemetry
+
+The compact live telemetry remains native Qtile.  =qtile_system.py= adds a
+fixed 24-pixel icon-cell helper used by CPU, memory, network, and disk so Nerd
+Font bearings cannot clip a graph.  The disk icon uses a compact 18-pixel
+variant and zero free-space padding so the root amount stays visually attached
+to it.  The order is CPU, RAM, NET, DISK.  The CPU history/rendering is unchanged.
+
+=RootFree= reads =psutil.disk_usage("/")= and reports binary free space without
+spawning =df=.  =DiskIOSampler= resolves the root mount through
+=psutil.disk_partitions=, follows =/sys/class/block/*/slaves= for mapper/LVM/
+encrypted storage, prefers a direct root counter where available, and avoids
+counting both a mapper and the same physical backing device.  Rates use one
+monotonic elapsed interval, clamp counter resets to zero, and reset safely when
+the device disappears.  The graph uses one read/write ceiling; blue is read
+and pink is write.
+
+The already verified combined network graph is preserved: cyan/blue is
+incoming/download/RX and pink/red is outgoing/upload/TX.  Its numeric arrows
+remain beside the graph.
+
+* OpenRouter long ranges
+
+The OpenRouter graph continues to use provider bucket edges, the shared
+=log1p= transform, and a common ceiling.  For display, the query point budget
+is capped by the graph's pixel width.  Adjacent buckets are aggregated only
+when they land in the same display column and their time intervals touch;
+sparse gaps are retained instead of being turned into a smooth ramp.  A 1y
+view therefore gets useful display-aware aggregation from real history without
+inventing observations.
+
+* UI types
+
+- Simple dropdown: use a native Qtile widget for always-visible values; use the shared launcher when the click opens a small interactive panel.
+- Org dashboard: use =qtile-ui-org.el= for headings, values, status, buttons, and separators.
+- Chat: keep network I/O asynchronous in the feature module and use a reusable popup buffer for context and prompt controls.
+- Status panel: use Emacs when the panel has multiple sections or actions; keep one-line telemetry native in Qtile.
+- Action menu: use buttons and explicit confirmation for destructive actions; keep the action planner outside the renderer.
+- Utility panel: use a focused feature module such as SERVICES and call =make-process= for external status.
+- Notification dashboard: use =qtile-notifications.el= and =dunst_history.py= rather than a second Dunst parser.
+
+Do not use Emacs for a one-line, always-visible CPU, memory, network, disk,
+clock, or OpenRouter metric.  Native Qtile remains the correct owner for
+compact live status.
+
+* Positioning and lifecycle
+
+The three alignments are relative to the trigger widget:
+
+- =left= starts at the widget's left edge.
+- =center= centers the popup over the widget.
+- =right= ends at the widget's right edge.
+
+Widget positions are read from Qtile's =offset=/=length= attributes (with
+=x=/=width= as a legacy fallback).  Reading a nonexistent =x= silently yielded
+zero and anchored every popup at the screen's left edge; the offset-based
+lookup is covered by regression tests.
+
+The vertical anchor is the bar bottom.  The horizontal position is clamped to
+the owning physical screen, including non-zero monitor origins and different
+screen widths.  Widget widths are read at click time.  No feature should pass
+absolute X/Y coordinates or fixed monitor pixels.
+
+Lifecycle is:
+
+1. Qtile looks up the named widget and computes geometry.
+2. Qtile schedules an asynchronous shell-free =emacsclient= call.  The call has
+   no alternate editor: without the user's running Emacs server it fails
+   immediately and the worker sends a desktop notification instead of ever
+   launching a second full-size Emacs window.
+3. Emacs loads the feature helper and asks =qtile-ui-toggle= to open/reuse the stable ID.
+4. A second invocation selects/focuses and closes that ID.
+5. =q= or =Escape= closes the current frame.
+6. A Qtile reload recomputes geometry on the next click; an Emacs restart loses no durable workflow/settings data.
+
+The control-plane installer adds every shared =qtile-*= title to Qtile's
+floating layout once, without duplicating existing rules.  This is required
+for the pixel geometry to survive window management; without it, Emacs frames
+would be tiled as full-size application windows instead of dropdowns.
+
+Missing widgets, missing Emacs, failed history adapters, and stale frame
+registrations are reported or rendered as safe empty/error states rather than
+blocking Qtile.  Agent Zero secrets are never included in debug output.
+
+* Debugging checklist
+
+- Confirm the trigger widget's =name= and its bar's =screen=.
+- Inspect =PopupGeometry= for screen origin, widget width, bar bottom, and clamp.
+- Check the popup ID in =qtile-ui-frame-registry= and the frame's =qtile-ui-popup-id=.
+- Run the exact argv from =build_emacsclient_command= manually only after removing any private arguments.
+- Check Emacs =*Messages*= for =emacsclient= or renderer errors.
+- Check the Dunst adapter with =python3 ~/.config/qtile/scripts/dunst_history.py --json=.
+- Check the UI setting with =python3 ~/.config/qtile/ui_settings.py --get=.
+- Use =q= or =Escape= before reloading Qtile if a popup is stale.
+- Do not print Agent Zero environment values while diagnosing launch failures.
+
+* Verification
+
+From the repository root:
+
+#+begin_src sh
+python3 -m unittest discover -s .config/qtile/tests -p 'test_*.py'
+emacs -Q --batch -L lisp/qtile \
+  -l lisp/qtile/qtile-ui-test.el -f ert-run-tests-batch-and-exit
+python3 -m py_compile .config/qtile/*.py .config/qtile/scripts/*.py
+scripts/check-literate-sync
+#+end_src
+
+When a graphical X11 session is available, verify A0, TODO, date, workflow,
+SERVICES, and both notification backends on each physical screen.  Verify the
+existing network contract separately: cyan/blue is RX/download and pink/red
+is TX/upload.  This slice deliberately does not alter that working graph or
+the truthful OpenRouter bucket renderer.

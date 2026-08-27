@@ -158,6 +158,10 @@ class OwnedGroupBoxNavigationTests(unittest.TestCase):
             box.prev_group()
         self.assertEqual(navigated, [])
 
+    def test_group_icons_use_the_font_that_owns_their_metrics(self):
+        box, _ = self._build_box()
+        self.assertEqual(box.font, "Symbols Nerd Font")
+
     def test_next_group_skips_windowless_groups(self):
         box, navigated = self._build_box()
         groups = [
@@ -255,12 +259,12 @@ class OwnedGroupBoxNavigationTests(unittest.TestCase):
         self.assertIs(MODULE.next_visible_group([sentinel], object()), sentinel)
 
     def test_group_indicator_insets_padding_without_moving_center(self):
-        offset, width = MODULE.group_indicator_geometry(100, 32, 6)
-        self.assertEqual((offset, width), (106, 20))
+        offset, width = MODULE.group_indicator_geometry(100, 32, 6, 2)
+        self.assertEqual((offset, width), (108, 16))
         self.assertEqual(100 + 32 / 2, offset + width / 2)
 
     def test_group_indicator_does_not_collapse_tiny_boxes(self):
-        self.assertEqual(MODULE.group_indicator_geometry(5, 8, 6), (5, 8))
+        self.assertEqual(MODULE.group_indicator_geometry(5, 8, 6, 2), (5, 8))
 
 
 if __name__ == "__main__":
