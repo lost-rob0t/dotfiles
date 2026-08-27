@@ -205,6 +205,31 @@
       (should (equal (nsa/research-dashboard--get "sha" payload)
                      "abc123")))))
 
+(ert-deftest nsa/research-dashboard-approval-pr-body-has-machine-marker ()
+  (let* ((item (nsa/research-dashboard-test--item))
+         (decision
+          (nsa/research-decision-create
+           :dashboard (current-buffer)
+           :item item
+           :state "APPROVED"
+           :actor "operator"
+           :evidence "operator decision"
+           :approval-branch "research-approval/example"
+           :approval-commit "abc123"))
+        payload)
+    (cl-letf
+        (((symbol-function 'nsa/research-dashboard--gh-json)
+          (lambda (_dashboard callback args &optional input)
+            (if (seq-some (lambda (arg) (string-suffix-p "/merge" arg)) args)
+                (funcall callback t '((merged . t)))
+              (setq payload (nsa/research-dashboard--json input))
+              (funcall callback t '((number . 42) (html_url . "https://github.com/example/pr/42")))))))
+      (nsa/research-dashboard--create-approval-pr decision))
+    (should
+     (string-match-p
+      (regexp-quote "<!-- starintel-research-approval:v1 -->")
+      (nsa/research-dashboard--get "body" payload)))))
+
 (ert-deftest nsa/research-dashboard-gh-uses-async-processes ()
   (let (spec)
     (cl-letf (((symbol-function 'executable-find)

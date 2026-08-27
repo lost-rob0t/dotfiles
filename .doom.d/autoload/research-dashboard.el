@@ -27,6 +27,8 @@
   '("index.org" "sources.org" "search-log.org"))
 
 (defconst nsa/research-dashboard--schema "prolog-rlm.research-approval.v1")
+(defconst nsa/research-dashboard--approval-pr-marker
+  "<!-- starintel-research-approval:v1 -->")
 (defconst nsa/research-dashboard--fields
   '("approval_schema" "approval_state" "approval_actor" "approval_evidence"
     "approval_base_commit" "approval_base_blob" "approval_decided_at"))
@@ -728,7 +730,8 @@
              (head . ,(nsa/research-decision-approval-branch decision))
              (base . ,(nsa/research-item-branch item))
              (body . ,(format
-                       "Human research decision recorded by the Emacs research dashboard.\n\nDecision: `%s`\nActor: `%s`\nEvidence: `%s`\n\nApproval-only metadata change. CI intentionally skipped."
+                       "%s\n\nHuman research decision recorded by the Emacs research dashboard.\n\nDecision: `%s`\nActor: `%s`\nEvidence: `%s`\n\nApproval-only metadata change. CI intentionally skipped."
+                       nsa/research-dashboard--approval-pr-marker
                        state
                        (nsa/research-decision-actor decision)
                        (nsa/research-decision-evidence decision)))))))
