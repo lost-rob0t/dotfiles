@@ -223,6 +223,43 @@
         (should (eq (plist-get spec :connection-type) 'pipe))
         (should (functionp (plist-get spec :sentinel)))))))
 
+(ert-deftest nsa/research-dashboard-gh-sends-keyword-input-asynchronously ()
+  (let (sent-input eof-process)
+    (cl-letf (((symbol-function 'executable-find)
+               (lambda (_program) "/usr/bin/gh"))
+              ((symbol-function 'make-process)
+               (lambda (&rest _process-spec) 'fake-process))
+              ((symbol-function 'process-send-string)
+               (lambda (process input)
+                 (setq sent-input (list process input))))
+              ((symbol-function 'process-send-eof)
+               (lambda (process)
+                 (setq eof-process process))))
+      (with-temp-buffer
+        (nsa/research-dashboard--gh
+         (current-buffer)
+         (lambda (&rest _ignored))
+         '("api" "--method" "POST" "repos/example/project/pulls"
+           "--input" "-")
+         :input "{\"title\":\"Approval\"}")
+        (should (equal sent-input
+                       '(fake-process "{\"title\":\"Approval\"}")))
+        (should (eq eof-process 'fake-process))))))
+
+(ert-deftest nsa/research-dashboard-discover-passes-gh-argument-list ()
+  (let (call)
+    (with-temp-buffer
+      (nsa/research-dashboard-mode)
+      (setq nsa/research-dashboard--generation 1)
+      (cl-letf (((symbol-function 'nsa/research-dashboard--gh)
+                 (lambda (&rest arguments)
+                   (setq call arguments))))
+        (nsa/research-dashboard--discover 1))
+      (should (= (length call) 3))
+      (should (eq (car call) (current-buffer)))
+      (should (functionp (cadr call)))
+      (should (equal (caddr call) '("api" "user" "--jq" ".login"))))))
+
 (ert-deftest nsa/research-dashboard-source-forbids-blocking-process-apis ()
   (let ((source-file
          (symbol-file 'nsa/research-dashboard-refresh 'defun)))
