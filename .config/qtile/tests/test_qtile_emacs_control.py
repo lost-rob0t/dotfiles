@@ -8,6 +8,8 @@ from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1] / "qtile-desktop.el"
 TEXT = SOURCE.read_text(encoding="utf-8")
+WORKFLOW_SOURCE = SOURCE.parent / "qtile-workflow.el"
+WORKFLOW_TEXT = WORKFLOW_SOURCE.read_text(encoding="utf-8")
 
 
 class QtileEmacsControlTests(unittest.TestCase):
@@ -29,7 +31,12 @@ class QtileEmacsControlTests(unittest.TestCase):
 
     def test_org_todos_and_workflow_picker_are_emacs_native(self):
         self.assertIn('(org-agenda nil "t")', TEXT)
-        self.assertIn('completing-read "Qtile workflow: "', TEXT)
+        self.assertIn('completing-read "Workflow: " picker-choices nil t', WORKFLOW_TEXT)
+        self.assertNotIn('completing-read "Qtile workflow: "', TEXT)
+
+    def test_shared_renderer_arguments_are_accepted_by_legacy_popups(self):
+        self.assertIn("(defun qtile-org-todos-open (&optional _params)", TEXT)
+        self.assertIn("(defun qtile-agent-zero-open (&optional _params)", TEXT)
 
 
 if __name__ == "__main__":

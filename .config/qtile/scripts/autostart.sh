@@ -95,6 +95,20 @@ fi
 # SYSTEM/AI/WORK/NET across however many active monitors are present.
 "$HOME/.local/bin/conky-rotate" --all >/dev/null 2>&1 || true
 
+# Qtile popups use a separate Emacs server so the user's interactive Emacs is
+# never taken over. Qtile has already inherited DISPLAY and XAUTHORITY here,
+# so popup clients can create frames on the live X display.
+start_qtile_emacs_server() {
+    if command -v emacsclient >/dev/null 2>&1 && \
+        emacsclient -s qtile -a false --eval t >/dev/null 2>&1; then
+        return 0
+    fi
+    command -v emacs >/dev/null 2>&1 || return 0
+    setsid emacs --daemon=qtile >/dev/null 2>&1 &
+}
+
+start_qtile_emacs_server
+
 # starting utility applications at boot time
 run variety
 run nm-applet

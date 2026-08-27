@@ -7,7 +7,15 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
+from pathlib import Path
 from typing import Any
+
+try:
+    from dunst_history import history_entries
+except ModuleNotFoundError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from dunst_history import history_entries
 
 
 def _run(command: list[str], *, stdin: str | None = None) -> subprocess.CompletedProcess[str]:
@@ -19,39 +27,6 @@ def _run(command: list[str], *, stdin: str | None = None) -> subprocess.Complete
         check=False,
         timeout=10,
     )
-
-
-def _typed(item: dict[str, Any], key: str, default: Any = "") -> Any:
-    value = item.get(key, {})
-    if isinstance(value, dict):
-        return value.get("data", default)
-    return default
-
-
-def history_entries(payload: dict[str, Any]) -> list[dict[str, Any]]:
-    """Flatten dunstctl's aa{sv} JSON envelope into useful records."""
-    entries: list[dict[str, Any]] = []
-    for group in payload.get("data", []):
-        if not isinstance(group, list):
-            continue
-        for item in group:
-            if not isinstance(item, dict):
-                continue
-            try:
-                identifier = int(_typed(item, "id", -1))
-            except (TypeError, ValueError):
-                continue
-            if identifier < 0:
-                continue
-            entries.append(
-                {
-                    "id": identifier,
-                    "app": str(_typed(item, "appname", "")),
-                    "summary": str(_typed(item, "summary", "")),
-                    "body": str(_typed(item, "body", "")),
-                }
-            )
-    return entries
 
 
 def _history() -> list[dict[str, Any]]:

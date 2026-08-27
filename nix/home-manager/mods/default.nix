@@ -3,6 +3,7 @@
   imports = [
     inputs.skills.homeManagerModules.opencode
     inputs.skills.homeManagerModules.claude
+    inputs.skills.homeManagerModules.agents
     ./base.nix
     ./desktop.nix
     ./gnome.nix

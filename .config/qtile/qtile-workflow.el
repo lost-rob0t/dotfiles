@@ -1,21 +1,48 @@
-;;; qtile-workflow.el --- right-aligned Qtile workflow picker -*- lexical-binding: t; -*-
+;;; qtile-workflow.el --- Qtile workflow picker -*- lexical-binding: t; -*-
+
+(add-to-list 'load-path (expand-file-name "~/.dotfiles/lisp/qtile"))
+(require 'qtile-ui)
+(require 'qtile-ui-org)
+
+(defconst qtile-workflow-cancel-label "[Cancel]"
+  "Completion choice used to leave the workflow picker without applying one.")
+
+(defun qtile-workflow--get (key object)
+  (or (alist-get key object nil nil #'equal)
+      (alist-get (symbol-name key) object nil nil #'equal)
+      (alist-get (intern (symbol-name key)) object nil nil #'eq)))
+
+(defun qtile-workflow-open (params)
+  "Select a workflow from a shared, widget-anchored Qtile popup."
+  (let* ((args (qtile-ui-args params))
+         (choices (or (qtile-workflow--get 'choices args) '()))
+         (choices (if (vectorp choices) (append choices nil) choices))
+         (default (or (qtile-workflow--get 'default args) (car choices)))
+         (picker-choices (append choices (list qtile-workflow-cancel-label))))
+    (switch-to-buffer (get-buffer-create "*Qtile Workflows*"))
+    (qtile-ui-prepare-buffer)
+    (erase-buffer)
+    (qtile-ui-org-heading "WORKFLOWS")
+    (qtile-ui-org-muted
+     (format "Select a desktop workflow. Default: %s. Escape/C-g cancels.\n\n"
+             default))
+    (condition-case nil
+        (let ((selected
+               (completing-read "Workflow: " picker-choices nil t
+                                default nil default)))
+          (if (equal selected qtile-workflow-cancel-label)
+              (progn
+                (qtile-ui-close-current)
+                nil)
+            (prog1 selected
+              (qtile-ui-close-current))))
+      (quit
+       (qtile-ui-close-current)
+       nil))))
 
 (defun qtile-workflow-read-right (choices)
-  "Select one Qtile workflow from CHOICES in a top-right utility frame."
-  (let ((frame (make-frame '((name . "qtile-workflow")
-                             (title . "qtile-workflow")
-                             (width . 58)
-                             (height . 10)
-                             (minibuffer . t)
-                             (left . 1.0)
-                             (top . 0.0)
-                             (user-position . t)))))
-    (unwind-protect
-        (with-selected-frame frame
-          (select-frame-set-input-focus frame)
-          (completing-read "Qtile workflow: " choices nil t))
-      (when (frame-live-p frame)
-        (delete-frame frame)))))
+  "Compatibility wrapper for callers that still provide CHOICES directly."
+  (completing-read "Qtile workflow: " choices nil t))
 
 (provide 'qtile-workflow)
 ;;; qtile-workflow.el ends here

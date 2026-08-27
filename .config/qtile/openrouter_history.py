@@ -7,6 +7,7 @@ import math
 import os
 import sqlite3
 import time
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
@@ -85,7 +86,7 @@ def upsert_sample(
     duration = max(int(bucket_seconds), 1)
     incoming = max(int(input_tokens), 0)
     outgoing = max(int(output_tokens), 0)
-    with _connect(path) as connection:
+    with closing(_connect(path)) as connection, connection:
         connection.execute(
             """
             INSERT INTO usage_samples
@@ -102,7 +103,7 @@ def upsert_sample(
 
 
 def set_metadata(key: str, value: str, *, path: Path | None = None) -> None:
-    with _connect(path) as connection:
+    with closing(_connect(path)) as connection, connection:
         connection.execute(
             "INSERT INTO metadata(key, value) VALUES (?, ?) "
             "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
@@ -111,7 +112,7 @@ def set_metadata(key: str, value: str, *, path: Path | None = None) -> None:
 
 
 def get_metadata(key: str, *, path: Path | None = None) -> str | None:
-    with _connect(path) as connection:
+    with closing(_connect(path)) as connection, connection:
         row = connection.execute("SELECT value FROM metadata WHERE key=?", (key,)).fetchone()
     return None if row is None else str(row["value"])
 
@@ -119,7 +120,7 @@ def get_metadata(key: str, *, path: Path | None = None) -> str | None:
 def claim_due(key: str, interval_seconds: float, *, path: Path | None = None) -> bool:
     """Atomically claim periodic work so 1 Hz collectors do not fan it out."""
     now = time.time()
-    with _connect(path) as connection:
+    with closing(_connect(path)) as connection, connection:
         connection.execute("BEGIN IMMEDIATE")
         row = connection.execute("SELECT value FROM metadata WHERE key=?", (key,)).fetchone()
         try:
@@ -156,7 +157,7 @@ def _window_rows(
     duration = TIMEFRAME_SECONDS[label]
     end = _aligned_end(now)
     start = end - duration
-    with _connect(path) as connection:
+    with closing(_connect(path)) as connection, connection:
         rows = connection.execute(
             """
             SELECT bucket_start, bucket_seconds, input_tokens, output_tokens, spend, source
@@ -211,10 +212,18 @@ def query_series(
     ]
 
     if len(samples) > point_limit:
-        chunk_size = int(math.ceil(len(samples) / point_limit))
+        # Group only samples occupying the same display column and only while
+        # their provider intervals touch.  A sparse long-range history must
+        # retain its gaps instead of becoming a synthetic continuous bucket.
+        span = max(end - start, 1)
         reduced: list[dict[str, Any]] = []
-        for offset in range(0, len(samples), chunk_size):
-            chunk = samples[offset : offset + chunk_size]
+        chunk: list[dict[str, Any]] = []
+        chunk_slot: int | None = None
+        chunk_end: float | None = None
+
+        def flush() -> None:
+            if not chunk:
+                return
             weights = [max(int(item["bucket_seconds"]), 1) for item in chunk]
             total_weight = float(sum(weights))
             reduced.append(
@@ -226,6 +235,18 @@ def query_series(
                     "source": "aggregate",
                 }
             )
+
+        for sample in samples:
+            sample_start = float(sample["timestamp"]) - float(sample["bucket_seconds"]) / 2.0
+            sample_end = float(sample["timestamp"]) + float(sample["bucket_seconds"]) / 2.0
+            slot = min(point_limit - 1, max(0, int((sample_start - start) / span * point_limit)))
+            if chunk and (slot != chunk_slot or sample_start > (chunk_end or sample_start) + 0.5):
+                flush()
+                chunk = []
+            chunk.append(sample)
+            chunk_slot = slot
+            chunk_end = sample_end
+        flush()
         samples = reduced
 
     ceiling = max(
@@ -243,7 +264,7 @@ def query_series(
 
 
 def summary(*, path: Path | None = None) -> dict[str, Any]:
-    with _connect(path) as connection:
+    with closing(_connect(path)) as connection, connection:
         row = connection.execute(
             "SELECT COUNT(*) AS rows, MIN(bucket_start) AS oldest, "
             "MAX(bucket_start + bucket_seconds) AS newest FROM usage_samples"
