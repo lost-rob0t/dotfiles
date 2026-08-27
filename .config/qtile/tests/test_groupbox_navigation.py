@@ -162,6 +162,11 @@ class OwnedGroupBoxNavigationTests(unittest.TestCase):
         box, _ = self._build_box()
         self.assertEqual(box.font, "Symbols Nerd Font")
 
+    def test_group_highlight_uses_glyph_width_padding(self):
+        box, _ = self._build_box()
+        self.assertEqual(box.padding_x, 6)
+        self.assertEqual(box.borderwidth, 2)
+
     def test_next_group_skips_windowless_groups(self):
         box, navigated = self._build_box()
         groups = [
