@@ -2,9 +2,21 @@
 
 let
   comfyui = pkgs.comfyui.override { withManager = true; };
+  llmLogRevision = "cfcb6200992010797f52b8847e55c7b9795564ca";
+  llmLogSource = builtins.fetchGit {
+    url = "https://github.com/lost-rob0t/llm-log.git";
+    rev = llmLogRevision;
+  };
+  llmLogPackage = pkgs.callPackage "${llmLogSource}/nix/package.nix" { };
+  llmLogModule = import "${llmLogSource}/nix/home-manager.nix" {
+    self = {
+      packages.${pkgs.stdenv.hostPlatform.system}.default = llmLogPackage;
+    };
+  };
+  proxyBase = "http://127.0.0.1:8787";
 
   # Keep the OpenCode policy wrapper in dotfiles, not in the reusable skills
-  # repository.  Normal invocations are passed through unchanged; only
+  # repository. Normal invocations are passed through unchanged; only
   # `opencode --yolo` creates the StarIntel V4 tmpfs/Prolog-RLM environment.
   opencodeYoloRuntime = pkgs.writeShellApplication {
     name = "opencode-yolo-runtime";
@@ -16,9 +28,19 @@ let
     export OPENCODE_REAL_BIN="${pkgs.opencode}/bin/opencode"
     exec "${opencodeYoloRuntime}/bin/opencode-yolo-runtime" "$@"
   '';
+
+  # Codex keeps its normal model/auth/config UX. These two session-level
+  # overrides only move OpenAI API and ChatGPT-auth traffic through llm-log.
+  codexWrapped = pkgs.writeShellScriptBin "codex" ''
+    exec "${pkgs.codex}/bin/codex" \
+      -c 'openai_base_url="${proxyBase}/openai/v1"' \
+      -c 'chatgpt_base_url="${proxyBase}/chatgpt/backend-api"' \
+      "$@"
+  '';
 in
 {
   imports = [
+    llmLogModule
     ./brave-mcp.nix
   ];
 
@@ -29,6 +51,68 @@ in
   };
 
   config = with lib; mkIf config.llm.enable {
+    # All supported LLM clients use one local, transparent capture plane.
+    # The reusable module defaults to XDG_DATA_HOME/llm-log; this machine keeps
+    # its long-lived corpus with the rest of the user's AI data instead.
+    services.llm-log = {
+      enable = true;
+      package = llmLogPackage;
+      dataDir = "${config.home.homeDirectory}/Documents/AI/proxy";
+      upstreams = {
+        openai = "https://api.openai.com";
+        openrouter = "https://openrouter.ai";
+        anthropic = "https://api.anthropic.com";
+        chatgpt = "https://chatgpt.com";
+      };
+    };
+
+    # Preserve OpenCode's built-in providers, auth and model picker. Only the
+    # provider base URLs change, so /models keeps using the normal catalog.
+    # Home Manager owns only the config; the custom wrapper below owns the bin.
+    programs.opencode = {
+      enable = true;
+      package = null;
+      settings.provider = {
+        openai.options.baseURL = "${proxyBase}/openai/v1";
+        openrouter.options.baseURL = "${proxyBase}/openrouter/api/v1";
+        anthropic.options.baseURL = "${proxyBase}/anthropic";
+      };
+    };
+
+    # gptel backends are created lazily by Doom. Advice the OpenRouter
+    # constructor instead of replacing the user's configured backend/model
+    # lists, API-key lookup or interactive model switching.
+    programs.emacs.extraConfig = lib.mkAfter ''
+      (defun nsa/llm-log--gptel-openrouter-args (args)
+        (let ((name (car args))
+              (options (copy-sequence (cdr args))))
+          (if (equal (plist-get options :host) "openrouter.ai")
+              (progn
+                (setq options (plist-put options :host "127.0.0.1:8787"))
+                (setq options (plist-put options :protocol "http"))
+                (setq options
+                      (plist-put options :endpoint
+                                 "/openrouter/api/v1/chat/completions"))
+                (cons name options))
+            args)))
+
+      (with-eval-after-load 'gptel-openai
+        (unless (advice-member-p #'nsa/llm-log--gptel-openrouter-args
+                                 'gptel-make-openai)
+          (advice-add 'gptel-make-openai
+                      :filter-args #'nsa/llm-log--gptel-openrouter-args)))
+    '';
+
+    # Claude Code officially supports ANTHROPIC_BASE_URL for LLM gateways.
+    # Keep credentials in Claude's normal auth path; llm-log only sees and
+    # forwards them, while persisting a redacted header copy.
+    home.sessionVariables = {
+      STARINTEL_URL = mkDefault "http://127.0.0.1:5000";
+      STARINTEL_TIMEOUT_SECONDS = mkDefault "10";
+      ANTHROPIC_BASE_URL = mkDefault "${proxyBase}/anthropic";
+      LLM_LOG_BASE_URL = mkDefault proxyBase;
+    };
+
     # Brave Search MCP is part of the default LLM tool plane. Authentication
     # remains runtime/user state (`bx config set-key` or BRAVE_SEARCH_API_KEY),
     # so the API key never enters the Nix store.
@@ -43,9 +127,10 @@ in
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-prolog
       inputs.org-vector.packages.${stdenv.hostPlatform.system}.org-vector
 
-      # LLM Editors and desktop clients
+      # LLM editors and desktop clients
       inputs.chatgpt-desktop.packages.${stdenv.hostPlatform.system}.default
       opencodeWrapped
+      codexWrapped
       claude-code
 
       # Local generative AI
@@ -54,7 +139,6 @@ in
       playerctl
       pavucontrol
       pulseaudio
-      #codex
       espeak-ng
       sox
       ffmpeg
@@ -75,11 +159,6 @@ in
     # Zara loads user tools from ~/.zarathushtra/plugins at startup.
     home.file.".zarathushtra/plugins/starintel.py".source =
       ../files/zarathushtra/plugins/starintel.py;
-
-    # Local-only StarIntel is the safe/default deployment. Override this in a
-    # host config when Zara should talk to another trusted StarIntel instance.
-    home.sessionVariables.STARINTEL_URL = mkDefault "http://127.0.0.1:5000";
-    home.sessionVariables.STARINTEL_TIMEOUT_SECONDS = mkDefault "10";
 
     # ComfyUI uses a writable XDG data directory instead of the immutable
     # Nix store. Keep downloaded models and generated media here.
