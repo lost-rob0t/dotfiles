@@ -9,6 +9,7 @@
     ./gnome.nix
     ./fonts.nix
     ./emacs.nix
+    ./gpt-todos.nix
     ./security.nix
     ./nim.nix
     ./lisp.nix

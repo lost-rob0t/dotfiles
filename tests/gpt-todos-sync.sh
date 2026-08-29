@@ -11,8 +11,9 @@ SEED="$TMP/seed"
 REPO="$TMP/durable"
 ORG="$TMP/org"
 RUN="$TMP/run"
+STATE="$TMP/state"
 
-mkdir -p "$ORG" "$RUN"
+mkdir -p "$ORG" "$RUN" "$STATE"
 git init --bare "$REMOTE" >/dev/null
 git clone "$REMOTE" "$SEED" >/dev/null 2>&1
 mkdir -p "$SEED/agenda"
@@ -27,6 +28,7 @@ git -C "$SEED" push -u origin HEAD >/dev/null 2>&1
 run_sync() {
   HOME="$TMP/home" \
   XDG_RUNTIME_DIR="$RUN" \
+  XDG_STATE_HOME="$STATE" \
   DOTFILES_DIR="$TMP/no-dotfiles" \
   GPT_TODOS_REPO_DIR="$REPO" \
   GPT_TODOS_ORG_DIR="$ORG" \
@@ -35,7 +37,7 @@ run_sync() {
   GIT_AUTHOR_EMAIL=test@example.invalid \
   GIT_COMMITTER_NAME=test \
   GIT_COMMITTER_EMAIL=test@example.invalid \
-    bash "$SYNC"
+    bash "$SYNC" "$@"
 }
 
 # Initial remote state is restored into the complete local agenda tree.
@@ -75,14 +77,48 @@ git -C "$SEED" push >/dev/null 2>&1
 run_sync
 grep -q 'remote-change' "$ORG/remote.org"
 
-# Agenda files may be symlinked into the live tree. If a live path resolves to
-# the durable file itself, deployment must treat it as already synchronized
-# instead of asking cp to copy a file onto the same inode.
+# Agenda files may be symlinked into the live tree. Saving through that symlink
+# dirties the durable checkout itself. --file must snapshot the just-written
+# contents, temporarily clear only that owned path, pull, restore the snapshot,
+# commit, and push without losing the symlink or touching unrelated paths.
 rm -- "$ORG/remote.org"
 ln -s "$REPO/agenda/remote.org" "$ORG/remote.org"
-run_sync
+printf '* DONE emacs-save\n' > "$ORG/remote.org"
+[[ -n "$(git -C "$REPO" status --porcelain -- agenda/remote.org)" ]]
+run_sync --file "$ORG/remote.org"
 [[ -L "$ORG/remote.org" ]]
-grep -q 'remote-change' "$ORG/remote.org"
+git -C "$SEED" pull >/dev/null 2>&1
+grep -q 'emacs-save' "$SEED/agenda/remote.org"
+grep -q 'emacs-save' "$ORG/remote.org"
+[[ -z "$(git -C "$REPO" status --porcelain -- agenda)" ]]
+
+# A true same-file remote conflict must never eat the Emacs save. Save mode
+# rewinds the aliased durable path only long enough to inspect/pull. When both
+# sides changed from the same baseline, it fails closed, restores the exact
+# local save to the symlink target, and leaves a recovery copy in user state.
+printf '* DONE remote-conflict-save\n' > "$SEED/agenda/remote.org"
+git -C "$SEED" add agenda/remote.org
+git -C "$SEED" -c user.name=test -c user.email=test@example.invalid \
+  commit -m remote-conflict-save >/dev/null
+git -C "$SEED" push >/dev/null 2>&1
+printf '* TODO local-conflict-save\n' > "$ORG/remote.org"
+
+set +e
+run_sync --file "$ORG/remote.org"
+save_conflict_rc=$?
+set -e
+[[ "$save_conflict_rc" -eq 5 ]]
+[[ -L "$ORG/remote.org" ]]
+grep -q 'local-conflict-save' "$ORG/remote.org"
+grep -q 'local-conflict-save' "$REPO/agenda/remote.org"
+find "$STATE/gpt-todos-sync/recovery" -type f -name '*agenda__remote.org' \
+  -exec grep -q 'local-conflict-save' {} \; -print | grep -q .
+
+# Put the fixture back on the last committed baseline, then prove a normal run
+# can consume the pending remote side after the user resolves/discards local.
+git -C "$REPO" restore --worktree --source=HEAD -- agenda/remote.org
+run_sync
+grep -q 'remote-conflict-save' "$ORG/remote.org"
 
 # Concurrent edits remain fail-closed.
 printf '* TODO local-conflict\n' > "$ORG/shared.org"

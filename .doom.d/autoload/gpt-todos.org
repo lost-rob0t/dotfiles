@@ -1,6 +1,12 @@
 #+title: GPT TODO sync autoload
 #+property: header-args :emacs-lisp :tangle ./gpt-todos.el :results none
 
+The live Org agenda is synchronized immediately after a saved =.org= file below
+=GPT_TODOS_ORG_DIR= (default =~/Documents/Notes/org/agenda/=).  The work happens
+in an asynchronous process so Git/network work never blocks the Emacs UI.  The
+shell helper owns locking, temporary save snapshots, pull/commit/push, and
+conflict recovery; Emacs only identifies the saved agenda file and delegates it.
+
 #+begin_src emacs-lisp
 ;;; gpt-todos.el -*- lexical-binding: t; -*-
 
@@ -10,13 +16,37 @@
   "Path to the dotfiles-owned gpt-todos sync script."
   :type 'file)
 
+(defcustom gpt-todos-agenda-directory
+  (file-name-as-directory
+   (or (getenv "GPT_TODOS_ORG_DIR")
+       (expand-file-name "~/Documents/Notes/org/agenda")))
+  "Live Org agenda directory mirrored by gpt-todos-sync."
+  :type 'directory)
+
+(defun gpt-todos--agenda-org-file-p (file)
+  "Return non-nil when FILE is logically below the synced agenda directory."
+  (when file
+    (let ((agenda (file-name-as-directory
+                   (expand-file-name gpt-todos-agenda-directory)))
+          (candidate (expand-file-name file)))
+      (and (string-equal (file-name-extension candidate) "org")
+           (string-prefix-p agenda candidate)))))
+
 ;;;###autoload
-(defun gpt-todos-sync ()
-  "Run gpt-todos sync asynchronously in a hidden buffer."
+(defun gpt-todos-sync (&optional file)
+  "Run gpt-todos sync asynchronously.
+When FILE is non-nil, preserve and synchronize that just-saved agenda file."
   (interactive)
   (let* ((buffer (get-buffer-create " *gpt-todos-sync*"))
-         (proc (start-process "gpt-todos-sync" buffer
-                              "/usr/bin/env" "bash" gpt-todos-sync-script)))
+         (command (append (list "/usr/bin/env" "bash" gpt-todos-sync-script)
+                          (when file
+                            (list "--file" (expand-file-name file)))))
+         (proc (make-process
+                :name "gpt-todos-sync"
+                :buffer buffer
+                :command command
+                :connection-type 'pipe
+                :noquery t)))
     (set-process-sentinel
      proc
      (lambda (p _event)
@@ -25,5 +55,15 @@
              (message "gpt-todos sync complete")
            (message "gpt-todos sync failed; see %s"
                     (buffer-name (process-buffer p)))))))
-    (message "gpt-todos sync started")))
+    (message "gpt-todos sync started")
+    proc))
+
+;;;###autoload
+(defun gpt-todos-sync-after-save ()
+  "Synchronize a just-saved Org file when it belongs to the live agenda tree."
+  (when (gpt-todos--agenda-org-file-p buffer-file-name)
+    (gpt-todos-sync buffer-file-name)))
+
+;;;###autoload
+(add-hook 'after-save-hook #'gpt-todos-sync-after-save)
 #+end_src

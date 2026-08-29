@@ -11,6 +11,7 @@ The Doom configuration is literate.
 | [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/init.el][init.el]] | Doom module selection from an explicitly tangled block. |
 | [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | [[file:../../.doom.d/packages.el][packages.el]] | Doom package declarations. |
 | [[file:../../.doom.d/autoload/research-approval.org][.doom.d/autoload/research-approval.org]] | [[file:../../.doom.d/autoload/research-approval.el][research-approval.el]] | Fail-safe research/RAGE approval, commit, and push workflow. |
+| [[file:../../.doom.d/autoload/gpt-todos.org][.doom.d/autoload/gpt-todos.org]] | [[file:../../.doom.d/autoload/gpt-todos.el][gpt-todos.el]] | Durable agenda synchronization and save hook. |
 | [[file:../../.doom.d/snippets/][.doom.d/snippets/]] | n/a | Yasnippet and Org helper snippets. |
 
 The top of =config.org= declares =config.el= as its default tangle target, while individual blocks may override the target.  Read block-level =:tangle= arguments before assuming one Org file produces only one output.
@@ -55,6 +56,23 @@ For package/module changes:
 #+begin_src shell
   doom sync
 #+end_src
+
+* Durable agenda save synchronization
+The canonical integration is [[file:../../.doom.d/autoload/gpt-todos.org][gpt-todos.org]].
+After Emacs saves an =.org= file logically below =~/Documents/Notes/org/agenda/=,
+it starts =gpt-todos-sync --file FILE= asynchronously.  Git/network work therefore
+does not block the editor.
+
+The shell helper snapshots the exact saved contents before it acquires the shared
+sync lock.  This is important when an agenda file is a symlink into the durable
+=~/Documents/gpt-todos/agenda/= checkout: the helper can temporarily rewind only
+that just-written path, fast-forward from GitHub, restore the saved snapshot,
+commit, and push.  Concurrent local/remote edits still fail closed rather than
+silently choosing a winner, and failures retain a recovery copy under the user's
+state directory.
+
+Home Manager also runs the same helper every five minutes.  Both paths share the
+same lock, so the periodic timer and Emacs save hook cannot race each other.
 
 * Deciding a project research record
 From a tracked =research/*.org= buffer, invoke
