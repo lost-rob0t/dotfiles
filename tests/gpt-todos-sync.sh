@@ -11,8 +11,9 @@ SEED="$TMP/seed"
 REPO="$TMP/durable"
 ORG="$TMP/org"
 RUN="$TMP/run"
+STATE="$TMP/state"
 
-mkdir -p "$ORG" "$RUN"
+mkdir -p "$ORG" "$RUN" "$STATE"
 git init --bare "$REMOTE" >/dev/null
 git clone "$REMOTE" "$SEED" >/dev/null 2>&1
 mkdir -p "$SEED/agenda"
@@ -27,6 +28,7 @@ git -C "$SEED" push -u origin HEAD >/dev/null 2>&1
 run_sync() {
   HOME="$TMP/home" \
   XDG_RUNTIME_DIR="$RUN" \
+  XDG_STATE_HOME="$STATE" \
   DOTFILES_DIR="$TMP/no-dotfiles" \
   GPT_TODOS_REPO_DIR="$REPO" \
   GPT_TODOS_ORG_DIR="$ORG" \
@@ -35,7 +37,7 @@ run_sync() {
   GIT_AUTHOR_EMAIL=test@example.invalid \
   GIT_COMMITTER_NAME=test \
   GIT_COMMITTER_EMAIL=test@example.invalid \
-    bash "$SYNC"
+    bash "$SYNC" "$@"
 }
 
 # Initial remote state is restored into the complete local agenda tree.
@@ -75,14 +77,20 @@ git -C "$SEED" push >/dev/null 2>&1
 run_sync
 grep -q 'remote-change' "$ORG/remote.org"
 
-# Agenda files may be symlinked into the live tree. If a live path resolves to
-# the durable file itself, deployment must treat it as already synchronized
-# instead of asking cp to copy a file onto the same inode.
+# Agenda files may be symlinked into the live tree. Saving through that symlink
+# dirties the durable checkout itself. --file must snapshot the just-written
+# contents, temporarily clear only that owned path, pull, restore the snapshot,
+# commit, and push without losing the symlink or touching unrelated paths.
 rm -- "$ORG/remote.org"
 ln -s "$REPO/agenda/remote.org" "$ORG/remote.org"
-run_sync
+printf '* DONE emacs-save\n' > "$ORG/remote.org"
+[[ -n "$(git -C "$REPO" status --porcelain -- agenda/remote.org)" ]]
+run_sync --file "$ORG/remote.org"
 [[ -L "$ORG/remote.org" ]]
-grep -q 'remote-change' "$ORG/remote.org"
+git -C "$SEED" pull >/dev/null 2>&1
+grep -q 'emacs-save' "$SEED/agenda/remote.org"
+grep -q 'emacs-save' "$ORG/remote.org"
+[[ -z "$(git -C "$REPO" status --porcelain -- agenda)" ]]
 
 # Concurrent edits remain fail-closed.
 printf '* TODO local-conflict\n' > "$ORG/shared.org"
