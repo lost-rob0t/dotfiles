@@ -92,6 +92,34 @@ grep -q 'emacs-save' "$SEED/agenda/remote.org"
 grep -q 'emacs-save' "$ORG/remote.org"
 [[ -z "$(git -C "$REPO" status --porcelain -- agenda)" ]]
 
+# A true same-file remote conflict must never eat the Emacs save. Save mode
+# rewinds the aliased durable path only long enough to inspect/pull. When both
+# sides changed from the same baseline, it fails closed, restores the exact
+# local save to the symlink target, and leaves a recovery copy in user state.
+printf '* DONE remote-conflict-save\n' > "$SEED/agenda/remote.org"
+git -C "$SEED" add agenda/remote.org
+git -C "$SEED" -c user.name=test -c user.email=test@example.invalid \
+  commit -m remote-conflict-save >/dev/null
+git -C "$SEED" push >/dev/null 2>&1
+printf '* TODO local-conflict-save\n' > "$ORG/remote.org"
+
+set +e
+run_sync --file "$ORG/remote.org"
+save_conflict_rc=$?
+set -e
+[[ "$save_conflict_rc" -eq 5 ]]
+[[ -L "$ORG/remote.org" ]]
+grep -q 'local-conflict-save' "$ORG/remote.org"
+grep -q 'local-conflict-save' "$REPO/agenda/remote.org"
+find "$STATE/gpt-todos-sync/recovery" -type f -name '*agenda__remote.org' \
+  -exec grep -q 'local-conflict-save' {} \; -print | grep -q .
+
+# Put the fixture back on the last committed baseline, then prove a normal run
+# can consume the pending remote side after the user resolves/discards local.
+git -C "$REPO" restore --worktree --source=HEAD -- agenda/remote.org
+run_sync
+grep -q 'remote-conflict-save' "$ORG/remote.org"
+
 # Concurrent edits remain fail-closed.
 printf '* TODO local-conflict\n' > "$ORG/shared.org"
 git -C "$SEED" pull >/dev/null 2>&1
