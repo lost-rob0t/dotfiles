@@ -2,7 +2,7 @@
 
 let
   comfyui = pkgs.comfyui.override { withManager = true; };
-  llmLogRevision = "150ff09fc344247e68c35a18d9ef5af137e678ac";
+  llmLogRevision = "0f2d5b1955371d815604c5fb3db31eca1d79a68f";
   llmLogSource = builtins.fetchGit {
     url = "https://github.com/lost-rob0t/llm-log.git";
     rev = llmLogRevision;
