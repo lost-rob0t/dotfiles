@@ -300,7 +300,7 @@ def _stats_text(payload, label, series, history_info):
             lines.append("balance ${:.2f}".format(float(payload["balance_usd"])))
         tokens = payload.get("tokens_hour")
         if tokens is not None:
-            lines.append("tokens hour/day/week {}".format(_compact_count(tokens)))
+            lines.append("tokens hour {}".format(_compact_count(tokens)))
         spend = payload.get("spend_day")
         if spend is not None:
             lines.append("spend day ${:.2f}".format(float(spend)))
@@ -410,9 +410,21 @@ class OpenRouterRotatingMetric(base.BackgroundPoll):
         self.index = 0
         self.last_rotate = time.monotonic()
         self.specs = (
-            (("M", "tokens_month"), ("W", "tokens_week"), ("D", "tokens_day"), ("H", "tokens_hour"))
+            (
+                ("m", "tokens_minute"),
+                ("H", "tokens_hour"),
+                ("D", "tokens_day"),
+                ("W", "tokens_week"),
+                ("M", "tokens_month"),
+                ("Y", "tokens_year"),
+            )
             if metric == "tokens"
-            else (("D", "spend_day"), ("W", "spend_week"), ("M", "spend_month"))
+            else (
+                ("D", "spend_day"),
+                ("W", "spend_week"),
+                ("M", "spend_month"),
+                ("Y", "spend_year"),
+            )
         )
         self.icon = "" if metric == "tokens" else ""
         super().__init__(text=f"{self.icon} …", **config)

@@ -58,9 +58,12 @@ class Status:
     tokens_week: int | None = None
     tokens_day: int | None = None
     tokens_hour: int | None = None
+    tokens_minute: int | None = None
+    tokens_year: int | None = None
     spend_month: float | None = None
     spend_week: float | None = None
     spend_day: float | None = None
+    spend_year: float | None = None
     usage_fetched_at: str | None = None
     balance_fetched_at: str | None = None
     usage_error: str | None = None
@@ -257,10 +260,12 @@ def fetch_tokens(key: str, start: datetime, end: datetime) -> tuple[int, int]:
     return parse_token_totals(_request_json("POST", "/analytics/query", key, payload))
 
 
-def fetch_usage_range(key: str, start: datetime, end: datetime) -> tuple[int, float]:
+def fetch_usage_range(
+    key: str, start: datetime, end: datetime, granularity: str = "hour"
+) -> tuple[int, float]:
     payload = {
         "metrics": ["tokens_total", "total_usage"],
-        "granularity": "hour",
+        "granularity": granularity,
         "time_range": {
             "start": start.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
             "end": end.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -322,7 +327,8 @@ def period_starts(now: datetime | None = None) -> dict[str, datetime]:
     hour = now.replace(minute=0, second=0, microsecond=0)
     week = day - timedelta(days=day.weekday())
     month = day.replace(day=1)
-    return {"month": month, "week": week, "day": day, "hour": hour}
+    year = day.replace(month=1, day=1)
+    return {"month": month, "week": week, "day": day, "hour": hour, "year": year}
 
 
 def fetch_period_totals(key: str, now: datetime | None = None) -> dict[str, float | int]:
@@ -331,17 +337,25 @@ def fetch_period_totals(key: str, now: datetime | None = None) -> dict[str, floa
     elif now.tzinfo is None:
         now = now.astimezone()
     starts = period_starts(now)
-    periods = ("month", "week", "day", "hour")
+    minute_start, minute_end = _closed_minute_window(now)
+    windows: dict[str, tuple[datetime, datetime, str]] = {
+        "minute": (minute_start, minute_end, "minute"),
+        "hour": (starts["hour"], now, "hour"),
+        "day": (starts["day"], now, "hour"),
+        "week": (starts["week"], now, "hour"),
+        "month": (starts["month"], now, "hour"),
+        "year": (starts["year"], now, "hour"),
+    }
     result: dict[str, float | int] = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(periods)) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(windows)) as executor:
         futures = {
-            period: executor.submit(fetch_usage_range, key, starts[period], now)
-            for period in periods
+            period: executor.submit(fetch_usage_range, key, start, end, granularity)
+            for period, (start, end, granularity) in windows.items()
         }
-        for period in periods:
-            tokens, spend = futures[period].result()
+        for period, future in futures.items():
+            tokens, spend = future.result()
             result[f"tokens_{period}"] = tokens
-            if period != "hour":
+            if period not in ("hour", "minute"):
                 result[f"spend_{period}"] = spend
     return result
 
