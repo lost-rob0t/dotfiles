@@ -57,10 +57,17 @@ class OpenRouterWidgetStructureTests(unittest.TestCase):
         self.assertIn("balance < 10", SOURCE_TEXT)
         self.assertIn('name="openrouter_credit"', SOURCE_TEXT)
 
-    def test_tokens_rotate_month_week_day_hour_and_spend_day_week_month(self):
-        for value in ("tokens_month", "tokens_week", "tokens_day", "tokens_hour"):
+    def test_tokens_rotate_minute_through_year_and_spend_includes_year(self):
+        for value in (
+            "tokens_minute",
+            "tokens_hour",
+            "tokens_day",
+            "tokens_week",
+            "tokens_month",
+            "tokens_year",
+        ):
             self.assertIn(value, SOURCE_TEXT)
-        for value in ("spend_day", "spend_week", "spend_month"):
+        for value in ("spend_day", "spend_week", "spend_month", "spend_year"):
             self.assertIn(value, SOURCE_TEXT)
 
     def test_graph_uses_all_requested_persistent_ranges(self):
