@@ -4,7 +4,7 @@
     inputs.skills.homeManagerModules.opencode
     inputs.skills.homeManagerModules.claude
     inputs.skills.homeManagerModules.agents
-    inputs.skills.homeManagerModules.codex
+    ./codex.nix
     ./base.nix
     ./desktop.nix
     ./gnome.nix
