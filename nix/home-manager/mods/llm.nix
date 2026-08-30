@@ -12,10 +12,14 @@ let
     text = builtins.readFile ../files/opencode-yolo.sh;
   };
 
-  opencodeWrapped = pkgs.writeShellScriptBin "opencode" ''
+  # home-manager's programs.opencode module needs meta.mainProgram when it
+  # wraps or references the package (lib.getExe, extraPackages wrapping).
+  opencodeWrapped = (pkgs.writeShellScriptBin "opencode" ''
     export OPENCODE_REAL_BIN="${pkgs.opencode}/bin/opencode"
     exec "${opencodeYoloRuntime}/bin/opencode-yolo-runtime" "$@"
-  '';
+  '').overrideAttrs (old: {
+    meta = (old.meta or { }) // { mainProgram = "opencode"; };
+  });
 in
 {
   imports = [
@@ -34,6 +38,11 @@ in
     # so the API key never enters the Nix store.
     braveMcp.enable = mkDefault true;
 
+    # Route the programs.opencode module through the policy wrapper so raw
+    # pkgs.opencode and the wrapper never both land in home.packages (their
+    # bin/opencode entries collide in the home-manager-path buildEnv).
+    programs.opencode.package = mkDefault opencodeWrapped;
+
     # Install required packages for MCP servers
     home.packages = with pkgs; [
       inputs.zara.packages.${stdenv.hostPlatform.system}.zarathushtra
@@ -41,8 +50,6 @@ in
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-wake
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-dictate
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-prolog
-      inputs.org-vector.packages.${stdenv.hostPlatform.system}.org-vector
-
       # LLM Editors and desktop clients
       inputs.chatgpt-desktop.packages.${stdenv.hostPlatform.system}.default
       opencodeWrapped

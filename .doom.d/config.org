@@ -355,21 +355,6 @@ i needed this to keep track of when i modify an org roam file so when i export i
       time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
 (add-hook 'before-save-hook 'time-stamp nil)
 #+end_src
-*** Research approval
-Approve a tracked =research/*.org= or =rage/*.org= record from its current
-checkout.  The command previews the marker diff and proves the current GitHub
-upstream before it commits or pushes anything.
-
-#+begin_src emacs-lisp
-(autoload #'nsa/research-approve-and-push "research-approval" nil t)
-(autoload #'nsa/research-reject-and-push "research-approval" nil t)
-
-(map! :after org
-      :localleader
-      :map org-mode-map
-      :desc "Approve research and push" "A" #'nsa/research-approve-and-push
-      :desc "Reject research and push" "R" #'nsa/research-reject-and-push)
-#+end_src
 *** org capture
 Ask me where to place a capture at [[https://stackoverflow.com/a/24787118][source.]]
 #+begin_src emacs-lisp
@@ -531,8 +516,8 @@ I prefer being able to have different views within org agenda, so i can see what
            (:name "🧠 StarIntel / Temple"
                   :tag ("StarIntel" "Temple"))
 
-           (:name "📚 Org parser / vector"
-                  :tag ("org_parser" "org_vector"))
+           (:name "📚 Org parser"
+                  :tag "org_parser")
 
            (:name "🕵 Hackmode / bug bounty"
                   :tag ("hackmode" "hackmode_expert"))
@@ -1394,34 +1379,6 @@ Start a todo chat with tools needed
   (let ((gptel--system-message (alist-get 'time-boxer gptel-directives)))
     (gptel "*TODO boxer*" nil (ai/todo-list-todos-with-context '(and (or (todo) (todo "STRT" "LOOP" "PROJ")) (ts))) t)))
 #+end_src
-*** Org vector
-#+begin_src emacs-lisp
-(use-package! org-vector
-  :after (org-roam gptel)
-  :commands (org-vector-search org-vector-embed org-vector-start-service
-             org-vector-transient)
-  :init
-  (setq org-vector-dir "~/Documents/Notes/org/roam/")
-  (setq org-vector-db "~/.cache/org-vector/")
-  :config 
-  (setq org-vector-model "sentence-transformers/all-MiniLM-L6-v2")
-  (setq org-vector-url "")
-  (setq org-vector-ingestion-instructions
-        "Instruct: Given a document, retrieve semantically similar text\nDocument: ")
-  (setq org-vector-query-instructions
-        "Instruct: Given a query, retrieve relevant documents\nQuery: ")
-
-  (setq org-vector-collection-name "org-roam")
-  (setq org-vector-log-level "WARNING")
-  (setq org-vector-log-to-file t)
-  ;(org-vector-start-service)
-  (map! :leader
-        :desc "Vector search" "n v s" #'org-vector-search
-        :desc "Search at point" "n v S" #'org-vector-search-at-point
-        :desc "Full re-index" "n v i" #'org-vector-embed
-        :desc "Vector menu" "n v m" #'org-vector-transient
-        :desc "Kill all vector services" "n v k" #'org-vector-stop-all))
-#+end_src
 *** MCP Configuration
 
 
@@ -1553,6 +1510,18 @@ Consulti multiple sources and have them in a dropdown.
 
 
 #+end_src
+
+** Starintel
+
+Starintel Workbench in emacs
+#+begin_src emacs-lisp
+(use-package! starintel
+    :config
+    (setq starintel-servers
+          '((remote :url "https://ingest.starintel.actor"
+                 :auth-source "starintel")))) 
+#+end_src
+
 * Libraries :lib::programming::lisp:
 *** f.el :lisp:
 Much inspired by @magnarss excellent s.el and dash.el, f.el is a modern API for working with files and directories in Emacs.

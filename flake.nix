@@ -20,10 +20,6 @@
       url = "github:lost-rob0t/zara";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    org-vector = {
-      url = "github:lost-rob0t/org-vector";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     bixby-studio = {
       url = "github:lost-rob0t/bixby-studio";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -43,7 +39,6 @@
       skills,
       chatgpt-desktop,
       zara,
-      org-vector,
       bixby-studio,
       mousetrap,
     }:
