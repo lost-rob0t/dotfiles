@@ -337,14 +337,12 @@ def fetch_period_totals(key: str, now: datetime | None = None) -> dict[str, floa
     elif now.tzinfo is None:
         now = now.astimezone()
     starts = period_starts(now)
-    minute_start, minute_end = _closed_minute_window(now)
     windows: dict[str, tuple[datetime, datetime, str]] = {
-        "minute": (minute_start, minute_end, "minute"),
         "hour": (starts["hour"], now, "hour"),
         "day": (starts["day"], now, "hour"),
         "week": (starts["week"], now, "hour"),
         "month": (starts["month"], now, "hour"),
-        "year": (starts["year"], now, "hour"),
+        "year": (starts["year"], now, "day"),
     }
     result: dict[str, float | int] = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(windows)) as executor:
@@ -455,6 +453,7 @@ def fetch_status(key: str, previous: Status | None = None) -> Status:
     values.update(
         input_tokens_per_minute=input_tokens,
         output_tokens_per_minute=output_tokens,
+        tokens_minute=input_tokens + output_tokens,
         window_end=window_end,
         last_error=history_error,
     )

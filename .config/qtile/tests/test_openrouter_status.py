@@ -72,32 +72,53 @@ class OpenRouterStatusTests(unittest.TestCase):
         self.assertEqual(query["metrics"], ["tokens_total", "total_usage"])
         self.assertEqual(query["granularity"], "hour")
 
-    def test_fetch_period_totals_queries_minute_through_year(self):
+    def test_fetch_period_totals_queries_hour_through_year(self):
         tz = MODULE.timezone(MODULE.timedelta(hours=-4))
         now = MODULE.datetime(2026, 8, 22, 18, 57, 31, tzinfo=tz)
         with mock.patch.object(MODULE, "fetch_usage_range", return_value=(100, 0.25)) as fetch:
             result = MODULE.fetch_period_totals("key", now)
-        self.assertEqual(fetch.call_count, 6)
-        for period in ("minute", "hour", "day", "week", "month", "year"):
+        self.assertEqual(fetch.call_count, 5)
+        for period in ("hour", "day", "week", "month", "year"):
             self.assertEqual(result[f"tokens_{period}"], 100)
         self.assertEqual(result["spend_day"], 0.25)
         self.assertEqual(result["spend_year"], 0.25)
         self.assertNotIn("spend_hour", result)
-        self.assertNotIn("spend_minute", result)
+        self.assertNotIn("tokens_minute", result)
 
-    def test_minute_period_uses_closed_minute_window_and_minute_granularity(self):
+    def test_year_period_uses_day_granularity_from_year_start(self):
         tz = MODULE.timezone(MODULE.timedelta(hours=-4))
         now = MODULE.datetime(2026, 8, 22, 18, 57, 31, tzinfo=tz)
         with mock.patch.object(MODULE, "fetch_usage_range", return_value=(0, 0.0)) as fetch:
             MODULE.fetch_period_totals("key", now)
         calls = {(call.args[3], call.args[1], call.args[2]) for call in fetch.call_args_list}
-        minute_calls = [entry for entry in calls if entry[0] == "minute"]
-        self.assertEqual(len(minute_calls), 1)
-        _, start, end = minute_calls[0]
-        self.assertEqual(end, MODULE.datetime(2026, 8, 22, 22, 57, tzinfo=MODULE.timezone.utc))
-        self.assertEqual((end - start).total_seconds(), 60)
+        year_calls = [entry for entry in calls if entry[0] == "day"]
+        self.assertEqual(len(year_calls), 1)
+        _, start, end = year_calls[0]
+        self.assertEqual(start, MODULE.datetime(2026, 1, 1, tzinfo=tz))
+        self.assertEqual(end, now)
         for granularity, _, _ in calls:
-            self.assertIn(granularity, ("minute", "hour"))
+            self.assertIn(granularity, ("day", "hour"))
+
+    def test_tokens_minute_tracks_closed_minute_rate(self):
+        window_end = MODULE._closed_minute_window()[1].isoformat().replace("+00:00", "Z")
+        now_iso = MODULE._iso_now(MODULE.datetime.now(MODULE.timezone.utc))
+        previous = MODULE.Status(
+            500,
+            250,
+            window_end=window_end,
+            usage_fetched_at=now_iso,
+            balance_fetched_at=now_iso,
+        )
+        with (
+            mock.patch.object(MODULE, "fetch_tokens") as fetch_tokens,
+            mock.patch.object(MODULE, "fetch_period_totals") as fetch_period,
+            mock.patch.object(MODULE, "fetch_balance") as fetch_balance,
+        ):
+            status = MODULE.fetch_status("key", previous)
+        self.assertEqual(status.tokens_minute, 750)
+        fetch_tokens.assert_not_called()
+        fetch_period.assert_not_called()
+        fetch_balance.assert_not_called()
 
     def test_closed_window_is_previous_full_minute(self):
         now = MODULE.datetime(2026, 8, 22, 21, 10, 47, 900, tzinfo=MODULE.timezone.utc)
