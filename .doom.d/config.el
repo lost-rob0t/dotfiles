@@ -39,11 +39,11 @@
 
 (setq frame-resize-pixelwise t)
 
-                                        ;(setq
-                                        ; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
-                                        ; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
-                                        ; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
-                                        ; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
+;(setq
+; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
+; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
 
 (add-to-list 'display-buffer-alist
              (cons "\\*Async Shell Command\\*.*" (cons #'display-buffer-no-window nil)))
@@ -86,15 +86,6 @@ The optional argument NEW-WINDOW is not used."
       time-stamp-end "$"
       time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
 (add-hook 'before-save-hook 'time-stamp nil)
-
-(autoload #'nsa/research-approve-and-push "research-approval" nil t)
-(autoload #'nsa/research-reject-and-push "research-approval" nil t)
-
-(map! :after org
-      :localleader
-      :map org-mode-map
-      :desc "Approve research and push" "A" #'nsa/research-approve-and-push
-      :desc "Reject research and push" "R" #'nsa/research-reject-and-push)
 
 (defun org-ask-location ()
   (let* ((org-refile-targets '((nil :maxlevel . 9)))
@@ -229,8 +220,8 @@ The optional argument NEW-WINDOW is not used."
            (:name "🧠 StarIntel / Temple"
                   :tag ("StarIntel" "Temple"))
 
-           (:name "📚 Org parser / vector"
-                  :tag ("org_parser" "org_vector"))
+           (:name "📚 Org parser"
+                  :tag "org_parser")
 
            (:name "🕵 Hackmode / bug bounty"
                   :tag ("hackmode" "hackmode_expert"))
@@ -674,14 +665,14 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 ;;        (dme:w3m-textarea-mode))
 ;;      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
 
- ;; (after! vterm
- ;;   (setq vterm-environment '("TERM=xterm-256color"))
- ;;   (defun vterm--rename-buffer-as-title (title)
- ;;     (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
- ;;       (cd-absolute dir)
- ;;       (rename-buffer (format "term %s" title))))
- ;;   (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
- ;;   (setq vterm-shell "/run/current-system/sw/bin/bash"))
+;; (after! vterm
+;;   (setq vterm-environment '("TERM=xterm-256color"))
+;;   (defun vterm--rename-buffer-as-title (title)
+;;     (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
+;;       (cd-absolute dir)
+;;       (rename-buffer (format "term %s" title))))
+;;   (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+;;   (setq vterm-shell "/run/current-system/sw/bin/bash"))
 
 (after! vterm
   (defun nsa/tmux-vterm (arg)
@@ -851,20 +842,32 @@ strings."
                             :after-creation (lambda (dir)
                                               (nsa/init-git-project dir))))
 
+(defvar nsa/gptel-openrouter-gpt-backend nil
+  "OpenRouter backend exposing GPT Luna, Terra, and Sol.")
+
 (use-package! gptel
   :commands (gptel gptel-add gptel-add-file gptel-abort gptel-menu
              gptel-complete gptel-send gptel-set-topic)
   :config
 
-  (setq! gptel-model 'openai/gpt-5-mini
-         gptel-backend (gptel-make-openai "OpenRouter"       ;Any name you want
-    :host "openrouter.ai"
-    :endpoint "/api/v1/chat/completions"
-    :stream t
-    :key #'(lambda () (nsa/auth-source-get :host "openrouter.ai")) ;can be a function that returns the key
-    :models '(openai/gpt-5.2-codex
-              openai/gpt-5-mini
-              moonshotai/kimi-k2.5))
+  (setq nsa/gptel-openrouter-gpt-backend
+        (gptel-make-openai "OpenRouter GPT"
+          :host "openrouter.ai"
+          :endpoint "/api/v1/chat/completions"
+          :stream t
+          :key (lambda () (nsa/auth-source-get :host "openrouter.ai"))
+          :models '(openai/gpt-5.6-luna
+                    openai/gpt-5.6-terra
+                    openai/gpt-5.6-sol)))
+
+  (setq! gptel-model 'z-ai/glm-5.2
+         gptel-backend
+         (gptel-make-openai "OpenRouter GLM"
+           :host "openrouter.ai"
+           :endpoint "/api/v1/chat/completions"
+           :stream t
+           :key (lambda () (nsa/auth-source-get :host "openrouter.ai"))
+           :models '(z-ai/glm-5.2))
          gptel-directives
          '(
            (default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,
@@ -897,32 +900,6 @@ strings."
   (let ((gptel--system-message (alist-get 'time-boxer gptel-directives)))
     (gptel "*TODO boxer*" nil (ai/todo-list-todos-with-context '(and (or (todo) (todo "STRT" "LOOP" "PROJ")) (ts))) t)))
 
-(use-package! org-vector
-  :after (org-roam gptel)
-  :commands (org-vector-search org-vector-embed org-vector-start-service
-             org-vector-transient)
-  :init
-  (setq org-vector-dir "~/Documents/Notes/org/roam/")
-  (setq org-vector-db "~/.cache/org-vector/")
-  :config 
-  (setq org-vector-model "sentence-transformers/all-MiniLM-L6-v2")
-  (setq org-vector-url "")
-  (setq org-vector-ingestion-instructions
-        "Instruct: Given a document, retrieve semantically similar text\nDocument: ")
-  (setq org-vector-query-instructions
-        "Instruct: Given a query, retrieve relevant documents\nQuery: ")
-
-  (setq org-vector-collection-name "org-roam")
-  (setq org-vector-log-level "WARNING")
-  (setq org-vector-log-to-file t)
-  ;(org-vector-start-service)
-  (map! :leader
-        :desc "Vector search" "n v s" #'org-vector-search
-        :desc "Search at point" "n v S" #'org-vector-search-at-point
-        :desc "Full re-index" "n v i" #'org-vector-embed
-        :desc "Vector menu" "n v m" #'org-vector-transient
-        :desc "Kill all vector services" "n v k" #'org-vector-stop-all))
-
 (use-package! mcp
   :after gptel
   :commands (mcp-hub-start-all-server gptel-mcp-connect)
@@ -943,7 +920,7 @@ strings."
            (nsa/auth-source-get :host "discord" :user "bot" :max 1))))
     (when (and discord-launcher
                (stringp discord-token)
-               (not (string-empty-p discord-token)))
+               (> (length discord-token) 0))
       (add-to-list
        'mcp-hub-servers
        `("discord" . (:command ,discord-launcher
@@ -1030,13 +1007,13 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
 
 (run-with-idle-timer 3 nil #'envrc-global-mode)
 
-                                        ;(require 'lsp-mode)
-                                        ;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
-                                        ;(lsp-register-client
-                                        ; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
-                                        ;                  :major-modes '(nim-mode)
-                                        ;                  :server-id 'nimlsp))
-                                        ;(add-hook 'nim-mode-hook #'lsp)
+;(require 'lsp-mode)
+;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
+;(lsp-register-client
+; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
+;                  :major-modes '(nim-mode)
+;                  :server-id 'nimlsp))
+;(add-hook 'nim-mode-hook #'lsp)
 
 (add-to-list 'auto-mode-alist '("\\.fs" . 'forth-mode))
 
@@ -1167,7 +1144,7 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
   (map! :leader
         :desc "Run Project Task" "p r" #'project-tasks))
 
-                                        ;(require 'persp-mode)
+;(require 'persp-mode)
 
 (defun ezf-default (filename)
   "EZF completion with your default completion system."

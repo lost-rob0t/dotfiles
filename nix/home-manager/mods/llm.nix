@@ -24,10 +24,14 @@ let
     text = builtins.readFile ../files/opencode-yolo.sh;
   };
 
-  opencodeWrapped = pkgs.writeShellScriptBin "opencode" ''
+  # home-manager's programs.opencode module needs meta.mainProgram when it
+  # wraps or references the package (lib.getExe, extraPackages wrapping).
+  opencodeWrapped = (pkgs.writeShellScriptBin "opencode" ''
     export OPENCODE_REAL_BIN="${pkgs.opencode}/bin/opencode"
     exec "${opencodeYoloRuntime}/bin/opencode-yolo-runtime" "$@"
-  '';
+  '').overrideAttrs (old: {
+    meta = (old.meta or { }) // { mainProgram = "opencode"; };
+  });
 
   # Codex keeps its normal model/auth/config UX. These two session-level
   # overrides only move OpenAI API and ChatGPT-auth traffic through llm-log.
@@ -125,9 +129,7 @@ in
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-wake
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-dictate
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-prolog
-      inputs.org-vector.packages.${stdenv.hostPlatform.system}.org-vector
-
-      # LLM editors and desktop clients
+    # LLM editors and desktop clients
       inputs.chatgpt-desktop.packages.${stdenv.hostPlatform.system}.default
       opencodeWrapped
       codexWrapped

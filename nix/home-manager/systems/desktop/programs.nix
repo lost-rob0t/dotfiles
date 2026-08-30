@@ -47,7 +47,6 @@
     kdePackages.kleopatra
     gimp
     feh
-    mindustry
     activitywatch
     # FIXME nyxt
     remmina
