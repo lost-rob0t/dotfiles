@@ -129,4 +129,4 @@ run brave
 run python3 /home/unseen/.dotfiles/.config/qtile/scripts/pinger.py -c "$HOME/.config/hosts.toml"
 run kdeconnect-indicator
 run aw-qt
-run zara-wake
+run zara-wake --stt-provider faster-whisper --device amd --model base.en
