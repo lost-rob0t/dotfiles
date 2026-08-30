@@ -4,11 +4,13 @@
     inputs.skills.homeManagerModules.opencode
     inputs.skills.homeManagerModules.claude
     inputs.skills.homeManagerModules.agents
+    inputs.skills.homeManagerModules.codex
     ./base.nix
     ./desktop.nix
     ./gnome.nix
     ./fonts.nix
     ./emacs.nix
+    ./gpt-todos.nix
     ./security.nix
     ./nim.nix
     ./lisp.nix

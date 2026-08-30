@@ -38,6 +38,30 @@ OpenCode, Claude, and generic Agent Skills user paths (including the
 changes in the skills repository; this dotfiles repository only selects the input
 revision and enables the client adapters.
 
+* GPT TODO synchronization
+[[file:../../nix/home-manager/mods/gpt-todos.nix][gpt-todos.nix]] installs the
+shared =gpt-todos-sync= command and enables a systemd user timer by default when
+Emacs is enabled.  The timer runs the same locked synchronization path used by
+the Doom after-save hook, so periodic and interactive synchronization serialize
+rather than racing.
+
+The defaults are:
+- durable checkout: =~/Documents/gpt-todos=;
+- live agenda tree: =~/Documents/Notes/org/agenda=;
+- background interval: =5m=.
+
+They are configurable through =gptTodos.repoDir=, =gptTodos.orgDir=, and
+=gptTodos.syncInterval=.  Check the timer with:
+
+#+begin_src shell
+  systemctl --user status gpt-todos-sync.timer
+  systemctl --user list-timers gpt-todos-sync.timer
+#+end_src
+
+The old cron installer remains only as a compatibility path for machines not
+managed by Home Manager.  The canonical synchronization behavior lives in
+[[file:../../scripts/gpt-todos-sync.org][scripts/gpt-todos-sync.org]].
+
 * Installer applications
 The flake exposes =install-logos= and =install-logos-gui=.  Their shell implementations live under [[file:../../scripts/][scripts/]].
 

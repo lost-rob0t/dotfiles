@@ -20,10 +20,22 @@ path is a symlink or other alias that already resolves to the durable file, that
 path is treated as synchronized instead of invoking =cp= on the same inode.
 The default durable checkout is =~/Documents/gpt-todos=.
 
-The same command also owns deployment.  Run =gpt-todos-sync --deploy 5= to
-perform the initial sync and install the five-minute cron entry.  Git operations
-are deliberately non-interactive for cron use; automated commits disable GPG
-signing so a pinentry prompt cannot wedge synchronization.
+Doom invokes =gpt-todos-sync --file FILE= after saving an Org file below the
+live agenda directory.  File mode first copies the exact saved contents to a
+private temporary file.  If the live file is a symlink into the durable checkout,
+the helper temporarily restores only that owned durable path to =HEAD= so the
+upstream fast-forward can happen on a clean worktree.  It then uses the temporary
+snapshot as the local side, restores it after the pull, commits, and pushes.  A
+failure restores an aliased save to disk and retains a recovery copy under
+=$XDG_STATE_HOME/gpt-todos-sync/recovery= (or =~/.local/state=).  The shared
+=flock= is blocking, so Emacs saves and the Home Manager timer serialize instead
+of racing or silently skipping one another.
+
+Home Manager installs =gpt-todos-sync= and runs the same command from a systemd
+user timer every five minutes.  The older =--deploy= / cron installer remains as
+a compatibility path for non-Home-Manager machines.  Git operations are
+non-interactive; automated commits disable GPG signing so a pinentry prompt
+cannot wedge synchronization.
 
 #+begin_src sh :tangle ./gpt-todos-sync :results none
 #!/usr/bin/env bash
@@ -37,6 +49,13 @@ DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
 [[ -d "$LOCK_DIR" ]] || LOCK_DIR=/tmp
 LOCK="$LOCK_DIR/gpt-todos-sync-${UID}.lock"
+RECOVERY_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/gpt-todos-sync/recovery"
+
+SAVE_FILE=""
+SAVE_REL=""
+SAVE_BACKUP=""
+SAVE_ALIASED=0
+SAVE_REWOUND=0
 
 export GIT_TERMINAL_PROMPT=0
 if [[ -z "${GIT_SSH_COMMAND:-}" ]]; then
@@ -73,16 +92,97 @@ if [[ "${1:-}" == "--deploy" ]]; then
   printf 'gpt-todos sync deployed: %s -> %s every %s minutes\n' \
     "$TASK_DIR" "$ORG_DIR" "$minutes"
   exit 0
+elif [[ "${1:-}" == "--file" ]]; then
+  [[ $# -eq 2 ]] || { echo "usage: $0 --file AGENDA_FILE" >&2; exit 2; }
+  SAVE_FILE="$2"
+elif [[ $# -ne 0 ]]; then
+  echo "usage: $0 [--file AGENDA_FILE | --deploy [minutes>=5]]" >&2
+  exit 2
 fi
 
+on_exit() {
+  local rc=$?
+  trap - EXIT
+  set +e
+
+  if [[ -n "$SAVE_BACKUP" && -f "$SAVE_BACKUP" ]]; then
+    if (( rc == 0 )); then
+      rm -f -- "$SAVE_BACKUP"
+    else
+      if (( SAVE_ALIASED && SAVE_REWOUND )); then
+        mkdir -p -- "$(dirname "$REPO_DIR/$SAVE_REL")"
+        cp -p -- "$SAVE_BACKUP" "$REPO_DIR/$SAVE_REL"
+      fi
+
+      mkdir -p -- "$RECOVERY_DIR"
+      stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+      safe_rel="${SAVE_REL//\//__}"
+      recovery="$RECOVERY_DIR/${stamp}-${safe_rel:-agenda-save.org}"
+      mv -- "$SAVE_BACKUP" "$recovery"
+      printf 'gpt-todos-sync: save preserved at %s\n' "$recovery" >&2
+    fi
+  fi
+
+  exit "$rc"
+}
+trap on_exit EXIT
+
 mkdir -p "$(dirname "$REPO_DIR")" "$ORG_DIR"
+
+if [[ -n "$SAVE_FILE" ]]; then
+  org_root="$(realpath -m -s -- "$ORG_DIR")"
+  save_logical="$(realpath -m -s -- "$SAVE_FILE")"
+  case "$save_logical" in
+    "$org_root"/*.org) ;;
+    *)
+      printf 'gpt-todos-sync: --file must be an .org file below %s: %s\n' \
+        "$ORG_DIR" "$SAVE_FILE" >&2
+      exit 2
+      ;;
+  esac
+  [[ -f "$save_logical" ]] || {
+    printf 'gpt-todos-sync: saved agenda file does not exist: %s\n' "$save_logical" >&2
+    exit 2
+  }
+
+  SAVE_FILE="$save_logical"
+  SAVE_REL="agenda/${SAVE_FILE#"$org_root/"}"
+  tmp_root="${TMPDIR:-/tmp}"
+  [[ -d "$tmp_root" ]] || tmp_root=/tmp
+  SAVE_BACKUP="$(mktemp "$tmp_root/gpt-todos-sync-${UID}-XXXXXX.org")"
+  cp -p -- "$SAVE_FILE" "$SAVE_BACKUP"
+fi
+
 exec 9>"$LOCK"
-flock -n 9 || exit 0
+flock 9
 
 if [[ ! -d "$REPO_DIR/.git" ]]; then
   git clone "$REMOTE" "$REPO_DIR"
 fi
 mkdir -p "$TASK_DIR"
+
+prepare_aliased_save() {
+  [[ -n "$SAVE_REL" ]] || return 0
+
+  local target="$REPO_DIR/$SAVE_REL"
+  [[ -e "$target" ]] || return 0
+  [[ "$SAVE_FILE" -ef "$target" ]] || return 0
+
+  SAVE_ALIASED=1
+
+  if ! git -C "$REPO_DIR" diff --cached --quiet -- "$SAVE_REL"; then
+    printf 'gpt-todos-sync: saved alias is already staged; refusing to discard index state: %s\n' \
+      "$SAVE_REL" >&2
+    return 6
+  fi
+
+  if git -C "$REPO_DIR" ls-files --error-unmatch -- "$SAVE_REL" >/dev/null 2>&1; then
+    git -C "$REPO_DIR" restore --worktree --source=HEAD -- "$SAVE_REL"
+  else
+    rm -f -- "$target"
+  fi
+  SAVE_REWOUND=1
+}
 
 sync_literate_pair() {
   local src="$1"; shift
@@ -209,6 +309,7 @@ list_local_org_paths() {
   done < <(find "$ORG_DIR" \( -type f -o -type l \) -name '*.org' -print0)
 }
 
+prepare_aliased_save
 sync_dotfiles_literate
 repair_legacy_imports
 
@@ -231,6 +332,7 @@ mapfile -t org_paths < <(
     list_org_paths "$BASE"
     list_org_paths "$REMOTE_HEAD"
     list_local_org_paths
+    [[ -z "$SAVE_REL" ]] || printf '%s\n' "$SAVE_REL"
   } | sort -u
 )
 
@@ -245,9 +347,14 @@ conflicts=0
 for rel in "${org_paths[@]}"; do
   local_rel="${rel#agenda/}"
   org_file="$ORG_DIR/$local_rel"
+  local_source="$org_file"
+  if [[ -n "$SAVE_REL" && "$rel" == "$SAVE_REL" ]]; then
+    local_source="$SAVE_BACKUP"
+  fi
+
   base_hash="$(blob_at "$BASE" "$rel")"
   remote_hash="$(blob_at "$REMOTE_HEAD" "$rel")"
-  local_hash="$(file_blob "$org_file")"
+  local_hash="$(file_blob "$local_source")"
 
   if [[ "$base_hash" != "-" && "$remote_hash" == "-" ]]; then
     printf 'gpt-todos-sync: remote deletion requires manual resolution: %s\n' "$rel" >&2
@@ -291,8 +398,12 @@ git -C "$REPO_DIR" merge --ff-only "$REMOTE_HEAD"
 
 for rel in "${local_changes[@]}"; do
   local_rel="${rel#agenda/}"
+  local_source="$ORG_DIR/$local_rel"
+  if [[ -n "$SAVE_REL" && "$rel" == "$SAVE_REL" ]]; then
+    local_source="$SAVE_BACKUP"
+  fi
   mkdir -p "$(dirname "$REPO_DIR/$rel")"
-  copy_if_distinct "$ORG_DIR/$local_rel" "$REPO_DIR/$rel"
+  copy_if_distinct "$local_source" "$REPO_DIR/$rel"
 done
 
 if ((${#local_changes[@]})); then
@@ -314,12 +425,15 @@ for rel in "${org_paths[@]}"; do
   mkdir -p "$(dirname "$ORG_DIR/$local_rel")"
   copy_if_distinct "$REPO_DIR/$rel" "$ORG_DIR/$local_rel"
 done
+
+SAVE_REWOUND=0
 #+end_src
 
 * Cron installer
 
-GitHub-backed task synchronization should not hammer the service.  The helper
-therefore enforces a minimum interval of five minutes.
+The Home Manager module uses a systemd user timer.  This cron installer is kept
+for non-Home-Manager systems and still enforces a minimum interval of five
+minutes.
 
 #+begin_src sh :tangle ./install-gpt-todos-cron :results none
 #!/usr/bin/env bash
