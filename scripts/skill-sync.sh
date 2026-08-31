@@ -24,8 +24,9 @@ Options:
   --no-activate         Skip the Home Manager build and switch
   -h, --help            Show this help
 
-The lockfile is only published after `nix flake check -L` succeeds, mirroring
-the repository's daily flake-update workflow.
+The lockfile is only published after the flake's checks evaluate cleanly
+(`nix flake check --no-build`, matching the repository's PR gate), and the
+Home Manager activation package is built before switching.
 EOF
 }
 
@@ -97,7 +98,7 @@ old_rev="$(locked_rev)"
 if (( dry_run )); then
   log "dry-run: would fast-forward $branch to origin/$branch"
   log "dry-run: would update input '$input' (locked at ${old_rev:0:12})"
-  log "dry-run: would gate on: nix flake check -L --show-trace"
+  log "dry-run: would gate on: nix flake check --no-build"
   if (( no_push )); then
     log "dry-run: would commit flake.lock locally (push disabled)"
   else
@@ -122,8 +123,8 @@ if [[ "$new_rev" == "$old_rev" ]]; then
 fi
 log "Input '$input': ${old_rev:0:12} -> ${new_rev:0:12}"
 
-log "Validating flake: nix flake check -L"
-(cd "$repo" && nix flake check -L --show-trace)
+log "Validating flake: nix flake check --no-build"
+(cd "$repo" && nix flake check --no-build --show-trace)
 
 git -C "$repo" add -- flake.lock
 git -C "$repo" commit -m "chore(nix): sync $input input to ${new_rev:0:12}"
