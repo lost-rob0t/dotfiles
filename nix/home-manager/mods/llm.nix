@@ -105,9 +105,6 @@ in
 
     # Install required packages for MCP servers and the remaining LLM tools.
     home.packages = with pkgs; [
-      inputs.chatgpt-desktop.packages.${stdenv.hostPlatform.system}.default
-      opencodeWrapped
-      codexWrapped
       claude-code
 
       # Local generative AI
