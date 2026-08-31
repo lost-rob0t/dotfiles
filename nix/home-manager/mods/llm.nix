@@ -2,17 +2,11 @@
 
 let
   comfyui = pkgs.comfyui.override { withManager = true; };
-  llmLogRevision = "94b79dccd9010b429eff0472c74391fa50b4db0a";
-  llmLogSource = builtins.fetchGit {
-    url = "https://github.com/lost-rob0t/llm-log.git";
-    rev = llmLogRevision;
-  };
-  llmLogPackage = pkgs.callPackage "${llmLogSource}/nix/package.nix" { };
-  llmLogModule = import "${llmLogSource}/nix/home-manager.nix" {
-    self = {
-      packages.${pkgs.stdenv.hostPlatform.system}.default = llmLogPackage;
-    };
-  };
+  llmLogRevision = "b6a7b74fd7a3aca3a8af94d83e18390f2fc37d62";
+  llmLogFlake = builtins.getFlake "github:lost-rob0t/llm-log/${llmLogRevision}";
+  llmLogPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.default;
+  llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
+  llmLogModule = llmLogFlake.homeManagerModules.default;
   proxyBase = "http://127.0.0.1:8787";
 
   # Keep the OpenCode policy wrapper in dotfiles, not in the reusable skills
@@ -62,6 +56,12 @@ in
       enable = true;
       package = llmLogPackage;
       dataDir = "${config.home.homeDirectory}/Documents/AI/proxy";
+      expert = {
+        enable = true;
+        package = llmLogExpertPackage;
+        dataDir = "${config.home.homeDirectory}/.llm-proxy/expert";
+        require = false;
+      };
       upstreams = {
         openai = "https://api.openai.com";
         openrouter = "https://openrouter.ai";
