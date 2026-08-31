@@ -25,5 +25,6 @@
     ./discord-mcp.nix
     ./unifi-mcp.nix
     ./home-manager-updater.nix
+    ./skill-sync.nix
   ];
 }
