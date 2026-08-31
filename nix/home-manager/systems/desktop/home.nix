@@ -22,6 +22,7 @@
 
   zara = {
     enable = true;
+    wake.enable = true;
   };
 
   screenCapture = {

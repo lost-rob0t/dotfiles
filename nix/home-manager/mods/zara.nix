@@ -41,6 +41,17 @@ in
       '';
     };
 
+    wake = {
+      enable = lib.mkEnableOption "zara-wake wake-word listener user service";
+
+      package = lib.mkOption {
+        type = lib.types.package;
+        default = inputs.zara.packages.${pkgs.stdenv.hostPlatform.system}.zara-wake;
+        defaultText = lib.literalExpression "inputs.zara.packages.\${pkgs.stdenv.hostPlatform.system}.zara-wake";
+        description = "Zara flake package providing the zara-wake listener binary.";
+      };
+    };
+
     settings = lib.mkOption {
       type = toml.type;
       default = { };
@@ -77,6 +88,22 @@ in
         RestartSec = 5;
       };
       Install.WantedBy = [ "default.target" ];
+    };
+
+    # The wake listener owns the microphone and reads STT settings from the
+    # user's config.toml, so it belongs to the graphical session.
+    systemd.user.services.zara-wake = lib.mkIf cfg.wake.enable {
+      Unit = {
+        Description = "Zara wake-word voice listener";
+        After = [ "graphical-session.target" "pipewire.service" "pipewire-pulse.service" ];
+        PartOf = [ "graphical-session.target" ];
+      };
+      Service = {
+        ExecStart = "${cfg.wake.package}/bin/zara-wake";
+        Restart = "on-failure";
+        RestartSec = 5;
+      };
+      Install.WantedBy = [ "graphical-session.target" ];
     };
   };
 }
