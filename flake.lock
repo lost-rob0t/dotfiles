@@ -156,6 +156,23 @@
         "type": "github"
       }
     },
+    "prolog-rlm": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788008639,
+        "narHash": "sha256-+16sXtJWEmfL8bCWlCi96zksc6O37bPVXXzkgLJJOgU=",
+        "owner": "lost-rob0t",
+        "repo": "prolog-rlm",
+        "rev": "b654831a0150a593821179da1d3886dfd64deb5c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lost-rob0t",
+        "repo": "prolog-rlm",
+        "rev": "b654831a0150a593821179da1d3886dfd64deb5c",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "bixby-studio": "bixby-studio",
@@ -217,14 +234,15 @@
       "inputs": {
         "nixpkgs": [
           "nixpkgs"
-        ]
+        ],
+        "prolog-rlm": "prolog-rlm"
       },
       "locked": {
-        "lastModified": 1788061514,
-        "narHash": "sha256-qMFWzP0ChioGV+PTsCBLcZB+JluTtEGz1ZfzNv+qldY=",
+        "lastModified": 1788202304,
+        "narHash": "sha256-FIM6QWkngHrISieFMD7QoM5LYPHjY+KeQCc9FmdWnP0=",
         "owner": "lost-rob0t",
         "repo": "zara",
-        "rev": "90b0c821f944d6b5edc2e381b0318ea44a116224",
+        "rev": "de7c91c80a1380781ef41d0b6a85d0f1725d812a",
         "type": "github"
       },
       "original": {

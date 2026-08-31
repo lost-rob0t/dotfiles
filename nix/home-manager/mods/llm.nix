@@ -163,6 +163,21 @@ in
     home.file.".zarathushtra/plugins/starintel.py".source =
       ../files/zarathushtra/plugins/starintel.py;
 
+    # zara-server is the long-lived daemon; the zara CLI and desktop app are
+    # its clients and connect over the local ipc:// ZARA/1 endpoint.
+    systemd.user.services.zara-server = {
+      Unit = {
+        Description = "Long-lived Zara assistant daemon";
+        After = [ "pipewire.service" "pipewire-pulse.service" ];
+      };
+      Service = {
+        ExecStart = "${inputs.zara.packages.${pkgs.stdenv.hostPlatform.system}.zara-server}/bin/zara-server";
+        Restart = "on-failure";
+        RestartSec = 5;
+      };
+      Install.WantedBy = [ "default.target" ];
+    };
+
     # ComfyUI uses a writable XDG data directory instead of the immutable
     # Nix store. Keep downloaded models and generated media here.
     home.activation.comfyuiDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
