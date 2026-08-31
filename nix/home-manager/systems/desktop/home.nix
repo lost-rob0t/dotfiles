@@ -20,6 +20,10 @@
     enable = true;
   };
 
+  zara = {
+    enable = true;
+  };
+
   screenCapture = {
     enable = true;
   };

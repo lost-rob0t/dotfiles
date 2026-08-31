@@ -105,11 +105,9 @@ in
 
     # Install required packages for MCP servers and the remaining LLM tools.
     home.packages = with pkgs; [
-      inputs.zara.packages.${stdenv.hostPlatform.system}.zarathushtra
-      inputs.zara.packages.${stdenv.hostPlatform.system}.zara-cli
-      inputs.zara.packages.${stdenv.hostPlatform.system}.zara-wake
-      inputs.zara.packages.${stdenv.hostPlatform.system}.zara-dictate
-      inputs.zara.packages.${stdenv.hostPlatform.system}.zara-prolog
+      inputs.chatgpt-desktop.packages.${stdenv.hostPlatform.system}.default
+      opencodeWrapped
+      codexWrapped
       claude-code
 
       # Local generative AI
@@ -134,25 +132,6 @@ in
       curl
       openai-whisper
     ];
-
-    # Zara loads user tools from ~/.zarathushtra/plugins at startup.
-    home.file.".zarathushtra/plugins/starintel.py".source =
-      ../files/zarathushtra/plugins/starintel.py;
-
-    # zara-server is the long-lived daemon; the zara CLI and desktop app are
-    # its clients and connect over the local ipc:// ZARA/1 endpoint.
-    systemd.user.services.zara-server = {
-      Unit = {
-        Description = "Long-lived Zara assistant daemon";
-        After = [ "pipewire.service" "pipewire-pulse.service" ];
-      };
-      Service = {
-        ExecStart = "${inputs.zara.packages.${pkgs.stdenv.hostPlatform.system}.zara-server}/bin/zara-server";
-        Restart = "on-failure";
-        RestartSec = 5;
-      };
-      Install.WantedBy = [ "default.target" ];
-    };
 
     # ComfyUI uses a writable XDG data directory instead of the immutable
     # Nix store. Keep downloaded models and generated media here.

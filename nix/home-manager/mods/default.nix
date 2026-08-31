@@ -22,6 +22,7 @@
     ./media.nix
     ./pentesting.nix
     ./llm.nix
+    ./zara.nix
     ./screen-capture.nix
     ./prolog-mcp.nix
     ./proxmox-mcp.nix
