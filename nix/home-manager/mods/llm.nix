@@ -59,7 +59,8 @@ in
       expert = {
         enable = true;
         package = llmLogExpertPackage;
-        dataDir = "${config.home.homeDirectory}/.llm-proxy/expert";
+        # Tek9 state lives with the proxy corpus on this machine.
+        dataDir = "${config.home.homeDirectory}/Documents/AI/proxy/expert";
         require = false;
       };
       upstreams = {
