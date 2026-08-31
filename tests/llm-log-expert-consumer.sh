@@ -32,8 +32,12 @@ grep -Eq 'enable[[:space:]]*=[[:space:]]*true;' "$module" \
 grep -Eq 'require[[:space:]]*=[[:space:]]*false;' "$module" \
   || fail 'initial expert rollout must remain fail-open'
 
-if grep -Eq 'expert[^\n]*dataDir[^\n]*Documents/AI/proxy|Documents/AI/proxy[^\n]*expert' "$module"; then
-  fail 'expert mutable state must not share the raw capture corpus'
-fi
+# The owner co-locates mutable Tek9 state with the capture corpus on this
+# machine, contained in a dedicated expert/ subdir. The invariant that must
+# hold: the expert never targets the corpus root itself, so the append-only
+# evidence files (events.jsonl / frames.jsonl / events.pl) stay untouched.
+grep -Fq 'dataDir = "${config.home.homeDirectory}/Documents/AI/proxy/expert";' "$module" \
+  || fail 'expert mutable state must live in the dedicated Documents/AI/proxy/expert subdir'
+
 
 printf 'llm-log expert consumer contract satisfied\n'
