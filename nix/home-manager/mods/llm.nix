@@ -2,7 +2,7 @@
 
 let
   comfyui = pkgs.comfyui.override { withManager = true; };
-  llmLogRevision = "b6a7b74fd7a3aca3a8af94d83e18390f2fc37d62";
+  llmLogRevision = "176f0f67ad512c9c19fb725b5fccd10f3d308118";
   llmLogFlake = builtins.getFlake "github:lost-rob0t/llm-log/${llmLogRevision}";
   llmLogPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.default;
   llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
