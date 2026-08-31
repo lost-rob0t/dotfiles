@@ -98,6 +98,11 @@ See [[file:../logos-home-manager-bootstrap.md][Logos Home Manager bootstrap]] fo
 * AI client modules and Outrun theme
 [[file:../../nix/home-manager/mods/llm.nix][llm.nix]] composes the AI client plane, while each client owns its package and client-specific behavior:
 
+The same module exposes the pinned skills input's =youtube-context= executable.
+The Doom =SPC y v= command starts it asynchronously and copies its completed
+caption-or-Whisper packet to the kill ring and system clipboard, so the
+interactive Emacs path and the standalone skill share one output implementation.
+
 | Module | Local options | Complete client configuration |
 |--------+---------------+-------------------------------|
 | [[file:../../nix/home-manager/mods/opencode.nix][opencode.nix]] | =opencode.enable=, package, native =--auto= usage, and llm-log routing | Home Manager's =programs.opencode=: settings, TUI, web service, context, commands, agents, skills, themes, tools, extra packages, and shared MCP integration |

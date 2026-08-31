@@ -1,42 +1,44 @@
-;;; youtube-context.el --- Copy video transcripts for LLM context -*- lexical-binding: t; -*-
+;;; youtube-context.el --- Fetch video context asynchronously -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Fetch English subtitles with yt-dlp, normalize them to plain text, and copy
-;; a compact context packet to the kill ring/system clipboard.  If captions are
-;; unavailable, download the audio and transcribe it locally with OpenAI Whisper.
+;; Start the canonical youtube-context executable without blocking Emacs.  The
+;; process writes the packet that is copied to the kill ring and clipboard.
 
 ;;; Code:
 
-(require 'cl-lib)
-(require 'json)
 (require 'subr-x)
 
 (defgroup ai/youtube-context nil
   "Video transcript context helpers."
   :group 'applications)
 
-(defcustom ai/youtube-context-program "yt-dlp"
-  "yt-dlp executable used to fetch subtitles and audio."
+(defcustom ai/youtube-context-program "youtube-context"
+  "Executable that returns a normalized video context packet."
+  :type 'string
+  :group 'ai/youtube-context)
+
+(defcustom ai/youtube-context-yt-dlp-program "yt-dlp"
+  "yt-dlp executable passed to the context helper."
   :type 'string
   :group 'ai/youtube-context)
 
 (defcustom ai/youtube-context-sub-langs "en.*,en"
-  "yt-dlp subtitle language selector used for transcript context."
+  "Subtitle language selector passed to yt-dlp."
   :type 'string
   :group 'ai/youtube-context)
 
 (defcustom ai/youtube-context-whisper-program "whisper"
-  "OpenAI Whisper executable used when a video has no usable captions."
+  "Whisper executable used when captions are unavailable."
   :type 'string
   :group 'ai/youtube-context)
 
 (defcustom ai/youtube-context-whisper-model "base.en"
-  "Whisper model used for local English audio transcription."
+  "Whisper model used for local English transcription."
   :type 'string
   :group 'ai/youtube-context)
 
 (defcustom ai/youtube-context-whisper-language "en"
-  "Language passed to Whisper for local audio transcription."
+  "Language passed to Whisper for local transcription."
   :type 'string
   :group 'ai/youtube-context)
 
@@ -44,6 +46,9 @@
   "CPU threads passed to Whisper during local transcription."
   :type 'integer
   :group 'ai/youtube-context)
+
+(defvar ai/youtube-context-process nil
+  "Currently running YouTube context process, if any.")
 
 (defun ai/youtube--clipboard-text ()
   "Return text from the system clipboard or current kill."
@@ -53,247 +58,122 @@
 
 (defun ai/youtube--clipboard-url ()
   "Return an HTTP URL from the clipboard, or nil."
-  (when-let* ((text (ai/youtube--clipboard-text))
-              (url (string-trim text))
-              ((string-match-p "\\`https?://" url)))
-    url))
+  (let ((text (ai/youtube--clipboard-text)))
+    (when text
+      (let ((url (string-trim text)))
+        (when (string-match-p "\\`https?://" url)
+          url)))))
 
-(defun ai/youtube--normalize-text (text)
-  "Normalize subtitle or transcription TEXT into compact plain text."
-  (string-trim
-   (replace-regexp-in-string
-    "[[:space:]]+" " "
-    (replace-regexp-in-string "<[^>]+>" "" text))))
+(defun ai/youtube--configured-environment ()
+  "Return the helper environment from the current YouTube settings."
+  (let ((environment (copy-sequence process-environment)))
+    (dolist (setting
+             `(("YOUTUBE_CONTEXT_YT_DLP_PROGRAM"
+                . ,ai/youtube-context-yt-dlp-program)
+               ("YOUTUBE_CONTEXT_SUB_LANGS" . ,ai/youtube-context-sub-langs)
+               ("YOUTUBE_CONTEXT_WHISPER_PROGRAM"
+                . ,ai/youtube-context-whisper-program)
+               ("YOUTUBE_CONTEXT_WHISPER_MODEL"
+                . ,ai/youtube-context-whisper-model)
+               ("YOUTUBE_CONTEXT_WHISPER_LANGUAGE"
+                . ,ai/youtube-context-whisper-language)
+               ("YOUTUBE_CONTEXT_WHISPER_THREADS"
+                . ,(number-to-string ai/youtube-context-whisper-threads))))
+      (setenv (car setting) (cdr setting)))
+    environment))
 
-(defun ai/youtube--json3-transcript (file)
-  "Extract plain transcript text from yt-dlp JSON3 subtitle FILE."
-  (with-temp-buffer
-    (insert-file-contents file)
-    (let* ((data (json-parse-buffer
-                  :object-type 'hash-table
-                  :array-type 'list
-                  :null-object nil
-                  :false-object nil))
-           (events (gethash "events" data))
-           chunks
-           previous)
-      (dolist (event events)
-        (let* ((segments (gethash "segs" event))
-               (chunk
-                (and segments
-                     (ai/youtube--normalize-text
-                      (mapconcat
-                       (lambda (segment)
-                         (or (gethash "utf8" segment) ""))
-                       segments "")))))
-          (when (and chunk
-                     (not (string-empty-p chunk))
-                     (not (equal chunk previous)))
-            (push chunk chunks)
-            (setq previous chunk))))
-      (ai/youtube--normalize-text
-       (string-join (nreverse chunks) " ")))))
+(defun ai/youtube--process-buffer-string (buffer)
+  "Return BUFFER contents without text properties."
+  (if (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (buffer-substring-no-properties (point-min) (point-max)))
+    ""))
 
-(defun ai/youtube--vtt-transcript (file)
-  "Extract plain transcript text from WebVTT subtitle FILE."
-  (with-temp-buffer
-    (insert-file-contents file)
-    (let (lines previous)
-      (dolist (line (split-string (buffer-string) "\n"))
-        (setq line (string-trim line))
-        (unless (or (string-empty-p line)
-                    (string-prefix-p "WEBVTT" line)
-                    (string-prefix-p "Kind:" line)
-                    (string-prefix-p "Language:" line)
-                    (string-match-p "-->" line)
-                    (string-match-p "\\`[0-9]+\\'" line))
-          (setq line (ai/youtube--normalize-text line))
-          (when (and (not (string-empty-p line))
-                     (not (equal line previous)))
-            (push line lines)
-            (setq previous line))))
-      (ai/youtube--normalize-text
-       (string-join (nreverse lines) " ")))))
+(defun ai/youtube--copy-context (context)
+  "Copy a valid CONTEXT packet and report its metadata."
+  (unless (string-match
+           "\\`Title: \\(.*\\)\nURL: .*\nTranscript source: \\(.*\\)\n\nTranscript:\n\\(.*\\)\\'"
+           context)
+    (error "youtube-context returned an invalid context packet"))
+  (let* ((title (match-string 1 context))
+         (source (match-string 2 context))
+         (transcript (match-string 3 context))
+         (words (length (split-string transcript "[[:space:]]+" t))))
+    (kill-new context)
+    (when (fboundp 'gui-set-selection)
+      (ignore-errors (gui-set-selection 'CLIPBOARD context)))
+    (message "Copied YouTube context: %d words from %s via %s"
+             words title source)))
 
-(defun ai/youtube--subtitle-score (file)
-  "Return preference score for subtitle FILE; lower is better."
-  (let ((name (file-name-nondirectory file)))
-    (+ (if (string-suffix-p ".json3" name) 0 100)
-       (cond
-        ((string-match-p "\\.en\\.\\(?:json3\\|vtt\\)\\'" name) 0)
-        ((string-match-p "\\.en-US\\.\\(?:json3\\|vtt\\)\\'" name) 1)
-        ((string-match-p "\\.en-GB\\.\\(?:json3\\|vtt\\)\\'" name) 2)
-        ((string-match-p "\\.en[^.]*\\.\\(?:json3\\|vtt\\)\\'" name) 10)
-        (t 50)))))
-
-(defun ai/youtube--best-subtitle (directory)
-  "Return the preferred downloaded subtitle file in DIRECTORY."
-  (car
-   (sort
-    (directory-files directory t "\\.\\(?:json3\\|vtt\\)\\'")
-    (lambda (a b)
-      (< (ai/youtube--subtitle-score a)
-         (ai/youtube--subtitle-score b))))))
-
-(defun ai/youtube--process-output (buffer)
-  "Return trimmed text from process BUFFER."
-  (with-current-buffer buffer
-    (string-trim (buffer-substring-no-properties (point-min) (point-max)))))
-
-(defun ai/youtube--download-subtitle (program url directory)
-  "Use PROGRAM to download subtitles for URL into DIRECTORY.
-Return the preferred subtitle file, or nil when no matching subtitles exist."
-  (let ((default-directory directory)
-        (buffer (generate-new-buffer " *yt-dlp-context*")))
-    (unwind-protect
-        (let ((status
-               (process-file
-                program nil buffer nil
-                "--skip-download"
-                "--no-playlist"
-                "--write-subs"
-                "--write-auto-subs"
-                "--sub-langs" ai/youtube-context-sub-langs
-                "--sub-format" "json3/vtt/best"
-                "--output" "%(id)s.%(ext)s"
-                url)))
-          (unless (eq status 0)
-            (error "yt-dlp subtitle fetch failed: %s"
-                   (ai/youtube--process-output buffer)))
-          (ai/youtube--best-subtitle directory))
-      (kill-buffer buffer))))
-
-(defun ai/youtube--subtitle-transcript (program url directory)
-  "Return a non-empty caption transcript for URL, or nil."
-  (when-let ((subtitle (ai/youtube--download-subtitle program url directory)))
-    (let ((transcript
-           (if (string-suffix-p ".json3" subtitle)
-               (ai/youtube--json3-transcript subtitle)
-             (ai/youtube--vtt-transcript subtitle))))
-      (unless (string-empty-p transcript)
-        transcript))))
-
-(defun ai/youtube--download-audio (program url directory)
-  "Use yt-dlp PROGRAM to download best audio for URL into DIRECTORY."
-  (let ((default-directory directory)
-        (buffer (generate-new-buffer " *yt-dlp-audio*")))
-    (unwind-protect
-        (let ((status
-               (process-file
-                program nil buffer nil
-                "--no-playlist"
-                "--format" "bestaudio/best"
-                "--output" "audio.%(ext)s"
-                url)))
-          (unless (eq status 0)
-            (error "yt-dlp audio download failed: %s"
-                   (ai/youtube--process-output buffer)))
-          (or (car (directory-files directory t "\\`audio\\.[^.]+\\'"))
-              (error "yt-dlp completed without producing an audio file")))
-      (kill-buffer buffer))))
-
-(defun ai/youtube--read-text-file (file)
-  "Return normalized text contents of FILE."
-  (with-temp-buffer
-    (insert-file-contents file)
-    (ai/youtube--normalize-text (buffer-string))))
-
-(defun ai/youtube--whisper-transcript (yt-dlp-program url directory)
-  "Download URL audio with YT-DLP-PROGRAM and transcribe it in DIRECTORY."
-  (let ((whisper (executable-find ai/youtube-context-whisper-program)))
-    (unless whisper
-      (user-error
-       "No usable captions and %s is not available in PATH"
-       ai/youtube-context-whisper-program))
-    (unless (executable-find "ffmpeg")
-      (user-error "No usable captions and ffmpeg is required by Whisper"))
-    (let* ((audio (ai/youtube--download-audio yt-dlp-program url directory))
-           (output (expand-file-name
-                    (concat (file-name-base audio) ".txt")
-                    directory))
-           (buffer (generate-new-buffer " *whisper-context*")))
-      (message "No usable captions; transcribing audio locally with Whisper %s..."
-               ai/youtube-context-whisper-model)
+(defun ai/youtube--process-sentinel (process _event)
+  "Copy PROCESS output after its asynchronous command finishes."
+  (when (memq (process-status process) '(exit signal))
+    (let* ((output-buffer (process-buffer process))
+           (error-buffer (process-get process 'ai/youtube-context-error-buffer))
+           (status (process-exit-status process))
+           (context (ai/youtube--process-buffer-string output-buffer))
+           (error-text (string-trim
+                        (ai/youtube--process-buffer-string error-buffer))))
       (unwind-protect
-          (let ((status
-                 (process-file
-                  whisper nil buffer nil
-                  audio
-                  "--model" ai/youtube-context-whisper-model
-                  "--device" "cpu"
-                  "--language" ai/youtube-context-whisper-language
-                  "--task" "transcribe"
-                  "--output_format" "txt"
-                  "--output_dir" directory
-                  "--verbose" "False"
-                  "--fp16" "False"
-                  "--threads" (number-to-string ai/youtube-context-whisper-threads))))
-            (unless (eq status 0)
-              (error "Whisper transcription failed: %s"
-                     (ai/youtube--process-output buffer)))
-            (unless (file-exists-p output)
-              (error "Whisper completed without producing %s" output))
-            (let ((transcript (ai/youtube--read-text-file output)))
-              (when (string-empty-p transcript)
-                (error "Whisper produced an empty transcript"))
-              transcript))
-        (kill-buffer buffer)))))
-
-(defun ai/youtube--video-title (program url)
-  "Return the title for URL using PROGRAM, or nil on failure."
-  (let ((buffer (generate-new-buffer " *yt-dlp-title*")))
-    (unwind-protect
-        (when (eq
-               (process-file
-                program nil buffer nil
-                "--skip-download"
-                "--no-playlist"
-                "--print" "%(title)s"
-                url)
-               0)
-          (car (split-string (ai/youtube--process-output buffer) "\n" t)))
-      (kill-buffer buffer))))
+          (if (and (eq (process-status process) 'exit) (= status 0))
+              (condition-case error
+                  (ai/youtube--copy-context context)
+                (error
+                 (message "YouTube context failed: %s"
+                          (error-message-string error))))
+            (message "YouTube context failed%s"
+                     (if (string-empty-p error-text)
+                         (format " with status %d" status)
+                       (format ": %s" error-text))))
+        (when (eq process ai/youtube-context-process)
+          (setq ai/youtube-context-process nil))
+        (when (buffer-live-p output-buffer)
+          (kill-buffer output-buffer))
+        (when (buffer-live-p error-buffer)
+          (kill-buffer error-buffer))))))
 
 ;;;###autoload
 (defun ai/youtube-context (url)
-  "Copy a transcript context packet for video URL.
+  "Fetch a transcript context packet for URL without blocking Emacs.
 
-English human or automatic captions are preferred.  If no usable captions are
-available, download the audio with yt-dlp and transcribe it locally with
-OpenAI Whisper.  The prompt defaults to an HTTP URL currently in the clipboard.
-The copied packet contains the video title, URL, transcript source, and text."
+The canonical youtube-context executable prefers English captions and falls
+back to local Whisper transcription.  Its completed output is copied to the
+kill ring and system clipboard.  The prompt defaults to an HTTP URL in the
+clipboard."
   (interactive
    (list
     (read-string "Video URL: " (or (ai/youtube--clipboard-url) ""))))
-  (let ((program (executable-find ai/youtube-context-program)))
+  (when (process-live-p ai/youtube-context-process)
+    (user-error "A YouTube context request is already running"))
+  (unless (string-match-p "\\`https?://" url)
+    (user-error "Expected an http(s) video URL"))
+  (let ((program (if (file-name-directory ai/youtube-context-program)
+                     (and (file-executable-p ai/youtube-context-program)
+                          ai/youtube-context-program)
+                   (executable-find ai/youtube-context-program))))
     (unless program
       (user-error "%s is not available in PATH" ai/youtube-context-program))
-    (unless (string-match-p "\\`https?://" url)
-      (user-error "Expected an http(s) video URL"))
-    (let ((directory (make-temp-file "yt-dlp-context-" t)))
-      (unwind-protect
-          (let* ((caption-transcript
-                  (ai/youtube--subtitle-transcript program url directory))
-                 (source
-                  (if caption-transcript
-                      "video captions"
-                    (format "local Whisper (%s)"
-                            ai/youtube-context-whisper-model)))
-                 (transcript
-                  (or caption-transcript
-                      (ai/youtube--whisper-transcript program url directory)))
-                 (title (or (ai/youtube--video-title program url) "Video"))
-                 (context
-                  (format
-                   "Title: %s\nURL: %s\nTranscript source: %s\n\nTranscript:\n%s"
-                   title url source transcript))
-                 (words (length (split-string transcript "[[:space:]]+" t))))
-            (kill-new context)
-            (when (fboundp 'gui-set-selection)
-              (ignore-errors (gui-set-selection 'CLIPBOARD context)))
-            (message "Copied YouTube context: %d words from %s via %s"
-                     words title source))
-        (delete-directory directory t)))))
+    (let ((output-buffer (generate-new-buffer " *youtube-context-output*"))
+          (error-buffer (generate-new-buffer " *youtube-context-errors*"))
+          process)
+      (condition-case error
+          (let ((process-environment (ai/youtube--configured-environment)))
+            (setq process
+                  (make-process
+                   :name (buffer-name output-buffer)
+                   :buffer output-buffer
+                   :stderr error-buffer
+                   :command (list program url)
+                   :noquery t
+                   :connection-type 'pipe
+                   :sentinel #'ai/youtube--process-sentinel))
+            (process-put process 'ai/youtube-context-error-buffer error-buffer)
+            (setq ai/youtube-context-process process)
+            (message "Fetching YouTube context asynchronously..."))
+        (error
+         (kill-buffer output-buffer)
+         (kill-buffer error-buffer)
+         (signal (car error) (cdr error)))))))
 
 (provide 'youtube-context)
 ;;; youtube-context.el ends here

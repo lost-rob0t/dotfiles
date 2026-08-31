@@ -59,6 +59,12 @@ jobs:
           -L .doom.d/autoload
           -l .doom.d/tests/research-approval-test.el
           -f ert-run-tests-batch-and-exit
+      - name: Run asynchronous YouTube context ERT test
+        run: >-
+          emacs -Q --batch
+          -L lisp/llm
+          -l lisp/llm/youtube-context-test.el
+          -f ert-run-tests-batch-and-exit
       - name: Run Brave MCP protocol tests
         run: python3 tests/brave-mcp.py
       - name: Run Termux remote workflow tests
