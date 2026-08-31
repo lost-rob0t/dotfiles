@@ -7,7 +7,7 @@
 (autoload #'ai/meme-generate "meme" "Generate a meme from a region or prompt." t)
 
 ;;;###autoload
-(autoload #'ai/youtube-context "youtube-context" "Copy yt-dlp transcript context." t)
+(autoload #'ai/youtube-context "youtube-context" "Fetch YouTube context asynchronously." t)
 
 ;;;###autoload
 (autoload #'ai/prompt-menu "ai-prompts" "Open reusable prompt and image commands." t)
@@ -119,7 +119,7 @@
 
 ;;;###autoload
 (defun +llm/youtube-context ()
-  "Fetch a video transcript with yt-dlp and copy it as LLM context."
+  "Fetch a video transcript asynchronously and copy it as LLM context."
   (interactive)
   (call-interactively #'ai/youtube-context))
 

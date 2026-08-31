@@ -8,6 +8,20 @@ let
   llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
   llmLogModule = llmLogFlake.homeManagerModules.default;
   proxyBase = "http://127.0.0.1:8787";
+  youtubeContext = pkgs.writeShellApplication {
+    name = "youtube-context";
+    runtimeInputs = with pkgs; [
+      bash
+      coreutils
+      ffmpeg
+      openai-whisper
+      python3
+      yt-dlp
+    ];
+    text = ''
+      exec ${inputs.skills}/skills/youtube-context/scripts/youtube-context "$@"
+    '';
+  };
 in
 {
   imports = [
@@ -128,6 +142,7 @@ in
       jq
       curl
       openai-whisper
+      youtubeContext
     ];
 
     # ComfyUI uses a writable XDG data directory instead of the immutable
