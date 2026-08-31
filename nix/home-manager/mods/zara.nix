@@ -30,6 +30,17 @@ in
       '';
     };
 
+    shutdownTimeout = lib.mkOption {
+      type = lib.types.ints.u32;
+      default = 240;
+      description = ''
+        Seconds passed to zara-server --shutdown-timeout. The daemon also
+        spends this budget waiting for runtime startup before declaring the
+        runtime degraded; the binary's 5 second default is far too short for
+        cold AgentManager/ChromaDB starts, which can take minutes.
+      '';
+    };
+
     settings = lib.mkOption {
       type = toml.type;
       default = { };
@@ -61,7 +72,7 @@ in
         After = [ "pipewire.service" "pipewire-pulse.service" ];
       };
       Service = {
-        ExecStart = "${cfg.package}/bin/zara-server";
+        ExecStart = "${cfg.package}/bin/zara-server --shutdown-timeout ${toString cfg.shutdownTimeout}";
         Restart = "on-failure";
         RestartSec = 5;
       };
