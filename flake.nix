@@ -156,6 +156,102 @@
         ];
         text = builtins.readFile ./scripts/flash-logos.sh;
       };
+
+      desktopHome = homeConfigurations."unseen@desktop";
+      aiClientThemeCheck =
+        assert !builtins.hasAttr ".codex/config.toml" desktopHome.config.home.file;
+        assert !builtins.hasAttr ".codex/config.yaml" desktopHome.config.home.file;
+        assert desktopHome.config.programs.opencode.enable;
+        assert desktopHome.config.programs.opencode.package == pkgs.opencode;
+        assert desktopHome.config.programs.opencode.enableMcpIntegration;
+        assert desktopHome.config.programs.opencode.tui.theme == "outrun";
+        assert
+          desktopHome.config.programs.opencode.settings.provider.openai.options.baseURL
+          == "http://127.0.0.1:8787/openai/v1";
+        assert desktopHome.config.programs.codex.enable;
+        assert !desktopHome.config.programs.codex.enableMcpIntegration;
+        assert desktopHome.config.programs.codex.package.version == pkgs.codex.version;
+        assert desktopHome.config.programs.chatgpt-desktop.enable;
+        pkgs.runCommand "ai-client-theme-check"
+          {
+            nativeBuildInputs = [ pkgs.jq ];
+            opencodeTheme =
+              desktopHome.config.home.file."${desktopHome.config.xdg.configHome}/opencode/themes/outrun.json".source;
+            codexTheme = desktopHome.config.home.file.".codex/themes/outrun.tmTheme".source;
+            chatgptTheme = desktopHome.config.home.file.".codex/themes/outrun-desktop.json".source;
+          }
+          ''
+            jq -e '
+              .defs.deepBackground == "#170c32" and
+              .defs.background == "#202146" and
+              .defs.pink == "#f6019d" and
+              .defs.cyan == "#2de2e6" and
+              .theme.primary == "pink" and
+              .theme.background == "deepBackground"
+            ' "$opencodeTheme" >/dev/null
+
+            grep -Fq '<string>#170c32</string>' "$codexTheme"
+            grep -Fq '<string>#f6019d</string>' "$codexTheme"
+            grep -Fq '<string>#2de2e6</string>' "$codexTheme"
+
+            jq -e '
+              .appearanceTheme == "dark" and
+              .appearanceDarkChromeTheme.surface == "#170c32" and
+              .appearanceDarkChromeTheme.accent == "#f6019d" and
+              .appearanceDarkChromeTheme.ink == "#f3f4f5" and
+              .appearanceDarkChromeTheme.semanticColors.diffAdded == "#62ff00" and
+              .appearanceDarkChromeTheme.semanticColors.diffRemoved == "#dd546e"
+            ' "$chatgptTheme" >/dev/null
+
+            touch "$out"
+          '';
+      codexConfigPatchCheck =
+        let
+          python = pkgs.python3.withPackages (pythonPackages: [ pythonPackages.tomlkit ]);
+          fixture = pkgs.writeText "codex-config-fixture.toml" ''
+            # Existing user configuration must survive theme updates.
+            model = "gpt-test"
+
+            [projects."/tmp/example"]
+            trust_level = "trusted"
+          '';
+          patch = pkgs.writeText "codex-config-patch.json" ''
+            {
+              "desktop": {
+                "appearanceTheme": "dark",
+                "appearanceDarkChromeTheme": {
+                  "accent": "#f6019d",
+                  "contrast": 64,
+                  "fonts": { "code": "Hack Nerd Font", "ui": "Noto Sans" },
+                  "ink": "#f3f4f5",
+                  "opaqueWindows": false,
+                  "semanticColors": {
+                    "diffAdded": "#62ff00",
+                    "diffRemoved": "#dd546e",
+                    "skill": "#2de2e6"
+                  },
+                  "surface": "#170c32"
+                }
+              },
+              "tui": { "theme": "outrun" }
+            }
+          '';
+        in
+        pkgs.runCommand "codex-config-patch-check" { nativeBuildInputs = [ python ]; } ''
+          install -m 600 ${fixture} config.toml
+          python3 ${./nix/home-manager/files/apply-codex-config.py} config.toml ${patch}
+
+          grep -Fq '# Existing user configuration must survive theme updates.' config.toml
+          grep -Fq 'model = "gpt-test"' config.toml
+          grep -Fq 'trust_level = "trusted"' config.toml
+          grep -Fq 'appearanceTheme = "dark"' config.toml
+          grep -Fq 'theme = "outrun"' config.toml
+
+          cp config.toml first-pass.toml
+          python3 ${./nix/home-manager/files/apply-codex-config.py} config.toml ${patch}
+          cmp first-pass.toml config.toml
+          touch "$out"
+        '';
     in
     {
       nixosConfigurations = {
@@ -197,6 +293,8 @@
         unseen-flake-home = homeConfigurations."unseen@flake".activationPackage;
         unseen-desktop-home = homeConfigurations."unseen@desktop".activationPackage;
         unseen-hunter02-home = homeConfigurations."unseen@hunter02".activationPackage;
+        ai-client-theme = aiClientThemeCheck;
+        codex-config-patch = codexConfigPatchCheck;
       };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;

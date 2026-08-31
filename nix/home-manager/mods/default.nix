@@ -4,7 +4,10 @@
     inputs.skills.homeManagerModules.opencode
     inputs.skills.homeManagerModules.claude
     inputs.skills.homeManagerModules.agents
+    ./outrun-theme.nix
+    ./opencode.nix
     ./codex.nix
+    ./chatgpt-desktop.nix
     ./base.nix
     ./desktop.nix
     ./gnome.nix

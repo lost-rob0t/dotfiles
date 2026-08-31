@@ -7,6 +7,7 @@ In particular, keep literate Org sources and their tangled/generated outputs syn
 
 * Index
 + [[./docs/wiki/index.org][Dotfiles wiki]]
++ [[./docs/wiki/nix.org::*AI client modules and Outrun theme][OpenCode, Codex, and ChatGPT Desktop modules]]
 + [[./AGENTS.md][Agent instructions]]
 + [[./bash.org][Bash]]
 + [[./.doom.d/config.org][Desktop Emacs config]]

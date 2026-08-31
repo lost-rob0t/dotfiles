@@ -8,33 +8,6 @@ let
   llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
   llmLogModule = llmLogFlake.homeManagerModules.default;
   proxyBase = "http://127.0.0.1:8787";
-
-  # Keep the OpenCode policy wrapper in dotfiles, not in the reusable skills
-  # repository. Normal invocations are passed through unchanged; only
-  # `opencode --yolo` creates the StarIntel V4 tmpfs/Prolog-RLM environment.
-  opencodeYoloRuntime = pkgs.writeShellApplication {
-    name = "opencode-yolo-runtime";
-    runtimeInputs = [ pkgs.coreutils ];
-    text = builtins.readFile ../files/opencode-yolo.sh;
-  };
-
-  # home-manager's programs.opencode module needs meta.mainProgram when it
-  # wraps or references the package (lib.getExe, extraPackages wrapping).
-  opencodeWrapped = (pkgs.writeShellScriptBin "opencode" ''
-    export OPENCODE_REAL_BIN="${pkgs.opencode}/bin/opencode"
-    exec "${opencodeYoloRuntime}/bin/opencode-yolo-runtime" "$@"
-  '').overrideAttrs (old: {
-    meta = (old.meta or { }) // { mainProgram = "opencode"; };
-  });
-
-  # Codex keeps its normal model/auth/config UX. These two session-level
-  # overrides only move OpenAI API and ChatGPT-auth traffic through llm-log.
-  codexWrapped = pkgs.writeShellScriptBin "codex" ''
-    exec "${pkgs.codex}/bin/codex" \
-      -c 'openai_base_url="${proxyBase}/openai/v1"' \
-      -c 'chatgpt_base_url="${proxyBase}/chatgpt/backend-api"' \
-      "$@"
-  '';
 in
 {
   imports = [
@@ -71,18 +44,25 @@ in
       };
     };
 
-    # Preserve OpenCode's built-in providers, auth and model picker. Only the
-    # provider base URLs change, so /models keeps using the normal catalog.
-    # Home Manager owns only the config; the custom wrapper below owns the bin.
-    programs.opencode = {
+    outrunTheme.enable = true;
+
+    # The client modules own packages, complete Home Manager configuration
+    # surfaces, MCP integration, and the shared Outrun theme.
+    opencode = {
       enable = true;
-      package = null;
-      settings.provider = {
-        openai.options.baseURL = "${proxyBase}/openai/v1";
-        openrouter.options.baseURL = "${proxyBase}/openrouter/api/v1";
-        anthropic.options.baseURL = "${proxyBase}/anthropic";
+      llmLog = {
+        enable = true;
+        baseUrl = proxyBase;
       };
     };
+    codex = {
+      enable = true;
+      llmLog = {
+        enable = true;
+        baseUrl = proxyBase;
+      };
+    };
+    programs.chatgpt-desktop.enable = true;
 
     # gptel backends are created lazily by Doom. Advice the OpenRouter
     # constructor instead of replacing the user's configured backend/model
@@ -123,17 +103,13 @@ in
     # so the API key never enters the Nix store.
     braveMcp.enable = mkDefault true;
 
-    # Install required packages for MCP servers
+    # Install required packages for MCP servers and the remaining LLM tools.
     home.packages = with pkgs; [
       inputs.zara.packages.${stdenv.hostPlatform.system}.zarathushtra
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-cli
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-wake
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-dictate
       inputs.zara.packages.${stdenv.hostPlatform.system}.zara-prolog
-    # LLM editors and desktop clients
-      inputs.chatgpt-desktop.packages.${stdenv.hostPlatform.system}.default
-      opencodeWrapped
-      codexWrapped
       claude-code
 
       # Local generative AI
