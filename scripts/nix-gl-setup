@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Provision /run/opengl-driver for Nix GUI apps on non-NixOS hosts.
+#
+# Nixpkgs mesa is patched to search GL/GBM/Vulkan drivers in /run/opengl-driver,
+# a path only NixOS populates. On a foreign distro, Nix GUI apps (Firefox,
+# Discord, Electron) fail their GPU init and fall back to software or crash.
+#
+# Run it once as root (idempotent, safe to re-run):
+#
+#   pkexec --disable-internal-agent nix-gl-setup
+#
+# The /etc/tmpfiles.d rule created here re-creates the symlink on every boot,
+# pointing at the stable nix profile path so mesa upgrades never break it.
+
+if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
+  echo "nix-gl-setup: refused: must run as root:" >&2
+  echo "  pkexec --disable-internal-agent nix-gl-setup" >&2
+  exit 1
+fi
+
+profile_dir="${1:-${NIX_GL_PROFILE_DIR:-}}"
+
+if [[ -z $profile_dir ]]; then
+  # pkexec scrubs the environment but exports PKEXEC_UID; derive the invoking
+  # user's home from it so we target their nix profile, not root's.
+  uid="${PKEXEC_UID:-}"
+  if [[ -n $uid ]]; then
+    user_home="$(getent passwd "$uid" | cut -d: -f6)"
+    profile_dir="$user_home/.nix-profile"
+  else
+    profile_dir="$HOME/.nix-profile"
+  fi
+fi
+
+profile_dir="$(readlink -f "$profile_dir")"
+
+if [[ ! -d $profile_dir/lib/dri ]]; then
+  echo "nix-gl-setup: no GL drivers in $profile_dir/lib/dri" >&2
+  echo "  install them first:  nix profile install nixpkgs#mesa" >&2
+  exit 1
+fi
+
+conf=/etc/tmpfiles.d/nix-opengl-driver.conf
+rule="L+ /run/opengl-driver - - - - ${profile_dir}"
+
+if [[ -f $conf ]] && cmp -s <(printf '%s\n' "$rule") "$conf"; then
+  echo "nix-gl-setup: $conf already up to date"
+else
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' EXIT
+  printf '%s\n' "$rule" > "$tmp"
+  install -Dm 0644 "$tmp" "$conf"
+  echo "nix-gl-setup: wrote $conf"
+fi
+
+ln -sfn "$profile_dir" /run/opengl-driver
+
+echo "nix-gl-setup: /run/opengl-driver -> $(readlink /run/opengl-driver)"

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+SETUP="$ROOT/scripts/nix-gl-setup"
+
+# Syntax must be valid.
+bash -n "$SETUP"
+
+# Refuses to run unprivileged and points at the pkexec invocation instead of
+# embedding sudo credentials.
+out="$(bash "$SETUP" 2>&1)" && status=0 || status=$?
+[[ $status -eq 1 ]]
+grep -q "must run as root" <<<"$out"
+grep -q "pkexec --disable-internal-agent nix-gl-setup" <<<"$out"
+if grep -Eq 'sudo -S|SUDO_ASKPASS|SUDO_ASKPASS_ENV' "$SETUP"; then
+  echo "nix-gl-setup must not collect credentials" >&2
+  exit 1
+fi
+
+# Root-gated behavior cannot be exercised here; the tmpfiles rule, symlink
+# target, and profile validation logic are exercised on the host via
+# pkexec --disable-internal-agent nix-gl-setup.
+
+echo "tests/nix-gl-setup: ok"
