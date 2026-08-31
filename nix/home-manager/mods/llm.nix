@@ -47,7 +47,7 @@ in
     outrunTheme.enable = true;
 
     # The client modules own packages, complete Home Manager configuration
-    # surfaces, MCP integration, wrappers, and the shared Outrun theme.
+    # surfaces, MCP integration, and the shared Outrun theme.
     opencode = {
       enable = true;
       llmLog = {

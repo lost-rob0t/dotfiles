@@ -16,23 +16,6 @@ let
   outrun = config.outrunTheme;
   p = outrun.palette;
 
-  opencodeYoloRuntime = pkgs.writeShellApplication {
-    name = "opencode-yolo-runtime";
-    runtimeInputs = [ pkgs.coreutils ];
-    text = builtins.readFile ../files/opencode-yolo.sh;
-  };
-
-  wrappedPackage =
-    (pkgs.writeShellScriptBin "opencode" ''
-      export OPENCODE_REAL_BIN="${cfg.package}/bin/opencode"
-      exec "${opencodeYoloRuntime}/bin/opencode-yolo-runtime" "$@"
-    '').overrideAttrs
-      (old: {
-        meta = (old.meta or { }) // {
-          mainProgram = "opencode";
-        };
-      });
-
   theme = {
     "$schema" = "https://opencode.ai/theme.json";
     defs = p;
@@ -101,12 +84,6 @@ in
       description = "Underlying OpenCode package.";
     };
 
-    yolo.enable = mkOption {
-      type = types.bool;
-      default = true;
-      description = "Enable the existing policy wrapper for opencode --yolo.";
-    };
-
     llmLog = {
       enable = mkEnableOption "routing OpenCode providers through llm-log";
       baseUrl = mkOption {
@@ -120,7 +97,7 @@ in
   config = mkIf cfg.enable {
     programs.opencode = {
       enable = true;
-      package = if cfg.yolo.enable then wrappedPackage else cfg.package;
+      package = cfg.package;
       enableMcpIntegration = true;
       settings.provider = mkIf cfg.llmLog.enable {
         openai.options.baseURL = "${cfg.llmLog.baseUrl}/openai/v1";

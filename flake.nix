@@ -162,6 +162,7 @@
         assert !builtins.hasAttr ".codex/config.toml" desktopHome.config.home.file;
         assert !builtins.hasAttr ".codex/config.yaml" desktopHome.config.home.file;
         assert desktopHome.config.programs.opencode.enable;
+        assert desktopHome.config.programs.opencode.package == pkgs.opencode;
         assert desktopHome.config.programs.opencode.enableMcpIntegration;
         assert desktopHome.config.programs.opencode.tui.theme == "outrun";
         assert
