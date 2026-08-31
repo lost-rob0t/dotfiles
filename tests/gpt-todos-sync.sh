@@ -40,6 +40,14 @@ run_sync() {
     bash "$SYNC" "$@"
 }
 
+commit_in_repo() {
+  git -C "$REPO" -c user.name=test -c user.email=test@example.invalid \
+    commit -q --all -m "$1"
+}
+
+subject_of() { git -C "$REPO" log -1 --format=%s; }
+body_of()    { git -C "$REPO" log -1 --format=%b; }
+
 # Initial remote state is restored into the complete local agenda tree.
 run_sync
 cmp "$ORG/shared.org" "$SEED/agenda/shared.org"
@@ -135,5 +143,100 @@ rc=$?
 set -e
 [[ "$rc" -eq 5 ]]
 grep -q 'local-conflict' "$ORG/shared.org"
+
+# Resolve the deliberate conflict above by accepting the remote side, then
+# reset to a synchronized baseline so each smart-message scenario below owns
+# exactly one commit.
+cp "$SEED/agenda/shared.org" "$ORG/shared.org"
+run_sync
+
+printf '* TODO shared-reset\n' > "$ORG/shared.org"
+run_sync
+
+# Checkbox completions produce a counted subject; statistics-cookie churn
+# ([0/3] -> [3/3]) is recognized as derived noise, not a content edit.
+printf '* server research\n*** group [0/3]\n- [ ] alpha\n- [ ] beta\n- [ ] gamma\n' \
+  > "$ORG/smart.org"
+run_sync
+[[ "$(subject_of)" == 'agenda: add 1 agenda file' ]]
+
+sed -i -e 's/\[0\/3\]/[3\/3]/' -e 's/- \[ \]/- [X]/' "$ORG/smart.org"
+run_sync
+[[ "$(subject_of)" == 'agenda: mark 3 done in smart.org' ]]
+[[ -z "$(body_of)" ]]
+
+# Mixed done/reopen work across files counts both and lists per-file bullets.
+printf '* multi\n- [ ] p1\n- [ ] p2\n' > "$ORG/smart-multi.org"
+run_sync
+[[ "$(subject_of)" == 'agenda: add 1 agenda file' ]]
+
+sed -i 's/- \[ \] p1/- [X] p1/' "$ORG/smart-multi.org"
+sed -i 's/- \[X\] alpha/- [ ] alpha/' "$ORG/smart.org"
+run_sync
+[[ "$(subject_of)" == 'agenda: mark 1 done, reopen 1 across 2 files' ]]
+body_of | grep -q -- '- smart-multi.org: 1 done'
+body_of | grep -q -- '- smart.org: 1 reopened'
+
+# TODO -> DONE headline transitions count as done-marking.
+printf '* TODO write report\n' > "$ORG/smart-headline.org"
+run_sync
+[[ "$(subject_of)" == 'agenda: add 1 agenda file' ]]
+
+printf '* DONE write report\n' > "$ORG/smart-headline.org"
+run_sync
+[[ "$(subject_of)" == 'agenda: mark 1 done in smart-headline.org' ]]
+
+# Edits with no task-state signal still sync under a counted update subject.
+printf 'some new context line\n' >> "$ORG/smart-headline.org"
+run_sync
+[[ "$(subject_of)" == 'agenda: update 1 agenda file' ]]
+
+printf 'more context\n' >> "$ORG/smart-headline.org"
+printf '* TODO noise\nplain edit\n' > "$ORG/smart-noise.org"
+run_sync
+[[ "$(subject_of)" == 'agenda: add 1, update 1 agenda files' ]]
+
+# A local commit whose push failed must not wedge the sync: the next run
+# publishes it instead of failing 'Not possible to fast-forward' forever.
+printf '* TODO heal\n' > "$ORG/heal.org"
+run_sync
+
+printf '* TODO heal-stranded\n' > "$REPO/agenda/heal.org"
+commit_in_repo stranded
+run_sync
+git -C "$SEED" pull >/dev/null 2>&1
+git -C "$SEED" log --format=%s -3 | grep -q '^stranded$'
+
+# Divergence with non-overlapping changes is healed by replaying the unpushed
+# commits onto upstream and pushing; remote progress still flows to the agenda.
+printf '* TODO local-diverge\n' > "$REPO/agenda/heal.org"
+commit_in_repo local-diverge
+printf '* TODO remote-diverge\n' > "$SEED/agenda/remote.org"
+git -C "$SEED" -c user.name=test -c user.email=test@example.invalid \
+  commit -q --all -m remote-diverge
+git -C "$SEED" push >/dev/null 2>&1
+run_sync
+git -C "$SEED" pull >/dev/null 2>&1
+git -C "$SEED" log --format=%s -3 | grep -q '^local-diverge$'
+grep -q 'remote-diverge' "$ORG/remote.org"
+grep -q 'local-diverge' "$ORG/heal.org"
+
+# Divergence that cannot replay cleanly fails closed, keeps the unpushed
+# commits, and leaves no rebase in progress.
+printf '* TODO local-clash\n' > "$REPO/agenda/heal.org"
+commit_in_repo local-clash
+printf '* TODO remote-clash\n' > "$SEED/agenda/heal.org"
+git -C "$SEED" -c user.name=test -c user.email=test@example.invalid \
+  commit -q --all -m remote-clash
+git -C "$SEED" push >/dev/null 2>&1
+
+set +e
+run_sync
+heal_conflict_rc=$?
+set -e
+[[ "$heal_conflict_rc" -ne 0 ]]
+[[ "$(git -C "$REPO" log -1 --format=%s)" == 'local-clash' ]]
+[[ -z "$(git -C "$REPO" status --porcelain -- agenda)" ]]
+grep -q 'local-diverge' "$ORG/heal.org"
 
 printf 'gpt-todos recursive agenda sync tests passed\n'
