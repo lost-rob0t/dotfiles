@@ -51,6 +51,10 @@
   };
 
   config = with lib; mkIf config.emacs.enable {
+    home.sessionVariables = {
+      STARINTEL_SOCIAL_ROOT = "${config.home.homeDirectory}/starintel/starintel-social-presence";
+    };
+
     emacs.diredXDG.pkg = pkgs.makeDesktopItem {
       name = "dired";
       desktopName = "Dired";
