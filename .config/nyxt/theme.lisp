@@ -26,13 +26,35 @@
         :box-shadow "0 0 16px rgba(246, 1, 157, 0.40)")
       '("#input"
         :box-shadow "inset 0 0 10px rgba(45, 226, 230, 0.12)")
+      '("#input:focus"
+        :border-color "#2de2e6"
+        :box-shadow "inset 0 0 10px rgba(45, 226, 230, 0.16), 0 0 8px rgba(45, 226, 230, 0.20)")
+      '(a
+        :color "#2de2e6")
+      '("a:visited"
+        :color "#92406e")
+      '("a:hover"
+        :color "#f6019d")
+      '("a:active"
+        :color "#f6019d")
       '(".source-name"
         :text-transform "uppercase"
         :letter-spacing "0.08em")
       '("#selection"
+        :background-color "#202146"
+        :color "#f3f4f5"
+        :border "1px solid #2de2e6"
         :box-shadow "inset 4px 0 0 #2de2e6, 0 0 10px rgba(246, 1, 157, 0.28)")
+      '("tr:hover"
+        :background-color "#2a285b"
+        :color "#f3f4f5")
       '(".marked"
-        :box-shadow "inset 4px 0 0 #fba922"))))))
+        :background-color "#3a285d"
+        :color "#fba922"
+        :box-shadow "inset 4px 0 0 #fba922")
+      '(".selected"
+        :background-color "#202146"
+        :color "#f3f4f5"))))))
 
 (define-configuration status-buffer
   ((height 40)
@@ -82,7 +104,11 @@
         :color "#f3f4f5")
       '(a
         :color "#2de2e6")
+      '("a:visited"
+        :color "#92406e")
       '("a:hover"
+        :color "#f6019d")
+      '("a:active"
         :color "#f6019d")
       '(hr
         :border-color "#92406e")

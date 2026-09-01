@@ -71,5 +71,8 @@ Only run it on a trusted machine/session."
 (nyxt::load-lisp "~/.config/nyxt/theme.lisp")
 (nyxt::load-lisp "~/.config/nyxt/status.lisp")
 (nyxt::load-lisp "~/.config/nyxt/reporting.lisp")
+(nyxt::load-lisp "~/.config/nyxt/star.lisp")
+(nyxt::load-lisp "~/.config/nyxt/starintel.lisp")
+(nyxt::load-lisp "~/.config/nyxt/quasar.lisp")
 (nyxt::load-lisp "~/.config/nyxt/proxy.lisp")
 (nyxt::load-lisp "~/.config/nyxt/crunchbase.lisp")

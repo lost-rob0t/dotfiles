@@ -1,19 +1,131 @@
 { config, lib, pkgs, inputs, ... }:
 
-# this really doesnt work in nyxt yet
-#let
-#  nyxt = pkgs.nyxt.overrideAttrs (oldAttrs: {
-#    postFixup = ''
-#      wrapProgram $out/bin/nyxt \
-#        --set-default WEBKIT_FORCE_SANDBOX 0
-#    '';
-#  });
-#  in
-#
+let
+  quasarPin = "80553699fa6c9dec227d4ddff629c3ab3a8b8010";
+  quasarSource = builtins.fetchGit {
+    url = "https://github.com/lost-rob0t/quasar.git";
+    rev = quasarPin;
+  };
+
+  starLangPin = "0472ed8f4472252038b62bb19a17aa09d2ddf1b4";
+  starLangSource = builtins.fetchGit {
+    url = "https://github.com/lost-rob0t/star-lang.git";
+    rev = starLangPin;
+  };
+
+  quasarRuntimeLibs = with pkgs; [
+    openssl
+    rabbitmq-c
+    libffi
+    sqlite
+    lmdb
+  ];
+
+  starintelConfigure = pkgs.writeShellApplication {
+    name = "starintel-configure";
+    runtimeInputs = with pkgs; [ coreutils ];
+    text = ''
+      config_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/starintel"
+      default_url="http://127.0.0.1:5000"
+
+      umask 077
+      mkdir -p "$config_dir"
+      chmod 700 "$config_dir"
+
+      printf 'StarIntel API URL [%s]: ' "$default_url"
+      IFS= read -r url
+      url="''${url:-$default_url}"
+
+      printf 'StarIntel API key: '
+      IFS= read -r -s api_key
+      printf '\n'
+
+      if [ -z "$api_key" ]; then
+        echo "StarIntel API key cannot be blank." >&2
+        exit 1
+      fi
+
+      printf '%s\n' "$url" > "$config_dir/url"
+      printf '%s\n' "$api_key" > "$config_dir/api-key"
+      chmod 600 "$config_dir/url" "$config_dir/api-key"
+      unset api_key
+
+      echo "Saved StarIntel config under $config_dir (API key mode 0600)."
+    '';
+  };
+
+  quasarStart = pkgs.writeShellApplication {
+    name = "quasar-start";
+    runtimeInputs = with pkgs; [
+      bash
+      coreutils
+      curl
+      git
+      nodejs_22
+      sbcl
+      pkg-config
+      chromium
+      gcc
+      gnumake
+    ] ++ quasarRuntimeLibs;
+    text = ''
+      pin='${quasarPin}'
+      cache_root="''${XDG_CACHE_HOME:-$HOME/.cache}/quasar-pinned"
+      workdir="$cache_root/$pin"
+      source_path='${quasarSource}'
+
+      if curl --fail --silent --max-time 1 http://127.0.0.1:5173/ >/dev/null 2>&1; then
+        echo "Quasar is already running at http://127.0.0.1:5173"
+        exit 0
+      fi
+
+      mkdir -p "$cache_root"
+      if [ ! -f "$workdir/.quasar-pin" ] || [ "$(cat "$workdir/.quasar-pin" 2>/dev/null || true)" != "$pin" ]; then
+        tmp="$cache_root/.tmp-$pin-$$"
+        rm -rf "$tmp"
+        mkdir -p "$tmp"
+        cp -a "$source_path"/. "$tmp"/
+        chmod -R u+w "$tmp"
+        printf '%s\n' "$pin" > "$tmp/.quasar-pin"
+        rm -rf "$workdir"
+        mv "$tmp" "$workdir"
+      fi
+
+      cd "$workdir"
+
+      export QUASAR_DEV_NIX_READY=1
+      export QUASAR_PRODUCTION_NIX_READY=1
+      export QUASAR_PRODUCTION_SMOKE_NIX_READY=1
+      export QUASAR_TEK9_PATH="''${QUASAR_TEK9_PATH:-$HOME/starintel/tek9}"
+      export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath quasarRuntimeLibs}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      export TMPDIR="/tmp"
+      export TMP="/tmp"
+      export TEMP="/tmp"
+      export XDG_CONFIG_HOME="''${XDG_CONFIG_HOME:-$HOME/.config}"
+      export XDG_CACHE_HOME="''${XDG_CACHE_HOME:-$HOME/.cache}"
+      export CL_SOURCE_REGISTRY="(:source-registry (:tree \"$QUASAR_TEK9_PATH/\") (:tree \"$HOME/quicklisp/local-projects/\") (:tree \"$HOME/quicklisp/dists/quicklisp/software/\") (:tree \"$PWD/systems/\") :ignore-inherited-configuration)"
+
+      mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME"
+      bash scripts/bootstrap-lisp-deps
+
+      if [ ! -d node_modules ]; then
+        npm ci
+      fi
+
+      exec npm run dev
+    '';
+  };
+in
 {
+  # Nyxt loads only StarLang's final actor/runtime ASDF systems on demand.
+  # Keep the pinned source outside ~/.config so the browser config remains
+  # declarative while ASDF can load the exact revision without a mutable clone.
+  home.file.".local/share/star-lang".source = starLangSource;
 
   home.packages = with pkgs; [
     nyxt
+    starintelConfigure
+    quasarStart
     # Development
     gitRepo
     nodejs_24
@@ -64,7 +176,7 @@
     element-desktop
     thunderbird
     # Misc
-	# FIXME Broken package
+    # FIXME Broken package
     #monero-gui
     hugo
     #AI
