@@ -2,6 +2,7 @@
   lib,
   pkgs,
   config,
+  inputs,
   ...
 }:
 {
@@ -82,6 +83,7 @@
       enable = true;
       package = config.emacs.package;
       extraPackages = epkgs: [
+        (inputs.emacs-auto-research.lib.mkPackage { inherit pkgs epkgs; })
         pkgs.shfmt
         epkgs.khoj
         epkgs.vterm
