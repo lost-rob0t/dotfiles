@@ -32,7 +32,7 @@
     wake.enable = true;
 
     plugins = {
-      registry = [ "zara-discord" ];
+      registry = [ "zara-discord" "zara-persona" ];
       discoveryFiles = {
         "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
       };
@@ -88,13 +88,9 @@
     stateVersion = "23.11";
   };
   # This value determines the Home Manager release that your
-  # configuration is compatible with. This helps avoid breakage
-  # when a new Home Manager release introduces backwards
-  # incompatible changes.
-  #
-  # You can update this value in your configuration without breakage.
-  # See the Home Manager release notes for a list of state version
-  # changes.
+  # configuration is compatible with. Changing this value does not
+  # update the Home Manager release and should not be done without
+  # reading the release notes.
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
