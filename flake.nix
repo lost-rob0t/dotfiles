@@ -11,6 +11,10 @@
       url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    emacs-auto-research = {
+      url = "github:lost-rob0t/emacs-auto-research/8f69c306a07bbf63998755ee6d5d759913289168";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     skills.url = "github:lost-rob0t/skills";
     chatgpt-desktop = {
       url = "github:lost-rob0t/chatgpt-desktop";
@@ -36,6 +40,7 @@
       nixpkgs,
       disko,
       home-manager,
+      emacs-auto-research,
       skills,
       chatgpt-desktop,
       zara,
