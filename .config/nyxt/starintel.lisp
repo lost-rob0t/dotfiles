@@ -13,24 +13,26 @@
 (defun starintel-config-file (name)
   (merge-pathnames name (starintel-config-root)))
 
-(defun starintel-trim (value)
-  (and value
-       (string-trim '(#\Space #\Tab #\Newline #\Return) value)))
+(defun starintel-nonblank (value)
+  (when value
+    (let ((trimmed (string-trim '(#\Space #\Tab #\Newline #\Return) value)))
+      (unless (zerop (length trimmed))
+        trimmed))))
 
 (defun starintel-read-config-file (name)
   (let ((path (starintel-config-file name)))
     (when (probe-file path)
-      (starintel-trim (uiop:read-file-string path)))))
+      (starintel-nonblank (uiop:read-file-string path)))))
 
 (defun starintel-base-url ()
   (string-right-trim
    "/"
-   (or (starintel-trim (uiop:getenv "STARINTEL_URL"))
+   (or (starintel-nonblank (uiop:getenv "STARINTEL_URL"))
        (starintel-read-config-file "url")
        *starintel-default-base-url*)))
 
 (defun starintel-file-mode (path)
-  (starintel-trim
+  (starintel-nonblank
    (ignore-errors
      (uiop:run-program
       (list "stat" "-L" "-c" "%a" (namestring path))
@@ -44,46 +46,11 @@
       (unless (string= (or (starintel-file-mode path) "") "600")
         (error "Refusing StarIntel API key file unless its mode is 0600: ~a"
                (namestring path)))
-      (starintel-trim (uiop:read-file-string path)))))
+      (starintel-read-config-file "api-key"))))
 
 (defun starintel-api-key ()
-  (or (starintel-trim (uiop:getenv "STARINTEL_API_KEY"))
+  (or (starintel-nonblank (uiop:getenv "STARINTEL_API_KEY"))
       (starintel-api-key-file)))
-
-(defun starintel-write-config-file (name value &key secret)
-  (let* ((root (starintel-config-root))
-         (path (starintel-config-file name)))
-    (ensure-directories-exist path)
-    (uiop:run-program (list "chmod" "700" (namestring root))
-                      :output nil
-                      :error-output nil)
-    (with-open-file (stream path
-                            :direction :output
-                            :if-does-not-exist :create
-                            :if-exists :supersede)
-      (write-line value stream))
-    (uiop:run-program (list "chmod" (if secret "600" "600") (namestring path))
-                      :output nil
-                      :error-output nil)
-    path))
-
-(define-command-global starintel-set-api-key ()
-  "Persist the StarIntel API key in ~/.config/starintel/api-key with mode 0600."
-  (let ((key (prompt1 :prompt "StarIntel API key" :sources 'prompter:raw-source)))
-    (when (str:blankp key)
-      (error "StarIntel API key cannot be blank."))
-    (starintel-write-config-file "api-key" key :secret t)
-    (echo "Saved StarIntel API key to ~/.config/starintel/api-key (0600).")))
-
-(define-command-global starintel-set-url ()
-  "Persist the StarIntel API URL in ~/.config/starintel/url."
-  (let ((url (prompt1 :prompt "StarIntel API URL"
-                      :input (starintel-base-url)
-                      :sources 'prompter:raw-source)))
-    (when (str:blankp url)
-      (error "StarIntel API URL cannot be blank."))
-    (starintel-write-config-file "url" (string-right-trim "/" url))
-    (echo "Saved StarIntel API URL to ~/.config/starintel/url.")))
 
 (defun starintel-headers (&key json)
   (let ((headers (when json
@@ -93,13 +60,19 @@
     headers))
 
 (defun starintel-get (path)
-  (dex:get (format nil "~a~a" (starintel-base-url) path)
-           :headers (starintel-headers)))
+  (handler-case
+      (dex:get (format nil "~a~a" (starintel-base-url) path)
+               :headers (starintel-headers))
+    (error ()
+      (error "StarIntel GET request failed."))))
 
 (defun starintel-post (path object)
-  (dex:post (format nil "~a~a" (starintel-base-url) path)
-            :headers (starintel-headers :json t)
-            :content (njson:encode object)))
+  (handler-case
+      (dex:post (format nil "~a~a" (starintel-base-url) path)
+                :headers (starintel-headers :json t)
+                :content (njson:encode object))
+    (error ()
+      (error "StarIntel POST request failed."))))
 
 (defun starintel-param (url key &optional default)
   (or (assoc-value (quri:uri-query-params (quri:uri url)) key :test #'string=)
