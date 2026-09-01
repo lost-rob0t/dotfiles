@@ -204,7 +204,8 @@
         "mousetrap": "mousetrap",
         "nixpkgs": "nixpkgs",
         "skills": "skills",
-        "zara": "zara"
+        "zara": "zara",
+        "zara-plugins": "zara-plugins"
       }
     },
     "skills": {
@@ -270,6 +271,27 @@
       "original": {
         "owner": "lost-rob0t",
         "repo": "zara",
+        "type": "github"
+      }
+    },
+    "zara-plugins": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788229050,
+        "narHash": "sha256-BqYtuyVjL1SC5Z33vXK/S+f8sZtEc6Vb8vyNzVMRFC8=",
+        "owner": "lost-rob0t",
+        "repo": "zara-plugins",
+        "rev": "f584cf1f7fd529a1ec4b3a592fb151465850cd4d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lost-rob0t",
+        "repo": "zara-plugins",
+        "rev": "f584cf1f7fd529a1ec4b3a592fb151465850cd4d",
         "type": "github"
       }
     }

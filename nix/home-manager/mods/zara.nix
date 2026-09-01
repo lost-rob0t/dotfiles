@@ -3,20 +3,62 @@
 let
   cfg = config.zara;
   toml = pkgs.formats.toml { };
+  system = pkgs.stdenv.hostPlatform.system;
+
+  pluginRegistryDocument =
+    builtins.fromJSON (builtins.readFile "${inputs.zara-plugins}/plugins.json");
+  pluginRegistry = lib.listToAttrs (
+    map
+      (entry: lib.nameValuePair entry.name entry)
+      pluginRegistryDocument.plugins
+  );
+  unknownRegistryPlugins = lib.filter
+    (name: !(builtins.hasAttr name pluginRegistry))
+    cfg.plugins.registry;
+  selectedRegistryEntries = map
+    (name: pluginRegistry.${name})
+    (lib.filter (name: builtins.hasAttr name pluginRegistry) cfg.plugins.registry);
+  registryPackageFor = entry:
+    inputs.zara-plugins.packages.${system}.${entry.name};
+  registryPackages = map registryPackageFor selectedRegistryEntries;
+  registryDiscoveryFiles = lib.listToAttrs (
+    map
+      (entry:
+        let
+          package = registryPackageFor entry;
+          filename = builtins.baseNameOf entry.entrypoint;
+        in
+        lib.nameValuePair filename
+          "${package}/share/zara/runtime/${entry.name}/entrypoint.py")
+      selectedRegistryEntries
+  );
+  registryConfigFiles = lib.listToAttrs (
+    map
+      (entry:
+        let
+          package = registryPackageFor entry;
+        in
+        lib.nameValuePair "${entry.name}/lib"
+          "${package}/share/zara/runtime/${entry.name}/lib")
+      selectedRegistryEntries
+  );
+
+  allDiscoveryFiles = registryDiscoveryFiles // cfg.plugins.discoveryFiles;
+  allConfigFiles = registryConfigFiles // cfg.plugins.configFiles;
 
   discoveryFiles = lib.mapAttrs'
     (name: source:
       lib.nameValuePair ".zarathushtra/plugins/${name}" {
         inherit source;
       })
-    cfg.plugins.discoveryFiles;
+    allDiscoveryFiles;
 
   pluginConfigFiles = lib.mapAttrs'
     (name: source:
       lib.nameValuePair ".config/zarathushtra/plugins/${name}" {
         inherit source;
       })
-    cfg.plugins.configFiles;
+    allConfigFiles;
 
   sensitiveConfigNames = lib.filter
     (name:
@@ -25,7 +67,7 @@ let
         || lib.hasInfix "secret" lower
         || lib.hasInfix "password" lower
         || lib.hasInfix "credential" lower)
-    (lib.attrNames cfg.plugins.configFiles);
+    (lib.attrNames allConfigFiles);
 in
 {
   options.zara = {
@@ -33,7 +75,7 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = inputs.zara.packages.${pkgs.stdenv.hostPlatform.system}.zarathushtra;
+      default = inputs.zara.packages.${system}.zarathushtra;
       defaultText = lib.literalExpression "inputs.zara.packages.\${pkgs.stdenv.hostPlatform.system}.zarathushtra";
       description = ''
         Zara flake package providing the zara client, zara-server daemon and
@@ -93,25 +135,39 @@ in
 
       package = lib.mkOption {
         type = lib.types.package;
-        default = inputs.zara.packages.${pkgs.stdenv.hostPlatform.system}.zara-wake;
+        default = inputs.zara.packages.${system}.zara-wake;
         defaultText = lib.literalExpression "inputs.zara.packages.\${pkgs.stdenv.hostPlatform.system}.zara-wake";
         description = "Zara flake package providing the zara-wake listener binary.";
       };
     };
 
     plugins = {
+      registry = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ ];
+        example = [ "zara-discord" "zara-avatar" ];
+        description = ''
+          Plugin names selected from the pinned zara-plugins registry input.
+          Each selection declaratively installs its package, creates Zara's
+          discovery entry, and links its immutable runtime library under
+          ~/.config/zarathushtra/plugins. Runtime secrets and mutable policy
+          remain outside Nix.
+        '';
+      };
+
       packages = lib.mkOption {
         type = lib.types.listOf lib.types.package;
         default = [ ];
         description = ''
-          Extra plugin packages installed into the Home Manager profile.
-          Package selection belongs here; plugin discovery files are declared
-          separately with {option}`zara.plugins.discoveryFiles`.
+          Extra plugin packages installed into the Home Manager profile in
+          addition to packages selected through {option}`zara.plugins.registry`.
+          Plugin discovery files are declared separately with
+          {option}`zara.plugins.discoveryFiles`.
         '';
       };
 
       discoveryFiles = lib.mkOption {
-        type = lib.types.attrsOf lib.types.path;
+        type = lib.types.attrsOf (lib.types.either lib.types.path lib.types.str);
         default = { };
         example = lib.literalExpression ''
           {
@@ -119,19 +175,20 @@ in
           }
         '';
         description = ''
-          Declarative Zara discovery entries. Attribute names are filenames
-          placed under ~/.zarathushtra/plugins and values are immutable source
-          paths. Do not put secrets in these files.
+          Additional declarative Zara discovery entries. Attribute names are
+          filenames placed under ~/.zarathushtra/plugins and values are
+          immutable source paths. Entries here override same-named registry
+          entries. Do not put secrets in these files.
         '';
       };
 
       configFiles = lib.mkOption {
-        type = lib.types.attrsOf lib.types.path;
+        type = lib.types.attrsOf (lib.types.either lib.types.path lib.types.str);
         default = { };
         description = ''
-          Non-secret plugin runtime files placed below
-          ~/.config/zarathushtra/plugins. This is intended for immutable code
-          or assets such as a plugin library directory. Tokens, passwords,
+          Additional non-secret plugin runtime files placed below
+          ~/.config/zarathushtra/plugins. Registry-selected plugins populate
+          their own <plugin>/lib paths automatically. Tokens, passwords,
           credentials and mutable policy databases must stay outside Nix.
         '';
       };
@@ -154,6 +211,13 @@ in
 
     assertions = [
       {
+        assertion = unknownRegistryPlugins == [ ];
+        message = ''
+          Unknown zara.plugins.registry entries: ${lib.concatStringsSep ", " unknownRegistryPlugins}.
+          Select names present in the pinned zara-plugins/plugins.json registry.
+        '';
+      }
+      {
         assertion = sensitiveConfigNames == [ ];
         message = ''
           zara.plugins.configFiles must never contain secret-bearing paths.
@@ -163,7 +227,7 @@ in
       }
     ];
 
-    home.packages = [ cfg.package ] ++ cfg.plugins.packages;
+    home.packages = [ cfg.package ] ++ registryPackages ++ cfg.plugins.packages;
 
     home.file = discoveryFiles // pluginConfigFiles // {
       ".config/zarathushtra/config.toml" = lib.mkIf cfg.nixManaged {

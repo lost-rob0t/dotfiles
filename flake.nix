@@ -24,6 +24,10 @@
       url = "github:lost-rob0t/zara";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    zara-plugins = {
+      url = "github:lost-rob0t/zara-plugins/f584cf1f7fd529a1ec4b3a592fb151465850cd4d";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     bixby-studio = {
       url = "github:lost-rob0t/bixby-studio";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -44,6 +48,7 @@
       skills,
       chatgpt-desktop,
       zara,
+      zara-plugins,
       bixby-studio,
       mousetrap,
     }:

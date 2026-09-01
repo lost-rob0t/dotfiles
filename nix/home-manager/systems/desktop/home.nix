@@ -31,8 +31,11 @@
     desktop.enable = true;
     wake.enable = true;
 
-    plugins.discoveryFiles = {
-      "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
+    plugins = {
+      registry = [ "zara-discord" ];
+      discoveryFiles = {
+        "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
+      };
     };
   };
 
