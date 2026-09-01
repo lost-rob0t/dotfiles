@@ -1,0 +1,24 @@
+name: Resolve zara-persona lock
+
+on:
+  push:
+    branches:
+      - feat/zara-persona-pin
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Resolve pinned zara-plugins input
+        run: nix flake lock --update-input zara-plugins
+      - name: Upload resolved lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: zara-persona-flake-lock
+          path: flake.lock
+          if-no-files-found: error
