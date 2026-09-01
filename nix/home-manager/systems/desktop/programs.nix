@@ -15,6 +15,39 @@ let
     lmdb
   ];
 
+  starintelConfigure = pkgs.writeShellApplication {
+    name = "starintel-configure";
+    runtimeInputs = with pkgs; [ coreutils ];
+    text = ''
+      config_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/starintel"
+      default_url="http://127.0.0.1:5000"
+
+      umask 077
+      mkdir -p "$config_dir"
+      chmod 700 "$config_dir"
+
+      printf 'StarIntel API URL [%s]: ' "$default_url"
+      IFS= read -r url
+      url="''${url:-$default_url}"
+
+      printf 'StarIntel API key: '
+      IFS= read -r -s api_key
+      printf '\n'
+
+      if [ -z "$api_key" ]; then
+        echo "StarIntel API key cannot be blank." >&2
+        exit 1
+      fi
+
+      printf '%s\n' "$url" > "$config_dir/url"
+      printf '%s\n' "$api_key" > "$config_dir/api-key"
+      chmod 600 "$config_dir/url" "$config_dir/api-key"
+      unset api_key
+
+      echo "Saved StarIntel config under $config_dir (API key mode 0600)."
+    '';
+  };
+
   quasarStart = pkgs.writeShellApplication {
     name = "quasar-start";
     runtimeInputs = with pkgs; [
@@ -80,6 +113,7 @@ in
 {
   home.packages = with pkgs; [
     nyxt
+    starintelConfigure
     quasarStart
     # Development
     gitRepo
