@@ -29,6 +29,14 @@
       '("#input:focus"
         :border-color "#2de2e6"
         :box-shadow "inset 0 0 10px rgba(45, 226, 230, 0.16), 0 0 8px rgba(45, 226, 230, 0.20)")
+      '(a
+        :color "#2de2e6")
+      '("a:visited"
+        :color "#92406e")
+      '("a:hover"
+        :color "#f6019d")
+      '("a:active"
+        :color "#f6019d")
       '(".source-name"
         :text-transform "uppercase"
         :letter-spacing "0.08em")
