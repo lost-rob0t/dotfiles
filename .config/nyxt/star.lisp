@@ -40,6 +40,22 @@
     (setf *star-lang-runtime-loaded-p* t))
   t)
 
+(defun star-lang-function (package-name symbol-name)
+  "Return a callable exported StarLang function after lazy loading its system."
+  (star-lang-ensure-runtime)
+  (let* ((package (or (find-package package-name)
+                      (error "StarLang package ~a was not loaded." package-name)))
+         (symbol (or (find-symbol symbol-name package)
+                     (error "StarLang function ~a::~a was not found."
+                            package-name symbol-name))))
+    (unless (fboundp symbol)
+      (error "StarLang symbol ~a::~a is not callable."
+             package-name symbol-name))
+    (symbol-function symbol)))
+
+(defun star-lang-call (package-name symbol-name &rest arguments)
+  (apply (star-lang-function package-name symbol-name) arguments))
+
 (defun star-json-get (object key &optional default)
   (handler-case
       (let ((value (njson:jget key object)))
@@ -123,9 +139,9 @@
 Override this with another function to bind Nyxt to a live runtime directory.")
 
 (defun star-runtime-directory-port ()
-  (star-lang-ensure-runtime)
-  (starlangruntime:make-runtime-directory-port
-   :snapshot *star-runtime-directory-snapshot-function*))
+  (star-lang-call "STARLANGRUNTIME"
+                  "MAKE-RUNTIME-DIRECTORY-PORT"
+                  :snapshot *star-runtime-directory-snapshot-function*))
 
 (defun star-uri-string (url-designator)
   "Return URL-DESIGNATOR as the exact URI string StarLang should parse."
@@ -136,16 +152,22 @@ Override this with another function to bind Nyxt to a live runtime directory.")
 
 (defun star-resolve-uri (url-designator)
   "Resolve URL-DESIGNATOR with StarLang's authoritative service resolver."
-  (let ((uri (star-uri-string url-designator)))
-    (star-lang-ensure-runtime)
-    ;; Parse/canonicalize before directory lookup so Nyxt does not duplicate
-    ;; StarLang's service-URI grammar or validation rules.
-    (let* ((parsed (staractorprotocol:ensure-star-service-uri uri))
-           (canonical (staractorprotocol:star-service-uri-string parsed)))
-      (starlangruntime:resolve-star-service-uri
-       (star-runtime-directory-port)
-       :nyxt
-       canonical))))
+  (let* ((uri (star-uri-string url-designator))
+         (parsed
+           (star-lang-call "STARACTORPROTOCOL"
+                           "ENSURE-STAR-SERVICE-URI"
+                           uri))
+         (canonical
+           (star-lang-call "STARACTORPROTOCOL"
+                           "STAR-SERVICE-URI-STRING"
+                           parsed)))
+    ;; The actual match/liveness decision belongs to StarLang. Nyxt only
+    ;; supplies a runtime-directory snapshot through the public port boundary.
+    (star-lang-call "STARLANGRUNTIME"
+                    "RESOLVE-STAR-SERVICE-URI"
+                    (star-runtime-directory-port)
+                    :nyxt
+                    canonical)))
 
 (defparameter *star-page-css*
   "body { background:#170c32; color:#f3f4f5; font-family:system-ui,sans-serif; margin:0; padding:24px; }
