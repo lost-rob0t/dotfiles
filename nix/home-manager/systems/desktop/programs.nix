@@ -1,6 +1,12 @@
 { config, lib, pkgs, inputs, ... }:
 
 let
+  quasarPin = "80553699fa6c9dec227d4ddff629c3ab3a8b8010";
+  quasarSource = builtins.fetchGit {
+    url = "https://github.com/lost-rob0t/quasar.git";
+    rev = quasarPin;
+  };
+
   quasarRuntimeLibs = with pkgs; [
     openssl
     rabbitmq-c
@@ -24,10 +30,10 @@ let
       gnumake
     ] ++ quasarRuntimeLibs;
     text = ''
-      pin="80553699fa6c9dec227d4ddff629c3ab3a8b8010"
+      pin='${quasarPin}'
       cache_root="''${XDG_CACHE_HOME:-$HOME/.cache}/quasar-pinned"
       workdir="$cache_root/$pin"
-      source_path='${inputs.quasar}'
+      source_path='${quasarSource}'
 
       if curl --fail --silent --max-time 1 http://127.0.0.1:5173/ >/dev/null 2>&1; then
         echo "Quasar is already running at http://127.0.0.1:5173"
