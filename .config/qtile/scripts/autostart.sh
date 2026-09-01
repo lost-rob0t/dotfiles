@@ -129,10 +129,3 @@ run brave
 run python3 /home/unseen/.dotfiles/.config/qtile/scripts/pinger.py -c "$HOME/.config/hosts.toml"
 run kdeconnect-indicator
 run aw-qt
-
-# Zara desktop copilot. The zara wrapper execs python, so the generic
-# PID-file guard above cannot match its cmdline (argv[0] becomes the
-# python binary); guard with pgrep on the module invocation instead.
-if ! pgrep -f -- "-m zara --desktop" >/dev/null 2>&1; then
-    setsid zara --desktop </dev/null >/dev/null 2>&1 &
-fi
