@@ -62,6 +62,27 @@
         "type": "github"
       }
     },
+    "emacs-auto-research": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788222494,
+        "narHash": "sha256-1lHGyAHGdXy/Gqnyj4k1R1uaqxlxQWjFxwMZepVEUUY=",
+        "owner": "lost-rob0t",
+        "repo": "emacs-auto-research",
+        "rev": "8f69c306a07bbf63998755ee6d5d759913289168",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lost-rob0t",
+        "repo": "emacs-auto-research",
+        "rev": "8f69c306a07bbf63998755ee6d5d759913289168",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -178,6 +199,7 @@
         "bixby-studio": "bixby-studio",
         "chatgpt-desktop": "chatgpt-desktop",
         "disko": "disko",
+        "emacs-auto-research": "emacs-auto-research",
         "home-manager": "home-manager",
         "mousetrap": "mousetrap",
         "nixpkgs": "nixpkgs",
