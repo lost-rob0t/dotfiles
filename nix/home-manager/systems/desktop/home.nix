@@ -22,7 +22,18 @@
 
   zara = {
     enable = true;
+
+    server = {
+      enable = true;
+      environmentFile = "-%h/.config/zarathushtra/secrets.env";
+    };
+
+    desktop.enable = true;
     wake.enable = true;
+
+    plugins.discoveryFiles = {
+      "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
+    };
   };
 
   screenCapture = {
@@ -78,8 +89,8 @@
   # when a new Home Manager release introduces backwards
   # incompatible changes.
   #
-  # You can update Home Manager without changing this value. See
-  # the Home Manager release notes for a list of state version
+  # You can update this value in your configuration without breakage.
+  # See the Home Manager release notes for a list of state version
   # changes.
 
   # Let Home Manager install and manage itself.
