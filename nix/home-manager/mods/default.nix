@@ -30,5 +30,6 @@
     ./unifi-mcp.nix
     ./home-manager-updater.nix
     ./skill-sync.nix
+    ./nix-gl.nix
   ];
 }

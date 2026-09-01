@@ -6,4 +6,6 @@
     enable = true;
     hostName = "flake";
   };
+
+  nixGl.enable = true;
 }

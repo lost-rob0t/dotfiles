@@ -23,7 +23,7 @@ The flake provides:
 | Output | System source |
 |--------+---------------|
 | =unseen@logos= | [[file:../../nix/home-manager/systems/logos/home.nix][systems/logos/home.nix]] |
-| =unseen@flake= | [[file:../../nix/home-manager/systems/desktop/home.nix][systems/desktop/home.nix]] |
+| =unseen@flake= | [[file:../../nix/home-manager/systems/flake/home.nix][systems/flake/home.nix]] |
 | =unseen@desktop= | [[file:../../nix/home-manager/systems/desktop/home.nix][systems/desktop/home.nix]] |
 | =unseen@hunter02= | [[file:../../nix/home-manager/systems/hunter02/home.nix][systems/hunter02/home.nix]] |
 
@@ -61,6 +61,29 @@ They are configurable through =gptTodos.repoDir=, =gptTodos.orgDir=, and
 The old cron installer remains only as a compatibility path for machines not
 managed by Home Manager.  The canonical synchronization behavior lives in
 [[file:../../scripts/gpt-todos-sync.org][scripts/gpt-todos-sync.org]].
+
+* Nix GUI apps on non-NixOS hosts
+Nixpkgs mesa is patched to look for GL/GBM/Vulkan drivers in =/run/opengl-driver=,
+a path that only NixOS populates.  On the Arch host (=unseen@flake=) Nix GUI
+apps (Firefox, Discord, Electron) therefore fail GPU init and either fall back
+to software rendering without WebGL or crash.
+
+[[file:../../nix/home-manager/mods/nix-gl.nix][nix-gl.nix]] (enable via
+=nixGl.enable = true=) installs the =nix-gl-setup= helper.  Running it once as
+root provisions the driver symlink and a =systemd-tmpfiles= rule so it survives
+reboots:
+
+#+begin_src shell
+  nix profile install nixpkgs#mesa   # once, if not already in the profile
+  pkexec --disable-internal-agent nix-gl-setup
+#+end_src
+
+The rule creates =/run/opengl-driver -> ~/.nix-profile=, a stable path that
+survives mesa upgrades; system applications ignore this path entirely.  Home
+Manager activation warns when the =/etc/tmpfiles.d/nix-opengl-driver.conf= rule
+is missing or stale.  The script lives in
+[[file:../../scripts/nix-gl-setup][scripts/nix-gl-setup]] with a regression test
+in [[file:../../tests/nix-gl-setup][tests/nix-gl-setup]].
 
 * Installer applications
 The flake exposes =install-logos= and =install-logos-gui=.  Their shell implementations live under [[file:../../scripts/][scripts/]].
