@@ -116,13 +116,20 @@
   (or (starintel-json-get (starintel-result-doc row) "dataset") ""))
 
 (defun starintel-result-summary (row)
-  (let ((doc (starintel-result-doc row)))
-    (or (starintel-json-get doc "text")
-        (starintel-json-get doc "name")
-        (starintel-json-get doc "domain")
-        (starintel-json-get doc "url")
-        (starintel-json-get doc "handle")
-        (starintel-json-get doc "email")
+  (let* ((doc (starintel-result-doc row))
+         (data (or (starintel-json-get doc "data") doc)))
+    (or (starintel-nonblank (starintel-json-get doc "title"))
+        (starintel-nonblank (starintel-json-get doc "summary"))
+        (starintel-nonblank (starintel-json-get doc "description"))
+        (starintel-json-get data "name")
+        (starintel-json-get data "display_name")
+        (starintel-json-get data "legal_name")
+        (starintel-json-get data "text")
+        (starintel-json-get data "content")
+        (starintel-json-get data "domain")
+        (starintel-json-get data "url")
+        (starintel-json-get data "handle")
+        (starintel-json-get data "email")
         "")))
 
 (defparameter *starintel-page-css*
@@ -303,14 +310,6 @@
           (gethash "data" document) data)
     document))
 
-(defun starintel-merge-json-object (target source)
-  (unless (hash-table-p source)
-    (error "Extra JSON must be an object."))
-  (maphash (lambda (key value)
-             (setf (gethash key target) value))
-           source)
-  target)
-
 (define-command-global starintel-create-document-from-selection ()
   "Create a canonical StarIntel v0.9 document using selected text as a data field."
   (let ((selection (ffi-buffer-copy (current-buffer))))
@@ -338,11 +337,16 @@
             (echo "Created StarIntel ~a document from selected data field ~a." dtype field))))))
 
 (define-command-global starintel-create-document ()
-  "Create a StarIntel document from a complete canonical JSON object."
+  "Create a StarIntel document by editing a complete canonical JSON object."
   (let* ((dtype (starintel-canonical-dtype
                  (prompt1 :prompt "Document type" :sources 'prompter:raw-source)))
+         (dataset (prompt1 :prompt "Dataset"
+                           :input "manual"
+                           :sources 'prompter:raw-source))
+         (template (starintel-new-document dtype dataset
+                                           (make-hash-table :test #'equal)))
          (raw (prompt1 :prompt "Canonical document JSON"
-                       :input (format nil "{\"dtype\":\"~a\"}" dtype)
+                       :input (njson:encode template)
                        :sources 'prompter:raw-source))
          (document (njson:decode raw)))
     (unless (hash-table-p document)
