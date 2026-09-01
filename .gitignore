@@ -11,6 +11,9 @@ tmp/
 .config/starintel/
 .local/bin/starintel-*
 .config/qtile/private.env
+.config/zarathushtra/secrets.env
+.config/zarathushtra/plugins/*/token
+.config/zarathushtra/plugins/*/settings.json
 .direnv/*
 .direnv
 /.config/variety/.firstrun
