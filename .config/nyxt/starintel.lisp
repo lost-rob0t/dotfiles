@@ -74,12 +74,14 @@
     (error ()
       (error "StarIntel POST request failed."))))
 
-(defun starintel-param (url key &optional default)
-  (or (assoc-value (quri:uri-query-params (quri:uri url)) key :test #'string=)
+(defun starintel-param (url-designator key &optional default)
+  (or (assoc-value (quri:uri-query-params (url url-designator))
+                   key
+                   :test #'string=)
       default))
 
-(defun starintel-route-name (url)
-  (let* ((uri (quri:uri url))
+(defun starintel-route-name (url-designator)
+  (let* ((uri (url url-designator))
          (host (quri:uri-host uri))
          (path (string-trim "/" (or (quri:uri-path uri) ""))))
     (string-downcase (if (and host (plusp (length host))) host path))))
