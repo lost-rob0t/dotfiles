@@ -88,9 +88,8 @@
     stateVersion = "23.11";
   };
   # This value determines the Home Manager release that your
-  # configuration is compatible with. Changing this value does not
-  # update the Home Manager release and should not be done without
-  # reading the release notes.
+  # configuration is compatible with. You can update this value without breakage.
+  # See the Home Manager release notes for a list of state version changes.
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
