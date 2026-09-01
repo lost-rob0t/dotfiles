@@ -28,6 +28,10 @@
       url = "github:lost-rob0t/Mousetrap";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    quasar = {
+      url = "github:lost-rob0t/quasar/80553699fa6c9dec227d4ddff629c3ab3a8b8010";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -41,6 +45,7 @@
       zara,
       bixby-studio,
       mousetrap,
+      quasar,
     }:
     let
       system = "x86_64-linux";
