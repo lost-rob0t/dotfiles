@@ -32,7 +32,7 @@
     wake.enable = true;
 
     plugins = {
-      registry = [ "zara-discord" ];
+      registry = [ "zara-discord" "zara-persona" ];
       discoveryFiles = {
         "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
       };
