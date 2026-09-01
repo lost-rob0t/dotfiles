@@ -3,6 +3,10 @@
 (defparameter *starintel-default-base-url* "http://127.0.0.1:5000"
   "Default StarIntel HTTP API base URL when no persistent config or override exists.")
 
+(defparameter *starintel-empty-document-json*
+  "{\"_id\":\"\",\"dataset\":\"\",\"dtype\":\"\",\"schema_version\":\"0.9.0\",\"version\":1,\"date_added\":\"\",\"date_updated\":\"\",\"title\":\"\",\"summary\":\"\",\"description\":\"\",\"status\":\"recorded\",\"language\":\"en\",\"tags\":[],\"labels\":[],\"aliases\":[],\"keywords\":[],\"identifiers\":[],\"sources\":[],\"evidence\":[],\"temporal\":{},\"provenance\":{},\"assessment\":{},\"verification\":{\"status\":\"unverified\",\"verified\":false},\"handling\":{\"visibility\":\"public\",\"sensitive\":false,\"pii\":false},\"lineage\":{},\"quality\":{},\"workflow\":{},\"geospatial\":{},\"attachments\":[],\"related_ids\":[],\"notes\":[],\"data\":{},\"extensions\":{}}"
+  "Canonical empty StarIntel v0.9 document envelope.")
+
 (defun starintel-config-root ()
   (merge-pathnames
    "starintel/"
@@ -265,6 +269,40 @@
          (format nil "starintel:search?q=~a" (quri:url-encode selection))
          :new-buffer t))))
 
+(defun starintel-canonical-dtype (dtype)
+  (let ((token (substitute #\- #\_ (string-downcase dtype))))
+    (cond
+      ((member token '("organization" "organisation") :test #'string=) "org")
+      ((string= token "investigation-target") "target")
+      ((string= token "social-media-posts") "social-media-post")
+      (t token))))
+
+(defun starintel-now ()
+  (multiple-value-bind (second minute hour day month year)
+      (decode-universal-time (get-universal-time) 0)
+    (format nil "~4,'0d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0dZ"
+            year month day hour minute second)))
+
+(defun starintel-new-id (dtype)
+  (format nil "starintel:~a:nyxt-~d-~8,'0x"
+          dtype
+          (get-universal-time)
+          (random #x100000000)))
+
+(defun starintel-new-document (dtype dataset data)
+  (unless (hash-table-p data)
+    (error "StarIntel data JSON must be an object."))
+  (let* ((dtype (starintel-canonical-dtype dtype))
+         (now (starintel-now))
+         (document (njson:decode *starintel-empty-document-json*)))
+    (setf (gethash "_id" document) (starintel-new-id dtype)
+          (gethash "dataset" document) dataset
+          (gethash "dtype" document) dtype
+          (gethash "date_added" document) now
+          (gethash "date_updated" document) now
+          (gethash "data" document) data)
+    document))
+
 (defun starintel-merge-json-object (target source)
   (unless (hash-table-p source)
     (error "Extra JSON must be an object."))
@@ -274,29 +312,36 @@
   target)
 
 (define-command-global starintel-create-document-from-selection ()
-  "Create a StarIntel document using selected text as an arbitrary field."
+  "Create a canonical StarIntel v0.9 document using selected text as a data field."
   (let ((selection (ffi-buffer-copy (current-buffer))))
     (if (str:blankp selection)
         (echo "Select the field value first.")
-        (let* ((dtype (prompt1 :prompt "Document type" :sources 'prompter:raw-source))
-               (field (prompt1 :prompt "Field name" :sources 'prompter:raw-source))
-               (extra-raw (prompt1 :prompt "Extra JSON object"
+        (let* ((dtype (starintel-canonical-dtype
+                       (prompt1 :prompt "Document type" :sources 'prompter:raw-source)))
+               (dataset (prompt1 :prompt "Dataset"
+                                 :input "manual"
+                                 :sources 'prompter:raw-source))
+               (field (prompt1 :prompt "Data field name" :sources 'prompter:raw-source))
+               (extra-raw (prompt1 :prompt "Extra data JSON object"
                                    :input "{}"
                                    :sources 'prompter:raw-source))
-               (extra (njson:decode extra-raw))
-               (document (make-hash-table :test #'equal)))
-          (when (or (str:blankp dtype) (str:blankp field))
-            (error "Document type and field name are required."))
-          (starintel-merge-json-object document extra)
-          (setf (gethash "dtype" document) dtype
-                (gethash field document) selection)
-          (starintel-post (format nil "/new/document/~a" (quri:url-encode dtype)) document)
-          (echo "Created StarIntel ~a document from selected ~a." dtype field)))))
+               (data (njson:decode extra-raw)))
+          (when (or (str:blankp dtype)
+                    (str:blankp dataset)
+                    (str:blankp field))
+            (error "Document type, dataset, and data field name are required."))
+          (unless (hash-table-p data)
+            (error "Extra data JSON must be an object."))
+          (setf (gethash field data) selection)
+          (let ((document (starintel-new-document dtype dataset data)))
+            (starintel-post (format nil "/new/document/~a" (quri:url-encode dtype)) document)
+            (echo "Created StarIntel ~a document from selected data field ~a." dtype field))))))
 
 (define-command-global starintel-create-document ()
-  "Create a StarIntel document from a complete JSON object."
-  (let* ((dtype (prompt1 :prompt "Document type" :sources 'prompter:raw-source))
-         (raw (prompt1 :prompt "Document JSON"
+  "Create a StarIntel document from a complete canonical JSON object."
+  (let* ((dtype (starintel-canonical-dtype
+                 (prompt1 :prompt "Document type" :sources 'prompter:raw-source)))
+         (raw (prompt1 :prompt "Canonical document JSON"
                        :input (format nil "{\"dtype\":\"~a\"}" dtype)
                        :sources 'prompter:raw-source))
          (document (njson:decode raw)))
