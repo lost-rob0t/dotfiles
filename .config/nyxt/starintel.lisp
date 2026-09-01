@@ -1,12 +1,89 @@
 (in-package #:nyxt-user)
 
-(defparameter *starintel-base-url*
-  (string-right-trim "/" (or (uiop:getenv "STARINTEL_URL")
-                              "http://127.0.0.1:5000"))
-  "StarIntel HTTP API base URL.")
+(defparameter *starintel-default-base-url* "http://127.0.0.1:5000"
+  "Default StarIntel HTTP API base URL when no persistent config or override exists.")
+
+(defun starintel-config-root ()
+  (merge-pathnames
+   "starintel/"
+   (uiop:ensure-directory-pathname
+    (or (uiop:getenv "XDG_CONFIG_HOME")
+        (merge-pathnames ".config/" (user-homedir-pathname))))))
+
+(defun starintel-config-file (name)
+  (merge-pathnames name (starintel-config-root)))
+
+(defun starintel-trim (value)
+  (and value
+       (string-trim '(#\Space #\Tab #\Newline #\Return) value)))
+
+(defun starintel-read-config-file (name)
+  (let ((path (starintel-config-file name)))
+    (when (probe-file path)
+      (starintel-trim (uiop:read-file-string path)))))
+
+(defun starintel-base-url ()
+  (string-right-trim
+   "/"
+   (or (starintel-trim (uiop:getenv "STARINTEL_URL"))
+       (starintel-read-config-file "url")
+       *starintel-default-base-url*)))
+
+(defun starintel-file-mode (path)
+  (starintel-trim
+   (ignore-errors
+     (uiop:run-program
+      (list "stat" "-L" "-c" "%a" (namestring path))
+      :output :string
+      :error-output nil
+      :ignore-error-status t))))
+
+(defun starintel-api-key-file ()
+  (let ((path (starintel-config-file "api-key")))
+    (when (probe-file path)
+      (unless (string= (or (starintel-file-mode path) "") "600")
+        (error "Refusing StarIntel API key file unless its mode is 0600: ~a"
+               (namestring path)))
+      (starintel-trim (uiop:read-file-string path)))))
 
 (defun starintel-api-key ()
-  (uiop:getenv "STARINTEL_API_KEY"))
+  (or (starintel-trim (uiop:getenv "STARINTEL_API_KEY"))
+      (starintel-api-key-file)))
+
+(defun starintel-write-config-file (name value &key secret)
+  (let* ((root (starintel-config-root))
+         (path (starintel-config-file name)))
+    (ensure-directories-exist path)
+    (uiop:run-program (list "chmod" "700" (namestring root))
+                      :output nil
+                      :error-output nil)
+    (with-open-file (stream path
+                            :direction :output
+                            :if-does-not-exist :create
+                            :if-exists :supersede)
+      (write-line value stream))
+    (uiop:run-program (list "chmod" (if secret "600" "600") (namestring path))
+                      :output nil
+                      :error-output nil)
+    path))
+
+(define-command-global starintel-set-api-key ()
+  "Persist the StarIntel API key in ~/.config/starintel/api-key with mode 0600."
+  (let ((key (prompt1 :prompt "StarIntel API key" :sources 'prompter:raw-source)))
+    (when (str:blankp key)
+      (error "StarIntel API key cannot be blank."))
+    (starintel-write-config-file "api-key" key :secret t)
+    (echo "Saved StarIntel API key to ~/.config/starintel/api-key (0600).")))
+
+(define-command-global starintel-set-url ()
+  "Persist the StarIntel API URL in ~/.config/starintel/url."
+  (let ((url (prompt1 :prompt "StarIntel API URL"
+                      :input (starintel-base-url)
+                      :sources 'prompter:raw-source)))
+    (when (str:blankp url)
+      (error "StarIntel API URL cannot be blank."))
+    (starintel-write-config-file "url" (string-right-trim "/" url))
+    (echo "Saved StarIntel API URL to ~/.config/starintel/url.")))
 
 (defun starintel-headers (&key json)
   (let ((headers (when json
@@ -16,11 +93,11 @@
     headers))
 
 (defun starintel-get (path)
-  (dex:get (format nil "~a~a" *starintel-base-url* path)
+  (dex:get (format nil "~a~a" (starintel-base-url) path)
            :headers (starintel-headers)))
 
 (defun starintel-post (path object)
-  (dex:post (format nil "~a~a" *starintel-base-url* path)
+  (dex:post (format nil "~a~a" (starintel-base-url) path)
             :headers (starintel-headers :json t)
             :content (njson:encode object)))
 
@@ -105,7 +182,7 @@
        " · "
        (:a :href "starintel:search" "search")
        " · API "
-       (:span.muted *starintel-base-url*))
+       (:span.muted (starintel-base-url)))
       (funcall body-writer)))))
 
 (defun starintel-search-page (url)
@@ -187,13 +264,13 @@
         (:SEARCH (starintel-search-page url))
         (:DOCUMENT (starintel-document-page url))
         (otherwise (starintel-search-page "starintel:search")))
-    (error (condition)
+    (error ()
       (starintel-page
        "StarIntel Error"
        (lambda ()
          (spinneret:with-html
            (:h1 "StarIntel request failed")
-           (:pre (princ-to-string condition))))))))
+           (:p "The request failed. Check the API URL, API key, and Nyxt logs.")))))))
 
 (define-internal-scheme "starintel" #'starintel-scheme-handler)
 
