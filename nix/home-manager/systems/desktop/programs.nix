@@ -7,6 +7,12 @@ let
     rev = quasarPin;
   };
 
+  starLangPin = "0472ed8f4472252038b62bb19a17aa09d2ddf1b4";
+  starLangSource = builtins.fetchGit {
+    url = "https://github.com/lost-rob0t/star-lang.git";
+    rev = starLangPin;
+  };
+
   quasarRuntimeLibs = with pkgs; [
     openssl
     rabbitmq-c
@@ -111,6 +117,11 @@ let
   };
 in
 {
+  # Nyxt loads only StarLang's final actor/runtime ASDF systems on demand.
+  # Keep the pinned source outside ~/.config so the browser config remains
+  # declarative while ASDF can load the exact revision without a mutable clone.
+  home.file.".local/share/star-lang".source = starLangSource;
+
   home.packages = with pkgs; [
     nyxt
     starintelConfigure
