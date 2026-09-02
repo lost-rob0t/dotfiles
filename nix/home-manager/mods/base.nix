@@ -6,6 +6,18 @@ let
     runtimeInputs = [ pkgs.git ];
     text = builtins.readFile ../../../.config/bash/git-sync.sh;
   };
+
+  dotfilesSync = pkgs.writeShellApplication {
+    name = "dotfiles-sync";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.git
+      pkgs.openssh
+      pkgs.util-linux
+      config.emacs.package
+    ];
+    text = builtins.readFile ../../../scripts/dotfiles-sync;
+  };
 in
 {
   options = {
@@ -34,6 +46,6 @@ in
       tea # Forgejo CLI for git.starintel.actor
       forgejo-cli
 
-    ]) ++ [ gitSync ];
+    ]) ++ [ gitSync dotfilesSync ];
   };
 }
