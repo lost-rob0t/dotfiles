@@ -227,6 +227,7 @@
             cmp "$globalAgents" "$opencodeAgents"
             grep -Fq 'prolog-verify check' "$globalAgents"
             grep -Fq 'prolog-verify brave' "$globalAgents"
+            grep -Fq '## Code cleanup' "$globalAgents"
             jq -e '
               .hooks.SessionStart[0].hooks[0].command | endswith("/bin/prolog-verify hook-session-start")
             ' "$codexHooks" >/dev/null
