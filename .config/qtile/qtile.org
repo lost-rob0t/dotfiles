@@ -7,6 +7,8 @@ Do not make lasting edits directly in =config.py=. Edit =qtile-ai.org= first, ta
 
 The OpenRouter telemetry helper follows the same rule: [[file:qtile-openrouter.org][qtile-openrouter.org]] is canonical and generates =qtile_openrouter.py=.
 
+Qtile's screen-capture bindings are kept in [[file:qtile-capture.org][qtile-capture.org]], which generates =qtile_capture.py=. The extension is installed before key telemetry instrumentation so capture shortcuts remain visible in the same keymap telemetry as the main configuration.
+
 Complex click-driven bar panels use the shared [[file:../../docs/qtile-emacs-ui.org][Qtile and Emacs dropdown UI]]
 runtime helpers.  The canonical Qtile source still owns bar composition; the
 standalone =emacs_ui.py=, system telemetry, Dunst adapter, and =lisp/qtile/=
@@ -42,9 +44,19 @@ interactive Emacs window.
 Qtile owns the complete active keymap. The former SXHKD configuration was
 retired after its approved shortcuts were migrated to native =Key= entries.
 
-Spectacle is launched through =~/.local/bin/spectacle=. The wrapper prefers
-the current Arch build, which works with this X11 GLX configuration, over the
-older Nix profile build that requests an unavailable framebuffer configuration.
+Screen capture is routed through the stable =screen-capture= CLI rather than a
+desktop screenshot application. The direct screenshot bindings preserve the
+existing layout, while recording uses the thin Emacs picker:
+
+| Binding             | Action                         |
+|---------------------+--------------------------------|
+| =Print=             | Full screenshot                |
+| =Super+Print=       | Select screenshot region       |
+| =Shift+Print=       | Open the Emacs recording UI    |
+| =Super+Shift+Print= | Stop and finalize recording    |
+
+The CLI owns X11/Wayland backend selection, recorder state, clipboard behavior,
+and output paths. See [[file:../../docs/wiki/screen-capture.org][the screen-capture wiki page]] for the full command and Home Manager contract.
 
 Monitor focus and window movement use physical X coordinates, so Left and Right
 select the adjacent display instead of following XRandR's output enumeration.
@@ -104,7 +116,7 @@ The raw telemetry includes window titles. Browser page names, document names, te
 After modifying =qtile-ai.org= or related Qtile sources, tangle first and then run:
 
 #+begin_src sh
-python -m py_compile config.py qtile_telemetry.py scripts/qtile-telemetry-summary.py
+python -m py_compile config.py qtile_capture.py qtile_telemetry.py scripts/qtile-telemetry-summary.py
 qtile check -c config.py
 #+end_src
 
