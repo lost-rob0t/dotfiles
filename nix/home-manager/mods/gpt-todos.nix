@@ -15,7 +15,10 @@ let
       pkgs.cronie
       config.emacs.package
     ];
-    text = builtins.readFile ../../../scripts/gpt-todos-sync;
+    text = ''
+      export DOTFILES_DIR=/nonexistent/gpt-todos-sync-no-dotfiles
+      ${builtins.readFile ../../../scripts/gpt-todos-sync}
+    '';
   };
 
   installGptTodosCron = pkgs.writeShellApplication {
@@ -75,6 +78,7 @@ in
         Environment = [
           "GPT_TODOS_REPO_DIR=${cfg.repoDir}"
           "GPT_TODOS_ORG_DIR=${cfg.orgDir}"
+          "DOTFILES_DIR=/nonexistent/gpt-todos-sync-no-dotfiles"
         ];
       };
     };
