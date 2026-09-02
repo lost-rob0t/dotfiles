@@ -10,12 +10,13 @@ copy_recording_path="${SCREEN_CAPTURE_COPY_RECORDING_PATH:-1}"
 runtime_dir="${SCREEN_CAPTURE_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-/tmp}/screen-capture-${UID}}"
 pid_file="$runtime_dir/recorder.pid"
 path_file="$runtime_dir/recorder.path"
+lock_file="$runtime_dir/recorder.lock"
 
 log() { printf '%s: %s\n' "$program" "$*" >&2; }
 die() { log "$*"; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 notify() { have notify-send && notify-send -a screen-capture "$1" "${2:-}" >/dev/null 2>&1 || true; }
-timestamp() { date '+%Y-%m-%d_%H-%M-%S'; }
+timestamp() { date '+%Y-%m-%d_%H-%M-%S-%N'; }
 
 session_type() {
     if [[ -n "${SCREEN_CAPTURE_SESSION:-}" ]]; then
@@ -85,16 +86,28 @@ screenshot_region() {
             have grim || die "grim is required for Wayland screenshots"
             have slurp || die "slurp is required for Wayland region selection"
             local geometry
-            geometry="$(slurp)" || exit 130
+            if ! geometry="$(slurp)"; then
+                rm -f -- "$file"
+                exit 130
+            fi
             [[ -n "$geometry" ]] || exit 130
-            grim -g "$geometry" "$file"
+            if ! grim -g "$geometry" "$file"; then
+                rm -f -- "$file"
+                die "grim failed to capture the selected region"
+            fi
             ;;
         x11)
             have maim || die "maim is required for X11 screenshots"
-            maim -s "$file" || exit 130
+            if ! maim -s "$file"; then
+                rm -f -- "$file"
+                exit 130
+            fi
             ;;
     esac
-    [[ -s "$file" ]] || die "screenshot backend did not produce $file"
+    if [[ ! -s "$file" ]]; then
+        rm -f -- "$file"
+        die "screenshot backend did not produce an image"
+    fi
     copy_image "$file"
     notify "Screenshot saved" "$file"
     printf '%s\n' "$file"
@@ -107,14 +120,23 @@ screenshot_screen() {
     case "$(session_type)" in
         wayland)
             have grim || die "grim is required for Wayland screenshots"
-            grim "$file"
+            if ! grim "$file"; then
+                rm -f -- "$file"
+                die "grim failed to capture the screen"
+            fi
             ;;
         x11)
             have maim || die "maim is required for X11 screenshots"
-            maim "$file"
+            if ! maim "$file"; then
+                rm -f -- "$file"
+                die "maim failed to capture the screen"
+            fi
             ;;
     esac
-    [[ -s "$file" ]] || die "screenshot backend did not produce $file"
+    if [[ ! -s "$file" ]]; then
+        rm -f -- "$file"
+        die "screenshot backend did not produce an image"
+    fi
     copy_image "$file"
     notify "Screenshot saved" "$file"
     printf '%s\n' "$file"
@@ -158,6 +180,13 @@ run_recorder() {
     local output="$1"
     shift
     ensure_dirs
+    have flock || die "flock is required for recorder locking"
+    have timeout || die "GNU timeout is required for recorder signal supervision"
+
+    local lock_fd
+    exec {lock_fd}>"$lock_file"
+    flock -n "$lock_fd" || die "a recording is already starting or active"
+
     clean_stale_state
     if active_pid >/dev/null 2>&1; then
         die "a recording is already active (PID $(active_pid))"
@@ -173,13 +202,18 @@ run_recorder() {
         fi
     }
     forward_signal() {
-        [[ -n "${recorder_pid:-}" ]] && kill -TERM "$recorder_pid" 2>/dev/null || true
+        [[ -n "${recorder_pid:-}" ]] && kill -INT "$recorder_pid" 2>/dev/null || true
     }
     trap forward_signal INT TERM HUP
     trap cleanup_recording EXIT
 
-    "$@" &
+    # Bash starts asynchronous commands with SIGINT ignored when this wrapper is
+    # itself backgrounded. GNU timeout is used only as a signal-forwarding
+    # supervisor (duration 0 means no timeout), so the actual recorder receives
+    # SIGINT and can finalize its container correctly.
+    timeout --preserve-status 0 "$@" &
     recorder_pid=$!
+
     printf '%s\n' "$recorder_pid" > "$pid_file"
     printf '%s\n' "$output" > "$path_file"
     notify "Recording started" "$output"
@@ -270,7 +304,7 @@ stop_recording() {
         notify "No active recording" "Nothing to stop"
         return 0
     fi
-    kill -TERM "$pid" 2>/dev/null || {
+    kill -INT "$pid" 2>/dev/null || {
         clean_stale_state
         die "recording process $pid is no longer running"
     }
@@ -279,9 +313,10 @@ stop_recording() {
 
 status_recording() {
     ensure_dirs
-    local pid
+    local pid path=""
     if pid="$(active_pid)"; then
-        printf 'recording\t%s\t%s\n' "$pid" "$(<"$path_file")"
+        [[ -f "$path_file" ]] && path="$(<"$path_file")"
+        printf 'recording\t%s\t%s\n' "$pid" "$path"
     else
         printf 'idle\n'
         return 1
@@ -298,7 +333,7 @@ Commands:
   record-window [PATH]    Select a window/area and record it.
   record-screen [PATH]    Record the current X11 monitor or selected Wayland output.
   record-ui               Open the Emacs quick recording UI.
-  stop                    Gracefully stop and finalize the active recording.
+  stop                    Interrupt and finalize the active recording.
   status                  Print active recording state.
 
 Environment:

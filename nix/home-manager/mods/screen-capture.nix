@@ -6,12 +6,14 @@ let
   screenCapturePackage = pkgs.writeShellApplication {
     name = "screen-capture";
     runtimeInputs = with pkgs; [
+      coreutils
       ffmpeg
       grim
       libnotify
       maim
       slop
       slurp
+      util-linux
       wf-recorder
       wl-clipboard
       xclip

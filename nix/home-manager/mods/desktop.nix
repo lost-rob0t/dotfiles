@@ -76,7 +76,6 @@
         firefox
         xsettingsd
         scrot
-        kdePackages.spectacle
         keepassxc
         xdg-utils
         dunst

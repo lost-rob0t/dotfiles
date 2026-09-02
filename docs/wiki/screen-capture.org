@@ -1,0 +1,95 @@
+#+TITLE: Screen Capture
+#+STARTUP: overview
+
+* Architecture
+=screen-capture= is the single desktop-facing interface for screenshots and
+screen recordings. Qtile and Emacs call the stable CLI; display-server-specific
+commands stay behind it.
+
+Canonical integration points:
+- [[file:../../.local/bin/screen-capture][=.local/bin/screen-capture=]] - capture engine and recorder lifecycle.
+- [[file:../../.doom.d/autoload/screen-capture.org][=.doom.d/autoload/screen-capture.org=]] - thin Emacs recorder picker.
+- [[file:../../.config/qtile/qtile-capture.org][=.config/qtile/qtile-capture.org=]] - canonical Qtile keybindings.
+- [[file:../../nix/home-manager/mods/screen-capture.nix][=screen-capture.nix=]] - reproducible package, dependencies, defaults, and directories.
+
+* Commands
+| Command | Behavior |
+|---------+----------|
+| =screen-capture screenshot-region= | Select a region, save PNG, and copy the image by default. |
+| =screen-capture screenshot-screen= | Capture the full desktop/screen and copy the image by default. |
+| =screen-capture record-window [PATH]= | Select a window/area and record it. |
+| =screen-capture record-screen [PATH]= | Record the current X11 monitor or selected Wayland output. |
+| =screen-capture record-ui= | Open the Emacs recording picker. |
+| =screen-capture stop= | Interrupt and finalize the active recorder. |
+| =screen-capture status= | Print =idle= or the live recorder PID/path. |
+
+Only one recorder may be active. Recorder startup is lock-protected, runtime
+state lives below =$XDG_RUNTIME_DIR= when available, and =stop= delivers
+=SIGINT= so FFmpeg/wf-recorder can finalize the output rather than being killed
+blindly.
+
+* Defaults
+- Screenshots: =~/Pictures/screen-shots=.
+- Recordings: =~/Videos=.
+- Recording frame rate: 60 FPS.
+- Screenshot PNG data is copied to the clipboard after a successful capture.
+- The final recording path is copied to the clipboard after successful finalization.
+- Timestamped filenames include sub-second precision so rapid captures do not overwrite each other.
+- Failed or canceled screenshot captures remove any partial output.
+
+* Backends
+** X11
+- Screenshots: =maim=.
+- Window selection: =slop=.
+- Recording: FFmpeg =x11grab=.
+- Current monitor selection for whole-output recording: =xrandr= + =xdotool=.
+- Clipboard: =xclip=.
+
+** Wayland / wlroots
+- Screenshots: =grim= + =slurp=.
+- Recording: =wf-recorder=.
+- Clipboard: =wl-copy=.
+
+The session is selected automatically from the display environment and can be
+overridden for testing with =SCREEN_CAPTURE_SESSION=x11|wayland=.
+
+* Qtile bindings
+| Binding | Action |
+|---------+--------|
+| =Print= | Full screenshot. |
+| =Super+Print= | Region screenshot. |
+| =Shift+Print= | Emacs recording UI. |
+| =Super+Shift+Print= | Stop/finalize active recording. |
+
+These bindings are generated from =.config/qtile/qtile-capture.org=. The old
+Spectacle path is retired; do not add a second capture frontend to Qtile.
+
+* Home Manager
+The reusable =screenCapture= module is imported through
+=nix/home-manager/mods/default.nix= and enabled by the desktop profile.
+
+Options:
+| Option | Default |
+|--------+---------|
+| =screenCapture.enable= | disabled at module level; enabled by desktop profile |
+| =screenCapture.screenshotDirectory= | =~/Pictures/screen-shots= |
+| =screenCapture.recordingDirectory= | =~/Videos= |
+| =screenCapture.fps= | =60= |
+| =screenCapture.copyScreenshots= | =true= |
+| =screenCapture.copyRecordingPath= | =true= |
+
+The module installs the capture CLI and both X11 and wlroots dependencies,
+exports the corresponding =SCREEN_CAPTURE_*= runtime defaults, and creates the
+configured output directories during activation.
+
+* Verification
+The display-independent regression gate is:
+
+#+begin_src sh
+bash tests/screen-capture.sh
+#+end_src
+
+It covers screenshot/clipboard behavior, rapid path uniqueness, failed-capture
+cleanup, empty recorder output, single-recorder enforcement, SIGINT stop
+finalization, Qtile command coverage, retirement of the old capture frontend,
+and literate/generated parity for the Qtile capture module.

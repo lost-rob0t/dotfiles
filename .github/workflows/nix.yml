@@ -74,6 +74,8 @@ jobs:
       - name: Check Qtile Python helpers
         run: >-
           python3 -m py_compile
+          .config/qtile/qtile_capture.py
+          .config/qtile/qtile_telemetry.py
           .config/qtile/qtile_openrouter.py
           .config/qtile/scripts/openrouter_status.py
       - name: Run Qtile helper tests

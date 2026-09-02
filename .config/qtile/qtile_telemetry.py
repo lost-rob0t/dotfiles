@@ -157,6 +157,10 @@ def _instrument_keys(mappings, chord=()):
 def install_telemetry(config_globals):
     global _config
     _config = config_globals
+
+    from qtile_capture import install_capture_bindings
+
+    install_capture_bindings(config_globals)
     _instrument_keys(config_globals.get("keys", ()))
 
     from qtile_openrouter import install_openrouter_widget
