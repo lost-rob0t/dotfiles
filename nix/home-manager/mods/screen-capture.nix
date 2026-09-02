@@ -12,6 +12,7 @@ let
       maim
       slop
       slurp
+      util-linux
       wf-recorder
       wl-clipboard
       xclip
