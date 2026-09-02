@@ -1,0 +1,110 @@
+#+title: Dotfiles sync tooling
+#+author: nsaspy
+#+startup: overview
+
+* Sync
+
+This is the canonical literate source for =dotfiles-sync=.  Dotfiles synchronization
+is deliberately separate from =gpt-todos-sync=: saving or synchronizing durable TODO
+state must never tangle, commit, fetch, rebase, or push the dotfiles repository.
+
+The helper tangles known literate source/generated pairs when the Org source is
+dirty, rejects generated-only drift, commits local dotfiles changes, rebases onto
+the configured Forgejo branch, and pushes back to Forgejo.  It does not use the
+checkout's configured GitHub upstream.  The default remote is
+=git@git.starintel.actor:lost-rob0t/dotfiles.git= and can be overridden with
+=DOTFILES_SYNC_REMOTE=.  The default branch is the current branch and can be
+overridden with =DOTFILES_SYNC_BRANCH=.
+
+#+begin_src sh :tangle ./dotfiles-sync :results none
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
+REMOTE="${DOTFILES_SYNC_REMOTE:-git@git.starintel.actor:lost-rob0t/dotfiles.git}"
+LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
+[[ -d "$LOCK_DIR" ]] || LOCK_DIR=/tmp
+LOCK="$LOCK_DIR/dotfiles-sync-${UID}.lock"
+
+export GIT_TERMINAL_PROMPT=0
+if [[ -z "${GIT_SSH_COMMAND:-}" ]]; then
+  export GIT_SSH_COMMAND="ssh -o BatchMode=yes"
+fi
+
+fail() {
+  printf 'dotfiles-sync: %s\n' "$*" >&2
+  exit 1
+}
+
+[[ -d "$DOTFILES_DIR/.git" ]] || fail "dotfiles checkout not found at $DOTFILES_DIR"
+
+exec 9>"$LOCK"
+flock 9
+
+branch="${DOTFILES_SYNC_BRANCH:-$(git -C "$DOTFILES_DIR" branch --show-current)}"
+[[ -n "$branch" ]] || fail "detached HEAD; set DOTFILES_SYNC_BRANCH explicitly"
+
+sync_literate_pair() {
+  local src="$1"; shift
+  local relsrc="${src#"$DOTFILES_DIR/"}"
+  [[ -f "$src" ]] || return 0
+
+  local src_dirty=0 out_dirty=0 out
+  git -C "$DOTFILES_DIR" diff --quiet -- "$relsrc" || src_dirty=1
+  git -C "$DOTFILES_DIR" diff --cached --quiet -- "$relsrc" || src_dirty=1
+
+  for out in "$@"; do
+    [[ -e "$DOTFILES_DIR/$out" ]] || continue
+    git -C "$DOTFILES_DIR" diff --quiet -- "$out" || out_dirty=1
+    git -C "$DOTFILES_DIR" diff --cached --quiet -- "$out" || out_dirty=1
+  done
+
+  if (( out_dirty && ! src_dirty )); then
+    printf 'dotfiles-sync: tangled output changed without literate source: %s\n' "$relsrc" >&2
+    printf 'Edit the Org source too, then rerun dotfiles-sync.\n' >&2
+    return 3
+  fi
+
+  if (( src_dirty )); then
+    command -v emacs >/dev/null || {
+      printf 'dotfiles-sync: emacs required to tangle %s\n' "$relsrc" >&2
+      return 4
+    }
+    emacs --batch --quick \
+      --eval '(require (quote org))' \
+      --eval '(require (quote ob-tangle))' \
+      --eval "(org-babel-tangle-file \"$src\")" >/dev/null
+  fi
+}
+
+sync_literate() {
+  sync_literate_pair "$DOTFILES_DIR/bash.org" ".bashrc"
+  sync_literate_pair "$DOTFILES_DIR/.doom.d/config.org" ".doom.d/config.el" ".doom.d/init.el"
+  sync_literate_pair "$DOTFILES_DIR/.doom.d/packages.org" ".doom.d/packages.el"
+  sync_literate_pair "$DOTFILES_DIR/.doom.d/autoload/gpt-todos.org" ".doom.d/autoload/gpt-todos.el"
+  sync_literate_pair "$DOTFILES_DIR/.config/qtile/qtile-ai.org" ".config/qtile/config.py"
+  sync_literate_pair "$DOTFILES_DIR/.config/qtile/qtile-openrouter.org" ".config/qtile/qtile_openrouter.py"
+  sync_literate_pair "$DOTFILES_DIR/scripts/gpt-todos-sync.org" \
+    "scripts/gpt-todos-sync" "scripts/install-gpt-todos-cron"
+  sync_literate_pair "$DOTFILES_DIR/scripts/dotfiles-sync.org" "scripts/dotfiles-sync"
+}
+
+sync_literate
+
+git -C "$DOTFILES_DIR" add -A
+if ! git -C "$DOTFILES_DIR" diff --cached --quiet; then
+  host="$(hostname -s 2>/dev/null || printf unknown)"
+  git -C "$DOTFILES_DIR" -c commit.gpgsign=false commit -m "dotfiles: sync $host"
+fi
+
+remote_ref="refs/remotes/dotfiles-sync/$branch"
+git -C "$DOTFILES_DIR" fetch --prune "$REMOTE" "+refs/heads/$branch:$remote_ref"
+
+if ! git -C "$DOTFILES_DIR" -c commit.gpgsign=false rebase "$remote_ref"; then
+  git -C "$DOTFILES_DIR" rebase --abort 2>/dev/null || true
+  fail "local commits conflict with Forgejo $branch"
+fi
+
+git -C "$DOTFILES_DIR" push "$REMOTE" "HEAD:refs/heads/$branch"
+printf 'dotfiles-sync: synchronized %s with %s (%s)\n' "$DOTFILES_DIR" "$REMOTE" "$branch"
+#+end_src
