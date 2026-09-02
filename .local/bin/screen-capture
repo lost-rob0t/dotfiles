@@ -181,6 +181,7 @@ run_recorder() {
     shift
     ensure_dirs
     have flock || die "flock is required for recorder locking"
+    have timeout || die "GNU timeout is required for recorder signal supervision"
 
     local lock_fd
     exec {lock_fd}>"$lock_file"
@@ -206,13 +207,12 @@ run_recorder() {
     trap forward_signal INT TERM HUP
     trap cleanup_recording EXIT
 
-    # Non-interactive Bash otherwise starts asynchronous children with SIGINT
-    # ignored. Briefly enable job control so FFmpeg/wf-recorder retain a real
-    # interrupt handler, then return this wrapper to normal script semantics.
-    set -m
-    "$@" &
+    # Bash starts asynchronous commands with SIGINT ignored when this wrapper is
+    # itself backgrounded. GNU timeout is used only as a signal-forwarding
+    # supervisor (duration 0 means no timeout), so the actual recorder receives
+    # SIGINT and can finalize its container correctly.
+    timeout --preserve-status 0 "$@" &
     recorder_pid=$!
-    set +m
 
     printf '%s\n' "$recorder_pid" > "$pid_file"
     printf '%s\n' "$output" > "$path_file"
