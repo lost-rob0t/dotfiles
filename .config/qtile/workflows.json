@@ -22,5 +22,47 @@
     "screens": {
       "center": "2"
     }
+  },
+  "starintel": {
+    "auto_group": true,
+    "auto_mode": true,
+    "close_all": true,
+    "layouts": {
+      "3": "max"
+    },
+    "screens": {
+      "left": "1",
+      "center": "2",
+      "right": "3",
+      "aux": "8"
+    },
+    "launch": [
+      {
+        "argv": [
+          "brave",
+          "https://git.starintel.actor"
+        ]
+      },
+      {
+        "argv": [
+          "emacsclient",
+          "-c",
+          "-a",
+          "emacs",
+          "~/starintel"
+        ]
+      },
+      {
+        "argv": [
+          "terminator",
+          "-T",
+          "OpenCode",
+          "--working-directory",
+          "~/starintel",
+          "-x",
+          "opencode"
+        ]
+      }
+    ]
   }
 }

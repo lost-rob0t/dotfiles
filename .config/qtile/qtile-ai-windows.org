@@ -1,3 +1,17 @@
+#+title: Qtile Window Classification
+#+author: lost-rob0t
+#+startup: overview
+#+property: header-args:python :tangle ./qtile_ai_windows.py :mkdirp yes :comments no :results none
+
+* Purpose
+
+This is the canonical literate source for the shared Qtile window metadata
+classifiers used by Auto mode.  It also loads the declarative workflow runtime
+before the topology-aware desktop control module is installed, so workflow
+activation can extend =qtile_control.apply_workflow= without modifying the
+control layer itself.
+
+#+begin_src python
 """Window metadata patterns for the Qtile AI workspace."""
 
 from __future__ import annotations
@@ -140,3 +154,4 @@ def is_video_window(wm_classes: Iterable[str] | None, title: str | None) -> bool
     if not classes & VIDEO_TITLE_MATCHING_CLASSES:
         return False
     return any(pattern.search(title or "") for pattern in VIDEO_TITLE_PATTERNS)
+#+end_src

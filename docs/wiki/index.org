@@ -13,7 +13,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:literate-config.org][Literate configuration]] - canonical Org sources, generated files, tangling, and consistency rules.
 - [[file:nix.org][Nix and Home Manager]] - flake outputs, hosts, profiles, installers, and module layout.
 - [[file:emacs.org][Emacs and Doom]] - Doom literate sources and Emacs-related code in the repository.
-- [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, and desktop integration.
+- [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, desktop workflows, and desktop integration.
 - [[file:screen-capture.org][Screen capture]] - stable screenshot/recording CLI, backends, Qtile bindings, Emacs picker, and Home Manager options.
 - [[file:../qtile-emacs-ui.org][Qtile and Emacs dropdown UI]] - shared popup lifecycle, widget-relative geometry, notification backends, and dashboard ownership.
 - [[file:maintenance.org][Maintenance]] - safe edit/tangle/test workflow and useful verification commands.
@@ -29,6 +29,8 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Termux remote | [[file:../../scripts/termux-remote.org][scripts/termux-remote.org]] | Remote GUI recovery, mobile SSH keepalives, Agent Zero tunneling, and extra Termux:Widget shortcuts. |
 | Termux Doom | [[file:../../android/doom/config.org][android/doom/config.org]] | Phone-specific Doom source for StarIntel admin, Org/TODOs, languages, and AI. |
 | Qtile | [[file:../../.config/qtile/qtile-ai.org][.config/qtile/qtile-ai.org]] | Main Qtile literate source; tangles to =config.py=. |
+| Qtile workflows | [[file:../../.config/qtile/qtile-workflows.org][.config/qtile/qtile-workflows.org]] | Desktop workflow lifecycle/actions and definitions; tangles to =qtile_workflows.py= and =workflows.json=. |
+| Qtile routing | [[file:../../.config/qtile/qtile-ai-windows.org][.config/qtile/qtile-ai-windows.org]] | Auto-mode window metadata classifiers; tangles to =qtile_ai_windows.py=. |
 | Qtile capture | [[file:../../.config/qtile/qtile-capture.org][.config/qtile/qtile-capture.org]] | Capture keybindings; tangles to =qtile_capture.py=. |
 | OpenRouter widget | [[file:../../.config/qtile/qtile-openrouter.org][.config/qtile/qtile-openrouter.org]] | Telemetry/widget helper; tangles to =qtile_openrouter.py=. |
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |

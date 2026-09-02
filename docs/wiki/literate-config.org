@@ -15,6 +15,9 @@ Never make a lasting change only in a generated file.  A generated-file-only edi
 | [[file:../../.doom.d/config.org][.doom.d/config.org]] | [[file:../../.doom.d/init.el][.doom.d/init.el]] | Doom module selection, tangled from an explicit block. |
 | [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | [[file:../../.doom.d/packages.el][.doom.d/packages.el]] | Doom package declarations. |
 | [[file:../../.config/qtile/qtile-ai.org][.config/qtile/qtile-ai.org]] | [[file:../../.config/qtile/config.py][.config/qtile/config.py]] | Main Qtile configuration. |
+| [[file:../../.config/qtile/qtile-workflows.org][.config/qtile/qtile-workflows.org]] | [[file:../../.config/qtile/qtile_workflows.py][.config/qtile/qtile_workflows.py]] | Qtile workflow lifecycle/action runtime. |
+| [[file:../../.config/qtile/qtile-workflows.org][.config/qtile/qtile-workflows.org]] | [[file:../../.config/qtile/workflows.json][.config/qtile/workflows.json]] | Declarative Qtile workflow definitions. |
+| [[file:../../.config/qtile/qtile-ai-windows.org][.config/qtile/qtile-ai-windows.org]] | [[file:../../.config/qtile/qtile_ai_windows.py][.config/qtile/qtile_ai_windows.py]] | Auto-mode window classification and workflow bootstrap. |
 | [[file:../../.config/qtile/qtile-openrouter.org][.config/qtile/qtile-openrouter.org]] | [[file:../../.config/qtile/qtile_openrouter.py][.config/qtile/qtile_openrouter.py]] | OpenRouter telemetry helper. |
 
 Other Org files may also tangle generated outputs.  Check their =#+property: header-args= lines and individual source-block =:tangle= arguments before editing related generated files.

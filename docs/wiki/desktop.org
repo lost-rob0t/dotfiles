@@ -8,6 +8,8 @@ The primary Qtile configuration is literate:
 | Source | Generated output | Responsibility |
 |--------+------------------+----------------|
 | [[file:../../.config/qtile/qtile-ai.org][qtile-ai.org]] | [[file:../../.config/qtile/config.py][config.py]] | Core Qtile configuration, groups, layouts, keybindings, widgets, hooks, and screens. |
+| [[file:../../.config/qtile/qtile-workflows.org][qtile-workflows.org]] | [[file:../../.config/qtile/qtile_workflows.py][qtile_workflows.py]], [[file:../../.config/qtile/workflows.json][workflows.json]] | Declarative desktop workflow lifecycle, layout overrides, launches, and workflow definitions. |
+| [[file:../../.config/qtile/qtile-ai-windows.org][qtile-ai-windows.org]] | [[file:../../.config/qtile/qtile_ai_windows.py][qtile_ai_windows.py]] | Auto-mode window metadata routing and workflow-runtime bootstrap. |
 | [[file:../../.config/qtile/qtile-openrouter.org][qtile-openrouter.org]] | [[file:../../.config/qtile/qtile_openrouter.py][qtile_openrouter.py]] | OpenRouter telemetry and its dynamic sync/reload integration. |
 
 The main Org source describes itself as modular and self-documenting.  Prefer improving that source when documenting a concrete keybinding or widget rather than duplicating the detail here.
@@ -27,6 +29,28 @@ OpenRouter telemetry is rate-oriented rather than balance-oriented. The bar repo
 
 The dynamic =Super+Ctrl+Shift+R= binding belongs to the OpenRouter telemetry helper.  Keep its documentation and generated implementation synchronized with =qtile-openrouter.org=.
 
+* Desktop workflows
+The Emacs-backed workflow picker reads the tangled =workflows.json=.  The
+lifecycle extension in =qtile_workflows.py= keeps screen placement delegated to
+the existing =qtile_control.py= layer while allowing a workflow to request
+client cleanup, an explicit Auto-mode state, persistent per-group layout
+overrides, and non-blocking application launches.
+
+The =starintel= workflow is a clean-room desktop rebuild.  Selecting it closes
+all managed client windows, forces Auto mode on, places groups 1/2/3 on the
+left/center/right screens, keeps group 3 in =max= while the workflow is active,
+and launches:
+- Brave on group 1 at =https://git.starintel.actor=;
+- a new Emacs client frame on group 2 visiting =~/starintel=;
+- one Terminator on group 3 titled =OpenCode=, running =opencode= from
+  =~/starintel=.
+
+The OpenCode title is intentional: Auto routing recognizes OpenCode terminal
+windows as AI windows, so the normal routing policy remains authoritative after
+the workflow has bootstrapped the desktop.  Selecting another workflow clears
+the Star Intel group-layout override and restores the normal adaptive layout
+policy.
+
 * Auto workspace routing
 The Qtile Auto mode button routes newly managed windows while it is enabled;
 it does not poll or repeatedly reorganize existing windows.  AI-related
@@ -35,8 +59,8 @@ windows go to workspace 3, Discord goes to workspace 9, games go to workspace
 ChatGPT Desktop, AI tabs in Brave, T3 Code, Emacs LLM/OpenRouter/MCP buffers,
 OpenCode or Claude Code terminal windows, Steam/PrismLauncher/Minecraft/War
 Thunder, and YouTube/Twitch tabs.
-The matcher is maintained in [[file:../../.config/qtile/qtile_ai_windows.py][qtile_ai_windows.py]] and was seeded from the local ActivityWatch window bucket;
-ordinary Brave pages and terminal windows are not routed by title alone.  The
+The matcher is maintained in [[file:../../.config/qtile/qtile-ai-windows.org][qtile-ai-windows.org]] and tangles to [[file:../../.config/qtile/qtile_ai_windows.py][qtile_ai_windows.py]]; it was seeded from the local ActivityWatch window bucket.
+Ordinary Brave pages and terminal windows are not routed by title alone.  The
 focused newly routed window follows its destination group so it does not
 appear to disappear from the current screen.
 
@@ -52,14 +76,18 @@ Related desktop configuration is spread through =.config/= and Home Manager modu
 * Edit and test cycle
 1. Edit the relevant Qtile Org source.
 2. Tangle it.
-3. Confirm only the expected generated Python files changed.
+3. Confirm only the expected generated Python/JSON files changed.
 4. Compile the generated Python.
-5. Exercise the affected keybinding/widget/hook in a running Qtile session.
+5. Run the Qtile workflow regression/parity tests when workflow behavior changed.
+6. Exercise the affected keybinding/widget/hook in a running Qtile session.
 
 #+begin_src shell
   cd ~/.dotfiles
   python -m py_compile .config/qtile/config.py
   python -m py_compile .config/qtile/qtile_openrouter.py
+  python -m py_compile .config/qtile/qtile_workflows.py
+  python -m py_compile .config/qtile/qtile_ai_windows.py
+  python -m unittest discover -s .config/qtile/tests -p 'test_qtile_workflow*.py' -v
 #+end_src
 
 For a sync/reload change, test both successful and failed Git sync paths so notification and reload behavior do not quietly rot.
