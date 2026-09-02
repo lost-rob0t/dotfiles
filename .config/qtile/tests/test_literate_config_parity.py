@@ -38,12 +38,13 @@ class LiterateConfigParityTests(unittest.TestCase):
         self.assertIn(GIT_SYNC_SOURCE, BASH_ORG.read_text(encoding="utf-8"))
         self.assertIn(GIT_SYNC_SOURCE, BASHRC.read_text(encoding="utf-8"))
 
-    def test_home_manager_installs_git_sync_command_from_shared_helper(self):
+    def test_home_manager_installs_shared_sync_commands(self):
         source = BASE_NIX.read_text(encoding="utf-8")
         helper_path = "../../../.config/bash/git-sync.sh"
         self.assertIn('name = "git-sync";', source)
+        self.assertIn('name = "dotfiles-sync";', source)
         self.assertIn(f"builtins.readFile {helper_path}", source)
-        self.assertIn("]) ++ [ gitSync ];", source)
+        self.assertIn("]) ++ [ gitSync dotfilesSync ];", source)
 
     def test_tangled_bashrc_is_valid_bash(self):
         completed = subprocess.run(
