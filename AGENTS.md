@@ -50,6 +50,13 @@ When adding or renaming a major subsystem, host/profile, canonical Org source, g
 
 A change is not complete if the implementation and relevant documentation disagree.
 
+## Code cleanup
+
+- Remove dead code, unreachable branches, obsolete compatibility paths, and unused helpers encountered within the task scope.
+- Do not preserve redundant code paths without a concrete current requirement.
+- De-slopify touched code: remove generated-looking clutter, needless comments, repetition, unnecessary abstraction, and defensive complexity that does not serve an identified behavior.
+- Prefer the smallest clear implementation with one canonical path while preserving required behavior and focused diffs.
+
 ## Qtile
 
 Keep keybindings documented in their literate source. The OpenRouter telemetry helper owns the dynamic `Super+Ctrl+Shift+R` sync-and-reload binding and must stay synchronized with `qtile-openrouter.org`.
