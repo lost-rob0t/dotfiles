@@ -174,6 +174,10 @@
         assert desktopHome.config.programs.opencode.enable;
         assert desktopHome.config.programs.opencode.package == pkgs.opencode;
         assert desktopHome.config.programs.opencode.enableMcpIntegration;
+        assert
+          builtins.hasAttr
+            "${desktopHome.config.xdg.configHome}/opencode/AGENTS.md"
+            desktopHome.config.home.file;
         assert desktopHome.config.programs.opencode.tui.theme == "outrun";
         assert
           desktopHome.config.programs.opencode.settings.provider.openai.options.baseURL
@@ -181,6 +185,9 @@
         assert desktopHome.config.programs.codex.enable;
         assert !desktopHome.config.programs.codex.enableMcpIntegration;
         assert desktopHome.config.programs.codex.package.version == pkgs.codex.version;
+        assert builtins.hasAttr ".codex/AGENTS.md" desktopHome.config.home.file;
+        assert builtins.hasAttr ".codex/hooks.json" desktopHome.config.home.file;
+        assert lib.any (package: lib.getName package == "prolog-verify") desktopHome.config.home.packages;
         assert desktopHome.config.programs.chatgpt-desktop.enable;
         pkgs.runCommand "ai-client-theme-check"
           {
@@ -189,6 +196,10 @@
               desktopHome.config.home.file."${desktopHome.config.xdg.configHome}/opencode/themes/outrun.json".source;
             codexTheme = desktopHome.config.home.file.".codex/themes/outrun.tmTheme".source;
             chatgptTheme = desktopHome.config.home.file.".codex/themes/outrun-desktop.json".source;
+            globalAgents = desktopHome.config.home.file.".codex/AGENTS.md".source;
+            opencodeAgents =
+              desktopHome.config.home.file."${desktopHome.config.xdg.configHome}/opencode/AGENTS.md".source;
+            codexHooks = desktopHome.config.home.file.".codex/hooks.json".source;
           }
           ''
             jq -e '
@@ -212,6 +223,16 @@
               .appearanceDarkChromeTheme.semanticColors.diffAdded == "#62ff00" and
               .appearanceDarkChromeTheme.semanticColors.diffRemoved == "#dd546e"
             ' "$chatgptTheme" >/dev/null
+
+            cmp "$globalAgents" "$opencodeAgents"
+            grep -Fq 'prolog-verify check' "$globalAgents"
+            grep -Fq 'prolog-verify brave' "$globalAgents"
+            jq -e '
+              .hooks.SessionStart[0].hooks[0].command | endswith("/bin/prolog-verify hook-session-start")
+            ' "$codexHooks" >/dev/null
+            jq -e '
+              .hooks.Stop[0].hooks[0].command | endswith("/bin/prolog-verify hook-stop")
+            ' "$codexHooks" >/dev/null
 
             touch "$out"
           '';

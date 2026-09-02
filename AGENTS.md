@@ -82,4 +82,6 @@ Dotfiles synchronization belongs exclusively to `dotfiles-sync`. `dotfiles-sync`
 
 Follow TDD for behavior changes. Add or update regression tests before implementation when practical, then run the real suite. Tests must validate literate/generated parity for files touched by a change rather than merely checking that both files exist.
 
+The user-global coding-agent contract is owned by `nix/home-manager/files/global-agents.md` and deployed through the Codex and OpenCode Home Manager modules. Durable Prolog gate packaging and Codex lifecycle hooks are owned by `nix/home-manager/mods/agent-verification.nix`. Keep those clients synchronized instead of maintaining divergent global instructions.
+
 For shared shell helpers, test both sourced-function behavior and direct command execution. Home Manager evaluation must remain green for changes to installed commands.

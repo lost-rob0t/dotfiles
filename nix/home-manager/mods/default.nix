@@ -7,6 +7,7 @@
     ./outrun-theme.nix
     ./opencode.nix
     ./codex.nix
+    ./agent-verification.nix
     ./chatgpt-desktop.nix
     ./base.nix
     ./desktop.nix
