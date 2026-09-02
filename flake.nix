@@ -24,8 +24,8 @@
       url = "github:lost-rob0t/zara";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    zara-plugins = {
-      url = "github:lost-rob0t/zara-plugins/60ed2d2f74874aa284db17a31700c1a99140f5d4";
+      zara-plugins = {
+        url = "github:lost-rob0t/zara-plugins/4f791d83b6d0a969c26f81273d075d5d78acd7db";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     bixby-studio = {
