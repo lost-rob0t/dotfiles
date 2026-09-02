@@ -10,6 +10,8 @@ This repository uses literate Org configuration. Treat the Org files as source c
 
 - `bash.org` is the source of truth for `.bashrc`.
 - `.config/qtile/qtile-ai.org` is the main source of truth for `.config/qtile/config.py`.
+- `.config/qtile/qtile-ai-windows.org` is the source of truth for `.config/qtile/qtile_ai_windows.py`.
+- `.config/qtile/qtile-workflows.org` is the source of truth for `.config/qtile/qtile_workflows.py` and `.config/qtile/workflows.json`.
 - `.config/qtile/qtile-capture.org` is the source of truth for `.config/qtile/qtile_capture.py`.
 - `.config/qtile/qtile-openrouter.org` is the source of truth for `.config/qtile/qtile_openrouter.py`.
 - `.doom.d/autoload/gpt-todos.org` is the source of truth for `.doom.d/autoload/gpt-todos.el`.
