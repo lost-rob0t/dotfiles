@@ -31,6 +31,8 @@ in
       progress
       starship
       curl
+      tea # Forgejo CLI for git.starintel.actor
+      forgejo-cli
 
     ]) ++ [ gitSync ];
   };
