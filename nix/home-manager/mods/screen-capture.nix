@@ -6,6 +6,7 @@ let
   screenCapturePackage = pkgs.writeShellApplication {
     name = "screen-capture";
     runtimeInputs = with pkgs; [
+      coreutils
       ffmpeg
       grim
       libnotify
