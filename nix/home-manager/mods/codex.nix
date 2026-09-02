@@ -138,6 +138,12 @@ in
       description = "Underlying Codex CLI package.";
     };
 
+    globalAgentsFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = "Optional source for the user-global Codex AGENTS.md file.";
+    };
+
     skills = mkOption {
       type = types.listOf types.str;
       default = availableSkills;
@@ -202,6 +208,10 @@ in
         settings = mkIf (cfg.manageConfig && outrun.enable) {
           tui.theme = outrun.name;
         };
+      };
+
+      home.file.".codex/AGENTS.md" = mkIf (cfg.globalAgentsFile != null) {
+        source = cfg.globalAgentsFile;
       };
 
       home.file.".codex/themes/${outrun.name}.tmTheme" = mkIf outrun.enable {

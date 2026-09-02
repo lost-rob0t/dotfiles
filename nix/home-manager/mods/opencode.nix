@@ -84,6 +84,12 @@ in
       description = "Underlying OpenCode package.";
     };
 
+    globalAgentsFile = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      description = "Optional source for the user-global OpenCode AGENTS.md file.";
+    };
+
     llmLog = {
       enable = mkEnableOption "routing OpenCode providers through llm-log";
       baseUrl = mkOption {
@@ -95,6 +101,10 @@ in
   };
 
   config = mkIf cfg.enable {
+    home.file."${config.xdg.configHome}/opencode/AGENTS.md" = mkIf (cfg.globalAgentsFile != null) {
+      source = cfg.globalAgentsFile;
+    };
+
     programs.opencode = {
       enable = true;
       package = cfg.package;
