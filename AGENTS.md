@@ -16,6 +16,7 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `.config/qtile/qtile-openrouter.org` is the source of truth for `.config/qtile/qtile_openrouter.py`.
 - `.doom.d/autoload/gpt-todos.org` is the source of truth for `.doom.d/autoload/gpt-todos.el`.
 - `scripts/gpt-todos-sync.org` is the source of truth for `scripts/gpt-todos-sync` and `scripts/install-gpt-todos-cron`.
+- `scripts/dotfiles-sync.org` is the source of truth for `scripts/dotfiles-sync`.
 - `scripts/termux-remote.org` is the source of truth for `scripts/remote-gui-launch`, `scripts/agent-zero-tunnel`, and `scripts/install-termux-widgets`.
 - `bootstrap-termux.org` is the source of truth for `bootstrap-termux.sh`.
 - `android/doom/config.org` is the source of truth for `android/doom/init.el`, `android/doom/packages.el`, and `android/doom/config.el`.
@@ -73,7 +74,9 @@ Do not rely on Bash startup files as the only way to expose `git-sync`. The help
 
 Do not put the canonical sync executable or Emacs integration in `gpt-todos`. Keep them in this repository and keep their Org sources synchronized with their generated counterparts.
 
-`gpt-todos-sync` may enforce known literate/generated pairs before task synchronization. Treat detected generated-only drift as a blocking error rather than silently syncing task state on top of inconsistent configuration.
+`gpt-todos-sync` must only synchronize GPT TODO/agenda state. It must never tangle, stage, commit, fetch, rebase, push, or otherwise synchronize the dotfiles repository.
+
+Dotfiles synchronization belongs exclusively to `dotfiles-sync`. `dotfiles-sync` may enforce known literate/generated pairs and must target the user's Forgejo service at `git.starintel.actor` by default rather than GitHub.
 
 ## Testing
 
