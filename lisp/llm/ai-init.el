@@ -2,6 +2,7 @@
 
 (require 'ai)
 (require 'ai-prompts)
+(require 'prompt-lib)
 (require 'ai-image)
 (require 'meme)
 (require 'ai-agent)
@@ -95,7 +96,7 @@
   :backend (ai/llm-backend 'openrouter)
   :model 'anthropic/claude-opus-5:exacto
   :stream t
-  :request-params '(:reasoning (:effort "max"))
+  :request-params '(:reasoning (:effort "max")))
   :include-reasoning 'ignore)
 
 (gptel-make-preset 'agent
