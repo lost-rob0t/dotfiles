@@ -21,7 +21,9 @@ The catalog format is =prompts-lib.catalog.v1=.  Prompt bodies remain plain
 
 * Interface
 
-=M-x ai/prompt-lib-menu= opens the full Transient interface.
+=M-x ai/prompt-lib-menu= opens the full Transient interface.  After
+=prompt-lib= loads it also replaces =ai/prompt-menu=, so the existing
+=SPC y p= entrypoint opens the full library UI.
 
 Useful commands:
 
@@ -40,9 +42,9 @@ M-x ai/prompt-lib-open-repository
 The browser uses =tabulated-list-mode=.  =RET= previews, =c= copies, =i=
 inserts into the previous window, =e= edits, and =g= refreshes.
 
-The existing =SPC y p= prompt menu continues to operate on the active prompt
-directory, so normal copy/insert/preview/image-template workflows immediately
-pick up the external library after =prompt-lib= loads.
+Existing image-template workflows continue to use
+=ai/prompt-template-directory=, so they automatically read the external
+library when it is active.
 
 * Catalog behavior
 
