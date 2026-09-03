@@ -1,20 +1,47 @@
 #+title: Emacs prompts-lib client
-#+description: Versioned reusable prompts from lost-rob0t/prompts-lib.
+#+description: Org-first reusable prompts from lost-rob0t/prompts-lib.
 
 * Ownership
 
 The external =prompts-lib= repository owns reusable prompt content.  Dotfiles
-owns the Emacs client and rendering UI.  The client does not copy catalog
-prompts into dotfiles.
+owns the Emacs client and rendering UI.  Prompt metadata and prompt text stay
+colocated in normal source files; there is no JSON catalog.
 
 By default the client looks for the checkout at
 =~/Documents/Projects/prompts-lib=.  Set =PROMPTS_LIB_DIR= to override it.
-When that checkout has a =prompts/= directory, it becomes
-=ai/prompt-template-directory=.  Otherwise the existing bundled
-=lisp/llm/prompts/= templates remain available.
+When that checkout has a =prompts/= directory it becomes the active library.
+Otherwise the existing bundled =lisp/llm/prompts/= raw templates remain as a
+legacy fallback.
 
-The catalog format is =prompts-lib.catalog.v1=.  Prompt bodies remain plain
-=.prompt= files and continue using the existing field syntax:
+* Formats
+
+Org is the default and canonical authoring format.
+
+#+begin_src org
+#+title: Implement bounded slice
+#+prompt_id: engineering.implement-slice
+#+description: Inspect first, implement narrowly, verify exact head.
+#+filetags: :engineering:implementation:tdd:git:
+#+prompt_aliases: implement | coding task | bounded slice
+
+* Prompt
+Work in {{REPO}}.
+#+end_src
+
+The top-level =* Prompt= subtree is rendered.  Other top-level headings can hold
+notes, examples, provenance, or design discussion without entering the prompt
+body.
+
+The client also supports:
+
+- Markdown files with flat =---= metadata and a =# Prompt= heading;
+- declarative Lisp plist files with =:id=, =:title=, =:tags=, =:aliases=, and
+  =:prompt= fields;
+- legacy raw =.prompt= files for the bundled fallback.
+
+Lisp prompt files are read as data and are not evaluated.
+
+Fields continue using the existing renderer:
 
 - ={{NAME}}=
 - ={{NAME|default value}}=
@@ -22,8 +49,8 @@ The catalog format is =prompts-lib.catalog.v1=.  Prompt bodies remain plain
 * Interface
 
 =M-x ai/prompt-lib-menu= opens the full Transient interface.  After
-=prompt-lib= loads it also replaces =ai/prompt-menu=, so the existing
-=SPC y p= entrypoint opens the full library UI.
+=prompt-lib= loads it also replaces =ai/prompt-menu=, so =SPC y p= opens the
+full library UI.
 
 Useful commands:
 
@@ -42,23 +69,25 @@ M-x ai/prompt-lib-open-repository
 The browser uses =tabulated-list-mode=.  =RET= previews, =c= copies, =i=
 inserts into the previous window, =e= edits, and =g= refreshes.
 
-Existing image-template workflows continue to use
-=ai/prompt-template-directory=, so they automatically read the external
-library when it is active.
+=M-x ai/prompt-lib-new= creates an Org prompt by default and opens it in
+=org-mode=.  Use a prefix argument to choose Markdown or Lisp explicitly.
 
-* Catalog behavior
+Existing image-template workflows are routed through the same normalized prompt
+records, so Org prompts remain usable by =ai/image-generate-template= and chat
+prompt-template tools.
 
-=prompt-lib.el= reads metadata from =catalog.json= and also discovers plain
-=.prompt= files that have not yet been cataloged.  Catalog paths are constrained
-to the repository root.  An uncataloged prompt can therefore be created from
-Emacs and used immediately without making catalog metadata a write-time
-requirement.
+* File-native discovery
 
-The external catalog supplies stable IDs, titles, descriptions, tags, and
-aliases.  Prompt text stays client-neutral.
+The prompt directory itself is the catalog.  Each supported file is parsed into
+a normalized record containing ID, title, description, tags, aliases, body,
+path, and source format.
+
+This keeps the storage model useful to Org, Git, grep, other editors, and other
+LLM clients without requiring Emacs-specific serialized state.
 
 * Verification
 
-ERT coverage lives in =prompt-lib-test.el= and checks catalog metadata,
-uncataloged discovery, repository-root confinement, external activation, and
-compatibility with the existing prompt renderer.
+ERT coverage lives in =prompt-lib-test.el= and checks Org metadata/body parsing,
+Markdown parsing, declarative Lisp parsing without evaluation, legacy fallback,
+external activation, Org-default creation, and compatibility with the existing
+placeholder renderer and image/chat lookup surface.
