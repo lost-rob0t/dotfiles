@@ -179,19 +179,22 @@
     (ai/prompt-template-render-string
      template (ai/prompt-template--ask-values template))))
 
+(defun ai/prompt-lib--preview-string (rendered)
+  "Show RENDERED prompt in the prompt preview buffer."
+  (with-current-buffer (get-buffer-create "*Prompt Library Preview*")
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (insert rendered)
+      (goto-char (point-min))
+      (text-mode))
+    (pop-to-buffer (current-buffer))))
+
 (defun ai/prompt-lib-render (&optional record)
   "Render RECORD or read one interactively and preview it."
   (interactive)
   (let ((rendered (ai/prompt-lib-render-record
                    (or record (ai/prompt-lib-read-record)))))
-    (when (called-interactively-p 'interactive)
-      (with-current-buffer (get-buffer-create "*Prompt Library Preview*")
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (insert rendered)
-          (goto-char (point-min))
-          (text-mode))
-        (pop-to-buffer (current-buffer))))
+    (ai/prompt-lib--preview-string rendered)
     rendered))
 
 (defun ai/prompt-lib-copy (&optional record)
@@ -338,6 +341,8 @@
     ("G" "Generate from prompt" ai/image-generate)
     ("T" "Generate from template" ai/image-generate-template)
     ("X" "Edit image" ai/image-edit)]])
+
+(defalias 'ai/prompt-menu #'ai/prompt-lib-menu)
 
 (ai/prompt-lib-activate)
 
