@@ -89,28 +89,42 @@ Available presets include:
 - =@agent-claude-opus-5= — fixed Claude Opus 5 Exacto with the same tool suite
 - =@agent-gpt-5.6-sol= — fixed GPT-5.6 Sol with the same tool suite
 
-* Reusable prompt templates
+* Reusable prompt library
 
-Reusable plain-text prompts live under =lisp/llm/prompts/= with a =.prompt=
-extension.  Fields use ={{NAME}}= syntax.  Defaults use
+Reusable prompts are owned by =lost-rob0t/prompts-lib=.  The Emacs client looks
+for its checkout at =~/Documents/Projects/prompts-lib= by default; set
+=PROMPTS_LIB_DIR= to override it.
+
+Org is the default and canonical authoring format.  Prompt metadata stays in
+normal Org keywords and =#+filetags:=, while the renderable body lives below a
+top-level =* Prompt= heading.  Fields use ={{NAME}}= syntax and defaults use
 ={{NAME|default value}}=.  Repeated fields are asked once and reused anywhere
-that field appears in the template.
+that field appears in the prompt.
 
-The included =starintel-visual.prompt= captures the black/gold StarIntel
-infographic design language as a reusable design-system prompt.
+The same client accepts Markdown and declarative Lisp prompt files as explicit
+alternate formats.  Lisp prompt records are read as data and are not evaluated.
+The old =lisp/llm/prompts/*.prompt= files remain only as a compatibility fallback
+when the external prompt library is absent.
 
 Useful commands:
 
 #+begin_src emacs-lisp
-M-x ai/prompt-menu
-M-x ai/prompt-template-render
-M-x ai/prompt-template-copy
-M-x ai/prompt-template-insert
-M-x ai/prompt-template-new
-M-x ai/prompt-template-edit
+M-x ai/prompt-lib-menu
+M-x ai/prompt-lib-browse
+M-x ai/prompt-lib-render
+M-x ai/prompt-lib-copy
+M-x ai/prompt-lib-insert
+M-x ai/prompt-lib-send
+M-x ai/prompt-lib-new
+M-x ai/prompt-lib-edit
 #+end_src
 
-Doom binds =SPC y p= to the prompt/image Transient menu.
+=M-x ai/prompt-lib-new= creates an Org file and opens it in =org-mode= by
+default.  A prefix argument chooses Markdown or Lisp.  Doom binds =SPC y p= to
+the full prompt/image Transient menu.
+
+The external library contains the StarIntel black/gold visual-system prompt, so
+activating it preserves the existing image-template workflow.
 
 * OpenRouter image tools
 
@@ -131,9 +145,9 @@ M-x ai/image-edit
 #+end_src
 
 =ai/image-generate= uses the active region as the prompt when a region is
-selected.  =ai/image-generate-template= fills one of the reusable templates and
-sends the rendered prompt directly to GPT Image 2.  =ai/image-edit= sends a
-local PNG, JPEG, or WebP as an OpenRouter reference image.
+selected.  =ai/image-generate-template= fills one of the reusable prompts and
+sends the rendered body directly to GPT Image 2.  =ai/image-edit= sends a local
+PNG, JPEG, or WebP as an OpenRouter reference image.
 
 Doom binds =SPC y i= directly to image generation.  The =SPC y p= Transient
 also exposes generation from a raw prompt, generation from a template, and
@@ -145,8 +159,8 @@ The Org chat registers four gptel tools:
 
 - =GenerateImage= — generate an image from a complete prompt
 - =EditImage= — edit a local image from a complete instruction
-- =ListPromptTemplates= — enumerate reusable =.prompt= templates
-- =ReadPromptTemplate= — load a named template verbatim
+- =ListPromptTemplates= — enumerate reusable normalized prompt records
+- =ReadPromptTemplate= — load a named prompt body verbatim
 
 When a chat request asks for an image, the agent can call =GenerateImage= or
 =EditImage= directly.  Image tool results are always retained in the Org chat,
@@ -158,12 +172,12 @@ than a separate command-only workflow.
 A named design prompt can therefore be used conversationally, for example:
 
 #+begin_example
-Use starintel-visual and generate an infographic for the actor system.
+Use design.starintel-visual and generate an infographic for the actor system.
 #+end_example
 
-The agent can read =starintel-visual.prompt=, compose the final image prompt,
-call GPT Image 2 through OpenRouter, and place the generated image directly in
-the chat transcript.
+The agent can read the Org-backed StarIntel prompt, compose the final image
+prompt, call GPT Image 2 through OpenRouter, and place the generated image
+directly in the chat transcript.
 
 * OpenAI subscription OAuth
 
@@ -254,6 +268,7 @@ Chats are stored below =~/Documents/Notes/org/roam/llm/=.
 
 #+INCLUDE: "ai.el" src emacs-lisp
 #+INCLUDE: "ai-prompts.el" src emacs-lisp
+#+INCLUDE: "prompt-lib.el" src emacs-lisp
 #+INCLUDE: "ai-image.el" src emacs-lisp
 #+INCLUDE: "ai-image-tools.el" src emacs-lisp
 #+INCLUDE: "ai-agent-core.el" src emacs-lisp
