@@ -1,0 +1,62 @@
+#+title: Emacs prompts-lib client
+#+description: Versioned reusable prompts from lost-rob0t/prompts-lib.
+
+* Ownership
+
+The external =prompts-lib= repository owns reusable prompt content.  Dotfiles
+owns the Emacs client and rendering UI.  The client does not copy catalog
+prompts into dotfiles.
+
+By default the client looks for the checkout at
+=~/Documents/Projects/prompts-lib=.  Set =PROMPTS_LIB_DIR= to override it.
+When that checkout has a =prompts/= directory, it becomes
+=ai/prompt-template-directory=.  Otherwise the existing bundled
+=lisp/llm/prompts/= templates remain available.
+
+The catalog format is =prompts-lib.catalog.v1=.  Prompt bodies remain plain
+=.prompt= files and continue using the existing field syntax:
+
+- ={{NAME}}=
+- ={{NAME|default value}}=
+
+* Interface
+
+=M-x ai/prompt-lib-menu= opens the full Transient interface.
+
+Useful commands:
+
+#+begin_src emacs-lisp
+M-x ai/prompt-lib-browse
+M-x ai/prompt-lib-copy
+M-x ai/prompt-lib-insert
+M-x ai/prompt-lib-render
+M-x ai/prompt-lib-send
+M-x ai/prompt-lib-edit
+M-x ai/prompt-lib-new
+M-x ai/prompt-lib-refresh
+M-x ai/prompt-lib-open-repository
+#+end_src
+
+The browser uses =tabulated-list-mode=.  =RET= previews, =c= copies, =i=
+inserts into the previous window, =e= edits, and =g= refreshes.
+
+The existing =SPC y p= prompt menu continues to operate on the active prompt
+directory, so normal copy/insert/preview/image-template workflows immediately
+pick up the external library after =prompt-lib= loads.
+
+* Catalog behavior
+
+=prompt-lib.el= reads metadata from =catalog.json= and also discovers plain
+=.prompt= files that have not yet been cataloged.  Catalog paths are constrained
+to the repository root.  An uncataloged prompt can therefore be created from
+Emacs and used immediately without making catalog metadata a write-time
+requirement.
+
+The external catalog supplies stable IDs, titles, descriptions, tags, and
+aliases.  Prompt text stays client-neutral.
+
+* Verification
+
+ERT coverage lives in =prompt-lib-test.el= and checks catalog metadata,
+uncataloged discovery, repository-root confinement, external activation, and
+compatibility with the existing prompt renderer.
