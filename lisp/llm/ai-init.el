@@ -96,7 +96,7 @@
   :backend (ai/llm-backend 'openrouter)
   :model 'anthropic/claude-opus-5:exacto
   :stream t
-  :request-params '(:reasoning (:effort "max")))
+  :request-params '(:reasoning (:effort "max"))
   :include-reasoning 'ignore)
 
 (gptel-make-preset 'agent
