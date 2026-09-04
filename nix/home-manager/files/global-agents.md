@@ -1,4 +1,14 @@
 # Global agent policy
+## Git operations
+For all git operations we use a split setup
+Main forgjo instance lives at git.starintel.actor
+As well as github.com
+
+Prefer using git.starintel.actor for everything
+origin should live at that host.
+if there is outage with that host then use github as fall back.
+
+use tea for forgjo actions.
 
 ## Durable Prolog verification
 
