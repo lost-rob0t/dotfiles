@@ -329,6 +329,11 @@
         codex-config-patch = codexConfigPatchCheck;
       };
 
+      hydraJobs.${system} = {
+        checks = self.checks.${system};
+        images.logos-iso = self.packages.${system}.logos-iso;
+      };
+
       formatter.${system} = pkgs.nixfmt-rfc-style;
     };
 }
