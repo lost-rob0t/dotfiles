@@ -37,3 +37,8 @@ tmp/
 /android/straight/build/
 /android/straight/repos/
 /lisp/mara
+/proxmox-jobs.sqlite3
+/.local/bin/*.sqlite3
+/.local/bin/*.sqlite3-shm
+/.local/bin/*.sqlite3-wal
+/result

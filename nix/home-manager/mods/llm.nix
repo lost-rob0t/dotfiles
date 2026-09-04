@@ -76,6 +76,7 @@ in
         baseUrl = proxyBase;
       };
     };
+    agentVerification.enable = true;
     programs.chatgpt-desktop.enable = true;
 
     # gptel backends are created lazily by Doom. Advice the OpenRouter

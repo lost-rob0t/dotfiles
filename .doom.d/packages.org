@@ -211,10 +211,19 @@ Org babel functions for prolog.
 
 * utilities
 ** Hack mode
-Hack banks from emacs
-jk, package full of utilities for pentesting
+Hackmode now lives in the canonical =lost-rob0t/hackmode= monorepo under
+=emacs/=, but that migration is still in progress.  Keep the optional Emacs
+package disabled so a Hackmode failure cannot take down Doom startup or
+=emacsclient= desktop integrations.
+
+Re-enable this monorepo recipe after =lost-rob0t/hackmode#4= completes and the
+package passes against the current Emacs:
 #+begin_src emacs-lisp
-(package! hackmode :recipe (:type git :host github :repo "lost-rob0t/emacs-hackmode"))
+;; (package! hackmode
+;;   :recipe (:type git
+;;            :host github
+;;            :repo "lost-rob0t/hackmode"
+;;            :files ("emacs/*.el")))
 #+end_src
 ** webpaste.el
 paste your buffer to a pastebin like service.

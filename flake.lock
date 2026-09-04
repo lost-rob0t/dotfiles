@@ -126,11 +126,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1788229478,
-        "narHash": "sha256-G0F2rFORVcFkEvVdE/qWQTnYekIc77YP5/vRF9nZlxU=",
+        "lastModified": 1788487777,
+        "narHash": "sha256-Ro/e1N4ZR8/XaFF+sF9SgfPK79HM5YNEppzFj8p+0Ak=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "1dc2d1f720ab17fc7981e087346bf54b26d284b1",
+        "rev": "693e8ce0fb240a73c116a03cfd7b19269c87af88",
         "type": "github"
       },
       "original": {
@@ -163,34 +163,17 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1788179007,
-        "narHash": "sha256-hn1oU2rue2SYK8dAr8+WNZWtbsz1S2W5mnHlSEuh3bo=",
+        "lastModified": 1788316716,
+        "narHash": "sha256-bc7rSpXIdn9QWGNqfWcPZWOhEVF8NoeAZkWq0XWnf/k=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "34ab99075ac4f7e40cf037eef32cb1c360bb85e9",
+        "rev": "3ed67ec0a4d3c7ab4ae1f04f8ee8df07bfa506a2",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
         "ref": "nixos-unstable",
         "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "prolog-rlm": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1788008639,
-        "narHash": "sha256-+16sXtJWEmfL8bCWlCi96zksc6O37bPVXXzkgLJJOgU=",
-        "owner": "lost-rob0t",
-        "repo": "prolog-rlm",
-        "rev": "b654831a0150a593821179da1d3886dfd64deb5c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "lost-rob0t",
-        "repo": "prolog-rlm",
-        "rev": "b654831a0150a593821179da1d3886dfd64deb5c",
         "type": "github"
       }
     },
@@ -210,11 +193,11 @@
     },
     "skills": {
       "locked": {
-        "lastModified": 1788220551,
-        "narHash": "sha256-hxuMx2vQbR0achBrNNa9KQxUptzGA1wm2QL6/2Rh5iQ=",
+        "lastModified": 1788378782,
+        "narHash": "sha256-sDq/S6H+H++nasXALHqzCmPh7jjbIztHqqdQDEO3rbg=",
         "owner": "lost-rob0t",
         "repo": "skills",
-        "rev": "4a137efde0e9b2eab5066326c0920f18be93ed68",
+        "rev": "c697b4f30a522385f397d8d25f32725a538a6ba8",
         "type": "github"
       },
       "original": {
@@ -257,15 +240,14 @@
       "inputs": {
         "nixpkgs": [
           "nixpkgs"
-        ],
-        "prolog-rlm": "prolog-rlm"
+        ]
       },
       "locked": {
-        "lastModified": 1788246962,
-        "narHash": "sha256-c/IU8yHUBfzCmQN1lyeIxZBzd6L8qvEqq8LL7UQRogA=",
+        "lastModified": 1788494460,
+        "narHash": "sha256-bCD4Yh62FCpD0Gdnl3anan3aXuySDSHgde+UrzNNjXs=",
         "owner": "lost-rob0t",
         "repo": "zara",
-        "rev": "4e539b5a74d95ccecf67976c132ccf68ed10485a",
+        "rev": "c4945cf3e848eb4e55355ed767ce780348beb414",
         "type": "github"
       },
       "original": {
