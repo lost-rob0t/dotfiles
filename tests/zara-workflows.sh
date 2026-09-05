@@ -32,10 +32,10 @@ grep -Fq 'app_mapping(tor, ["torbrowser-launcher"]).' "$config" || fail "Tor Bro
 grep -Fq 'app_mapping(feishin, ["feishin"]).' "$config" || fail "Feishin workflow missing"
 grep -Fq 'https://music.youtube.com/' "$config" || fail "YouTube Music workflow missing"
 
-for alias in "app_mapping('4chan'," "app_mapping('4'," 'app_mapping(fourchan,' 'app_mapping(four,' 'app_mapping(chan,' 'app_mapping(pol,' 'app_mapping(politically_incorrect,'; do
+for alias in "app_mapping('4chan'," "app_mapping('4'," 'app_mapping(fourchan,' 'app_mapping(four,' 'app_mapping(chan,' 'app_mapping(pol,' 'app_mapping(politically,' 'app_mapping(politically_incorrect,'; do
   grep -Fq "$alias" "$config" || fail "missing 4chan /pol/ alias: $alias"
 done
-[[ "$(grep -Fc 'https://boards.4chan.org/pol/' "$config")" -ge 7 ]] || fail "4chan variants do not all target /pol/"
+[[ "$(grep -Fc 'https://boards.4chan.org/pol/' "$config")" -ge 8 ]] || fail "4chan variants do not all target /pol/"
 
 grep -Fq 'verb_intent(latest, open, 1).' "$config" || fail "latest-PR compatibility phrase missing"
 grep -Fq 'app_mapping(prs,' "$config" || fail "latest-PR compatibility mapping missing"
