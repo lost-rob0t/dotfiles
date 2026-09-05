@@ -3,10 +3,11 @@
 #+OPTIONS: toc:2 num:nil
 
 * Repository
-The repository is intended to be cloned as =~/.dotfiles=.
+The repository is intended to be cloned as =~/.dotfiles= from the StarIntel
+Forgejo service.  GitHub is a mirror, not the default sync target.
 
 #+begin_src shell
-  git clone git@github.com:lost-rob0t/dotfiles.git ~/.dotfiles
+  git clone git@git.starintel.actor:lost-rob0t/dotfiles.git ~/.dotfiles
   cd ~/.dotfiles
 #+end_src
 
@@ -36,6 +37,18 @@ Current Home Manager outputs include:
 - =unseen@flake=
 - =unseen@desktop=
 - =unseen@hunter02=
+
+=hunter02= inherits the maintained =desktop= workstation profile rather than
+carrying a second package stack.  That includes the current LLM clients,
+llm-log, Prolog agent verification, MCP integrations, Zara, screen capture, and
+Hackmode runtime.  hunter02 then adds its pentesting profile, automatic Home
+Manager updates from =git.starintel.actor=, and non-NixOS graphics-driver
+compatibility.
+
+Hackmode is exposed as the =hackmode= Chemacs profile and the standalone
+=hackmacs= command.  Its Emacs package/runtime state lives under
+=~/.local/share/hackmacs= while the literate configuration remains in
+[[file:../../emacs/hackmode/hackmacs.org][emacs/hackmode/hackmacs.org]].
 
 A first activation can be run without a globally installed =home-manager= command:
 

@@ -15,6 +15,7 @@
     ./fonts.nix
     ./emacs.nix
     ./gpt-todos.nix
+    ./hackmode.nix
     ./security.nix
     ./nim.nix
     ./lisp.nix

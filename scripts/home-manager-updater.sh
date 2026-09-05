@@ -32,11 +32,26 @@ current_generation() {
 find_issue_number() {
   local state="${1:-all}"
   local json
-  if ! json="$(gh issue list --repo "$HM_UPDATER_REPOSITORY" --state "$state" \
-    --search "\"$ISSUE_TITLE\" in:title" --limit 100 --json number,title 2>/dev/null)"; then
+
+  [[ -d "$CHECKOUT/.git" ]] || return 1
+  if ! json="$(
+    cd "$CHECKOUT" &&
+      tea issues list \
+        --remote origin \
+        --repo "$HM_UPDATER_REPOSITORY" \
+        --state "$state" \
+        --kind issues \
+        --keyword "$ISSUE_TITLE" \
+        --fields index,title \
+        --output json \
+        --limit 100 2>/dev/null
+  )"; then
     return 1
   fi
-  printf '%s\n' "$json" | jq -r --arg title "$ISSUE_TITLE" '.[] | select(.title == $title) | .number' | head -n1
+
+  printf '%s\n' "$json" |
+    jq -r --arg title "$ISSUE_TITLE" '.[] | select(.title == $title) | .index' |
+    head -n1
 }
 
 report_issue() {
@@ -44,8 +59,8 @@ report_issue() {
   local detail="$2"
   local issue_number body commit_sha
 
-  if ! gh auth status --hostname github.com >/dev/null 2>&1; then
-    log "WARNING: gh is not authenticated; cannot create/update failure issue"
+  if [[ ! -d "$CHECKOUT/.git" ]]; then
+    log "WARNING: updater checkout unavailable; cannot create/update Forgejo failure issue"
     return 1
   fi
 
@@ -68,25 +83,55 @@ EOF
 
   issue_number="$(find_issue_number all || true)"
   if [[ -n "$issue_number" ]]; then
-    gh issue reopen "$issue_number" --repo "$HM_UPDATER_REPOSITORY" >/dev/null 2>&1 || true
-    gh issue edit "$issue_number" --repo "$HM_UPDATER_REPOSITORY" --body "$body" >/dev/null
-    log "Updated GitHub issue #$issue_number"
+    (
+      cd "$CHECKOUT" &&
+        tea issues reopen "$issue_number" \
+          --remote origin \
+          --repo "$HM_UPDATER_REPOSITORY"
+    ) >/dev/null 2>&1 || true
+
+    if ! (
+      cd "$CHECKOUT" &&
+        tea issues edit "$issue_number" \
+          --remote origin \
+          --repo "$HM_UPDATER_REPOSITORY" \
+          --description "$body"
+    ) >/dev/null; then
+      log "WARNING: tea could not update Forgejo issue #$issue_number"
+      return 1
+    fi
+    log "Updated Forgejo issue #$issue_number"
   else
-    gh issue create --repo "$HM_UPDATER_REPOSITORY" --title "$ISSUE_TITLE" --body "$body" >/dev/null
-    log "Created GitHub issue: $ISSUE_TITLE"
+    if ! (
+      cd "$CHECKOUT" &&
+        tea issues create \
+          --remote origin \
+          --repo "$HM_UPDATER_REPOSITORY" \
+          --title "$ISSUE_TITLE" \
+          --description "$body"
+    ) >/dev/null; then
+      log "WARNING: tea could not create Forgejo failure issue"
+      return 1
+    fi
+    log "Created Forgejo issue: $ISSUE_TITLE"
   fi
 }
 
 close_issue() {
   local issue_number
-  if ! gh auth status --hostname github.com >/dev/null 2>&1; then
-    return 0
-  fi
+
   issue_number="$(find_issue_number open || true)"
   if [[ -n "$issue_number" ]]; then
-    gh issue close "$issue_number" --repo "$HM_UPDATER_REPOSITORY" \
-      --comment "Automatic update recovered successfully at $(date --iso-8601=seconds)." >/dev/null || true
-    log "Closed recovered GitHub issue #$issue_number"
+    if ! (
+      cd "$CHECKOUT" &&
+        tea issues close "$issue_number" \
+          --remote origin \
+          --repo "$HM_UPDATER_REPOSITORY"
+    ) >/dev/null; then
+      log "WARNING: tea could not close recovered Forgejo issue #$issue_number"
+      return 0
+    fi
+    log "Closed recovered Forgejo issue #$issue_number"
   fi
 }
 

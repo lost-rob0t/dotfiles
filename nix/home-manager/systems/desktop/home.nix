@@ -20,6 +20,8 @@
     enable = true;
   };
 
+  hackmode.enable = true;
+
   zara = {
     enable = true;
 

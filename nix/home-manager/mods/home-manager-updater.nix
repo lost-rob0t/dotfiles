@@ -19,12 +19,13 @@ let
     runtimeInputs = [
       pkgs.coreutils
       pkgs.git
-      pkgs.gh
       pkgs.gnused
       pkgs.jq
       pkgs.libnotify
       pkgs.logrotate
       pkgs.nix
+      pkgs.openssh
+      pkgs.tea
       config.programs.home-manager.package
     ];
     text = ''
@@ -70,7 +71,13 @@ in
     repository = lib.mkOption {
       type = lib.types.str;
       default = "lost-rob0t/dotfiles";
-      description = "GitHub repository containing the Home Manager flake.";
+      description = "Forgejo repository slug used for updater failure issue reporting.";
+    };
+
+    remoteUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "git@git.starintel.actor:lost-rob0t/dotfiles.git";
+      description = "Git remote used to fetch Home Manager updates. Defaults to the StarIntel Forgejo service.";
     };
 
     branch = lib.mkOption {
@@ -106,11 +113,12 @@ in
         Environment = [
           "HM_UPDATER_DATA_DIR=${dataDir}"
           "HM_UPDATER_REPOSITORY=${cfg.repository}"
-          "HM_UPDATER_REMOTE_URL=https://github.com/${cfg.repository}.git"
+          "HM_UPDATER_REMOTE_URL=${cfg.remoteUrl}"
           "HM_UPDATER_BRANCH=${cfg.branch}"
           "HM_UPDATER_CONFIGURATION=${configuration}"
           "HM_UPDATER_LOGROTATE_CONFIG=${logrotateConfig}"
           "GIT_TERMINAL_PROMPT=0"
+          "GIT_SSH_COMMAND=${pkgs.openssh}/bin/ssh -o BatchMode=yes"
         ];
       };
     };
