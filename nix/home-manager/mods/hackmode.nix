@@ -3,6 +3,9 @@
 let
   cfg = config.hackmode;
   hackmodeInit = ../../../emacs/hackmode/init.el;
+  hackmacsDir = "${config.xdg.dataHome}/hackmacs";
+  hackmodeStateDir = "${config.xdg.dataHome}/hackmode";
+  hackmodeRoot = "${config.home.homeDirectory}/Documents/hackmode";
 
   hackmacs = pkgs.writeShellApplication {
     name = "hackmacs";
@@ -11,7 +14,7 @@ let
       pkgs.coreutils
     ];
     text = ''
-      state_dir="''${XDG_DATA_HOME:-$HOME/.local/share}/hackmacs"
+      state_dir=${lib.escapeShellArg hackmacsDir}
       mkdir -p "$state_dir"
 
       exec ${config.emacs.package}/bin/emacs -Q \
@@ -42,8 +45,8 @@ in
     ];
 
     home.sessionVariables = {
-      HACKMODE_ROOT = "${config.home.homeDirectory}/Documents/hackmode";
-      HACKMODE_STATE_DIR = "${config.home.homeDirectory}/.local/share/hackmode";
+      HACKMODE_ROOT = hackmodeRoot;
+      HACKMODE_STATE_DIR = hackmodeStateDir;
     };
 
     # Chemacs can select the Hackmode profile without making the dotfiles tree
@@ -54,7 +57,7 @@ in
       force = true;
     };
 
-    home.file.".local/share/hackmacs/init.el".text = ''
+    home.file."${hackmacsDir}/init.el".text = ''
       ;; Managed by Home Manager. The literate Hackmode source remains canonical.
       (load "${hackmodeInit}" nil 'nomessage)
     '';
@@ -63,8 +66,8 @@ in
     # Home Manager activation does not emit errors before the first operation is
     # selected.
     home.activation.hackmodeState = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      state_dir="$HOME/.local/share/hackmode"
-      root="$HOME/Documents/hackmode"
+      state_dir=${lib.escapeShellArg hackmodeStateDir}
+      root=${lib.escapeShellArg hackmodeRoot}
 
       $DRY_RUN_CMD ${pkgs.coreutils}/bin/mkdir -p "$state_dir" "$root"
       $DRY_RUN_CMD ${pkgs.coreutils}/bin/touch \
