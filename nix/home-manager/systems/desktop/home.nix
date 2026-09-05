@@ -24,6 +24,7 @@
 
   zara = {
     enable = true;
+    workflows.enable = true;
 
     server = {
       enable = true;

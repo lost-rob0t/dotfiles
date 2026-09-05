@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+DOTFILES="${ZARA_DOTFILES_DIR:-$HOME/Documents/Projects/dotfiles}"
+HM_FLAKE="${ZARA_HOME_MANAGER_FLAKE:-$DOTFILES}"
+HM_TARGET="${ZARA_HOME_MANAGER_TARGET:-}"
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "$@" || true
+  fi
+}
+
+fail() {
+  local rc=$?
+  notify "Zara system update failed" "exit ${rc}"
+  exit "$rc"
+}
+trap fail ERR
+
+notify "Zara system update" "Updating Arch packages"
+pkexec /usr/bin/pacman -Syu
+
+notify "Zara system update" "Pulling dotfiles"
+git -C "$DOTFILES" pull --ff-only
+
+notify "Zara system update" "Applying Home Manager"
+if [[ -n "$HM_TARGET" ]]; then
+  home-manager switch --flake "${HM_FLAKE}#${HM_TARGET}"
+else
+  home-manager switch --flake "$HM_FLAKE"
+fi
+
+notify "Zara system update complete" "pacman, dotfiles, and Home Manager succeeded"

@@ -14,6 +14,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:nix.org][Nix and Home Manager]] - flake outputs, hosts, profiles, installers, and module layout.
 - [[file:emacs.org][Emacs and Doom]] - Doom literate sources and Emacs-related code in the repository.
 - [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, desktop workflows, and desktop integration.
+- [[file:zara.org][Zara workflows]] - declarative Zara base config, private-overlay ownership, desktop/voice workflows, and bounded system updates.
 - [[file:screen-capture.org][Screen capture]] - stable screenshot/recording CLI, backends, Qtile bindings, Emacs picker, and Home Manager options.
 - [[file:../qtile-emacs-ui.org][Qtile and Emacs dropdown UI]] - shared popup lifecycle, widget-relative geometry, notification backends, and dashboard ownership.
 - [[file:maintenance.org][Maintenance]] - safe edit/tangle/test workflow and useful verification commands.
@@ -35,6 +36,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | OpenRouter widget | [[file:../../.config/qtile/qtile-openrouter.org][.config/qtile/qtile-openrouter.org]] | Telemetry/widget helper; tangles to =qtile_openrouter.py=. |
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
 | Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |
+| Zara workflows | [[file:../../nix/home-manager/mods/zara-workflows.nix][zara-workflows.nix]] | Home Manager-owned Zara base workflow config and bounded system-update helper; private =config.local.pl= remains unmanaged. |
 | Agent verification | [[file:../../nix/home-manager/mods/agent-verification.nix][agent-verification.nix]] | Global Codex/OpenCode policy, durable Prolog gate, and Codex lifecycle hooks. |
 | NixOS | [[file:../../nix/nixos/][nix/nixos/]] | Hosts and installer definitions. |
 | Scripts | [[file:../../scripts/][scripts/]] | Provisioning/install/maintenance helpers. |
