@@ -95,8 +95,9 @@
   # when a new Home Manager release introduces backwards
   # incompatible changes.
   #
-  # You can update this value in your configuration without breakage
-  # and Home Manager should remain compatible with earlier releases.
+  # You can update this value in your configuration without breakage.
+  # See the Home Manager release notes for a list of state version
+  # changes.
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
