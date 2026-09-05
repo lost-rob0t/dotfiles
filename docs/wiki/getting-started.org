@@ -41,7 +41,8 @@ Current Home Manager outputs include:
 carrying a second package stack.  That includes the current LLM clients,
 llm-log, Prolog agent verification, MCP integrations, Zara, screen capture, and
 Hackmode runtime.  hunter02 then adds its pentesting profile, automatic Home
-Manager updates, and non-NixOS graphics-driver compatibility.
+Manager updates from =git.starintel.actor=, and non-NixOS graphics-driver
+compatibility.
 
 Hackmode is exposed as the =hackmode= Chemacs profile and the standalone
 =hackmacs= command.  Its Emacs package/runtime state lives under
