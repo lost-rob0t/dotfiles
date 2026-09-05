@@ -5,18 +5,26 @@ on:
     paths:
       - '.github/workflows/zara-workflows.yml'
       - 'tests/zara-workflows.sh'
+      - 'nix/home-manager/mods/default.nix'
       - 'nix/home-manager/mods/zara.nix'
+      - 'nix/home-manager/mods/zara-workflows.nix'
       - 'nix/home-manager/systems/desktop/home.nix'
       - 'nix/home-manager/files/zarathushtra/**'
+      - 'docs/wiki/zara.org'
+      - 'docs/wiki/index.org'
   push:
     branches:
       - master
     paths:
       - '.github/workflows/zara-workflows.yml'
       - 'tests/zara-workflows.sh'
+      - 'nix/home-manager/mods/default.nix'
       - 'nix/home-manager/mods/zara.nix'
+      - 'nix/home-manager/mods/zara-workflows.nix'
       - 'nix/home-manager/systems/desktop/home.nix'
       - 'nix/home-manager/files/zarathushtra/**'
+      - 'docs/wiki/zara.org'
+      - 'docs/wiki/index.org'
 
 permissions:
   contents: read
@@ -26,5 +34,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install validation tools
+        run: sudo apt-get update && sudo apt-get install -y shellcheck swi-prolog-nox
+      - name: Check shell syntax and policy
+        run: |
+          set -euo pipefail
+          bash -n tests/zara-workflows.sh nix/home-manager/files/zarathushtra/bin/zara-system-update
+          shellcheck --severity=warning tests/zara-workflows.sh nix/home-manager/files/zarathushtra/bin/zara-system-update
+      - name: Check Zara Prolog base config syntax
+        run: swipl -q -t halt -s nix/home-manager/files/zarathushtra/config.pl
       - name: Check Zara workflow contract
         run: bash tests/zara-workflows.sh
