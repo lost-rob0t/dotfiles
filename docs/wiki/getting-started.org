@@ -37,6 +37,17 @@ Current Home Manager outputs include:
 - =unseen@desktop=
 - =unseen@hunter02=
 
+=hunter02= inherits the maintained =desktop= workstation profile rather than
+carrying a second package stack.  That includes the current LLM clients,
+llm-log, Prolog agent verification, MCP integrations, Zara, screen capture, and
+Hackmode runtime.  hunter02 then adds its pentesting profile, automatic Home
+Manager updates, and non-NixOS graphics-driver compatibility.
+
+Hackmode is exposed as the =hackmode= Chemacs profile and the standalone
+=hackmacs= command.  Its Emacs package/runtime state lives under
+=~/.local/share/hackmacs= while the literate configuration remains in
+[[file:../../emacs/hackmode/hackmacs.org][emacs/hackmode/hackmacs.org]].
+
 A first activation can be run without a globally installed =home-manager= command:
 
 #+begin_src shell
