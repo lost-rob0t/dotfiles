@@ -3,10 +3,11 @@
 #+OPTIONS: toc:2 num:nil
 
 * Repository
-The repository is intended to be cloned as =~/.dotfiles=.
+The repository is intended to be cloned as =~/.dotfiles= from the StarIntel
+Forgejo service.  GitHub is a mirror, not the default sync target.
 
 #+begin_src shell
-  git clone git@github.com:lost-rob0t/dotfiles.git ~/.dotfiles
+  git clone git@git.starintel.actor:lost-rob0t/dotfiles.git ~/.dotfiles
   cd ~/.dotfiles
 #+end_src
 
