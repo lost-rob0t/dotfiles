@@ -25,6 +25,7 @@ let
       pkgs.libnotify
       pkgs.logrotate
       pkgs.nix
+      pkgs.openssh
       config.programs.home-manager.package
     ];
     text = ''
@@ -117,6 +118,7 @@ in
           "HM_UPDATER_CONFIGURATION=${configuration}"
           "HM_UPDATER_LOGROTATE_CONFIG=${logrotateConfig}"
           "GIT_TERMINAL_PROMPT=0"
+          "GIT_SSH_COMMAND=${pkgs.openssh}/bin/ssh -o BatchMode=yes"
         ];
       };
     };
