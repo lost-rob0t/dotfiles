@@ -57,7 +57,7 @@ in
       force = true;
     };
 
-    home.file."${hackmacsDir}/init.el".text = ''
+    xdg.dataFile."hackmacs/init.el".text = ''
       ;; Managed by Home Manager. The literate Hackmode source remains canonical.
       (load "${hackmodeInit}" nil 'nomessage)
     '';
