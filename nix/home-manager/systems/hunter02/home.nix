@@ -1,65 +1,20 @@
-{ inputs, outputs, lib, config, pkgs, ... }:
+{ ... }:
 {
+  imports = [ ../desktop/home.nix ];
 
-  imports = [
-    ./../../mods/default.nix
-    ./programs.nix
-  ];
-
-  nixpkgs = {
-
-    config = {
-      # Disable if you don't want unfree packages
-      allowUnfree = true;
-      # Workaround for https://github.com/nix-community/home-manager/issues/2942
-      allowUnfreePredicate = (_: true);
-    };
-  };
-
-  
-
-  emacs = {
+  # hunter02 is a full workstation: inherit the current desktop/LLM/MCP/Zara
+  # stack and layer the host-specific security tooling on top.
+  pentesting = {
     enable = true;
-    # I mostly use magit hence configured in the ./nixos/mods/emacs.nix module
-    gitUser = "N545PY";
-    gitEmail = "nsaspy@fedora.email";
-    extraPackages = [];
+    cracking.enable = false;
   };
-  pentesting  = {
+
+  homeManagerUpdater = {
     enable = true;
-    cracking.enable = false; # use flake for gpu
+    hostName = "hunter02";
   };
-  security.enable = true;
-  desktop = {
-    # Enable Common sense apps
-    enable = true;
-    media.enable = false;
-    # Setup nerd fonts by default, set desktop.fonts
-    fonts.enable = true;
 
-    # TODO Allow module to pass specific folders/paths, for example my ebook dir
-    sync.enable = true;
-  };
-    dev = {
-      nim.enable = true;
-      common-lisp.enable = true;
-      # TODO finish python.enable = true;
-    };
-  home = {
-    username = "unseen";
-    homeDirectory = "/home/unseen";
-    stateVersion = "23.11";
-  };
-  # This value determines the Home Manager release that your
-  # configuration is compatible with. This helps avoid breakage
-  # when a new Home Manager release introduces backwards
-  # incompatible changes.
-  #
-  # You can update Home Manager without changing this value. See
-  # the Home Manager release notes for a list of state version
-  # changes in each release.
-
-  # Let Home Manager install and manage itself.
-  programs.home-manager.enable = true;
-
+  # hunter02 is used as a standalone Home Manager host, so Nix GUI programs
+  # need access to the host graphics driver tree just like the flake profile.
+  nixGl.enable = true;
 }
