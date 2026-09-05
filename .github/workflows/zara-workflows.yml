@@ -1,0 +1,30 @@
+name: Zara workflows
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/zara-workflows.yml'
+      - 'tests/zara-workflows.sh'
+      - 'nix/home-manager/mods/zara.nix'
+      - 'nix/home-manager/systems/desktop/home.nix'
+      - 'nix/home-manager/files/zarathushtra/**'
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/zara-workflows.yml'
+      - 'tests/zara-workflows.sh'
+      - 'nix/home-manager/mods/zara.nix'
+      - 'nix/home-manager/systems/desktop/home.nix'
+      - 'nix/home-manager/files/zarathushtra/**'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Zara workflow contract
+        run: bash tests/zara-workflows.sh
