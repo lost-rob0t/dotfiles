@@ -63,13 +63,15 @@ app_mapping(youtube_music, ["brave", "--new-window", "https://music.youtube.com/
 
 % Keep a small deterministic alias set until Zara Core owns bounded fuzzy
 % matching/edit distance. The '4' and `four` aliases intentionally tolerate
-% ASR/tokenization splitting "4 chan" / "four chan" into two tokens.
+% ASR/tokenization splitting "4 chan" / "four chan" into two tokens; the
+% `politically` alias similarly covers "politically incorrect".
 app_mapping('4chan', ["brave", "--new-window", "https://boards.4chan.org/pol/"]).
 app_mapping('4', ["brave", "--new-window", "https://boards.4chan.org/pol/"]).
 app_mapping(fourchan, ["brave", "--new-window", "https://boards.4chan.org/pol/"]).
 app_mapping(four, ["brave", "--new-window", "https://boards.4chan.org/pol/"]).
 app_mapping(chan, ["brave", "--new-window", "https://boards.4chan.org/pol/"]).
 app_mapping(pol, ["brave", "--new-window", "https://boards.4chan.org/pol/"]).
+app_mapping(politically, ["brave", "--new-window", "https://boards.4chan.org/pol/"]).
 app_mapping(politically_incorrect, ["brave", "--new-window", "https://boards.4chan.org/pol/"]).
 
 % ----------------------------------------------------------------------
