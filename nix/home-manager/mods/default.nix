@@ -25,6 +25,7 @@
     ./pentesting.nix
     ./llm.nix
     ./zara.nix
+    ./zara-workflows.nix
     ./screen-capture.nix
     ./prolog-mcp.nix
     ./proxmox-mcp.nix
