@@ -19,13 +19,13 @@ let
     runtimeInputs = [
       pkgs.coreutils
       pkgs.git
-      pkgs.gh
       pkgs.gnused
       pkgs.jq
       pkgs.libnotify
       pkgs.logrotate
       pkgs.nix
       pkgs.openssh
+      pkgs.tea
       config.programs.home-manager.package
     ];
     text = ''
@@ -71,7 +71,7 @@ in
     repository = lib.mkOption {
       type = lib.types.str;
       default = "lost-rob0t/dotfiles";
-      description = "GitHub mirror used for updater failure issue reporting.";
+      description = "Forgejo repository slug used for updater failure issue reporting.";
     };
 
     remoteUrl = lib.mkOption {
