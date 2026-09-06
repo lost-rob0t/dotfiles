@@ -58,14 +58,11 @@ fi
 exit 2
 EOF
 
-cat >"$mockbin/gh" <<'EOF'
+cat >"$mockbin/tea" <<'EOF'
 #!/usr/bin/env bash
-# Tests deliberately model an unauthenticated gh client so issue reporting is
-# best-effort and cannot interfere with the recovery assertions.
-if [[ "${1:-}" == "auth" ]]; then
-  exit 1
-fi
-exit 0
+# Tests deliberately model an unauthenticated Forgejo client so issue reporting
+# stays best-effort and cannot interfere with the recovery assertions.
+exit 1
 EOF
 
 cat >"$mockbin/logrotate" <<'EOF'
@@ -85,7 +82,7 @@ chmod +x "$mockbin"/*
 
 export PATH="$mockbin:$PATH"
 export HM_UPDATER_REPOSITORY="lost-rob0t/dotfiles"
-export HM_UPDATER_REMOTE_URL="https://github.com/lost-rob0t/dotfiles.git"
+export HM_UPDATER_REMOTE_URL="git@git.starintel.actor:lost-rob0t/dotfiles.git"
 export HM_UPDATER_BRANCH="master"
 export HM_UPDATER_CONFIGURATION="unseen@flake"
 export HM_UPDATER_LOGROTATE_CONFIG="$tmp/logrotate.conf"

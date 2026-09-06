@@ -15,6 +15,7 @@
     ./fonts.nix
     ./emacs.nix
     ./gpt-todos.nix
+    ./hackmode.nix
     ./security.nix
     ./nim.nix
     ./lisp.nix
@@ -24,6 +25,7 @@
     ./pentesting.nix
     ./llm.nix
     ./zara.nix
+    ./zara-workflows.nix
     ./screen-capture.nix
     ./prolog-mcp.nix
     ./proxmox-mcp.nix

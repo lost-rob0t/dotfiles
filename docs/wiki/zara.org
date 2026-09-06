@@ -1,0 +1,57 @@
+#+TITLE: Zara workflow ownership
+#+AUTHOR: nsaspy
+#+STARTUP: overview
+
+* Scope
+The desktop Home Manager profile enables =zara.workflows=.  That module installs
+non-secret operator workflow defaults and the bounded =zara-system-update=
+helper without taking ownership of Zara's mutable private overlay.
+
+* Configuration ownership
+- =nix/home-manager/files/zarathushtra/config.pl= is the declarative base layer
+  and Home Manager may replace it on activation.
+- =~/.config/zarathushtra/config.local.pl= is intentionally not managed by Home
+  Manager.  Keep secrets, machine-private facts, experiments, and temporary
+  overrides there.  Zara loads it after =config.pl= so local facts win.
+- =~/.config/zarathushtra/secrets.env= remains outside Git/Nix and is consumed
+  by the existing =zara-server= EnvironmentFile integration.
+
+This split is deliberate: reproducible workflows belong in dotfiles; mutable
+private state does not.
+
+* Operator workflows
+The canonical fact definitions live in
+[[file:../../nix/home-manager/files/zarathushtra/config.pl][config.pl]].  They cover
+Brave/search, Emacs scratch, org-roam daily followed by the existing
+=zara-dictate= path, Thunderbird, Tor Browser, Feishin, YouTube Music, GitHub PR
+compatibility, Magit project aliases, and =/pol/=.  The 4chan mapping carries a
+small explicit alias set for common text/ASR forms; general edit-distance/fuzzy
+resolution belongs in Zara Core rather than being simulated by an unbounded
+alias list here.
+
+* System update boundary
+=update system= resolves to =zara-system-update=.  The helper performs the three
+operator-requested steps in order:
+
+1. =pkexec /usr/bin/pacman -Syu=;
+2. =git -C "$DOTFILES" pull --ff-only=;
+3. =home-manager switch --flake ...=.
+
+A failing step aborts the sequence and the helper never reports complete unless
+all three succeeded.  It never embeds or pipes a password and does not add a
+passwordless privilege rule.
+
+The default dotfiles checkout is =~/Documents/Projects/dotfiles=.  Override it
+with =ZARA_DOTFILES_DIR=; =ZARA_HOME_MANAGER_FLAKE= and
+=ZARA_HOME_MANAGER_TARGET= control the Home Manager invocation when needed.
+
+* Verification
+Run:
+
+#+begin_src shell
+bash tests/zara-workflows.sh
+nix eval --raw '.#homeConfigurations."unseen@desktop".activationPackage.drvPath'
+#+end_src
+
+The dedicated Zara workflow Actions job also runs the contract on relevant
+changes.
