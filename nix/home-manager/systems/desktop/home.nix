@@ -62,6 +62,10 @@
     enable = true;
   };
 
+  vibemon = {
+    enable = true;
+  };
+
   emacs = {
     enable = true;
     # I mostly use magit hence configured in the ./nixos/mods/emacs.nix module
@@ -95,9 +99,8 @@
   # when a new Home Manager release introduces backwards
   # incompatible changes.
   #
-  # You can update this value in your configuration without breakage.
-  # See the Home Manager release notes for a list of state version
-  # changes.
+  # You can update this value in your configuration without breakage
+  # incompatibilities.
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
