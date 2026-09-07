@@ -32,7 +32,8 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Qtile | [[file:../../.config/qtile/qtile-ai.org][.config/qtile/qtile-ai.org]] | Main Qtile literate source; tangles to =config.py=. |
 | Qtile workflows | [[file:../../.config/qtile/qtile-workflows.org][.config/qtile/qtile-workflows.org]] | Desktop workflow lifecycle/actions and definitions; tangles to =qtile_workflows.py= and =workflows.json=. |
 | Qtile routing | [[file:../../.config/qtile/qtile-ai-windows.org][.config/qtile/qtile-ai-windows.org]] | Auto-mode window metadata classifiers; tangles to =qtile_ai_windows.py=. |
-| Qtile capture | [[file:../../.config/qtile/qtile-capture.org][.config/qtile/qtile-capture.org]] | Capture keybindings; tangles to =qtile_capture.py=. |
+| Qtile capture | [[file:../../.config/qtile/qtile-capture.org][.config/qtile/qtile-capture.org]] | Capture and auxiliary binding installer; tangles to =qtile_capture.py=. |
+| Qtile prompt library | [[file:../../.config/qtile/qtile-prompt-lib.org][.config/qtile/qtile-prompt-lib.org]] | Preserves the existing Emacs AI binding and adds =Super e y p= for the prompt browser; tangles to =qtile_prompt_lib.py=. |
 | OpenRouter widget | [[file:../../.config/qtile/qtile-openrouter.org][.config/qtile/qtile-openrouter.org]] | Telemetry/widget helper; tangles to =qtile_openrouter.py=. |
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
 | Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |

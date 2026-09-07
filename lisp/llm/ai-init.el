@@ -2,6 +2,7 @@
 
 (require 'ai)
 (require 'ai-prompts)
+(require 'prompt-lib)
 (require 'ai-image)
 (require 'meme)
 (require 'ai-agent)

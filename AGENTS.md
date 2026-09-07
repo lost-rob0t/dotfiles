@@ -13,6 +13,7 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `.config/qtile/qtile-ai-windows.org` is the source of truth for `.config/qtile/qtile_ai_windows.py`.
 - `.config/qtile/qtile-workflows.org` is the source of truth for `.config/qtile/qtile_workflows.py` and `.config/qtile/workflows.json`.
 - `.config/qtile/qtile-capture.org` is the source of truth for `.config/qtile/qtile_capture.py`.
+- `.config/qtile/qtile-prompt-lib.org` is the source of truth for `.config/qtile/qtile_prompt_lib.py`.
 - `.config/qtile/qtile-openrouter.org` is the source of truth for `.config/qtile/qtile_openrouter.py`.
 - `.doom.d/autoload/gpt-todos.org` is the source of truth for `.doom.d/autoload/gpt-todos.el`.
 - `scripts/gpt-todos-sync.org` is the source of truth for `scripts/gpt-todos-sync` and `scripts/install-gpt-todos-cron`.
