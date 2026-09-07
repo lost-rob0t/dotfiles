@@ -6,6 +6,7 @@ config="$repo_root/nix/home-manager/files/zarathushtra/config.pl"
 workflow_module="$repo_root/nix/home-manager/mods/zara-workflows.nix"
 default_module="$repo_root/nix/home-manager/mods/default.nix"
 desktop="$repo_root/nix/home-manager/systems/desktop/home.nix"
+nixos_networking="$repo_root/nix/nixos/systems/flake/networking.nix"
 updater="$repo_root/nix/home-manager/files/zarathushtra/bin/zara-system-update"
 
 fail() {
@@ -21,6 +22,11 @@ grep -Fq './zara-workflows.nix' "$default_module" || fail "workflow module is no
 grep -Fq 'workflows.enable = true;' "$desktop" || fail "desktop profile does not enable Zara workflows"
 grep -Fq '".config/zarathushtra/config.pl"' "$workflow_module" || fail "workflow module does not own base config.pl"
 ! grep -Fq '".config/zarathushtra/config.local.pl"' "$workflow_module" || fail "Home Manager must not own mutable config.local.pl"
+
+grep -Fq -- '--endpoint tcp://0.0.0.0:7731' "$desktop" || fail "Arch desktop Zara listener is not exposed on TCP 7731"
+grep -Fq -- '--security-dir %h/.local/state/zarathushtra/security' "$desktop" || fail "Arch desktop Zara listener has no persistent security state"
+grep -Fq -- '--security-init' "$desktop" || fail "Arch desktop Zara security state is not initialized"
+! grep -Fq '7731 # Zara authenticated ZARA/1 listener' "$nixos_networking" || fail "Arch Zara listener must not be modeled as NixOS firewall state"
 
 grep -Fq 'search_engine("https://search.brave.com/search?q=~w").' "$config" || fail "Brave Search is not configured"
 grep -Fq 'app_mapping(browser, ["brave"]).' "$config" || fail "normal Brave browser workflow missing"
