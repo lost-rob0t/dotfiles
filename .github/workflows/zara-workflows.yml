@@ -10,6 +10,7 @@ on:
       - 'nix/home-manager/mods/zara-workflows.nix'
       - 'nix/home-manager/systems/desktop/home.nix'
       - 'nix/home-manager/files/zarathushtra/**'
+      - 'nix/nixos/systems/flake/networking.nix'
       - 'docs/wiki/zara.org'
       - 'docs/wiki/index.org'
   push:
@@ -23,6 +24,7 @@ on:
       - 'nix/home-manager/mods/zara-workflows.nix'
       - 'nix/home-manager/systems/desktop/home.nix'
       - 'nix/home-manager/files/zarathushtra/**'
+      - 'nix/nixos/systems/flake/networking.nix'
       - 'docs/wiki/zara.org'
       - 'docs/wiki/index.org'
 
