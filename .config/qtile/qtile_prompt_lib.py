@@ -1,0 +1,94 @@
+from libqtile.config import Key, KeyChord
+from libqtile.lazy import lazy
+
+
+PROMPT_LIB_COMMAND = (
+    "emacsclient -c -a 'emacs' --eval "
+    '"(progn (require \'prompt-lib) (ai/prompt-lib-browse))"'
+)
+GPTEL_COMMAND = "emacsclient -c -a 'emacs' --eval '(+gptel/here)'"
+
+
+def _is_binding(mapping, modifiers, key):
+    return (
+        tuple(getattr(mapping, "modifiers", ())) == tuple(modifiers)
+        and getattr(mapping, "key", None) == key
+    )
+
+
+def install_prompt_lib_bindings(config_globals):
+    """Install `Super e y p` without stealing the existing GPTel shortcut.
+
+    The existing `Super e` Emacs KeyChord remains authoritative. Its former
+    direct `y` GPTel action becomes an `AI` sub-chord:
+
+      Super e y y -> GPTel
+      Super e y p -> prompt-lib browser
+
+    Repeated installation is idempotent.
+    """
+    keys = config_globals.get("keys")
+    if keys is None:
+        return False
+
+    mod = config_globals.get("mod", "mod4")
+    emacs_chord = next(
+        (
+            mapping
+            for mapping in keys
+            if isinstance(mapping, KeyChord) and _is_binding(mapping, [mod], "e")
+        ),
+        None,
+    )
+    if emacs_chord is None:
+        return False
+
+    submappings = list(getattr(emacs_chord, "submappings", ()))
+    y_index = next(
+        (index for index, mapping in enumerate(submappings) if _is_binding(mapping, [], "y")),
+        None,
+    )
+
+    if y_index is not None and isinstance(submappings[y_index], KeyChord):
+        ai_chord = submappings[y_index]
+        existing = {
+            (tuple(getattr(item, "modifiers", ())), getattr(item, "key", None))
+            for item in getattr(ai_chord, "submappings", ())
+        }
+        if ((), "p") not in existing:
+            ai_chord.submappings.append(
+                Key(
+                    [],
+                    "p",
+                    lazy.spawn(PROMPT_LIB_COMMAND),
+                    desc="Emacs prompt library",
+                )
+            )
+        return True
+
+    ai_chord = KeyChord(
+        [],
+        "y",
+        [
+            Key(
+                [],
+                "y",
+                lazy.spawn(GPTEL_COMMAND),
+                desc="Emacs AI chat (GPTel)",
+            ),
+            Key(
+                [],
+                "p",
+                lazy.spawn(PROMPT_LIB_COMMAND),
+                desc="Emacs prompt library",
+            ),
+        ],
+        name="AI",
+    )
+
+    if y_index is None:
+        submappings.append(ai_chord)
+    else:
+        submappings[y_index] = ai_chord
+    emacs_chord.submappings = submappings
+    return True
