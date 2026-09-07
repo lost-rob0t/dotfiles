@@ -1,20 +1,25 @@
-#+title: Qtile Screen Capture Integration
+#+title: Qtile Screen Capture and Auxiliary Bindings
 #+property: header-args:python :tangle qtile_capture.py :mkdirp yes :results none
 
 * Purpose
-This file is the canonical source for Qtile's screenshot and recording
-keybindings. Qtile only chooses the user action; the =screen-capture= CLI owns
-backend selection, clipboard behavior, recorder state, and finalization.
+This file is the canonical source for Qtile's stable auxiliary keybinding
+installer. The screenshot and recording bindings remain here, and the installer
+also invokes narrowly scoped extension modules before telemetry instruments the
+final keymap.
 
-The bindings preserve the existing screenshot muscle memory and add recording
-without a heavyweight desktop UI:
+Qtile only chooses the capture user action; the =screen-capture= CLI owns backend
+selection, clipboard behavior, recorder state, and finalization. Prompt-library
+behavior stays in =qtile_prompt_lib.py= and Emacs; this file only calls its
+idempotent keymap installer.
 
-| Binding         | Action                         |
-|-----------------+--------------------------------|
-| =Print=         | Full screenshot                |
-| =Super+Print=   | Select screenshot region       |
-| =Shift+Print=   | Open the Emacs recording UI    |
-| =Super+Shift+Print= | Stop/finalize recording   |
+| Binding             | Action                         |
+|---------------------+--------------------------------|
+| =Print=             | Full screenshot                |
+| =Super+Print=       | Select screenshot region       |
+| =Shift+Print=       | Open the Emacs recording UI    |
+| =Super+Shift+Print= | Stop/finalize recording        |
+| =Super e y y=       | Existing GPTel chat            |
+| =Super e y p=       | Emacs prompt-library browser   |
 
 * Bindings
 #+begin_src python
@@ -23,7 +28,7 @@ from libqtile.lazy import lazy
 
 
 def install_capture_bindings(config_globals):
-    """Install the stable screen-capture bindings once per Qtile config load."""
+    """Install stable auxiliary Qtile bindings once per config load."""
     keys = config_globals.get("keys")
     if keys is None:
         return
@@ -65,4 +70,10 @@ def install_capture_bindings(config_globals):
         if signature not in existing:
             keys.append(binding)
             existing.add(signature)
+
+    # Auxiliary bindings are installed here because this function is already
+    # the single pre-telemetry keymap extension seam called by config.py.
+    from qtile_prompt_lib import install_prompt_lib_bindings
+
+    install_prompt_lib_bindings(config_globals)
 #+end_src
