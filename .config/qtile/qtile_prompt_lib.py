@@ -6,7 +6,6 @@ PROMPT_LIB_COMMAND = (
     "emacsclient -c -a 'emacs' --eval "
     '"(progn (require \'prompt-lib) (ai/prompt-lib-browse))"'
 )
-GPTEL_COMMAND = "emacsclient -c -a 'emacs' --eval '(+gptel/here)'"
 
 
 def _is_binding(mapping, modifiers, key):
@@ -20,9 +19,10 @@ def install_prompt_lib_bindings(config_globals):
     """Install `Super e y p` without stealing the existing GPTel shortcut.
 
     The existing `Super e` Emacs KeyChord remains authoritative. Its former
-    direct `y` GPTel action becomes an `AI` sub-chord:
+    direct `y` action is preserved as the nested `y` action rather than being
+    reconstructed here:
 
-      Super e y y -> GPTel
+      Super e y y -> existing AI/GPTel action
       Super e y p -> prompt-lib browser
 
     Repeated installation is idempotent.
@@ -66,26 +66,21 @@ def install_prompt_lib_bindings(config_globals):
             )
         return True
 
-    ai_chord = KeyChord(
+    prompt_binding = Key(
         [],
-        "y",
-        [
-            Key(
-                [],
-                "y",
-                lazy.spawn(GPTEL_COMMAND),
-                desc="Emacs AI chat (GPTel)",
-            ),
-            Key(
-                [],
-                "p",
-                lazy.spawn(PROMPT_LIB_COMMAND),
-                desc="Emacs prompt library",
-            ),
-        ],
-        name="AI",
+        "p",
+        lazy.spawn(PROMPT_LIB_COMMAND),
+        desc="Emacs prompt library",
     )
+    if y_index is None:
+        # No existing AI action was declared. Add only the prompt browser; do
+        # not invent a replacement chat command.
+        ai_submappings = [prompt_binding]
+    else:
+        # Keep the exact existing `Super e y` Key object and its commands.
+        ai_submappings = [submappings[y_index], prompt_binding]
 
+    ai_chord = KeyChord([], "y", ai_submappings, name="AI")
     if y_index is None:
         submappings.append(ai_chord)
     else:
