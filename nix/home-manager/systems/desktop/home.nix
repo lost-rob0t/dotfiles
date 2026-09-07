@@ -42,6 +42,13 @@
     };
   };
 
+  # Android/remote Zara clients use authenticated ZARA/1 over CURVE/ZAP.
+  # Keep key material in mutable owner-private state, never in the Nix store.
+  systemd.user.services.zara-server.Service = {
+    ExecStartPre = "${config.zara.package}/bin/zara-server --security-dir %h/.local/state/zarathushtra/security --security-init";
+    ExecStart = lib.mkForce "${config.zara.package}/bin/zara-server --shutdown-timeout ${toString config.zara.server.shutdownTimeout} --endpoint tcp://0.0.0.0:7731 --security-dir %h/.local/state/zarathushtra/security";
+  };
+
   screenCapture = {
     enable = true;
   };
