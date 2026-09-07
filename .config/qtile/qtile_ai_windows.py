@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
+import qtile_focus_policy as _qtile_focus_policy  # noqa: F401 - installs focus policy
 import qtile_workflows as _qtile_workflows  # noqa: F401 - installs workflow runtime
 
 
