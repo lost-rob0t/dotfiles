@@ -6,10 +6,10 @@
 * Purpose
 
 This is the canonical literate source for the shared Qtile window metadata
-classifiers used by Auto mode.  It also loads the declarative workflow runtime
-before the topology-aware desktop control module is installed, so workflow
-activation can extend =qtile_control.apply_workflow= without modifying the
-control layer itself.
+classifiers used by Auto mode.  It also loads the deterministic multi-monitor
+focus policy and declarative workflow runtime before the topology-aware
+desktop control module is installed, so config-load policy and workflow
+activation can extend the runtime without modifying the control layer itself.
 
 #+begin_src python
 """Window metadata patterns for the Qtile AI workspace."""
@@ -19,6 +19,7 @@ from __future__ import annotations
 import re
 from typing import Iterable
 
+import qtile_focus_policy as _qtile_focus_policy  # noqa: F401 - installs focus policy
 import qtile_workflows as _qtile_workflows  # noqa: F401 - installs workflow runtime
 
 
