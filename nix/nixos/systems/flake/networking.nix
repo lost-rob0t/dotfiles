@@ -6,7 +6,6 @@
   networking.firewall.enable = false;
   networking.firewall.allowedTCPPorts = [
     22 #ssh
-    7731 # Zara authenticated ZARA/1 listener
     8384 #syncthing
     22000 # syncthing
     5900 # spice

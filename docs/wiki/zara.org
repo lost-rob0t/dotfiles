@@ -19,6 +19,33 @@ helper without taking ownership of Zara's mutable private overlay.
 This split is deliberate: reproducible workflows belong in dotfiles; mutable
 private state does not.
 
+* Arch desktop remote listener
+The current desktop host is Arch Linux.  Zara's remote listener is therefore
+owned by the Home Manager user service, not by NixOS networking configuration.
+The desktop profile starts =zara-server= on =tcp://0.0.0.0:7731= with explicit
+persistent CURVE/ZAP security state under
+=~/.local/state/zarathushtra/security=.  The listener remains authenticated;
+there is no unauthenticated TCP fallback.
+
+Apply the desktop user-service configuration with:
+
+#+begin_src shell
+home-manager switch --flake ~/.dotfiles
+systemctl --user restart zara-server
+#+end_src
+
+Verify the local listener with:
+
+#+begin_src shell
+systemctl --user status zara-server --no-pager
+ss -ltnp | grep ':7731'
+journalctl --user -u zara-server -n 100 --no-pager
+#+end_src
+
+Firewall policy is host-local on Arch.  Do not model port 7731 in
+=nix/nixos/systems/flake/networking.nix=.  If an Arch firewall is enabled, its
+local policy must permit TCP 7731 from the intended LAN/VPN scope.
+
 * Operator workflows
 The canonical fact definitions live in
 [[file:../../nix/home-manager/files/zarathushtra/config.pl][config.pl]].  They cover
