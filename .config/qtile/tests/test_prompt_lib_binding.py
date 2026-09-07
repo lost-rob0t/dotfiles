@@ -2,6 +2,7 @@
 """Source-level contracts for Qtile -> Emacs prompt-lib integration."""
 
 from pathlib import Path
+import py_compile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -22,6 +23,9 @@ def single_python_block(path: Path) -> str:
 
 
 class PromptLibBindingTests(unittest.TestCase):
+    def test_prompt_binding_helper_compiles(self):
+        py_compile.compile(str(PROMPT_PY), doraise=True)
+
     def test_prompt_binding_literate_source_matches_runtime(self):
         self.assertEqual(
             single_python_block(PROMPT_ORG),
