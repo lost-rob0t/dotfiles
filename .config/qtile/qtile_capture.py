@@ -3,7 +3,7 @@ from libqtile.lazy import lazy
 
 
 def install_capture_bindings(config_globals):
-    """Install the stable screen-capture bindings once per Qtile config load."""
+    """Install stable auxiliary Qtile bindings once per config load."""
     keys = config_globals.get("keys")
     if keys is None:
         return
@@ -45,3 +45,9 @@ def install_capture_bindings(config_globals):
         if signature not in existing:
             keys.append(binding)
             existing.add(signature)
+
+    # Auxiliary bindings are installed here because this function is already
+    # the single pre-telemetry keymap extension seam called by config.py.
+    from qtile_prompt_lib import install_prompt_lib_bindings
+
+    install_prompt_lib_bindings(config_globals)
