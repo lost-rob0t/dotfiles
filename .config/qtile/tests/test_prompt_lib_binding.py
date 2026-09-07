@@ -11,6 +11,7 @@ PROMPT_ORG = QTILE / "qtile-prompt-lib.org"
 PROMPT_PY = QTILE / "qtile_prompt_lib.py"
 CAPTURE_ORG = QTILE / "qtile-capture.org"
 CAPTURE_PY = QTILE / "qtile_capture.py"
+QTILE_CONFIG = QTILE / "config.py"
 EMACS_CLIENT = ROOT / "lisp" / "llm" / "prompt-lib.el"
 AI_INIT = ROOT / "lisp" / "llm" / "ai-init.el"
 
@@ -38,13 +39,14 @@ class PromptLibBindingTests(unittest.TestCase):
             CAPTURE_PY.read_text(encoding="utf-8"),
         )
 
-    def test_super_e_y_p_opens_prompt_library_and_preserves_gptel(self):
+    def test_super_e_y_p_opens_prompt_library_and_preserves_existing_y_action(self):
         source = PROMPT_PY.read_text(encoding="utf-8")
+        base_config = QTILE_CONFIG.read_text(encoding="utf-8")
         self.assertIn('KeyChord(', source)
         self.assertIn('"p"', source)
         self.assertIn("ai/prompt-lib-browse", source)
-        self.assertIn('"y"', source)
-        self.assertIn("+gptel/here", source)
+        self.assertIn('ai_submappings = [submappings[y_index], prompt_binding]', source)
+        self.assertIn("+gptel/here", base_config)
         self.assertIn("Super e y p", source)
         self.assertIn("Super e y y", source)
 
