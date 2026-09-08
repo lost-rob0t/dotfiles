@@ -27,6 +27,13 @@ persistent CURVE/ZAP security state under
 =~/.local/state/zarathushtra/security=.  The listener remains authenticated;
 there is no unauthenticated TCP fallback.
 
+Local command and desktop clients use =tcp://127.0.0.1:7731= as their default
+service target.  Home Manager exports that target as =ZARA_DAEMON_ENDPOINT= to
+interactive sessions and Zara client user services instead of rewriting the
+user's mutable =config.toml=.  An explicit =zara --connect ENDPOINT ...= still
+overrides the deployment default, while Zara Core falls back to its private IPC
+endpoint on profiles that do not configure a client target.
+
 Apply the desktop user-service configuration with:
 
 #+begin_src shell
