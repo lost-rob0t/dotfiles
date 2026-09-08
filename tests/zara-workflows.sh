@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 config="$repo_root/nix/home-manager/files/zarathushtra/config.pl"
 workflow_module="$repo_root/nix/home-manager/mods/zara-workflows.nix"
+zara_module="$repo_root/nix/home-manager/mods/zara.nix"
 default_module="$repo_root/nix/home-manager/mods/default.nix"
 desktop="$repo_root/nix/home-manager/systems/desktop/home.nix"
 nixos_networking="$repo_root/nix/nixos/systems/flake/networking.nix"
@@ -16,6 +17,7 @@ fail() {
 
 [[ -f "$config" ]] || fail "missing Home Manager-owned Zara base config"
 [[ -f "$workflow_module" ]] || fail "missing Zara workflow Home Manager module"
+[[ -f "$zara_module" ]] || fail "missing Zara Home Manager module"
 [[ -f "$updater" ]] || fail "missing structured Zara system-update helper"
 
 grep -Fq './zara-workflows.nix' "$default_module" || fail "workflow module is not imported"
@@ -24,6 +26,9 @@ grep -Fq '".config/zarathushtra/config.pl"' "$workflow_module" || fail "workflow
 ! grep -Fq '".config/zarathushtra/config.local.pl"' "$workflow_module" || fail "Home Manager must not own mutable config.local.pl"
 
 grep -Fq -- '--endpoint tcp://0.0.0.0:7731' "$desktop" || fail "Arch desktop Zara listener is not exposed on TCP 7731"
+grep -Fq 'client.endpoint = "tcp://127.0.0.1:7731";' "$desktop" || fail "local Zara clients do not default to the deployed TCP listener"
+grep -Fq 'ZARA_DAEMON_ENDPOINT = cfg.client.endpoint;' "$zara_module" || fail "Zara client endpoint is not exported to interactive sessions"
+grep -Fq '"ZARA_DAEMON_ENDPOINT=${cfg.client.endpoint}"' "$zara_module" || fail "Zara client endpoint is not exported to client user services"
 grep -Fq -- '--security-dir %h/.local/state/zarathushtra/security' "$desktop" || fail "Arch desktop Zara listener has no persistent security state"
 grep -Fq -- '--security-init' "$desktop" || fail "Arch desktop Zara security state is not initialized"
 ! grep -Fq '7731 # Zara authenticated ZARA/1 listener' "$nixos_networking" || fail "Arch Zara listener must not be modeled as NixOS firewall state"
