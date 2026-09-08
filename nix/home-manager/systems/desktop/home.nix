@@ -25,6 +25,7 @@
   zara = {
     enable = true;
     workflows.enable = true;
+    client.endpoint = "tcp://127.0.0.1:7731";
 
     server = {
       enable = true;
@@ -106,7 +107,7 @@
   # when a new Home Manager release introduces backwards
   # incompatible changes.
   #
-  # You can update this value in your configuration without breakage.
+  # You can update this value for a new home-manager release.
   # See the Home Manager release notes for a list of state version
   # changes.
 
