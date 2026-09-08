@@ -107,7 +107,7 @@
   # when a new Home Manager release introduces backwards
   # incompatible changes.
   #
-  # You can update this value for a new home-manager release.
+  # You can update this value in your configuration without breakage.
   # See the Home Manager release notes for a list of state version
   # changes.
 
