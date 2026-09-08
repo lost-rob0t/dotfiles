@@ -95,6 +95,19 @@ in
       '';
     };
 
+    client = {
+      endpoint = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        example = "tcp://127.0.0.1:7731";
+        description = ''
+          Default ZARA/1 endpoint exported to interactive Zara clients and
+          client-side user services as ZARA_DAEMON_ENDPOINT. This selects the
+          deployment endpoint without making Nix own mutable config.toml.
+        '';
+      };
+    };
+
     server = {
       enable = lib.mkOption {
         type = lib.types.bool;
@@ -225,9 +238,17 @@ in
           zara.server.environmentFile or another out-of-store secret source.
         '';
       }
+      {
+        assertion = cfg.client.endpoint == null || lib.strings.trim cfg.client.endpoint != "";
+        message = "zara.client.endpoint must be null or a non-empty endpoint.";
+      }
     ];
 
     home.packages = [ cfg.package ] ++ registryPackages ++ cfg.plugins.packages;
+
+    home.sessionVariables = lib.mkIf (cfg.client.endpoint != null) {
+      ZARA_DAEMON_ENDPOINT = cfg.client.endpoint;
+    };
 
     home.file = discoveryFiles // pluginConfigFiles // {
       ".config/zarathushtra/config.toml" = lib.mkIf cfg.nixManaged {
@@ -259,6 +280,8 @@ in
       };
       Service = {
         ExecStart = "${cfg.package}/bin/zara-desktop";
+        Environment = lib.optional (cfg.client.endpoint != null)
+          "ZARA_DAEMON_ENDPOINT=${cfg.client.endpoint}";
         Restart = "on-failure";
         RestartSec = 3;
         UMask = "0077";
@@ -274,6 +297,8 @@ in
       };
       Service = {
         ExecStart = "${cfg.wake.package}/bin/zara-wake";
+        Environment = lib.optional (cfg.client.endpoint != null)
+          "ZARA_DAEMON_ENDPOINT=${cfg.client.endpoint}";
         Restart = "on-failure";
         RestartSec = 5;
         UMask = "0077";
