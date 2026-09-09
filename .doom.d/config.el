@@ -12,6 +12,8 @@
 (autoload #'lish-vterm "lish" nil t)
 (autoload #'ai/todo-list-todos-with-context "ai-sced" nil nil)
 (autoload #'org-gptel-generate-flashcards "flashcard" nil t)
+(autoload #'nsa/engagement-target-document "engagement" nil t)
+(autoload #'nsa/engagement-pentest-document "engagement" nil t)
 
 (setq doom-theme 'doom-outrun-electric)
 
@@ -989,6 +991,12 @@ strings."
 ;;   (setq consult-omni-brave-api-key #'(lambda () (nsa/auth-source-get :host "api.brave.com")))
 
 ;;  )
+
+(use-package! starintel
+    :config
+    (setq starintel-servers
+          '((remote :url "https://ingest.starintel.actor"
+                 :auth-source "starintel"))))
 
 (use-package! f
   :defer t)
