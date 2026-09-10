@@ -7,7 +7,7 @@ The repository is intended to be cloned as =~/.dotfiles= from the StarIntel
 Forgejo service.  GitHub is a mirror, not the default sync target.
 
 #+begin_src shell
-  git clone git@git.starintel.actor:lost-rob0t/dotfiles.git ~/.dotfiles
+  git clone ssh://forgejo@git.starintel.actor/nsaspy/dotfiles.git ~/.dotfiles
   cd ~/.dotfiles
 #+end_src
 

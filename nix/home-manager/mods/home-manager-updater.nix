@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.homeManagerUpdater;
   configuration = "${config.home.username}@${cfg.hostName}";
@@ -34,7 +39,10 @@ let
   };
   notifyFailure = pkgs.writeShellApplication {
     name = "home-manager-updater-notify-failure";
-    runtimeInputs = [ pkgs.coreutils pkgs.libnotify ];
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.libnotify
+    ];
     text = ''
       failure_file=${lib.escapeShellArg "${dataDir}/failure.txt"}
       id_file=${lib.escapeShellArg "${dataDir}/notification-id"}
@@ -70,14 +78,14 @@ in
 
     repository = lib.mkOption {
       type = lib.types.str;
-      default = "lost-rob0t/dotfiles";
+      default = "nsaspy/dotfiles";
       description = "Forgejo repository slug used for updater failure issue reporting.";
     };
 
     remoteUrl = lib.mkOption {
       type = lib.types.str;
-      default = "git@git.starintel.actor:lost-rob0t/dotfiles.git";
-      description = "Git remote used to fetch Home Manager updates. Defaults to the StarIntel Forgejo service.";
+      default = "ssh://forgejo@git.starintel.actor/nsaspy/dotfiles.git";
+      description = "Git remote used to fetch Home Manager updates. Defaults to the StarIntel Forgejo service under the nsaspy owner, matching the repository's origin.";
     };
 
     branch = lib.mkOption {
