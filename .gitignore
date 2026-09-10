@@ -41,4 +41,9 @@ tmp/
 /.local/bin/*.sqlite3
 /.local/bin/*.sqlite3-shm
 /.local/bin/*.sqlite3-wal
+/.local/bin/pnpm
+/.local/bin/pnpx
+/.local/bin/yarn
+/.local/bin/yarnpkg
+/.prolog/
 /result
