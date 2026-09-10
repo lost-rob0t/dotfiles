@@ -69,6 +69,14 @@ in
     codex.globalAgentsFile = policyFile;
     opencode.globalAgentsFile = policyFile;
 
-    home.file.".codex/hooks.json".text = builtins.toJSON codexHooks;
+    # force: vibemon's `attempt hook install` activation step structurally
+    # merges AttemptDB hooks into this file after writeBoundary, so the
+    # on-disk content intentionally diverges between activations. Each
+    # activation must re-establish this canonical prolog-gate base first;
+    # AttemptDB re-merges its hooks immediately after.
+    home.file.".codex/hooks.json" = {
+      text = builtins.toJSON codexHooks;
+      force = true;
+    };
   };
 }
