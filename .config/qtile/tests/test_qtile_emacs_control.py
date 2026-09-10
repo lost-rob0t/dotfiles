@@ -14,7 +14,9 @@ WORKFLOW_TEXT = WORKFLOW_SOURCE.read_text(encoding="utf-8")
 
 class QtileEmacsControlTests(unittest.TestCase):
     def test_agent_zero_uses_documented_external_api(self):
-        self.assertIn('(concat host "/api_message")', TEXT)
+        self.assertIn('(defconst qtile-agent-zero-api-path "/api/api_message")', TEXT)
+        self.assertIn("(concat host qtile-agent-zero-api-path)", TEXT)
+        self.assertNotIn('(concat host "/api_message")', TEXT)
         self.assertIn('("X-API-KEY" . ,key)', TEXT)
         self.assertIn('(message . ,prompt)', TEXT)
         self.assertIn('(context_id . ,qtile-agent-zero-context-id)', TEXT)
@@ -34,9 +36,17 @@ class QtileEmacsControlTests(unittest.TestCase):
         self.assertIn('completing-read "Workflow: " picker-choices nil t', WORKFLOW_TEXT)
         self.assertNotIn('completing-read "Qtile workflow: "', TEXT)
 
+    def test_mara_renderer_opens_native_mara_ui(self):
+        self.assertIn("(defun qtile-mara-open (&optional _params)", TEXT)
+        self.assertIn('(qtile-desktop--title "qtile-mara")', TEXT)
+        self.assertIn("(require 'mara nil t)", TEXT)
+        self.assertIn("(mara)", TEXT)
+        self.assertIn("(delete-other-windows)", TEXT)
+
     def test_shared_renderer_arguments_are_accepted_by_legacy_popups(self):
         self.assertIn("(defun qtile-org-todos-open (&optional _params)", TEXT)
         self.assertIn("(defun qtile-agent-zero-open (&optional _params)", TEXT)
+        self.assertIn("(defun qtile-mara-open (&optional _params)", TEXT)
 
 
 if __name__ == "__main__":
