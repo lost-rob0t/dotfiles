@@ -15,6 +15,7 @@
 
 (defconst qtile-desktop-private-env
   (expand-file-name "~/.config/qtile/private.env"))
+(defconst qtile-agent-zero-api-path "/api/api_message")
 (defvar-local qtile-agent-zero-context-id nil)
 (defvar-local qtile-agent-zero-prompt-start nil)
 
@@ -57,6 +58,16 @@
   (delete-other-windows)
   (qtile-ui-prepare-buffer)
   (qtile-ui-bind-dismiss))
+
+(defun qtile-mara-open (&optional _params)
+  "Open Mara in the current Qtile-managed Emacs frame."
+  (interactive)
+  (qtile-desktop--title "qtile-mara")
+  (unless (fboundp 'mara)
+    (unless (require 'mara nil t)
+      (user-error "Mara is not available in this Emacs")))
+  (mara)
+  (delete-other-windows))
 
 (defvar qtile-agent-zero-mode-map
   (let ((map (make-sparse-keymap)))
@@ -179,7 +190,7 @@
                         payload))
              (url-request-data (encode-coding-string (json-encode payload) 'utf-8)))
         (url-retrieve
-         (concat host "/api_message")
+         (concat host qtile-agent-zero-api-path)
          #'qtile-agent-zero--finish
          (list target-buffer)
          t
