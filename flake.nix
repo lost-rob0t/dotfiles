@@ -227,6 +227,7 @@
             cmp "$globalAgents" "$opencodeAgents"
             grep -Fq 'prolog-verify check' "$globalAgents"
             grep -Fq 'prolog-verify brave' "$globalAgents"
+            grep -Fq '## Code cleanup' "$globalAgents"
             jq -e '
               .hooks.SessionStart[0].hooks[0].command | endswith("/bin/prolog-verify hook-session-start")
             ' "$codexHooks" >/dev/null
@@ -326,6 +327,11 @@
         unseen-hunter02-home = homeConfigurations."unseen@hunter02".activationPackage;
         ai-client-theme = aiClientThemeCheck;
         codex-config-patch = codexConfigPatchCheck;
+      };
+
+      hydraJobs.${system} = {
+        checks = self.checks.${system};
+        images.logos-iso = self.packages.${system}.logos-iso;
       };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;
