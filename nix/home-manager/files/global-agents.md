@@ -10,6 +10,18 @@ if there is outage with that host then use github as fall back.
 
 use tea for forgjo actions.
 
+## Durable Prolog project memory
+
+For substantive repository work, use the `prolog-project-kb` skill.
+
+- Query the project's durable Prolog KB before starting work.
+- Keep active TODO state, blockers, dependencies, and observations in `.prolog/runs/run-<HEAD>.pl`; update it immediately as work changes state.
+- No substantive work without current Prolog TODO state, and do not leave TODO state stale after a meaningful transition.
+- Keep `.prolog/runs/` local/untracked so execution bookkeeping does not dirty Git.
+- Promote verified reusable discoveries into `.prolog/kb/`: architecture, tools, useful scripts/commands, debugging symptoms, root causes, fixes, invariants, dependencies, and recurring workflows.
+- The durable KB must be composed from many focused Prolog files with one obvious loader. Do not impose a fixed file taxonomy; inspect the existing KB and discover/evolve the structure that best models the project.
+- Prefer relations and queryable predicates over prose logs. Raw observations stay in `run-<HEAD>.pl`; durable KB files contain knowledge worth giving future agents.
+
 ## Durable Prolog verification
 
 For every task that changes files in the current work directory:
@@ -20,7 +32,7 @@ For every task that changes files in the current work directory:
 4. Run real tests and checks through `prolog-verify observe -- <command> [args...]` so their argv, exit status, output hash, HEAD, and worktree digest are recorded by the machine.
 5. Run `prolog-verify check` before claiming completion. Missing files, stale evidence, timeouts, exceptions, and non-zero exits are failures.
 
-Keep `.prolog/` local unless the repository explicitly adopts its verifier as maintained project code. Do not weaken verification rules merely to make the gate pass.
+Keep verifier-generated runtime state local. `.prolog/kb/` is the exception when the project uses the durable project-memory skill: verified reusable KB knowledge is intended to be tracked. Do not weaken verification rules merely to make the gate pass.
 
 ## Brave-only external discovery
 
