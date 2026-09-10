@@ -12,32 +12,45 @@
   :group 'starintel)
 
 (defcustom nsa/starintel-server-url
-  (or (getenv "STARINTEL_SERVER_URL") "http://127.0.0.1:5000")
-  "Base URL of the staging StarIntel server."
+  (or (getenv "STARINTEL_SERVER_URL") "http://ingest.star.intel")
+  "Base URL of the staging ingest StarIntel server."
   :type 'string
   :group 'nsa/starintel)
 
-(defcustom nsa/starintel-auth-host "127.0.0.1"
-  "auth-source host entry for the StarIntel API key."
-  :type 'string
+(defcustom nsa/starintel-auth-host nil
+  "auth-source host entry for the StarIntel API key.
+When nil it is derived from `nsa/starintel-server-url'."
+  :type '(choice (const :tag "Derive from server URL" nil) string)
   :group 'nsa/starintel)
+
+(defun nsa/starintel-url-host-port ()
+  "Return (HOST . PORT) for `nsa/starintel-server-url'."
+  (let* ((url (if (string-match-p "://" nsa/starintel-server-url)
+                  nsa/starintel-server-url
+                (concat "http://" nsa/starintel-server-url)))
+         (parsed (url-generic-parse-url url))
+         (host (url-host parsed))
+         (port (url-port parsed)))
+    (cons (or host "127.0.0.1") (or port 80))))
 
 (defun nsa/starintel-auth-token ()
   "Return the StarIntel bearer token without exposing it.
-Resolution order: $STARINTEL_API_KEY, then auth-source (entry
-`nsa/starintel-auth-host' with user starintel).  Returns nil when
-neither is available."
-  (or (getenv "STARINTEL_API_KEY")
-      (let* ((entry (car (auth-source-search
-                          :max 1 :user "starintel"
-                          :host nsa/starintel-auth-host
-                          :port "5000"
-                          :require '(:secret))))
-             (secret (plist-get entry :secret)))
-        (cond
-         ((functionp secret) (funcall secret))
-         ((stringp secret) secret)
-         (t nil)))))
+Resolution order: $STARINTEL_API_KEY, then auth-source (entry for
+the server host).  Returns nil when neither is available."
+  (let* ((host-port (nsa/starintel-url-host-port))
+         (host (or nsa/starintel-auth-host (car host-port)))
+         (port (number-to-string (cdr host-port))))
+    (or (getenv "STARINTEL_API_KEY")
+        (let* ((entry (car (auth-source-search
+                            :max 1 :user "starintel"
+                            :host host
+                            :port port
+                            :require '(:secret))))
+               (secret (plist-get entry :secret)))
+          (cond
+           ((functionp secret) (funcall secret))
+           ((stringp secret) secret)
+           (t nil))))))
 
 (defun nsa/starintel-connect ()
   "Connect Emacs to the staging StarIntel server via auth-source."
