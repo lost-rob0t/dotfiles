@@ -12,7 +12,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:getting-started.org][Getting started]] - clone, Stow, Home Manager, and the main repository entry points.
 - [[file:literate-config.org][Literate configuration]] - canonical Org sources, generated files, tangling, and consistency rules.
 - [[file:nix.org][Nix and Home Manager]] - flake outputs, hosts, profiles, installers, and module layout.
-- [[file:emacs.org][Emacs and Doom]] - Doom literate sources and Emacs-related code in the repository.
+- [[file:emacs.org][Emacs and Doom]] - desktop Doom plus the Doom-free Android Org profile and profile switching.
 - [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, desktop workflows, and desktop integration.
 - [[file:zara.org][Zara workflows]] - declarative Zara base config, private-overlay ownership, desktop/voice workflows, and bounded system updates.
 - [[file:screen-capture.org][Screen capture]] - stable screenshot/recording CLI, backends, Qtile bindings, Emacs picker, and Home Manager options.
@@ -25,10 +25,12 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Shell | [[file:../../bash.org][bash.org]] | Literate Bash configuration; tangles to =.bashrc=. |
 | Doom Emacs | [[file:../../.doom.d/config.org][.doom.d/config.org]] | Main desktop Doom configuration and =init.el= source blocks. |
 | Doom packages | [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | Desktop package declarations; tangles to =packages.el=. |
-| Android reader | [[file:../../android/README.org][android/README.org]] | Lightweight native Android research reader, separate from Doom. |
-| Termux bootstrap | [[file:../../bootstrap-termux.org][bootstrap-termux.org]] | Detects Android/Termux, installs native development tools, AI guest, launchers, and widgets. |
+| Emacs profiles | [[file:../../emacs/profiles.org][emacs/profiles.org]] | Chemacs profile map for desktop Doom, Termux Doom, native Android/Org, and Temple. |
+| Android Org/Vim | [[file:../../android/config.org][android/config.org]] | Doom-free Evil/org-modern mobile layer, Stow wrapper, toolbar, installer, and tests. |
+| Android guide | [[file:../../android/README.org][android/README.org]] | Native reader, paired Emacs/Termux build, install/signature rules, and mobile workflows. |
+| Termux bootstrap | [[file:../../bootstrap-termux.org][bootstrap-termux.org]] | Rolling Termux update, Git/Stow/dev tools, Doom + Org launchers, AI guest, and widgets. |
 | Termux remote | [[file:../../scripts/termux-remote.org][scripts/termux-remote.org]] | Remote GUI recovery, mobile SSH keepalives, Agent Zero tunneling, and extra Termux:Widget shortcuts. |
-| Termux Doom | [[file:../../android/doom/config.org][android/doom/config.org]] | Phone-specific Doom source for StarIntel admin, Org/TODOs, languages, and AI. |
+| Termux Doom | [[file:../../android/doom/config.org][android/doom/config.org]] | Phone-specific full Doom source for StarIntel admin, Org/TODOs, languages, and AI. |
 | Qtile | [[file:../../.config/qtile/qtile-ai.org][.config/qtile/qtile-ai.org]] | Main Qtile literate source; tangles to =config.py=. |
 | Qtile workflows | [[file:../../.config/qtile/qtile-workflows.org][.config/qtile/qtile-workflows.org]] | Desktop workflow lifecycle/actions and definitions; tangles to =qtile_workflows.py= and =workflows.json=. |
 | Qtile routing | [[file:../../.config/qtile/qtile-ai-windows.org][.config/qtile/qtile-ai-windows.org]] | Auto-mode window metadata classifiers; tangles to =qtile_ai_windows.py=. |
