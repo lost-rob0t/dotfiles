@@ -156,6 +156,16 @@ class QtileControlTests(unittest.TestCase):
         self.assertIn("widget.MemoryGraph", SOURCE_TEXT)
         self.assertIn('format="{Available:.1f}{mm} free"', SOURCE_TEXT)
 
+    def test_center_has_mara_button_next_to_agent_zero(self):
+        center = SOURCE_TEXT.index('if role == "center":')
+        left = SOURCE_TEXT.index('elif role == "left":')
+        center_text = SOURCE_TEXT[center:left]
+        self.assertIn('name="agent_zero_button"', center_text)
+        self.assertIn('name="mara_button"', center_text)
+        self.assertIn('text=" Mara "', center_text)
+        self.assertIn('"qtile-mara-open"', center_text)
+        self.assertLess(center_text.index('name="agent_zero_button"'), center_text.index('name="mara_button"'))
+
     def test_system_telemetry_keeps_order_and_uses_fixed_icon_cells(self):
         self.assertIn("from qtile_system import DiskIOGraph, RootFree, telemetry_icon_cell", SOURCE_TEXT)
         self.assertLess(SOURCE_TEXT.index('name="cpu_icon"'), SOURCE_TEXT.index('name="memory_icon"'))
@@ -258,6 +268,7 @@ class QtileControlTests(unittest.TestCase):
     def test_shared_emacs_popups_are_floating_windows(self):
         for title in (
             "qtile-agent-zero",
+            "qtile-mara",
             "qtile-org-todos",
             "qtile-org-agenda-day",
             "qtile-workflow",
@@ -284,9 +295,10 @@ class QtileControlTests(unittest.TestCase):
         titles = [rule._rules.get("title") for rule in floating_layout.float_rules]
         self.assertEqual(titles.count("qtile-services"), 1)
         self.assertIn("qtile-agent-zero", titles)
+        self.assertIn("qtile-mara", titles)
 
     def test_named_emacs_popups_use_shared_geometry_launcher(self):
-        self.assertEqual(SOURCE_TEXT.count("_toggle_emacs_popup,"), 3)
+        self.assertEqual(SOURCE_TEXT.count("_toggle_emacs_popup,"), 4)
         self.assertIn("import emacs_ui", SOURCE_TEXT)
         self.assertIn("emacs_ui.toggle_emacs_dropdown", SOURCE_TEXT)
 
