@@ -19,6 +19,63 @@ helper without taking ownership of Zara's mutable private overlay.
 This split is deliberate: reproducible workflows belong in dotfiles; mutable
 private state does not.
 
+* Qwen3-TTS backend
+The desktop profile imports the =Qwen3-TTS_server= Home Manager flake module,
+installs its =qwen3-tts= command, and keeps the loopback-only ROCm service
+running at =http://127.0.0.1:7860=.  Zara orders its daemon with that service,
+but Home Manager deliberately does not own =~/.config/zarathushtra/config.toml=.
+
+Merge this table into that mutable file.  Replace its existing =[tts]= table if
+present; TOML does not allow two tables with the same name.
+
+#+begin_src toml
+[tts]
+provider = "qwen3"
+endpoint = "http://127.0.0.1:7860"
+voice = "zara"
+connect_timeout = 5.0
+read_timeout = 120.0
+total_timeout = 180.0
+#+end_src
+
+Apply and verify the services:
+
+#+begin_src shell
+home-manager switch --flake ~/.dotfiles#unseen@desktop
+qwen3-tts doctor rocm
+systemctl --user restart qwen3-tts zara-server
+qwen3-tts status
+sudo loginctl enable-linger "$USER"
+#+end_src
+
+The =loginctl= command makes the user services start at boot without waiting
+for an interactive login.  The first Qwen start builds the ROCm container and
+downloads model data, so it can take a while.  Persistent models, generated
+output, and reference voices live under =~/.local/share/qwen3-tts= rather than
+in this repository.
+
+Create and manage voices from any FFmpeg-supported audio or video source:
+
+#+begin_src shell
+qwen3-tts voice add zara ~/clip.mp3 --text "Exact words in the clip."
+qwen3-tts voice add guest ~/video.mp4 --start 00:01:12 --duration 12
+qwen3-tts voice list
+qwen3-tts voice info zara
+qwen3-tts voice set-text zara "Corrected exact words."
+qwen3-tts voice rename guest narrator
+qwen3-tts voice export narrator ~/narrator.wav
+qwen3-tts voice remove narrator
+#+end_src
+
+Use =--replace= with =voice add= to update an existing name.  Supplying the
+exact =--text= improves cloning and avoids an automatic Whisper transcription.
+After changing =voice= in =config.toml=, restart =zara-server=; adding or
+replacing the referenced clip itself does not require restarting Qwen.
+
+The configured AMD backend requires Docker access plus host =/dev/kfd= and
+=/dev/dri=.  Current ROCm does not support Polaris cards such as the RX 580; use
+=backend = "cpu";= in the desktop Home Manager profile on unsupported hardware.
+
 * Arch desktop remote listener
 The current desktop host is Arch Linux.  Zara's remote listener is therefore
 owned by the Home Manager user service, not by NixOS networking configuration.

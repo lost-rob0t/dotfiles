@@ -177,6 +177,26 @@
         "type": "github"
       }
     },
+    "qwen3-tts": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1789088058,
+        "narHash": "sha256-vRpaVhOzjSJw4uSLMwksCNtdb4onjEFJGzuoUWPkXm4=",
+        "owner": "lost-rob0t",
+        "repo": "Qwen3-TTS_server",
+        "rev": "71a15ff6024920b0c1924a4cc50f6a715861094d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "lost-rob0t",
+        "repo": "Qwen3-TTS_server",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "bixby-studio": "bixby-studio",
@@ -186,6 +206,7 @@
         "home-manager": "home-manager",
         "mousetrap": "mousetrap",
         "nixpkgs": "nixpkgs",
+        "qwen3-tts": "qwen3-tts",
         "skills": "skills",
         "zara": "zara",
         "zara-plugins": "zara-plugins"
