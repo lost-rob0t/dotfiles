@@ -111,7 +111,7 @@ run_tunnel() {
 }
 
 run_all() {
-  local i pid status
+  local i status
   local -a pids=()
 
   cleanup() {
