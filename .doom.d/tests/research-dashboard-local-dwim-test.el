@@ -40,7 +40,7 @@
                                  "--jq" ".nameWithOwner"))
                    "lost-rob0t/prolog-rlm")
                   ((equal args '("api" "user" "--jq" ".login"))
-                   "lost-rob0t"))))))
+                   "lost-rob0t")))))
       (let ((info
              (nsa/research-dashboard-local-dwim--forge-info
               "/tmp/repo" "git@github.com:lost-rob0t/prolog-rlm.git")))
@@ -57,7 +57,7 @@
                  (push (cons program args) calls)
                  (when (and (equal program "tea")
                             (equal args '("api" "/user")))
-                   "{\"login\":\"nsaspy\"}")))))
+                   "{\"login\":\"nsaspy\"}"))))
       (let ((info
              (nsa/research-dashboard-local-dwim--forge-info
               "/tmp/repo"
