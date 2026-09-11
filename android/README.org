@@ -36,27 +36,38 @@ software-keyboard integration, and the native modifier bar when available.
 
 * Install with Stow -- no Doom
 
-After the dotfiles checkout exists, install the native profile with:
+After the dotfiles checkout exists, a normal same-home install can use:
 
 #+begin_src sh
 stow -d ~/.dotfiles/android/stow -t ~ android-emacs
 #+end_src
 
-or, from Termux after running the bootstrap:
+On the paired Android/Termux build, run this from Termux instead:
 
 #+begin_src sh
 android-emacs-stow
 #+end_src
 
-The Stow package installs =~/.emacs.d/early-init.el= and =~/.emacs.d/init.el=
-wrappers which load only the repository Android profile.  They do not load
-=~/.config/emacs=, =DOOMDIR=, or Doom core.
+When the paired native Emacs app is installed and its data directory is
+writable, the helper automatically targets =/data/data/org.gnu.emacs/files=
+rather than Termux's =$HOME=.  This creates the native Emacs
+=.emacs.d/early-init.el= and =.emacs.d/init.el= Stow links in the correct app
+home.
 
-Set =EMACS_ANDROID_HOME= when the target home differs from the shell's =$HOME=:
+The wrappers resolve the real path of those Stow links back into the Termux
+=~/.dotfiles/android/= checkout.  Native Emacs therefore does not need its own
+copy of =~/.dotfiles= and does not depend on =STAR_DOTFILES_ROOT= being injected
+into the GUI process.
+
+Use =EMACS_ANDROID_HOME= only when you need to override the detected native
+Emacs home:
 
 #+begin_src sh
 EMACS_ANDROID_HOME=/path/to/native-emacs-home android-emacs-stow
 #+end_src
+
+The Stow wrapper loads only the repository Android profile.  It does not load
+=~/.config/emacs=, =DOOMDIR=, or Doom core.
 
 * Profile switching
 
