@@ -11,6 +11,7 @@
     ./chatgpt-desktop.nix
     ./base.nix
     ./desktop.nix
+    ./logseq.nix
     ./gnome.nix
     ./fonts.nix
     ./emacs.nix
