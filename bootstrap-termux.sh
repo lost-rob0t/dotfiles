@@ -6,6 +6,7 @@ readonly DOTFILES_DIR="${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}"
 readonly DISTRO="${STAR_TERMUX_DISTRO:-debian}"
 readonly DOOM_ROOT="${STAR_DOOM_ROOT:-$HOME/.config/emacs}"
 readonly DOOMDIR_TERMUX="$DOTFILES_DIR/android/doom"
+readonly ORG_PROFILE="$DOTFILES_DIR/android/stow/android-emacs/.emacs.d"
 
 fail() {
   printf 'bootstrap-termux: %s\n' "$*" >&2
@@ -56,6 +57,7 @@ packages=(
   python
   ripgrep
   sqlite
+  stow
   swi-prolog
   termux-api
 )
@@ -227,8 +229,9 @@ else
 fi
 
 [[ -f "$DOOMDIR_TERMUX/config.org" ]] || fail "missing $DOOMDIR_TERMUX/config.org"
+[[ -f "$ORG_PROFILE/init.el" ]] || fail "missing $ORG_PROFILE/init.el"
 
-note "Installing Termux Doom launchers"
+note "Installing Termux Emacs launchers"
 cat > "$PREFIX/bin/doom-termux" <<EOF_DOOM
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
@@ -255,6 +258,20 @@ fi
 exec emacsclient -s termux-doom "\$@"
 EOF_CLIENT
 chmod 0755 "$PREFIX/bin/emacsclient-termux"
+
+cat > "$PREFIX/bin/emacs-org" <<EOF_ORG
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+exec emacs --init-directory "$ORG_PROFILE" "\$@"
+EOF_ORG
+chmod 0755 "$PREFIX/bin/emacs-org"
+
+cat > "$PREFIX/bin/android-emacs-stow" <<EOF_STOW
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+exec bash "$DOTFILES_DIR/android/bin/install-native-profile" "\$@"
+EOF_STOW
+chmod 0755 "$PREFIX/bin/android-emacs-stow"
 
 note "Synchronizing Termux Doom profile"
 DOOMDIR="$DOOMDIR_TERMUX" "$DOOM_ROOT/bin/doom" sync
@@ -301,6 +318,12 @@ printf '\nPress enter to close...'
 read -r _
 WIDGET_PLATFORM
 
+cat > "$shortcuts/06-Org-Viewer" <<'WIDGET_ORG'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+exec emacs-org
+WIDGET_ORG
+
 cat > "$tasks/Sync-Dotfiles" <<'WIDGET_SYNC_DOTFILES'
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
@@ -331,6 +354,8 @@ printf 'Platform:  '
 platform-enter --info | paste -sd ' ' -
 printf '\nEmacs:     '
 emacs --version | sed -n '1p'
+printf 'Git:       '
+git --version
 printf 'Doom:      '
 doom-termux version 2>/dev/null | sed -n '1p' || true
 printf 'SWI:       '
@@ -344,5 +369,6 @@ python --version 2>/dev/null || true
 printf 'OpenCode:  '
 opencode --version 2>/dev/null || true
 printf 'AI:        ai\n'
+printf 'Org UI:    emacs-org\n'
 printf 'Doom UI:   emacs-termux\n'
 printf 'Guest:     platform-enter\n'
