@@ -2,7 +2,7 @@
 
 let
   comfyui = pkgs.comfyui.override { withManager = true; };
-  llmLogRevision = "7b1d4359764fcc87fb967ed6e6577a9eaf6f3045";
+  llmLogRevision = "6a78b436346659550178c3a1f39b56e567469eb0";
   llmLogFlake = builtins.getFlake "github:lost-rob0t/llm-log/${llmLogRevision}";
   llmLogPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.default;
   llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
@@ -27,6 +27,7 @@ in
   imports = [
     llmLogModule
     ./brave-mcp.nix
+    ./llm-log-quant-alerts.nix
   ];
 
   options = with lib; {
