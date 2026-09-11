@@ -63,7 +63,9 @@ approval operate on the checkout copy instead of stale remote content."
 
 (defun nsa/research-dashboard-local--blob (file repo-root)
   (or (nsa/research-dashboard-local--git repo-root "hash-object" file)
-      (concat "local:" (secure-hash 'sha256 file))))
+      (concat "local:"
+              (secure-hash 'sha256
+                           (nsa/research-dashboard-local--read file)))))
 
 (defun nsa/research-dashboard-local--eligible-file-p (file)
   (and (string-suffix-p ".org" file t)
@@ -179,7 +181,7 @@ approval operate on the checkout copy instead of stale remote content."
 (defun nsa/research-dashboard-local--assert-writable (file expected)
   (let ((visiting (get-file-buffer file)))
     (when (and visiting
-               (buffer-local-value 'buffer-modified-p visiting))
+               (with-current-buffer visiting (buffer-modified-p)))
       (user-error "Local research buffer has unsaved changes: %s" file)))
   (unless (string= expected (nsa/research-dashboard-local--read file))
     (user-error "Research changed since refresh; refresh first")))
@@ -189,7 +191,7 @@ approval operate on the checkout copy instead of stale remote content."
   (let ((coding-system-for-write 'utf-8-unix))
     (write-region updated nil file nil 'silent))
   (let ((visiting (get-file-buffer file)))
-    (when (and visiting (not (buffer-modified-p visiting)))
+    (when (and visiting (not (with-current-buffer visiting (buffer-modified-p))))
       (with-current-buffer visiting
         (revert-buffer :ignore-auto :noconfirm)))))
 
