@@ -1,10 +1,22 @@
 ;;; early-init.el --- Stowed native Android entry point -*- lexical-binding: t; -*-
 
-(defconst star/android-stow-root
+(defun star/android-stow--config-root ()
+  "Return the Android config root backing this Stow wrapper."
   (file-name-as-directory
-   (expand-file-name
-    "android"
-    (or (getenv "STAR_DOTFILES_ROOT")
-        (expand-file-name "~/.dotfiles")))))
+   (cond
+    ((getenv "STAR_ANDROID_CONFIG_ROOT")
+     (expand-file-name (getenv "STAR_ANDROID_CONFIG_ROOT")))
+    ((getenv "STAR_DOTFILES_ROOT")
+     (expand-file-name "android" (getenv "STAR_DOTFILES_ROOT")))
+    (t
+     (expand-file-name
+      "../../.."
+      (file-name-directory
+       (file-truename
+        (or load-file-name
+            buffer-file-name
+            (expand-file-name "early-init.el" user-emacs-directory))))))))))
+
+(defconst star/android-stow-root (star/android-stow--config-root))
 
 (load (expand-file-name "early-init.el" star/android-stow-root) nil nil t)
