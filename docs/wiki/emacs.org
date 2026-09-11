@@ -16,6 +16,28 @@ The Doom configuration is literate.
 
 The top of =config.org= declares =config.el= as its default tangle target, while individual blocks may override the target.  Read block-level =:tangle= arguments before assuming one Org file produces only one output.
 
+* Android and profile architecture
+Desktop Doom, Termux Doom, and native Android are separate profiles rather than
+one configuration pretending every platform has the same constraints.
+
+- [[file:../../emacs/profiles.org][emacs/profiles.org]] owns =.emacs-profiles.el= and routes =doomemacs=,
+  =termux-doom=, =android=/=org=, and =temple=.
+- [[file:../../android/config.org][android/config.org]] owns the Doom-free native Android layer.  It tangles the
+  Stow wrapper, Evil/org-modern layer, native profile installer, and tests.
+- [[file:../../android/doom/config.org][android/doom/config.org]] continues to own the full Termux Doom environment.
+- [[file:../../bootstrap-termux.org][bootstrap-termux.org]] installs both =emacs-org= and =emacs-termux= launchers.
+
+The Android profile is intentionally read-first: Vim/Evil bindings are always
+available, Org gets =org-modern= presentation and mobile navigation, and a
+bottom native touch toolbar exposes Home/heading/fold/open/TODO/sync/back
+operations.  It does not load Doom.
+
+The Android release workflow builds GNU Emacs with the =com.termux= shared user
+ID and re-signs the current Termux app family with the same compatibility key.
+This exposes Termux executables such as Git to native Emacs through =PATH= while
+keeping =LD_LIBRARY_PATH= unset.  See [[file:../../android/README.org][android/README.org]] for install/signature
+rules and the paired release layout.
+
 * Other Emacs code
 The repository also contains reusable or experimental Emacs-related code outside =.doom.d=:
 - [[file:../../emacs/][emacs/]] - Emacs packages/tools maintained in the dotfiles tree;
@@ -41,6 +63,18 @@ Batch tangle example:
     --eval '(org-babel-tangle-file ".doom.d/config.org")'
 #+end_src
 
+For Android/profile changes, tangle the relevant sources explicitly:
+
+#+begin_src shell
+emacs -Q --batch --eval '
+  (progn
+    (require (quote org))
+    (require (quote ob-tangle))
+    (org-babel-tangle-file "android/config.org")
+    (org-babel-tangle-file "emacs/profiles.org")
+    (org-babel-tangle-file "bootstrap-termux.org"))'
+#+end_src
+
 * Useful verification
 A lightweight structural check can run without booting the full Doom environment:
 
@@ -56,6 +90,10 @@ For package/module changes:
 #+begin_src shell
   doom sync
 #+end_src
+
+Android changes are covered by =.github/workflows/android-emacs.yml= for tangle
+parity, Elisp structure, ERT, and shell validation.  The separate
+=android-emacs-release.yml= exercises the actual Android/Termux packaging path.
 
 * Durable agenda save synchronization
 The canonical integration is [[file:../../.doom.d/autoload/gpt-todos.org][gpt-todos.org]].
