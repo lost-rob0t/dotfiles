@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+config_file="${STARINTEL_TUNNELS_CONFIG:-${XDG_CONFIG_HOME:-${HOME}/.config}/starintel/tunnels.conf}"
+
+die() {
+  printf 'starintel-tunnel: %s\n' "$*" >&2
+  exit 1
+}
+
+usage() {
+  cat <<'EOF'
+Usage: starintel-tunnel <command|name>
+
+Commands:
+  list          List configured tunnels.
+  all           Open every configured tunnel and keep them attached.
+  help          Show this help.
+
+A tunnel name opens one foreground SSH forward, for example:
+  starintel-tunnel couchdb
+
+Configuration defaults to:
+  $XDG_CONFIG_HOME/starintel/tunnels.conf
+or:
+  ~/.config/starintel/tunnels.conf
+
+Override it with STARINTEL_TUNNELS_CONFIG.
+EOF
+}
+
+declare -a tunnel_names=()
+declare -a local_ports=()
+declare -a remote_hosts=()
+declare -a remote_ports=()
+declare -a ssh_targets=()
+declare -A seen_names=()
+
+load_config() {
+  local line line_no name local_port remote_host remote_port ssh_target extra
+  line_no=0
+
+  [[ -r "$config_file" ]] || die "config is not readable: $config_file"
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    ((line_no += 1))
+
+    [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+
+    name=''
+    local_port=''
+    remote_host=''
+    remote_port=''
+    ssh_target=''
+    extra=''
+    read -r name local_port remote_host remote_port ssh_target extra <<<"$line"
+
+    if [[ -n "$extra" || -z "$name" || -z "$local_port" || -z "$remote_host" || -z "$remote_port" || -z "$ssh_target" ]]; then
+      die "invalid config row at $config_file:$line_no; expected NAME LOCAL_PORT REMOTE_HOST REMOTE_PORT SSH_TARGET"
+    fi
+
+    if [[ ! "$local_port" =~ ^[0-9]+$ ]] || ((local_port < 1 || local_port > 65535)); then
+      die "invalid local port '$local_port' at $config_file:$line_no"
+    fi
+
+    if [[ ! "$remote_port" =~ ^[0-9]+$ ]] || ((remote_port < 1 || remote_port > 65535)); then
+      die "invalid remote port '$remote_port' at $config_file:$line_no"
+    fi
+
+    if [[ -n "${seen_names[$name]+x}" ]]; then
+      die "duplicate tunnel name '$name' at $config_file:$line_no"
+    fi
+
+    seen_names["$name"]=1
+    tunnel_names+=("$name")
+    local_ports+=("$local_port")
+    remote_hosts+=("$remote_host")
+    remote_ports+=("$remote_port")
+    ssh_targets+=("$ssh_target")
+  done <"$config_file"
+
+  ((${#tunnel_names[@]} > 0)) || die "no tunnels configured in $config_file"
+}
+
+find_tunnel_index() {
+  local wanted="$1" i
+
+  for i in "${!tunnel_names[@]}"; do
+    if [[ "${tunnel_names[$i]}" == "$wanted" ]]; then
+      printf '%s\n' "$i"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+run_tunnel() {
+  local i="$1"
+  local forward="${local_ports[$i]}:${remote_hosts[$i]}:${remote_ports[$i]}"
+
+  printf 'starintel-tunnel: %s -> %s via %s\n' \
+    "${tunnel_names[$i]}" "$forward" "${ssh_targets[$i]}" >&2
+
+  exec ssh \
+    -o ExitOnForwardFailure=yes \
+    -N \
+    -L "$forward" \
+    "${ssh_targets[$i]}"
+}
+
+run_all() {
+  local i status
+  local -a pids=()
+
+  cleanup() {
+    local child
+    for child in "${pids[@]}"; do
+      kill "$child" 2>/dev/null || true
+    done
+  }
+
+  trap 'cleanup; exit 130' INT TERM
+
+  for i in "${!tunnel_names[@]}"; do
+    printf 'starintel-tunnel: opening %s -> %s:%s via %s\n' \
+      "${tunnel_names[$i]}" "${remote_hosts[$i]}" "${remote_ports[$i]}" "${ssh_targets[$i]}" >&2
+    ssh \
+      -o ExitOnForwardFailure=yes \
+      -N \
+      -L "${local_ports[$i]}:${remote_hosts[$i]}:${remote_ports[$i]}" \
+      "${ssh_targets[$i]}" &
+    pids+=("$!")
+  done
+
+  set +e
+  wait -n "${pids[@]}"
+  status=$?
+  set -e
+
+  cleanup
+  trap - INT TERM
+  return "$status"
+}
+
+main() {
+  local command index
+
+  if (($# != 1)); then
+    usage >&2
+    exit 2
+  fi
+
+  command="$1"
+
+  case "$command" in
+    help | -h | --help)
+      usage
+      return 0
+      ;;
+  esac
+
+  load_config
+
+  case "$command" in
+    list)
+      printf '%-20s %-10s %-20s %-11s %s\n' NAME LOCAL_PORT REMOTE_HOST REMOTE_PORT SSH_TARGET
+      for index in "${!tunnel_names[@]}"; do
+        printf '%-20s %-10s %-20s %-11s %s\n' \
+          "${tunnel_names[$index]}" \
+          "${local_ports[$index]}" \
+          "${remote_hosts[$index]}" \
+          "${remote_ports[$index]}" \
+          "${ssh_targets[$index]}"
+      done
+      ;;
+    all)
+      run_all
+      ;;
+    *)
+      if ! index="$(find_tunnel_index "$command")"; then
+        die "unknown tunnel '$command'; run 'starintel-tunnel list'"
+      fi
+      run_tunnel "$index"
+      ;;
+  esac
+}
+
+main "$@"
