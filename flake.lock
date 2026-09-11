@@ -243,11 +243,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789082443,
-        "narHash": "sha256-qRXqmam0LFRStW56Rtc79jImhc+vbg4TctaHo1NsM9w=",
+        "lastModified": 1789093242,
+        "narHash": "sha256-K5ZWBTjbHYaK0R7be/BAYp2BImuo/t7UhmgQskUZCzI=",
         "owner": "lost-rob0t",
         "repo": "zara",
-        "rev": "23ad58013f8590a88e3514165c39318d1a641b29",
+        "rev": "8c32d458c8781063950e9d5d18dffc6a13482092",
         "type": "github"
       },
       "original": {
