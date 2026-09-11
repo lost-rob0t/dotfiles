@@ -22,18 +22,32 @@ The Stow package can be installed with:
 stow -d ~/.dotfiles/android/stow -t ~ android-emacs
 #+end_src
 
-That creates a normal =~/.emacs.d= entry point which loads the repository-owned
-Android profile and never loads Doom.
+The generated wrapper resolves the real path of its own Stow symlink.  This is
+important on paired Android/Termux installs: the native Emacs home and Termux
+home are different paths even though the applications share an Android UID.
+The wrapper therefore does not assume that native Emacs has =~/.dotfiles=.
 
 #+begin_src emacs-lisp :tangle stow/android-emacs/.emacs.d/early-init.el
 ;;; early-init.el --- Stowed native Android entry point -*- lexical-binding: t; -*-
 
-(defconst star/android-stow-root
+(defun star/android-stow--config-root ()
+  "Return the Android config root backing this Stow wrapper."
   (file-name-as-directory
-   (expand-file-name
-    "android"
-    (or (getenv "STAR_DOTFILES_ROOT")
-        (expand-file-name "~/.dotfiles")))))
+   (cond
+    ((getenv "STAR_ANDROID_CONFIG_ROOT")
+     (expand-file-name (getenv "STAR_ANDROID_CONFIG_ROOT")))
+    ((getenv "STAR_DOTFILES_ROOT")
+     (expand-file-name "android" (getenv "STAR_DOTFILES_ROOT")))
+    (t
+     (expand-file-name
+      "../../.."
+      (file-name-directory
+       (file-truename
+        (or load-file-name
+            buffer-file-name
+            (expand-file-name "early-init.el" user-emacs-directory))))))))))
+
+(defconst star/android-stow-root (star/android-stow--config-root))
 
 (load (expand-file-name "early-init.el" star/android-stow-root) nil nil t)
 #+end_src
@@ -41,13 +55,26 @@ Android profile and never loads Doom.
 #+begin_src emacs-lisp :tangle stow/android-emacs/.emacs.d/init.el
 ;;; init.el --- Stowed native Android entry point -*- lexical-binding: t; -*-
 
-(unless (boundp 'star/android-stow-root)
-  (defconst star/android-stow-root
+(unless (fboundp 'star/android-stow--config-root)
+  (defun star/android-stow--config-root ()
+    "Return the Android config root backing this Stow wrapper."
     (file-name-as-directory
-     (expand-file-name
-      "android"
-      (or (getenv "STAR_DOTFILES_ROOT")
-          (expand-file-name "~/.dotfiles"))))))
+     (cond
+      ((getenv "STAR_ANDROID_CONFIG_ROOT")
+       (expand-file-name (getenv "STAR_ANDROID_CONFIG_ROOT")))
+      ((getenv "STAR_DOTFILES_ROOT")
+       (expand-file-name "android" (getenv "STAR_DOTFILES_ROOT")))
+      (t
+       (expand-file-name
+        "../../.."
+        (file-name-directory
+         (file-truename
+          (or load-file-name
+              buffer-file-name
+              (expand-file-name "init.el" user-emacs-directory)))))))))))
+
+(unless (boundp 'star/android-stow-root)
+  (defconst star/android-stow-root (star/android-stow--config-root)))
 
 (load (expand-file-name "init.el" star/android-stow-root) nil nil t)
 
@@ -234,7 +261,13 @@ set -euo pipefail
 
 readonly DOTFILES_DIR="${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}"
 readonly STOW_DIR="$DOTFILES_DIR/android/stow"
-readonly TARGET="${EMACS_ANDROID_HOME:-$HOME}"
+
+target="${EMACS_ANDROID_HOME:-}"
+if [[ -z "$target" && -d /data/data/org.gnu.emacs/files && -w /data/data/org.gnu.emacs/files ]]; then
+  target=/data/data/org.gnu.emacs/files
+fi
+target="${target:-$HOME}"
+readonly TARGET="$target"
 
 command -v stow >/dev/null 2>&1 || {
   printf 'install-native-profile: GNU Stow is required\n' >&2
@@ -243,6 +276,12 @@ command -v stow >/dev/null 2>&1 || {
 
 [[ -d "$STOW_DIR/android-emacs" ]] || {
   printf 'install-native-profile: missing %s/android-emacs\n' "$STOW_DIR" >&2
+  exit 1
+}
+
+mkdir -p "$TARGET"
+[[ -w "$TARGET" ]] || {
+  printf 'install-native-profile: target is not writable: %s\n' "$TARGET" >&2
   exit 1
 }
 
