@@ -25,7 +25,7 @@ chmod +x "$tmpdir/bin/ssh"
 list_output="$({
   PATH="$tmpdir/bin:$PATH" \
     STARINTEL_TUNNELS_CONFIG="$config" \
-    "$repo_root/scripts/starintel-tunnel" list
+    bash "$repo_root/scripts/starintel-tunnel" list
 })"
 
 grep -q '^couchdb' <<<"$list_output"
@@ -35,7 +35,7 @@ grep -q '^rabbitmq-ui' <<<"$list_output"
 PATH="$tmpdir/bin:$PATH" \
   STARINTEL_TUNNELS_CONFIG="$config" \
   STARINTEL_TUNNEL_TEST_LOG="$log" \
-  "$repo_root/scripts/starintel-tunnel" couchdb
+  bash "$repo_root/scripts/starintel-tunnel" couchdb
 
 grep -Fq -- '-o ExitOnForwardFailure=yes -N -L 5984:127.0.0.1:5984 starintel' "$log"
 
@@ -46,7 +46,7 @@ EOF
 
 if PATH="$tmpdir/bin:$PATH" \
   STARINTEL_TUNNELS_CONFIG="$config" \
-  "$repo_root/scripts/starintel-tunnel" list >"$tmpdir/duplicate.out" 2>"$tmpdir/duplicate.err"; then
+  bash "$repo_root/scripts/starintel-tunnel" list >"$tmpdir/duplicate.out" 2>"$tmpdir/duplicate.err"; then
   printf 'expected duplicate tunnel config to fail\n' >&2
   exit 1
 fi
