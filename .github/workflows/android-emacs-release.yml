@@ -1,0 +1,160 @@
+name: Android Emacs Paired Build
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * 1"
+  push:
+    tags:
+      - "android-emacs-v*"
+
+permissions:
+  contents: write
+
+env:
+  EMACS_REF: emacs-30
+  ANDROID_API: "34"
+  ANDROID_MIN_API: "29"
+  ANDROID_BUILD_TOOLS: "34.0.0"
+  ANDROID_NDK: "26.1.10909125"
+
+jobs:
+  paired-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out dotfiles
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install host build tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake build-essential curl git jq libncurses-dev \
+            m4 pkg-config texinfo unzip zip
+
+      - name: Install Android SDK and NDK components
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            "platforms;android-${ANDROID_API}" \
+            "build-tools;${ANDROID_BUILD_TOOLS}" \
+            "ndk;${ANDROID_NDK}"
+
+      - name: Clone GNU Emacs Android source
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$EMACS_REF" \
+            https://github.com/emacs-mirror/emacs.git emacs-src
+          git -C emacs-src rev-parse HEAD | tee emacs-source-sha.txt
+
+      - name: Build release Emacs APK paired with Termux
+        run: |
+          set -euo pipefail
+          cd emacs-src
+          ./autogen.sh
+          ndk="$ANDROID_HOME/ndk/$ANDROID_NDK"
+          cc="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_MIN_API}-clang"
+          test -x "$cc"
+          ./configure \
+            --with-android="$ANDROID_HOME/platforms/android-${ANDROID_API}/android.jar" \
+            --with-shared-user-id=com.termux \
+            --without-android-debug \
+            ANDROID_CC="$cc" \
+            SDK_BUILD_TOOLS="$ANDROID_HOME/build-tools/${ANDROID_BUILD_TOOLS}"
+          make -j2 all
+          test -n "$(find java -maxdepth 1 -name 'emacs-*.apk' -print -quit)"
+
+      - name: Fetch latest Termux family APKs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p upstream-apks dist
+
+          fetch_latest_apk() {
+            local repo="$1"
+            local selector="$2"
+            local output="$3"
+            local metadata url tag
+            metadata="$(curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$repo/releases/latest")"
+            tag="$(jq -r '.tag_name' <<<"$metadata")"
+            url="$(jq -r --arg selector "$selector" \
+              '.assets[] | select(.name | test($selector)) | .browser_download_url' \
+              <<<"$metadata" | head -n1)"
+            test -n "$url"
+            test "$url" != null
+            curl -fL "$url" -o "upstream-apks/$output"
+            printf '%s=%s\n' "$repo" "$tag" >> dist/UPSTREAM-VERSIONS.txt
+          }
+
+          fetch_latest_apk termux/termux-app 'arm64-v8a\\.apk$' termux.apk
+          fetch_latest_apk termux/termux-api '\\+github\\.debug\\.apk$' termux-api.apk
+          fetch_latest_apk termux/termux-widget '\\+github\\.debug\\.apk$' termux-widget.apk
+
+      - name: Re-sign Termux family with the Emacs pairing key
+        run: |
+          set -euo pipefail
+          apksigner="$ANDROID_HOME/build-tools/$ANDROID_BUILD_TOOLS/apksigner"
+          keystore="$GITHUB_WORKSPACE/emacs-src/java/emacs.keystore"
+          test -x "$apksigner"
+          test -f "$keystore"
+
+          for name in termux termux-api termux-widget; do
+            "$apksigner" sign \
+              --ks "$keystore" \
+              --ks-pass pass:emacs1 \
+              --out "dist/${name}-emacs-paired.apk" \
+              "upstream-apks/${name}.apk"
+            "$apksigner" verify --verbose "dist/${name}-emacs-paired.apk"
+          done
+
+      - name: Assemble Android Emacs distribution
+        run: |
+          set -euo pipefail
+          emacs_apk="$(find emacs-src/java -maxdepth 1 -name 'emacs-*.apk' -print -quit)"
+          test -f "$emacs_apk"
+          cp "$emacs_apk" dist/emacs-android-termux-paired.apk
+          cp bootstrap-termux.sh dist/bootstrap-termux.sh
+          cp android/README.org dist/README.org
+          {
+            printf 'emacs_ref=%s\n' "$EMACS_REF"
+            printf 'emacs_sha='
+            cat emacs-source-sha.txt
+            printf 'android_api=%s\n' "$ANDROID_API"
+            printf 'android_min_api=%s\n' "$ANDROID_MIN_API"
+            printf 'termux_shared_user_id=com.termux\n'
+            printf 'architecture=arm64-v8a\n'
+          } >> dist/UPSTREAM-VERSIONS.txt
+          (cd dist && sha256sum *.apk bootstrap-termux.sh > SHA256SUMS)
+
+      - name: Upload paired Android bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-emacs-termux-paired-arm64
+          path: dist/
+          if-no-files-found: error
+
+      - name: Publish tagged bundle
+        if: startsWith(github.ref, 'refs/tags/android-emacs-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Paired arm64 Android build: GNU Emacs Android + current Termux, Termux:API, and Termux:Widget signed with the same compatibility key. Install this Termux family together; signatures intentionally differ from official Termux releases."
