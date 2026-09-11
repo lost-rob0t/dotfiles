@@ -10,6 +10,7 @@
     ./agent-verification.nix
     ./chatgpt-desktop.nix
     ./base.nix
+    ./starintel-tunnel.nix
     ./desktop.nix
     ./gnome.nix
     ./fonts.nix
