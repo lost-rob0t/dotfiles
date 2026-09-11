@@ -19,7 +19,9 @@ in
   config = lib.mkIf cfg.enable {
     home.packages = [ starintelTunnel ];
 
-    xdg.configFile."starintel/tunnels.conf".source =
-      ../../../.config/starintel/tunnels.conf;
+    xdg.configFile."starintel/tunnels.conf" = {
+      source = ../../../.config/starintel/tunnels.conf;
+      force = true;
+    };
   };
 }
