@@ -7,9 +7,12 @@ on:
       - '.doom.d/autoload/research-dashboard-evil.org'
       - '.doom.d/autoload/research-dashboard-evil.el'
       - '.doom.d/autoload/research-dashboard-local.el'
+      - '.doom.d/autoload/research-dashboard-local-defaults.el'
+      - '.doom.d/autoload/research-dashboard-local-dwim.el'
       - '.doom.d/tests/research-dashboard-test.el'
       - '.doom.d/tests/research-dashboard-evil-test.el'
       - '.doom.d/tests/research-dashboard-local-test.el'
+      - '.doom.d/tests/research-dashboard-local-dwim-test.el'
       - '.github/workflows/research-dashboard.yml'
   push:
     branches: [master]
@@ -18,9 +21,12 @@ on:
       - '.doom.d/autoload/research-dashboard-evil.org'
       - '.doom.d/autoload/research-dashboard-evil.el'
       - '.doom.d/autoload/research-dashboard-local.el'
+      - '.doom.d/autoload/research-dashboard-local-defaults.el'
+      - '.doom.d/autoload/research-dashboard-local-dwim.el'
       - '.doom.d/tests/research-dashboard-test.el'
       - '.doom.d/tests/research-dashboard-evil-test.el'
       - '.doom.d/tests/research-dashboard-local-test.el'
+      - '.doom.d/tests/research-dashboard-local-dwim-test.el'
       - '.github/workflows/research-dashboard.yml'
 
 permissions:
@@ -40,4 +46,5 @@ jobs:
           -l .doom.d/tests/research-dashboard-test.el
           -l .doom.d/tests/research-dashboard-evil-test.el
           -l .doom.d/tests/research-dashboard-local-test.el
+          -l .doom.d/tests/research-dashboard-local-dwim-test.el
           -f ert-run-tests-batch-and-exit
