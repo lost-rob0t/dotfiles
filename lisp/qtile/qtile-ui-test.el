@@ -80,16 +80,31 @@
       (qtile-ui-prepare-buffer)
       (should (null mode-line-format))
       (should (string-match-p "Qtile" (car header-line-format)))
+      (should (string-match-p "C-c C-q close" (cadr header-line-format)))
       (when doom-hide-mode-line
         (should (bound-and-true-p hide-mode-line-mode))))))
 
-(ert-deftest qtile-ui-dismissal-keys-are-installed ()
+(ert-deftest qtile-ui-read-only-dismissal-keys-are-installed ()
   (with-temp-buffer
-    (text-mode)
+    (special-mode)
     (qtile-ui-bind-dismiss)
     (should (eq (key-binding (kbd "q")) #'qtile-ui-close-current))
     (should (eq (key-binding (kbd "ESC")) #'qtile-ui-close-current))
-    (should (eq (key-binding (kbd "<escape>")) #'qtile-ui-close-current))))
+    (should (eq (key-binding (kbd "<escape>")) #'qtile-ui-close-current))
+    (should (eq (key-binding (kbd "C-c C-q")) #'qtile-ui-close-current))))
+
+(ert-deftest qtile-ui-editable-popups-preserve-typing-keys ()
+  (with-temp-buffer
+    (text-mode)
+    ;; Simulate a reused chat buffer that still has the old popup bindings.
+    (local-set-key (kbd "q") #'qtile-ui-close-current)
+    (local-set-key (kbd "ESC") #'qtile-ui-close-current)
+    (local-set-key (kbd "<escape>") #'qtile-ui-close-current)
+    (qtile-ui-bind-dismiss)
+    (should-not (eq (key-binding (kbd "q")) #'qtile-ui-close-current))
+    (should-not (eq (key-binding (kbd "ESC")) #'qtile-ui-close-current))
+    (should-not (eq (key-binding (kbd "<escape>")) #'qtile-ui-close-current))
+    (should (eq (key-binding (kbd "C-c C-q")) #'qtile-ui-close-current))))
 
 (ert-deftest qtile-notifications-preserves-all-normalized-records ()
   (let ((payload (json-read-from-string
