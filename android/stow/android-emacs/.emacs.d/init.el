@@ -10,13 +10,12 @@
       ((getenv "STAR_DOTFILES_ROOT")
        (expand-file-name "android" (getenv "STAR_DOTFILES_ROOT")))
       (t
-       (expand-file-name
-        "../../.."
-        (file-name-directory
-         (file-truename
-          (or load-file-name
-              buffer-file-name
-              (expand-file-name "init.el" user-emacs-directory)))))))))))
+       (let ((wrapper (or load-file-name
+                          buffer-file-name
+                          (expand-file-name "init.el" user-emacs-directory))))
+         (expand-file-name
+          "../../.."
+          (file-name-directory (file-truename wrapper)))))))))
 
 (unless (boundp 'star/android-stow-root)
   (defconst star/android-stow-root (star/android-stow--config-root)))
