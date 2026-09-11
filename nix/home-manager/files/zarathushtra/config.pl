@@ -46,7 +46,7 @@ direct_app(thunderbird).
 
 app_mapping(tor, ["torbrowser-launcher"]).
 app_mapping(tor_browser, ["torbrowser-launcher"]).
-direct_app(torbrowser-launcher).
+direct_app('torbrowser-launcher').
 
 app_mapping(music, ["feishin"]).
 app_mapping(feishin, ["feishin"]).
