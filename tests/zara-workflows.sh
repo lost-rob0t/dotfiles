@@ -19,9 +19,17 @@ fail() {
 [[ -f "$updater" ]] || fail "missing structured Zara system-update helper"
 
 grep -Fq './zara-workflows.nix' "$default_module" || fail "workflow module is not imported"
+grep -Fq 'inputs.qwen3-tts.homeManagerModules.default' "$default_module" || fail "Qwen3-TTS Home Manager module is not imported"
 grep -Fq 'workflows.enable = true;' "$desktop" || fail "desktop profile does not enable Zara workflows"
+grep -Fq 'services.qwen3-tts = {' "$desktop" || fail "desktop profile does not configure Qwen3-TTS"
+grep -Fq 'backend = "rocm";' "$desktop" || fail "desktop profile does not select the AMD ROCm backend"
+grep -Fq '"qwen3-tts.service"' "$desktop" || fail "Zara service does not order itself with Qwen3-TTS"
+grep -Fq 'nixManaged = false;' "$desktop" || fail "desktop profile must keep mutable Zara config outside Home Manager"
 grep -Fq '".config/zarathushtra/config.pl"' "$workflow_module" || fail "workflow module does not own base config.pl"
 ! grep -Fq '".config/zarathushtra/config.local.pl"' "$workflow_module" || fail "Home Manager must not own mutable config.local.pl"
+
+grep -Fq 'github:lost-rob0t/Qwen3-TTS_server' "$repo_root/flake.nix" || fail "Qwen3-TTS flake input is missing"
+grep -Fq '"qwen3-tts": "qwen3-tts"' "$repo_root/flake.lock" || fail "Qwen3-TTS flake input is not locked"
 
 grep -Fq -- '--endpoint tcp://0.0.0.0:7731' "$desktop" || fail "Arch desktop Zara listener is not exposed on TCP 7731"
 grep -Fq -- '--security-dir %h/.local/state/zarathushtra/security' "$desktop" || fail "Arch desktop Zara listener has no persistent security state"

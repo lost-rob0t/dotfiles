@@ -24,6 +24,7 @@
 
   zara = {
     enable = true;
+    nixManaged = false;
     workflows.enable = true;
 
     server = {
@@ -42,11 +43,21 @@
     };
   };
 
+  services.qwen3-tts = {
+    enable = true;
+    backend = "rocm";
+    port = 7860;
+  };
+
   # Android/remote Zara clients use authenticated ZARA/1 over CURVE/ZAP.
   # Keep key material in mutable owner-private state, never in the Nix store.
   systemd.user.services.zara-server.Service = {
     ExecStartPre = "${config.zara.package}/bin/zara-server --security-dir %h/.local/state/zarathushtra/security --security-init";
     ExecStart = lib.mkForce "${config.zara.package}/bin/zara-server --shutdown-timeout ${toString config.zara.server.shutdownTimeout} --endpoint tcp://0.0.0.0:7731 --security-dir %h/.local/state/zarathushtra/security";
+  };
+  systemd.user.services.zara-server.Unit = {
+    After = [ "qwen3-tts.service" ];
+    Wants = [ "qwen3-tts.service" ];
   };
 
   screenCapture = {

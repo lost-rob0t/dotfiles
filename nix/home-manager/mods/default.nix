@@ -4,6 +4,7 @@
     inputs.skills.homeManagerModules.opencode
     inputs.skills.homeManagerModules.claude
     inputs.skills.homeManagerModules.agents
+    inputs.qwen3-tts.homeManagerModules.default
     ./outrun-theme.nix
     ./opencode.nix
     ./codex.nix

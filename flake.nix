@@ -24,8 +24,12 @@
       url = "github:lost-rob0t/zara";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-      zara-plugins = {
-        url = "github:lost-rob0t/zara-plugins/4f791d83b6d0a969c26f81273d075d5d78acd7db";
+    qwen3-tts = {
+      url = "github:lost-rob0t/Qwen3-TTS_server";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    zara-plugins = {
+      url = "github:lost-rob0t/zara-plugins/4f791d83b6d0a969c26f81273d075d5d78acd7db";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     bixby-studio = {
@@ -48,6 +52,7 @@
       skills,
       chatgpt-desktop,
       zara,
+      qwen3-tts,
       zara-plugins,
       bixby-studio,
       mousetrap,
