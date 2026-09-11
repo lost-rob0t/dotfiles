@@ -1,0 +1,54 @@
+#+title: Logseq and Org-roam bridge
+
+* Paths
+
+The desktop profile installs Logseq and =notes-bridge= with these defaults:
+
+- Logseq graph: =~/Documents/Notes/log=
+- Org-roam: =~/Documents/Notes/org/roam=
+- Sync state: =~/.local/state/notes-bridge/state.json=
+
+The graph remains file-based.  The bridge does not touch Logseq's DB-beta
+storage.
+
+* Commands
+
+#+begin_src sh
+notes-bridge status
+notes-bridge logseq-to-roam --dry-run
+notes-bridge logseq-to-roam
+notes-bridge roam-to-logseq --dry-run
+notes-bridge roam-to-logseq
+notes-bridge sync --dry-run
+notes-bridge sync
+#+end_src
+
+If both copies already exist and there is no baseline, seed the first sync by
+choosing the authoritative side:
+
+#+begin_src sh
+notes-bridge sync --prefer logseq
+# or:
+notes-bridge sync --prefer roam
+#+end_src
+
+After that, the bridge stores hashes for both copies.  A change on only one side
+propagates to the other.  If both sides changed, =sync= reports a conflict and
+returns exit status 2 rather than silently overwriting either copy.
+
+* Mapping
+
+- Logseq =pages/*.md= map to Org-roam =*.org= files.
+- Logseq =journals/YYYY_MM_DD.md= map to Org-roam
+  =daily/YYYY-MM-DD.org=.
+- Logseq page =id::= values become Org =:ID:= properties.
+- Page links to known pages become Org ID links; Org ID links become Logseq
+  page links on export.
+- Logseq block nesting maps to Org heading levels and back.
+- Logseq block IDs and other block properties are kept in Org property drawers.
+- File tags are mapped between Logseq =tags::= and Org =#+filetags:=.
+- =assets/= are copied in either direction without overwriting divergent files.
+
+The conversion is intentionally conservative.  Logseq Markdown and Org are not
+the same syntax, so unsupported constructs are preserved as text rather than
+inventing a lossy transformation.
