@@ -11,6 +11,7 @@
     ./chatgpt-desktop.nix
     ./base.nix
     ./starintel-tunnel.nix
+    ./starintel-agent-flow.nix
     ./desktop.nix
     ./gnome.nix
     ./fonts.nix
