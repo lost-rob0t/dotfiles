@@ -100,3 +100,33 @@ and reports the error.  Prose and model output never supply approval state.
 
 * Documentation discipline
 Put configuration rationale next to the executable Org source whenever it explains a specific setting.  Use this wiki for architecture, ownership, workflow, and navigation.  This keeps the literate config genuinely literate instead of making readers hunt through two competing manuals.
+
+* Home Manager package overrides
+[[file:../../nix/home-manager/mods/emacs.nix][emacs.nix]] owns the base Home Manager
+package list. The =emacs.extraPackages= option extends that list; it does not
+replace it. Contributions from multiple Home Manager modules are retained. An
+empty override leaves the base list unchanged, and overrides do not enable an
+Emacs module disabled with =emacs.enable = false=.
+
+[[file:../../tests/emacs-packages.nix][The package regression]] evaluates the real
+Home Manager module with the repository's locked inputs. Run it from the
+repository root without building or activating a user environment:
+
+#+begin_src shell :tangle no
+nix eval --impure --json --show-trace --expr '
+  import ./tests/emacs-packages.nix {
+    flake = builtins.getFlake (toString ./.);
+  }
+'
+#+end_src
+
+[[file:../../.github/workflows/emacs-packages.yml][The focused CI workflow]] also
+removes the append in a temporary module and requires the regression to fail
+with the specific missing-override diagnostic. A network or unrelated evaluation
+failure is not accepted as evidence that the regression detects the omission.
+
+This gate checks package-list wiring, not complete Doom feature parity. A distro
+migration must additionally account for Doom core packages, enabled module flags
+and their dependency closure, private recipes, local libraries and snippets,
+keybindings, hooks, native modules, external executables, and interactive
+behavior. Merely copying =.doom.d/packages.el= is not a complete migration.
