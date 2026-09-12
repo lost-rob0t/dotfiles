@@ -184,11 +184,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789088058,
-        "narHash": "sha256-vRpaVhOzjSJw4uSLMwksCNtdb4onjEFJGzuoUWPkXm4=",
+        "lastModified": 1789194838,
+        "narHash": "sha256-18FWjkzyFsSJ6mCbTbqCQHSm2cY5zQt1gjQhwMduCHo=",
         "owner": "lost-rob0t",
         "repo": "Qwen3-TTS_server",
-        "rev": "71a15ff6024920b0c1924a4cc50f6a715861094d",
+        "rev": "eca273f5e8e1211b1bbf0f5623c90a67295604a0",
         "type": "github"
       },
       "original": {
