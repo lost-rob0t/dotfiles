@@ -60,7 +60,24 @@
       videoDrivers = [ "amdgpu" ];
       xkb.layout = "us";
       displayManager.lightdm.enable = true;
-      windowManager.qtile.enable = true;
+      windowManager.qtile = {
+        enable = true;
+        package =
+          let
+            # Qtile advertises "qtile" while nixpkgs installs only the
+            # qtile-generic desktop files; preserve override for the module.
+            fixSessionNames = package:
+              (package.overridePythonAttrs (old: {
+                postInstall = (old.postInstall or "") + ''
+                  cp $out/share/xsessions/qtile-generic.desktop $out/share/xsessions/qtile.desktop
+                  cp $out/share/wayland-sessions/qtile-generic.desktop $out/share/wayland-sessions/qtile.desktop
+                '';
+              })) // {
+                override = args: fixSessionNames (package.override args);
+              };
+          in
+          fixSessionNames pkgs.python3Packages.qtile;
+      };
     };
 
     # libinput (touchpad/mouse). The enable option moved from
