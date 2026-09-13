@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install existing system-widget test dependency
+        run: python -m pip install 'psutil>=5.9,<8'
       - name: Full Qtile regressions and exact Org parity
         run: python -m unittest discover -s .config/qtile/tests -v
       - uses: cachix/install-nix-action@v31
