@@ -1,0 +1,8 @@
+% Durable dotfiles knowledge base.
+% Load every focused KB file from here:
+%   ?- consult("index").
+%
+% Raw per-run execution state lives in .prolog/runs/ (untracked).
+
+:- consult("home_manager_ownership").
+:- consult("nixpkgs_deprecations").

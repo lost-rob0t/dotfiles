@@ -15,7 +15,7 @@
       #pkg-config
     ];
      home.sessionVariables = {
-      LD_LIBRARY_PATH = lib.mkIf pkgs.stdenv.isLinux "${pkgs.openssl.out}/lib:$LD_LIBRARY_PATH";
+      LD_LIBRARY_PATH = lib.mkIf pkgs.stdenv.hostPlatform.isLinux "${pkgs.openssl.out}/lib:$LD_LIBRARY_PATH";
     };
   };
 
