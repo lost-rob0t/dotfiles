@@ -1,0 +1,49 @@
+name: Qtile quota widgets
+on:
+  push:
+    branches: [feat/llm-log-quota-widgets]
+  pull_request:
+    paths: ['.config/qtile/**', 'nix/home-manager/mods/llm.nix', '.github/workflows/qtile-quotas.yml']
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fetch exact public source without checking out unrelated gitlinks
+        env:
+          REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/quota-source"
+          git -C "$RUNNER_TEMP/quota-source" remote add origin https://github.com/lost-rob0t/dotfiles
+          git -C "$RUNNER_TEMP/quota-source" fetch --depth=1 origin "$REVISION"
+          test "$(git -C "$RUNNER_TEMP/quota-source" rev-parse FETCH_HEAD)" = "$REVISION"
+          git -C "$RUNNER_TEMP/quota-source" archive FETCH_HEAD | tar -x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing system-widget test dependency
+        run: python -m pip install 'psutil>=5.9,<8'
+      - name: Full Qtile regressions and exact Org parity
+        run: python -m unittest discover -s .config/qtile/tests -v
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Nix syntax and actual Qtile widget class smoke test
+        run: |
+          nix-instantiate --parse nix/home-manager/mods/llm.nix >/dev/null
+          nix build --impure --expr '
+            let lock = builtins.fromJSON (builtins.readFile ./flake.lock);
+                flake = builtins.getFlake ("github:NixOS/nixpkgs/" + lock.nodes.nixpkgs.locked.rev);
+                pkgs = flake.legacyPackages.x86_64-linux;
+            in pkgs.python3.withPackages (ps: [ ps.qtile ])' -o result-qtile
+          PYTHONPATH=.config/qtile result-qtile/bin/python -c '
+          from qtile_quotas import quota_widgets
+          from libqtile.widget.base import BackgroundPoll
+          widgets = quota_widgets()
+          assert [w.label for w in widgets] == ["z.AI", "GPT"]
+          assert all(isinstance(w, BackgroundPoll) for w in widgets)
+          assert all("--" in w.poll() for w in widgets)
+          print("Actual Qtile widget import, construction and unavailable-data poll passed")'
