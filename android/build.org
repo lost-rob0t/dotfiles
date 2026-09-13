@@ -30,6 +30,9 @@ NDK 26.1.10909125, build-tools 34.0.0, arm64-v8a.  Termux development packages a
 installed separately by =bootstrap-termux.sh=.  This build does not promise
 all optional Emacs native libraries; supply =--ndk-path= for prepared Android
 ports (GnuTLS, SQLite, tree-sitter, image libraries) as described upstream.
+The baseline build uses =--with-gnutls=ifavailable= so a missing Android GnuTLS
+port does not block producing an APK; supplying the upstream GnuTLS ports through
+=--ndk-path= still enables it.
 
 #+begin_src sh
 sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.1.10909125'
@@ -225,8 +228,13 @@ def build_emacs(args: argparse.Namespace, tools: Path) -> Path:
     if not (source / "configure").is_file():
         run([source / "autogen.sh"], cwd=source, timeout=600, capture=False)
     build_dir.mkdir(parents=True)
+    # GNU Emacs' Android port supports optional NDK-packaged libraries.  A bare
+    # SDK/NDK build has no Android GnuTLS module, so do not make that optional
+    # feature block creation of the baseline APK.  When --ndk-path contains the
+    # upstream Android GnuTLS port, configure still detects and enables it.
     command = [source / "configure", f"--with-android={jar}",
                "--with-shared-user-id=com.termux", "--without-android-debug",
+               "--with-gnutls=ifavailable",
                f"ANDROID_CC={cc}", f"SDK_BUILD_TOOLS={tools}"]
     if args.ndk_path:
         command.append(f"--with-ndk-path={args.ndk_path}")
