@@ -1,0 +1,389 @@
+#+title: Accurate llm-log API token graph
+#+property: header-args:python :mkdirp yes :results none
+
+* Interface and accuracy
+This NEW graph appears after the side-by-side =z.AI= and =GPT= quota widgets.
+It does not replace the old OpenRouter graph. The source is
+=GET /api/v1/stats/timeline?coverage=fields= on the same local llm-log API.
+
+The graph rotates =1m / 5m / 1h / 6h / 12h / 1d / 1w / 1mo / 1y= every five
+seconds. Left-click advances/pauses, middle resumes, right opens details.
+A month is 30 days and a year is 365 days. Configure width, provider/model
+filters and base_url through =llm_log_graph_options= before telemetry installs.
+Default URL comes from =LLM_LOG_API_URL=, otherwise =http://127.0.0.1:8787=.
+
+UTC-aligned complete buckets are drawn over their EXACT time edges. Rates are
+reported tokens times 60 divided by the actual bucket duration. Input (cyan)
+and output (pink) share one linear vertical scale. Missing buckets stay blank;
+missing input/output fields are not manufactured zeros. Dashed steps denote
+partial reported subtotals. Right-click shows coverage counts and end time.
+
+This is captured COMPLETED-REQUEST token volume, not instantaneous model
+streaming speed or subscription quota consumption. It cannot see traffic that
+bypasses llm-log. The current unfinished bucket is deliberately omitted, so the
+graph lags by up to one bucket plus collection delay; coarse ranges are not live
+one-minute traces. The old API without field coverage is marked unavailable.
+
+One bounded background worker is shared by all screens, caches nine ranges,
+and reads only the selected range. Rendering/rotation does no HTTP or disk I/O.
+Responses are bounded to 256KiB/512 buckets, local-only, redirect/proxy-free.
+The worker parks with no subscribers and failed reads retain stale data visibly.
+Backend analytic reads are separately concurrency-limited so they cannot form
+an unbounded queue or run synchronous disk reads in the HTTP event loop.
+
+* Model, collector, and painting
+#+begin_src python :tangle llm_log_graph.py
+"""Exact llm-log time buckets, bounded shared collection and Cairo rendering."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from http.client import HTTPException
+from datetime import datetime, timezone
+import threading
+import time
+from urllib.parse import urlencode
+
+from llm_log_client import fetch_json, validate_base_url
+
+
+@dataclass(frozen=True)
+class Range:
+    label: str
+    duration: int
+    granularity: str
+    bucket_seconds: int
+
+
+RANGES = (Range('1m', 60, 'minute', 60), Range('5m', 300, 'minute', 60),
+          Range('1h', 3600, 'minute', 60), Range('6h', 21600, 'minute', 60),
+          Range('12h', 43200, 'hour', 3600), Range('1d', 86400, 'hour', 3600),
+          Range('1w', 604800, 'hour', 3600), Range('1mo', 2592000, 'day', 86400),
+          Range('1y', 31536000, 'day', 86400))
+
+
+@dataclass(frozen=True)
+class Bucket:
+    start: int
+    end: int
+    requests: int
+    input_coverage: int
+    output_coverage: int
+    input_rate: float | None
+    output_rate: float | None
+
+
+@dataclass(frozen=True)
+class Series:
+    start: int
+    end: int
+    fetched_at: float
+    buckets: tuple[Bucket, ...]
+
+
+@dataclass(frozen=True)
+class Segment:
+    x1: float
+    x2: float
+    y: float
+    series: str
+    partial: bool
+
+
+def query_window(spec: Range, now: float) -> tuple[int, int, str]:
+    """Only complete, UTC-aligned buckets; never mislabel a partial rate."""
+    end = int(now) // spec.bucket_seconds * spec.bucket_seconds
+    start = end - spec.duration
+    stamp = lambda value: datetime.fromtimestamp(value, timezone.utc).isoformat().replace('+00:00', 'Z')
+    return start, end, urlencode({'start': stamp(start), 'end': stamp(end),
+                                 'granularity': spec.granularity, 'coverage': 'fields'})
+
+
+def _count(value, maximum=10**15) -> int:
+    if type(value) is not int or not 0 <= value <= maximum:
+        raise ValueError('invalid timeline count')
+    return value
+
+
+def decode_timeline(payload, spec: Range, start: int, end: int, now: float) -> Series:
+    if (not isinstance(payload, dict) or payload.get('coverage') != 'fields'
+            or payload.get('accounting') != 'completed_requests'
+            or payload.get('granularity') != spec.granularity):
+        raise ValueError('timeline coverage contract unavailable')
+    rows = payload.get('buckets')
+    if not isinstance(rows, list) or len(rows) > 512:
+        raise ValueError('timeline bucket limit')
+    buckets, previous = [], start
+    for row in rows:
+        if not isinstance(row, dict) or row.get('bucket_seconds') != spec.bucket_seconds:
+            raise ValueError('invalid timeline bucket')
+        try:
+            timestamp = datetime.fromisoformat(row['start'].replace('Z', '+00:00'))
+            if timestamp.tzinfo is None:
+                raise ValueError('timeline timezone required')
+            epoch = timestamp.timestamp()
+            left = int(epoch)
+        except (KeyError, AttributeError, OverflowError, OSError):
+            raise ValueError('invalid timeline timestamp') from None
+        right = left + spec.bucket_seconds
+        if epoch != left or left % spec.bucket_seconds or left < previous or right > end:
+            raise ValueError('overlapping, unaligned or out-of-range bucket')
+        previous = right
+        count = _count(row.get('request_count'))
+        incoming = _count(row.get('input_tokens'))
+        outgoing = _count(row.get('output_tokens'))
+        in_count = _count(row.get('requests_with_input_usage'), count)
+        out_count = _count(row.get('requests_with_output_usage'), count)
+        any_count = _count(row.get('requests_with_usage'), count)
+        if (not count or not max(in_count, out_count) <= any_count <= min(count, in_count + out_count)
+                or (not in_count and incoming) or (not out_count and outgoing)):
+            raise ValueError('inconsistent timeline coverage')
+        buckets.append(Bucket(left, right, count, in_count, out_count,
+                              incoming * 60 / spec.bucket_seconds if in_count else None,
+                              outgoing * 60 / spec.bucket_seconds if out_count else None))
+    return Series(start, end, now, tuple(buckets))
+
+
+def graph_segments(series: Series, width: float, height: float) -> tuple[Segment, ...]:
+    """Discrete horizontal steps, one shared linear scale, no invented gaps."""
+    if width <= 0 or height <= 0 or series.end <= series.start:
+        raise ValueError('invalid graph geometry')
+    ceiling = max((rate for row in series.buckets for rate in (row.input_rate, row.output_rate)
+                   if rate is not None), default=0) or 1
+    segments = []
+    for row in series.buckets:
+        x1 = (row.start - series.start) / (series.end - series.start) * width
+        x2 = (row.end - series.start) / (series.end - series.start) * width
+        for name, rate, coverage in (('input', row.input_rate, row.input_coverage),
+                                     ('output', row.output_rate, row.output_coverage)):
+            if rate is not None:
+                segments.append(Segment(x1, x2, height * (1 - rate / ceiling), name, coverage < row.requests))
+    return tuple(segments)
+
+
+def paint_graph(ctx, width: int, height: int, label: str, series: Series | None, *, stale=False) -> None:
+    """Paint only in-memory data. Cairo context can be a real offscreen surface."""
+    if width < 96 or height < 16:
+        return
+    ctx.save()
+    try:
+        ctx.rectangle(0, 0, width, height)
+        ctx.clip()
+        ctx.select_font_face('monospace')
+        ctx.set_font_size(min(10, height / 3))
+        ctx.set_source_rgb(.65, .65, .65)
+        ctx.move_to(2, height / 2 - 1)
+        ctx.show_text('LLM ' + label)
+        ctx.move_to(2, height - 4)
+        ctx.show_text('stale' if stale else 'I/O /m' if series and series.buckets else 'no data')
+        if series is None:
+            return
+        ctx.translate(51, 3)
+        plot_width, plot_height = width - 54, height - 6
+        ctx.set_line_width(1.2)
+        for segment in graph_segments(series, plot_width, plot_height):
+            color = (.35, .75, .9) if segment.series == 'input' else (.9, .5, .75)
+            ctx.set_source_rgba(*color, .4 if stale else 1)
+            ctx.set_dash([2, 2] if segment.partial else [])
+            # No segment crosses a missing bucket. No interpolation/zero-fill.
+            ctx.move_to(segment.x1, segment.y)
+            ctx.line_to(segment.x2, segment.y)
+            ctx.stroke()
+    finally:
+        ctx.restore()
+
+
+class TimelineFeed:
+    """One worker and nine immutable cached ranges, shared by every screen."""
+    def __init__(self, base_url: str, *, provider: str = '', model: str = ''):
+        self.base_url = validate_base_url(base_url)
+        if any(not isinstance(value, str) or len(value) > 256 for value in (provider, model)):
+            raise ValueError('invalid graph filters')
+        self.filters = {key: value for key, value in (('provider', provider), ('model', model)) if value}
+        self.condition = threading.Condition()
+        self.index, self.paused = 0, False
+        self.changed_at = time.monotonic()
+        self.cache: list[Series | None] = [None] * len(RANGES)
+        self.failed = [False] * len(RANGES)
+        self.next_due = [0.] * len(RANGES)
+        self.users = 0
+        self.worker = None
+
+    def read(self) -> tuple[Range, Series | None, bool]:
+        with self.condition:
+            elapsed = time.monotonic() - self.changed_at
+            if not self.paused and elapsed >= 5:
+                steps = int(elapsed // 5)
+                self.index = (self.index + steps) % len(RANGES)
+                self.changed_at += steps * 5
+                self.condition.notify_all()
+            series = self.cache[self.index]
+            stale = self.failed[self.index] or bool(series and time.time() - series.fetched_at > 90)
+            return RANGES[self.index], series, stale
+
+    def advance(self) -> None:
+        with self.condition:
+            self.index = (self.index + 1) % len(RANGES)
+            self.paused = True
+            self.changed_at = time.monotonic()
+            self.condition.notify_all()
+
+    def resume(self) -> None:
+        with self.condition:
+            self.paused = False
+            self.changed_at = time.monotonic()
+            self.condition.notify_all()
+
+    def refresh_once(self) -> None:
+        with self.condition:
+            index = self.index
+        now = time.time()
+        spec = RANGES[index]
+        start, end, query = query_window(spec, now)
+        if self.filters:
+            query += '&' + urlencode(self.filters)
+        try:
+            series = decode_timeline(fetch_json(self.base_url + '/api/v1/stats/timeline?' + query),
+                                     spec, start, end, now)
+        except (OSError, ValueError, TypeError, KeyError, HTTPException):
+            with self.condition:
+                self.failed[index] = True
+                self.next_due[index] = time.monotonic() + 30
+        else:
+            with self.condition:
+                self.cache[index], self.failed[index] = series, False
+                self.next_due[index] = time.monotonic() + 30
+
+    def acquire(self) -> None:
+        with self.condition:
+            self.users += 1
+            if self.worker is None:
+                self.worker = threading.Thread(target=self._run, name='qtile-llm-log-timeline', daemon=True)
+                self.worker.start()
+            self.condition.notify_all()
+
+    def release(self) -> None:
+        with self.condition:
+            self.users = max(0, self.users - 1)
+            self.condition.notify_all()
+
+    def _run(self) -> None:
+        while True:
+            with self.condition:
+                while not self.users:
+                    self.condition.wait()
+                delay = self.next_due[self.index] - time.monotonic()
+                if delay > 0:
+                    self.condition.wait(min(delay, 5))
+                    continue
+            self.refresh_once()
+
+    def details(self) -> str:
+        spec, series, stale = self.read()
+        lines = [f'Range: {spec.label}; {spec.bucket_seconds}s complete UTC buckets',
+                 'Captured completed-request tokens/minute, not generation speed.',
+                 'Only traffic routed through llm-log; not subscription consumption.',
+                 'Cyan=input; pink=output. Shared linear scale. Dashed=partial subtotal.',
+                 'Missing fields/buckets remain gaps, not zero. Month=30d, year=365d.']
+        if self.filters:
+            lines.append('Filters: ' + str(self.filters))
+        if series:
+            requests = sum(row.requests for row in series.buckets)
+            incoming = sum(row.input_coverage for row in series.buckets)
+            outgoing = sum(row.output_coverage for row in series.buckets)
+            lines.append(f'Coverage: input {incoming}/{requests}, output {outgoing}/{requests} requests')
+            lines.append('Through: ' + datetime.fromtimestamp(series.end, timezone.utc).isoformat())
+        else:
+            lines.append('No timeline snapshot; requires llm-log coverage=fields API.')
+        if stale:
+            lines.append('STALE: last fetch failed or data is older than 90 seconds.')
+        return '\n'.join(lines)
+
+
+_feeds: dict[tuple[str, str, str], TimelineFeed] = {}
+
+
+def shared_timeline(base_url: str, provider: str = '', model: str = '') -> TimelineFeed:
+    key = (validate_base_url(base_url), provider, model)
+    if key not in _feeds:
+        if len(_feeds) >= 8:
+            raise ValueError('too many graph feeds')
+        _feeds[key] = TimelineFeed(key[0], provider=provider, model=model)
+    return _feeds[key]
+#+end_src
+
+#+begin_src python :tangle qtile_llm_log_graph.py
+"""Qtile Cairo graph consuming the llm-log API, separate from OpenRouter."""
+from __future__ import annotations
+
+from html import escape
+import os
+from libqtile.widget import base
+from notify import notify
+from llm_log_graph import paint_graph, shared_timeline
+
+
+class LLMLogGraph(base._Widget):
+    orientations = base.ORIENTATION_HORIZONTAL
+
+    def __init__(self, width=180, *, base_url='http://127.0.0.1:8787', provider='', model='', **config):
+        if type(width) is not int or not 96 <= width <= 1024:
+            raise ValueError('graph width must be 96..1024')
+        self.feed = shared_timeline(base_url, provider, model)
+        self._attached = False
+        super().__init__(width, **{'name': 'llm_log_graph', **config})
+        self.add_callbacks({'Button1': self.advance, 'Button2': self.resume, 'Button3': self.show_details})
+
+    def _configure(self, qtile, bar):
+        super()._configure(qtile, bar)
+        if not self._attached:
+            self.feed.acquire()
+            self._attached = True
+
+    def timer_setup(self):
+        self.draw()
+        self.timeout_add(1, self.timer_setup)
+
+    def draw(self):
+        spec, series, stale = self.feed.read()
+        self.drawer.clear(self.background or self.bar.background)
+        paint_graph(self.drawer.ctx, self.width, self.height, spec.label, series, stale=stale)
+        self.draw_at_default_position()
+
+    def advance(self):
+        self.feed.advance()
+        self.draw()
+
+    def resume(self):
+        self.feed.resume()
+        self.draw()
+
+    def show_details(self):
+        notify('llm-log token timeline', escape(self.feed.details()))
+
+    def finalize(self):
+        if self._attached:
+            self.feed.release()
+            self._attached = False
+        super().finalize()
+
+
+def install_llm_log_graph(config_globals):
+    """Place the NEW graph immediately after GPT; the old graph stays intact."""
+    options = {'base_url': os.environ.get('LLM_LOG_API_URL', 'http://127.0.0.1:8787'),
+               **config_globals.get('llm_log_graph_options', {})}
+    visited = set()
+    for screen in config_globals.get('screens', ()):
+        for position in ('top', 'bottom'):
+            target = getattr(screen, position, None)
+            if target is None or id(target) in visited:
+                continue
+            visited.add(id(target))
+            widgets = getattr(target, 'widgets', None)
+            if widgets is None or any(getattr(w, 'name', '') == 'llm_log_graph' for w in widgets):
+                continue
+            index = next((i + 1 for i, w in enumerate(widgets)
+                          if getattr(w, 'name', '') == 'llm_quota_gpt'), None)
+            if index is not None:
+                widgets.insert(index, LLMLogGraph(**options))
+#+end_src
+

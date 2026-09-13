@@ -14,6 +14,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:nix.org][Nix and Home Manager]] - flake outputs, hosts, profiles, installers, and module layout.
 - [[file:emacs.org][Emacs and Doom]] - Doom literate sources and Emacs-related code in the repository.
 - [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, desktop workflows, and desktop integration.
+- [[file:llm-log.org][llm-log telemetry]] - adjacent z.AI/GPT quota meters and the new accurate API grapher.
 - [[file:zara.org][Zara workflows]] - declarative Zara base config, private-overlay ownership, Qwen3-TTS voice service, desktop/voice workflows, and bounded system updates.
 - [[file:screen-capture.org][Screen capture]] - stable screenshot/recording CLI, backends, Qtile bindings, Emacs picker, and Home Manager options.
 - [[file:../qtile-emacs-ui.org][Qtile and Emacs dropdown UI]] - shared popup lifecycle, widget-relative geometry, notification backends, and dashboard ownership.
@@ -36,6 +37,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Qtile prompt library | [[file:../../.config/qtile/qtile-prompt-lib.org][.config/qtile/qtile-prompt-lib.org]] | Preserves the existing Emacs AI binding and adds =Super e y p= for the prompt browser; tangles to =qtile_prompt_lib.py=. |
 | OpenRouter widget | [[file:../../.config/qtile/qtile-openrouter.org][.config/qtile/qtile-openrouter.org]] | Telemetry/widget helper; tangles to =qtile_openrouter.py=. |
 | llm-log quotas | [[file:../../.config/qtile/qtile-llm-log.org][.config/qtile/qtile-llm-log.org]] | Adjacent z.AI/GPT account quota meters; tangles to =llm_log_client.py= and =qtile_llm_log.py=. |
+| llm-log API graph | [[file:../../.config/qtile/qtile-llm-log-graph.org][.config/qtile/qtile-llm-log-graph.org]] | Exact UTC buckets and per-field coverage; tangles to =llm_log_graph.py= and =qtile_llm_log_graph.py=. |
 | Qtile telemetry installer | [[file:../../.config/qtile/qtile-telemetry.org][.config/qtile/qtile-telemetry.org]] | WM/key telemetry and old/new widget integration; tangles to =qtile_telemetry.py=. |
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
 | Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |
