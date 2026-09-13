@@ -2,7 +2,7 @@
 
 let
   comfyui = pkgs.comfyui.override { withManager = true; };
-  llmLogRevision = "92c6062148fe3b5213043d65136ac0521742691a";
+  llmLogRevision = "1d621c8ecaf5627026bafad8d074d6fbf53069d8";
   llmLogFlake = builtins.getFlake "github:lost-rob0t/llm-log/${llmLogRevision}";
   llmLogPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.default;
   llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
@@ -44,6 +44,14 @@ in
       enable = true;
       package = llmLogPackage;
       dataDir = "${config.home.homeDirectory}/Documents/AI/proxy";
+      quotas = {
+        enable = true;
+        package = llmLogPackage;
+        codexPackage = config.codex.package;
+        codexHome = "${config.home.homeDirectory}/.codex";
+        # Runtime-only optional file; no credential enters Git or the Nix store.
+        environmentFile = "${config.xdg.configHome}/llm-log/quotas.env";
+      };
       expert = {
         enable = true;
         package = llmLogExpertPackage;

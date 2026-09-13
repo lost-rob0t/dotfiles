@@ -1,0 +1,41 @@
+#+title: z.AI and GPT quota widgets
+
+* Ownership
+[[file:../../.config/qtile/qtile-quotas.org][qtile-quotas.org]] is the canonical literate source; it tangles to
+=qtile_quotas.py=. [[file:../../.config/qtile/qtile-openrouter.org][The telemetry factory]] installs the two widgets beside the
+existing OpenRouter metrics without replacing their collector/history.
+[[file:../../nix/home-manager/mods/llm.nix][The LLM Home Manager module]] pins llm-log and enables its quota sidecar.
+
+* Semantics
+Labels are =z.AI= and =GPT=. Each cycles reported windows every five seconds:
+=5h=, =wk=, and other actual durations. Percent USED turns green below 70,
+yellow at 70 and red at 90; thresholds/colors are configurable. Grey =--=
+means unknown; grey =~= means stale/expired, never a fabricated healthy 0%.
+Left-click advances and pauses, middle-click resumes, right-click shows plan,
+meter scope, reset countdown and provider status. GPT reads Codex account
+quotas via supported App Server APIs; it does not measure all ChatGPT chat,
+voice or model limits. Plan names are metadata, not fixed capacity tables.
+
+* Data path
+Providers -> llm-log quota actor -> atomic 0600 XDG cache -> Qtile.
+The same observation is available at =http://127.0.0.1:8788/api/v1/quotas=.
+Qtile redraws at 1 Hz; provider polling defaults to 60 seconds with failure
+backoff. Qtile reads no credentials and does no provider I/O. All screens share
+the small local cache. Missing keys/login do not hide or crash the widgets.
+
+* Activation and secrets
+This change requires the pinned llm-log package and Home Manager activation;
+a GitHub merge alone does not update a machine or the canonical Forgejo mirror.
+Use the normal dotfiles sync/activation workflow and then reload Qtile.
+The collector uses the existing =codex login= under =~/.codex=.
+For z.AI, provision a private local =~/.config/llm-log/quotas.env= containing
+=Z_AI_API_KEY= (the user's Coding Plan key). Use mode 0600 and do not commit it.
+The file is optional at startup; missing credentials display unavailable.
+Check =systemctl --user status llm-log-quotas= and the loopback endpoint.
+
+* Verification boundary
+Local Qtile suite: 246 tests, OK with two existing skips. Ten added quota tests
+cover thresholds, rotation, malformed data, stale resets, labels and Org parity.
+Live account retrieval, an actual multi-monitor session and user-host Home
+Manager activation were not available in the editing environment. CI separately
+checks exact-head source, the installed Qtile class interface, and Nix syntax.

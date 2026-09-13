@@ -696,6 +696,8 @@ def _install_sync_and_reload_key(config_globals):
 
 
 def _telemetry_widgets(home, colors):
+    from qtile_quotas import quota_widgets
+
     script = home + "/.config/qtile/scripts/openrouter_status.py"
     background = _color(colors, 1)
     common = {
@@ -713,6 +715,7 @@ def _telemetry_widgets(home, colors):
         "padding": 2,
     }
     return [
+        *quota_widgets(background=background),
         OpenRouterCredit(script, colors, name="openrouter_credit", **common),
         OpenRouterRate(script, colors, name="openrouter_rate", **rate_common),
         OpenRouterGraphRange(colors, name="openrouter_graph_range", **common),

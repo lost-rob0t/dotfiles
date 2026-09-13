@@ -45,3 +45,6 @@ The configuration itself remains the source of truth.  In particular, literate O
 
 * Wiki rule
 Do not copy large sections of configuration into this wiki merely to describe them.  Link to the canonical Org source and document the architecture, workflow, or invariant instead.  Humans already invented stale documentation once; there is no need to perfect the mistake.
+
+* Subscription quota telemetry
+- [[file:llm-quota-widgets.org][z.AI and GPT quota widgets: sources, semantics, activation]]

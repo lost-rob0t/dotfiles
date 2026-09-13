@@ -1,0 +1,205 @@
+"""Rotating z.AI and GPT quotas from llm-log's sanitized atomic snapshot."""
+from __future__ import annotations
+
+import html
+import json
+import math
+import os
+import threading
+import time
+from pathlib import Path
+
+from libqtile.widget import base
+
+MAX_BYTES = 65536
+MAX_WINDOWS = 64
+GREEN, YELLOW, RED, UNKNOWN = "#50fa7b", "#f1fa8c", "#ff5555", "#888888"
+_cache_lock = threading.Lock()
+_cache_value = {}
+_cache_path_value = None
+_cache_read_at = float("-inf")
+
+
+def cache_path() -> Path:
+    configured = os.environ.get("LLM_LOG_QUOTA_CACHE")
+    return Path(configured).expanduser() if configured else (
+        Path(os.environ.get("XDG_CACHE_HOME", "~/.cache")).expanduser()
+        / "llm-log" / "quotas.json"
+    )
+
+
+def read_snapshot(path: Path) -> dict:
+    """Bounded local read. A missing or malformed snapshot is not zero usage."""
+    try:
+        with path.open("rb") as stream:
+            raw = stream.read(MAX_BYTES + 1)
+        if len(raw) > MAX_BYTES:
+            return {}
+        result = json.loads(raw)
+        if not isinstance(result, dict) or result.get("schema_version") != 1:
+            return {}
+        if not isinstance(result.get("providers"), dict):
+            return {}
+        return result
+    except (OSError, ValueError, TypeError, RecursionError):
+        return {}
+
+
+def snapshot() -> dict:
+    """Share at most one small disk read per second across widgets/screens."""
+    global _cache_value, _cache_path_value, _cache_read_at
+    path = cache_path()
+    now = time.monotonic()
+    with _cache_lock:
+        if path != _cache_path_value or now - _cache_read_at >= 0.75:
+            _cache_value = read_snapshot(path)
+            _cache_path_value, _cache_read_at = path, now
+        return _cache_value
+
+
+def valid_number(value, maximum=253402300799):
+    return (not isinstance(value, bool) and isinstance(value, (int, float))
+            and 0 <= value <= maximum and math.isfinite(value))
+
+
+def safe_label(value, limit=24) -> str:
+    if not isinstance(value, str):
+        return "unknown"
+    return "".join(c for c in value if c.isalnum() or c in " ._:/+-")[:limit] or "unknown"
+
+
+def windows(provider: dict) -> list:
+    entries = provider.get("windows", []) if isinstance(provider, dict) else []
+    if not isinstance(entries, list) or len(entries) > MAX_WINDOWS:
+        return []
+    return [entry for entry in entries if isinstance(entry, dict)]
+
+
+def duration_label(seconds) -> str:
+    if not valid_number(seconds, 366 * 86400) or seconds <= 0:
+        return "window?"
+    if seconds == 604800:
+        return "wk"
+    for divisor, suffix in ((86400, "d"), (3600, "h"), (60, "m")):
+        if seconds % divisor == 0:
+            return f"{int(seconds / divisor)}{suffix}"
+    return f"{int(seconds)}s"
+
+
+def is_stale(provider: dict, window: dict, now: float, stale_after: float) -> bool:
+    observed = provider.get("observed_at")
+    reset = window.get("resets_at")
+    return (provider.get("status") != "ok" or provider.get("stale") is True
+            or not valid_number(observed) or not 0 <= now - observed <= stale_after
+            or window.get("expired") is True
+            or (valid_number(reset) and now >= reset))
+
+
+def render_quota(label: str, provider: dict, index: int, now: float, *,
+                 warning=70, critical=90, stale_after=180,
+                 green=GREEN, yellow=YELLOW, red=RED, unknown=UNKNOWN) -> str:
+    entries = windows(provider)
+    if not entries:
+        return f'<span foreground="{unknown}">{html.escape(label)} --</span>'
+    entry = entries[index % len(entries)]
+    value = entry.get("used_percent")
+    known = valid_number(value, 100)
+    stale = is_stale(provider, entry, now, stale_after)
+    color = unknown if stale or not known else (
+        red if value >= critical else yellow if value >= warning else green
+    )
+    percent = f"{value:.1f}".rstrip("0").rstrip(".") + "%" if known else "--"
+    # Distinguish multiple Codex quota pools without changing the requested label.
+    meter = safe_label(entry.get("meter"), 12)
+    suffix = f"/{meter}" if label == "GPT" and meter != "codex" else ""
+    content = f"{label}{suffix} {duration_label(entry.get('duration_seconds'))} {percent}"
+    if stale:
+        content += " ~"
+    return f'<span foreground="{color}">{html.escape(content)}</span>'
+
+
+class QuotaWidget(base.BackgroundPoll):
+    """No provider calls, subprocesses, or credential reads in widget polling."""
+    orientations = base.ORIENTATION_HORIZONTAL
+    defaults = [
+        ("update_interval", 1, "Local snapshot redraw interval"),
+        ("rotate_seconds", 5, "Seconds per reported quota window"),
+        ("warning", 70, "Yellow threshold, percent used"),
+        ("critical", 90, "Red threshold, percent used"),
+        ("stale_after", 180, "Maximum observation age in seconds"),
+        ("green", GREEN, "Low usage color"),
+        ("yellow", YELLOW, "Warning usage color"),
+        ("red", RED, "Critical usage color"),
+        ("unknown_color", UNKNOWN, "Stale/unavailable usage color"),
+    ]
+
+    def __init__(self, provider: str, label: str, **config):
+        self.provider, self.label = provider, label
+        self._state_lock = threading.Lock()
+        self._started, self._offset, self._paused = time.monotonic(), 0, False
+        config.setdefault("markup", True)
+        super().__init__(text=f"{label} --", **config)
+        self.add_defaults(self.defaults)
+        if not (valid_number(self.rotate_seconds, 3600) and self.rotate_seconds >= 1
+                and valid_number(self.warning, 100) and valid_number(self.critical, 100)
+                and self.warning <= self.critical and valid_number(self.stale_after, 86400)):
+            raise ValueError("invalid quota widget timing or thresholds")
+        for color in (self.green, self.yellow, self.red, self.unknown_color):
+            if (not isinstance(color, str) or len(color) != 7 or color[0] != "#"
+                    or any(c not in "0123456789abcdefABCDEF" for c in color[1:])):
+                raise ValueError("quota colors must be #RRGGBB")
+        self.add_callbacks({"Button1": self.cycle, "Button2": self.resume,
+                            "Button3": self.show_details})
+
+    def _index(self, now):
+        return self._offset + (0 if self._paused else max(0, int((now - self._started) // self.rotate_seconds)))
+
+    def rotation_index(self):
+        with self._state_lock:
+            return self._index(time.monotonic())
+
+    def cycle(self):
+        with self._state_lock:
+            self._offset = self._index(time.monotonic()) + 1
+            self._paused = True
+
+    def resume(self):
+        with self._state_lock:
+            self._offset = self._index(time.monotonic())
+            self._started, self._paused = time.monotonic(), False
+
+    def poll(self):
+        provider = snapshot().get("providers", {}).get(self.provider, {})
+        return render_quota(self.label, provider, self.rotation_index(), time.time(),
+                            warning=self.warning, critical=self.critical,
+                            stale_after=self.stale_after, green=self.green, yellow=self.yellow,
+                            red=self.red, unknown=self.unknown_color)
+
+    def show_details(self):
+        # Use the in-memory snapshot only on the UI thread. The next poll fills it.
+        provider = _cache_value.get("providers", {}).get(self.provider, {})
+        if not isinstance(provider, dict):
+            provider = {}
+        lines = [f"Plan: {safe_label(provider.get('plan'))}",
+                 f"Scope: {safe_label(provider.get('scope'))}",
+                 f"Status: {safe_label(provider.get('status'))}",
+                 "Percentages show quota USED."]
+        now = time.time()
+        for entry in windows(provider)[:16]:
+            value = entry.get("used_percent")
+            percent = f"{value:g}%" if valid_number(value, 100) else "unavailable"
+            reset = entry.get("resets_at")
+            remaining = f"{max(0, math.ceil((reset - now) / 60))}m" if valid_number(reset) else "unknown"
+            stale = " (stale; refresh pending)" if is_stale(provider, entry, now, self.stale_after) else ""
+            lines.append(f"{safe_label(entry.get('meter'))} {duration_label(entry.get('duration_seconds'))}: "
+                         f"{percent}, reset in {remaining}{stale}")
+        if self.provider == "gpt":
+            lines.append("Codex quota; not all ChatGPT chat or voice limits.")
+        self.qtile.spawn(["notify-send", "--", f"{self.label} quota", "\n".join(lines)])
+
+
+def quota_widgets(**config) -> list:
+    config.setdefault("fontsize", 12)
+    config.setdefault("padding", 4)
+    return [QuotaWidget("zai", "z.AI", name="llm_quota_zai", **config),
+            QuotaWidget("gpt", "GPT", name="llm_quota_gpt", **config)]
