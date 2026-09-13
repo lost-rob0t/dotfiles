@@ -1,3 +1,22 @@
+#+title: Native Android early startup and Termux bridge
+#+property: header-args:emacs-lisp :comments no :mkdirp yes
+
+* Startup contract
+
+This is the canonical source for =early-init.el=.  The native Android and Temple
+wrappers both load it before packages.  Android Emacs retains its own HOME,
+LD_LIBRARY_PATH, LD_PRELOAD and executable-loader settings.  Only an accessible
+Termux Bash activates the bridge; no desktop environment variables are changed.
+Repeated initialization must not grow PATH or exec-path.
+
+APK signing and shared-user requirements live in [[file:build.org][build.org]].
+After package bootstrap, native =M-x shell= uses Termux Bash, while Magit and
+=M-! git --version= resolve Termux Git.  A missing/incompatible Termux install
+must not prevent Emacs from starting; the bridge then stays inactive.
+
+* Implementation
+
+#+begin_src emacs-lisp :tangle early-init.el
 ;;; early-init.el --- Native Android Emacs early init -*- lexical-binding: t; -*-
 
 ;;; Commentary:
@@ -87,3 +106,4 @@ child output.  BUFFER defaults to the current buffer."
              gc-cons-percentage 0.1)))))
 
 ;;; early-init.el ends here
+#+end_src
