@@ -146,8 +146,13 @@ def build_emacs(args: argparse.Namespace, tools: Path) -> Path:
     if not (source / "configure").is_file():
         run([source / "autogen.sh"], cwd=source, timeout=600, capture=False)
     build_dir.mkdir(parents=True)
+    # GNU Emacs' Android port supports optional NDK-packaged libraries.  A bare
+    # SDK/NDK build has no Android GnuTLS module, so do not make that optional
+    # feature block creation of the baseline APK.  When --ndk-path contains the
+    # upstream Android GnuTLS port, configure still detects and enables it.
     command = [source / "configure", f"--with-android={jar}",
                "--with-shared-user-id=com.termux", "--without-android-debug",
+               "--with-gnutls=ifavailable",
                f"ANDROID_CC={cc}", f"SDK_BUILD_TOOLS={tools}"]
     if args.ndk_path:
         command.append(f"--with-ndk-path={args.ndk_path}")
