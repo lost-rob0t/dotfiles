@@ -113,6 +113,7 @@ in
         openai.options.baseURL = "${cfg.llmLog.baseUrl}/openai/v1";
         openrouter.options.baseURL = "${cfg.llmLog.baseUrl}/openrouter/api/v1";
         anthropic.options.baseURL = "${cfg.llmLog.baseUrl}/anthropic";
+        "zai-coding-plan".options.baseURL = "${cfg.llmLog.baseUrl}/zai/api/coding/paas/v4";
       };
       themes.${outrun.name} = mkIf outrun.enable theme;
       tui.theme = mkIf outrun.enable outrun.name;
