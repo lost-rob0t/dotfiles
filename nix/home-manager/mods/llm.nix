@@ -56,6 +56,7 @@ in
         openrouter = "https://openrouter.ai";
         anthropic = "https://api.anthropic.com";
         chatgpt = "https://chatgpt.com";
+        zai = "https://api.z.ai";
       };
     };
 
