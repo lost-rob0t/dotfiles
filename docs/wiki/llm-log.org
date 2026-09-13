@@ -4,18 +4,42 @@
 - [[file:../../.config/qtile/qtile-llm-log.org][Quota pair]] owns =llm_log_client.py= and =qtile_llm_log.py=.
 - [[file:../../.config/qtile/qtile-llm-log-graph.org][New API grapher]] owns =llm_log_graph.py= and =qtile_llm_log_graph.py=.
 - [[file:../../.config/qtile/qtile-telemetry.org][Runtime installer]] owns =qtile_telemetry.py= and installs old telemetry, then the pair, then the new graph.
+- [[file:../../nix/home-manager/mods/llm.nix][Home Manager consumer]] pins the quota-capable Python llm-log package and owns service enablement.
 
 The horizontal bar order is =z.AI=, =GPT=, =LLM graph=. The old OpenRouter
 widgets and graph remain separate and unchanged. Quota meters use reported
 account limits; the graph uses captured completed-request token buckets.
 The two domains must not be converted into each other by guessing a plan cap.
 
-* Enablement boundary
-The Python llm-log capture service must expose both =/api/v1/quotas= and
-=/api/v1/stats/timeline?coverage=fields=. The Common Lisp forwarding executable
-is a different runtime and does not expose these APIs. Backend configuration
-and credentials belong to llm-log; no secrets are stored in dotfiles.
+* Home Manager wiring
+The LLM profile pins llm-log to =171cf7a21a8a0f669ff07f3358fc82852c3406ef=,
+whose analytics/quota tests and Python package build passed exact-head CI.
+=llm.quotaTelemetry.enable= defaults to true when the LLM profile is enabled.
+This sets =LLM_LOG_QUOTAS_ENABLED=1= on the existing capture service.
 
-These changes are repository changes, not a live deployment. Verify the service
-with the user's already-authorized account, then reload the installed Qtile
-configuration. Missing/offline/expired values are intentionally not green zeros.
+The service uses the underlying =config.codex.package=, not the capture wrapper,
+and sets =CODEX_HOME= consistently with the Codex module's XDG preference.
+Managed ChatGPT authentication must already exist there. Nothing initiates a
+new login, buys a plan, or invokes inference. Reported plan metadata is dynamic.
+The GPT widget preserves Codex/account meter scope rather than claiming all
+ChatGPT web, voice or model allowances are visible.
+
+For z.AI, the optional private runtime environment file defaults to
+=~/.config/llm-log/quotas.env= (or the configured XDG config home). Set
+=llm.quotaTelemetry.environmentFile= to use another path. It may contain
+=LLM_LOG_ZAI_KEY_FILE=/absolute/path/to/private/key= or =ZAI_API_KEY= supplied
+privately by the operator. Keep the environment and key files owner-only (0600).
+Do not put secret contents in Nix expressions, repository files or widget options.
+The leading optional marker in the unit means a missing file does not prevent
+llm-log from starting; z.AI remains unavailable until authentication is supplied.
+
+* Deployment boundary
+The Python llm-log service must expose =/api/v1/quotas= and
+=/api/v1/stats/timeline?coverage=fields=. The Common Lisp forwarding executable
+is a different runtime and does not expose these APIs.
+
+Apply the reviewed Home Manager change, restart the user llm-log service and
+reload the installed Qtile configuration. These repository changes do not
+activate a live host by themselves. Missing/offline/expired values are not green
+zeros. Local integration used synthetic account metadata and offscreen Cairo;
+actual provider login and the user's live desktop remain a separate smoke test.
