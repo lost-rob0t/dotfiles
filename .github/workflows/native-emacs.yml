@@ -1,0 +1,50 @@
+name: Native Emacs
+
+on:
+  pull_request:
+    paths:
+      - 'emacs/desktop/**'
+      - 'nix/home-manager/mods/emacs*.nix'
+      - 'nix/home-manager/systems/flake/home.nix'
+      - '.github/workflows/native-emacs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-emacs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact head without submodule credential traversal
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          SOURCE_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SOURCE_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          git init .
+          git remote add origin "https://github.com/$SOURCE_REPOSITORY.git"
+          git -c credential.helper= fetch --depth=1 origin "$SOURCE_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+      - name: Install Emacs test runtime
+        run: sudo apt-get update && sudo apt-get install -y emacs-nox
+      - name: Fetch pinned upstream audit sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/doom-core"
+          git -C "$RUNNER_TEMP/doom-core" fetch --depth=1 https://github.com/doomemacs/core.git 01d68aaf6bd7db073365385cd82e1ad7e815295c
+          git -C "$RUNNER_TEMP/doom-core" checkout --detach FETCH_HEAD
+          git init "$RUNNER_TEMP/doom-modules"
+          git -C "$RUNNER_TEMP/doom-modules" fetch --depth=1 https://github.com/doomemacs/modules.git d57ab52a3425b6d39564fb011b0e9571da0e270f
+          git -C "$RUNNER_TEMP/doom-modules" checkout --detach FETCH_HEAD
+      - name: Inventory declarations and legacy APIs without loading Doom
+        env:
+          DOOM_AUDIT_CORE: ${{ runner.temp }}/doom-core
+          DOOM_AUDIT_MODULES: ${{ runner.temp }}/doom-modules
+        run: emacs -Q --batch -l emacs/desktop/tools/inventory.el
