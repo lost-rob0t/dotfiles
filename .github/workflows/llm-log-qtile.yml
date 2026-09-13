@@ -1,0 +1,46 @@
+name: llm-log Qtile quota widgets
+on:
+  pull_request:
+    paths:
+      - '.config/qtile/**'
+      - '.github/workflows/llm-log-qtile.yml'
+  push:
+    branches: [feat/233-llm-log-qtile-quotas]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quota-widgets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Quota model, local HTTP, widgets and Org parity
+        run: python -m unittest discover -s .config/qtile/tests -p 'test_llm_log_widgets.py' -v
+      - name: Compile changed runtime modules
+        run: python -m py_compile .config/qtile/llm_log_client.py .config/qtile/qtile_llm_log.py .config/qtile/qtile_telemetry.py
+      - name: Install actual Qtile for API compatibility smoke
+        run: python -m pip install 'qtile==0.37.0'
+      - name: Construct and poll actual Qtile subclasses without network
+        env:
+          PYTHONPATH: .config/qtile
+        run: |
+          python - <<'PY'
+          from qtile_llm_log import make_quota_widgets
+          pair = make_quota_widgets()
+          assert [w.provider_id for w in pair] == ['zai', 'gpt']
+          assert pair[0].feed is pair[1].feed
+          assert 'z.AI' in pair[0].poll()
+          assert 'GPT' in pair[1].poll()
+          assert pair[0].feed._thread is None
+          print('Actual Qtile constructor/poll smoke passed (not a live WM test).')
+          PY
