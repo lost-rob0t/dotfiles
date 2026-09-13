@@ -1,0 +1,36 @@
+name: Android Emacs Auto Build
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/android-emacs-autobuild.yml"
+      - ".github/workflows/android-emacs-release.yml"
+      - "android/**"
+      - "bootstrap-termux.org"
+      - "bootstrap-termux.sh"
+      - ".emacs-profiles.el"
+      - "emacs/profiles.org"
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: android-emacs-auto-build
+  cancel-in-progress: true
+
+jobs:
+  dispatch-paired-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch source-built Android bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run android-emacs-release.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref master \
+            -f allow_public_test_key=true
