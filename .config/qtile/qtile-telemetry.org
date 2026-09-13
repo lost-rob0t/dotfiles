@@ -1,3 +1,14 @@
+#+title: Qtile runtime telemetry and widget integration
+#+property: header-args:python :mkdirp yes :results none
+
+* Ownership
+This is the canonical source for =qtile_telemetry.py=. Existing WM/key telemetry
+and OpenRouter installation are unchanged. The adjacent z.AI/GPT pair is added
+after the old telemetry installer so desktop-control bar setup runs first.
+See [[file:qtile-llm-log.org][llm-log quota widgets]] for their behavior and settings.
+The [[file:qtile-llm-log-graph.org][new llm-log API grapher]] is installed directly after GPT.
+
+#+begin_src python :tangle qtile_telemetry.py
 import json
 import os
 from datetime import datetime, timezone
@@ -298,3 +309,4 @@ def _restart():
 @hook.subscribe.shutdown
 def _shutdown():
     telemetry_event("session_shutdown")
+#+end_src
