@@ -27,13 +27,15 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Doom packages | [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | Desktop package declarations; tangles to =packages.el=. |
 | Emacs profiles | [[file:../../emacs/profiles.org][emacs/profiles.org]] | Chemacs profile map for desktop Doom, Termux Doom, native Android/Org, and Temple. |
 | Android Org/Vim | [[file:../../android/config.org][android/config.org]] | Doom-free Evil/org-modern mobile layer, Stow wrapper, toolbar, installer, and tests. |
+| Android APK build | [[file:../../android/build.org][android/build.org]] | Shared local/CI build.py, APK identity/signature gates, signing and installation safety. |
+| Android early startup | [[file:../../android/early-init.org][android/early-init.org]] | early-init.el and guarded Termux Bash/PATH integration. |
 | Android guide | [[file:../../android/README.org][android/README.org]] | Native reader, paired Emacs/Termux build, install/signature rules, and mobile workflows. |
 | Termux bootstrap | [[file:../../bootstrap-termux.org][bootstrap-termux.org]] | Rolling Termux update, Git/Stow/dev tools, Doom + Org launchers, AI guest, and widgets. |
 | Termux remote | [[file:../../scripts/termux-remote.org][scripts/termux-remote.org]] | Remote GUI recovery, mobile SSH keepalives, Agent Zero tunneling, and extra Termux:Widget shortcuts. |
 | Termux Doom | [[file:../../android/doom/config.org][android/doom/config.org]] | Phone-specific full Doom source for StarIntel admin, Org/TODOs, languages, and AI. |
 | Qtile | [[file:../../.config/qtile/qtile-ai.org][.config/qtile/qtile-ai.org]] | Main Qtile literate source; tangles to =config.py=. |
-| Qtile workflows | [[file:../../.config/qtile/qtile-workflows.org][.config/qtile/qtile-workflows.org]] | Desktop workflow lifecycle/actions and definitions; tangles to =qtile_workflows.py= and =workflows.json=. |
-| Qtile routing | [[file:../../.config/qtile/qtile-ai-windows.org][.config/qtile/qtile-ai-windows.org]] | Auto-mode window metadata classifiers; tangles to =qtile_ai_windows.py=. |
+| Qtile workflows | [[file:../../.config/qtile/qtile-workflows.org][.config/qtile/qtile_workflows.org]] | Desktop workflow lifecycle/actions and definitions; tangles to =qtile_workflows.py= and =workflows.json=. |
+| Qtile routing | [[file:../../.config/qtile/qtile-ai-windows.org][.config/qtile/qtile-ai-windows.org]] | Topology-aware window metadata classifiers; tangles to =qtile_ai_windows.py=. |
 | Qtile capture | [[file:../../.config/qtile/qtile-capture.org][.config/qtile/qtile-capture.org]] | Capture and auxiliary binding installer; tangles to =qtile_capture.py=. |
 | Qtile prompt library | [[file:../../.config/qtile/qtile-prompt-lib.org][.config/qtile/qtile-prompt-lib.org]] | Preserves the existing Emacs AI binding and adds =Super e y p= for the prompt browser; tangles to =qtile_prompt_lib.py=. |
 | OpenRouter widget | [[file:../../.config/qtile/qtile-openrouter.org][.config/qtile/qtile-openrouter.org]] | Telemetry/widget helper; tangles to =qtile_openrouter.py=. |

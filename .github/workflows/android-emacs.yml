@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install validation tools
-        run: sudo apt-get update && sudo apt-get install -y emacs-nox shellcheck
+        run: sudo apt-get update && sudo apt-get install -y emacs-nox shellcheck python3
 
       - name: Check literate generated parity
         run: |
@@ -46,11 +46,15 @@ jobs:
               (require (quote ob-tangle))
               (org-babel-tangle-file "bootstrap-termux.org")
               (org-babel-tangle-file "android/config.org")
+              (org-babel-tangle-file "android/build.org")
+              (org-babel-tangle-file "android/early-init.org")
               (org-babel-tangle-file "android/doom/config.org")
               (org-babel-tangle-file "emacs/profiles.org"))'
           git diff --exit-code -- \
             bootstrap-termux.sh \
             .emacs-profiles.el \
+            android/build.py \
+            android/early-init.el \
             android/stow/android-emacs/.emacs.d/early-init.el \
             android/stow/android-emacs/.emacs.d/init.el \
             android/lisp/star-android-modern.el \
@@ -59,6 +63,9 @@ jobs:
             android/doom/init.el \
             android/doom/packages.el \
             android/doom/config.el
+
+      - name: Run Android build-system regression tests
+        run: python3 -m unittest discover -s android/tests -p 'test_termux_build.py' -v
 
       - name: Check Elisp structure
         run: |
@@ -72,6 +79,7 @@ jobs:
                                 "android/stow/android-emacs/.emacs.d/init.el"
                                 "android/tests/star-android-reader-test.el"
                                 "android/tests/star-android-modern-test.el"
+                                "android/tests/termux-bridge-test.el"
                                 "android/tests/async-compat-test.el"
                                 "android/doom/init.el"
                                 "android/doom/packages.el"
@@ -82,7 +90,7 @@ jobs:
                 (emacs-lisp-mode)
                 (check-parens)))'
 
-      - name: Run reader and async compatibility ERT tests
+      - name: Run reader, bridge and async compatibility ERT tests
         run: |
           set -euo pipefail
           emacs -Q --batch \
@@ -91,6 +99,7 @@ jobs:
             -l android/early-init.el \
             -l android/tests/star-android-reader-test.el \
             -l android/tests/star-android-modern-test.el \
+            -l android/tests/termux-bridge-test.el \
             -l android/tests/async-compat-test.el \
             -f ert-run-tests-batch-and-exit
 

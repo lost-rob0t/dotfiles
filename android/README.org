@@ -13,7 +13,8 @@ reduced to make the mobile reader small.
 Canonical sources:
 
 - [[file:config.org][config.org]] owns the modern native Org/Vim layer, Stow wrapper, installer, and tests;
-- =early-init.el= and =init.el= remain the base native reader entry points;
+- [[file:early-init.org][early-init.org]] owns =early-init.el= and the guarded Termux executable/Bash bridge; =init.el= remains the base native reader entry point;
+- [[file:build.org][build.org]] owns =build.py=, the shared local/CI APK build and signing gate;
 - [[file:doom/config.org][doom/config.org]] owns the Termux Doom profile;
 - =../emacs/profiles.org= owns the Chemacs profile map;
 - =../bootstrap-termux.org= owns the Termux bootstrap.
@@ -130,39 +131,61 @@ compatibility boundary for tools that need a normal Linux/glibc userspace.
 
 * Paired Android Emacs + modern Termux build
 
-=.github/workflows/android-emacs-release.yml= builds an arm64 GNU Emacs Android
-APK from the maintained Emacs 30 branch with =--with-shared-user-id=com.termux=.
-On manual runs, weekly scheduled runs, and =android-emacs-v*= tags it also fetches
-the current upstream Termux, Termux:API, and Termux:Widget APKs and re-signs all
-of them with the same Emacs compatibility key.
+The canonical build instructions and implementation are in [[file:build.org][build.org]].
+=../.github/workflows/android-emacs-release.yml= builds native GNU Emacs 30.2
+for arm64, minimum Android API 29, with =--with-shared-user-id=com.termux=.
+It also builds Termux, Termux:API, and Termux:Widget from their current stable
+source releases.  The workflow records each source commit in =SOURCE-LOCK.txt=.
+Manual builds, the existing weekly schedule, and =android-emacs-v*= tags use
+the same =build.py= cross-build, signing, and verification entry points.
 
-This pairing is what makes the Termux prefix, including Git installed by the
-bootstrap, executable from native Android Emacs.  =android/early-init.el= adds
-=/data/data/com.termux/files/usr/bin= to =PATH= and =exec-path= but deliberately
-does *not* set =LD_LIBRARY_PATH=.
+Normal builds require the repository secrets =STAR_ANDROID_KEYSTORE_B64= and
+=STAR_ANDROID_KEYSTORE_PASSWORD= for one persistent private signing identity.
+Missing or partial signing configuration fails before compilation.  A manual
+=allow_public_test_key= opt-in can produce a TEST-ONLY artifact with the public
+Emacs key; that key is not a trust anchor and cannot publish a tagged release.
+Do not commit a private keystore or its password.
+
+The signing gate checks actual APK package identities, =com.termux= shared-user
+manifests, ZIP alignment, and exactly one identical signing certificate across
+the four applications.  It rejects conditional shared UIDs, wrong/missing
+packages, and mixed signers.  Original APKs are preserved; staged outputs are
+verified before publication.  =PAIRING.json= contains hashes and signer metadata.
 
 The release bundle contains:
 
 #+begin_example
-emacs-android-termux-paired.apk
-termux-emacs-paired.apk
-termux-api-emacs-paired.apk
-termux-widget-emacs-paired.apk
+emacs-android-starintel.apk
+termux-starintel-arm64.apk
+termux-api-starintel.apk
+termux-widget-starintel.apk
 bootstrap-termux.sh
-UPSTREAM-VERSIONS.txt
+SOURCE-LOCK.txt
+PAIRING.json
 SHA256SUMS
+README.org
+BUILD.org
 #+end_example
 
-Important: the paired Termux APKs have a different signature from official
-Termux/F-Droid/GitHub builds.  Android will not upgrade across mismatched
-signatures.  Install the Emacs-paired Termux family together; uninstall a
-conflicting Termux family first if Android reports a signature mismatch.  The
-public compatibility key enables shared-user access; it is not a trust anchor.
+Back up Termux home, packages, and Emacs files before switching signing families.
+Android cannot upgrade across incompatible signatures or change an installed
+app's shared UID.  Uninstalling can delete app data: the build never installs or
+uninstalls anything automatically.  Install the matching family together,
+launch Termux and Emacs once, bootstrap the development packages, then run
+=android-emacs-stow= from Termux.
 
-Git is therefore available to native Emacs through the paired Termux userspace
-rather than by injecting a second, separately maintained Git binary into the
-Emacs APK.  Run the Termux bootstrap once to install/update Git and clone the
-dotfiles checkout.
+The bridge in [[file:early-init.org][early-init.org]] adds the accessible Termux bin directory
+to =PATH= and =exec-path= and selects Termux Bash for =M-x shell= and subprocesses.
+It sets =SHELL= and =PREFIX= but retains native Emacs HOME and does not change
+=LD_LIBRARY_PATH=, =LD_PRELOAD=, or Emacs's Android executable-loader setting.
+Repeated initialization is idempotent.  Desktop and inaccessible Termux installs
+are unchanged.  Test =M-x shell= and =M-! git --version= in native Emacs after
+installation; build verification does not replace a physical-device smoke test.
+
+Git comes from the paired Termux userspace, not a separately maintained binary
+in the Emacs APK.  Optional Emacs libraries and NixOS build-host requirements
+are documented in [[file:build.org][build.org]]; full native-library parity and universal Android
+compatibility are not implied by successful signing.
 
 * Termux Doom
 
@@ -176,7 +199,7 @@ Leader shortcuts include =SPC o A= for StarIntel admin, =SPC o a= for agenda,
 
 * Termux:Widget
 
-Use the =termux-widget-emacs-paired.apk= from the paired release when the paired
+Use the =termux-widget-starintel.apk= from the paired release when the paired
 Termux app is installed.  Termux plugins must use the same signature/shared-user
 family.  The bootstrap creates foreground scripts in =~/.shortcuts/= and
 background jobs in =~/.shortcuts/tasks/=.
