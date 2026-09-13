@@ -96,9 +96,11 @@ jobs:
           app_ref="$(latest_release_tag termux/termux-app)"
           api_ref="$(latest_release_tag termux/termux-api)"
           widget_ref="$(latest_release_tag termux/termux-widget)"
-          printf 'TERMUX_APP_REF=%s\n' "$app_ref" >> "$GITHUB_ENV"
-          printf 'TERMUX_API_REF=%s\n' "$api_ref" >> "$GITHUB_ENV"
-          printf 'TERMUX_WIDGET_REF=%s\n' "$widget_ref" >> "$GITHUB_ENV"
+          {
+            printf 'TERMUX_APP_REF=%s\n' "$app_ref"
+            printf 'TERMUX_API_REF=%s\n' "$api_ref"
+            printf 'TERMUX_WIDGET_REF=%s\n' "$widget_ref"
+          } >> "$GITHUB_ENV"
 
       - name: Clone GNU Emacs and Termux sources
         run: |
