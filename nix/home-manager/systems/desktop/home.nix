@@ -43,8 +43,11 @@
     };
   };
 
+  # Keep Qwen available as a flake input, but do not create/start its ROCm
+  # user service on login. The GPU backend must be validated manually first;
+  # a driver hang here takes the graphical session down with it.
   services.qwen3-tts = {
-    enable = true;
+    enable = false;
     backend = "rocm";
     port = 7860;
   };
@@ -54,10 +57,6 @@
   systemd.user.services.zara-server.Service = {
     ExecStartPre = "${config.zara.package}/bin/zara-server --security-dir %h/.local/state/zarathushtra/security --security-init";
     ExecStart = lib.mkForce "${config.zara.package}/bin/zara-server --shutdown-timeout ${toString config.zara.server.shutdownTimeout} --endpoint tcp://0.0.0.0:7731 --security-dir %h/.local/state/zarathushtra/security";
-  };
-  systemd.user.services.zara-server.Unit = {
-    After = [ "qwen3-tts.service" ];
-    Wants = [ "qwen3-tts.service" ];
   };
 
   screenCapture = {
