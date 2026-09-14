@@ -8,3 +8,4 @@
 :- consult("nixpkgs_deprecations").
 :- consult("literate_sync").
 :- consult("forgejo_ci").
+:- consult("opencode_commands").
