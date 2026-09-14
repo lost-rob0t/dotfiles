@@ -6,3 +6,4 @@
 
 :- consult("home_manager_ownership").
 :- consult("nixpkgs_deprecations").
+:- consult("literate_sync").

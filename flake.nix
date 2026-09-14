@@ -179,10 +179,8 @@
         assert desktopHome.config.programs.opencode.enable;
         assert desktopHome.config.programs.opencode.package == pkgs.opencode;
         assert desktopHome.config.programs.opencode.enableMcpIntegration;
-        assert
-          builtins.hasAttr
-            "${desktopHome.config.xdg.configHome}/opencode/AGENTS.md"
-            desktopHome.config.home.file;
+        assert builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/AGENTS.md"
+          desktopHome.config.home.file;
         assert desktopHome.config.programs.opencode.tui.theme == "outrun";
         assert
           desktopHome.config.programs.opencode.settings.provider.openai.options.baseURL
@@ -288,6 +286,14 @@
           cmp first-pass.toml config.toml
           touch "$out"
         '';
+      opencodeCommandsCheck = import ./tests/opencode-commands.nix {
+        inherit
+          home-manager
+          lib
+          pkgs
+          ;
+        inputs = { inherit skills; };
+      };
     in
     {
       nixosConfigurations = {
@@ -331,6 +337,7 @@
         unseen-hunter02-home = homeConfigurations."unseen@hunter02".activationPackage;
         ai-client-theme = aiClientThemeCheck;
         codex-config-patch = codexConfigPatchCheck;
+        opencode-commands = opencodeCommandsCheck;
       };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;
