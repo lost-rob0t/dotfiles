@@ -7,3 +7,4 @@
 :- consult("home_manager_ownership").
 :- consult("nixpkgs_deprecations").
 :- consult("literate_sync").
+:- consult("forgejo_ci").
