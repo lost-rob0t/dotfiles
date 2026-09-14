@@ -45,7 +45,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Qtile telemetry installer | [[file:../../.config/qtile/qtile-telemetry.org][.config/qtile/qtile-telemetry.org]] | WM/key telemetry and old/new widget integration; tangles to =qtile_telemetry.py=. |
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
 | Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |
-| OpenCode | [[file:../../nix/home-manager/mods/opencode.org][opencode.org]] | Literate Home Manager source for global policy, commands, theme, and routing; tangles to =opencode.nix=. |
+| OpenCode | [[file:../../nix/home-manager/mods/opencode.org][opencode.org]] | Literate Home Manager source for global policy, commands, theme, routing, and the optional web workspace; tangles to =opencode.nix=. |
 | Zara workflows | [[file:../../nix/home-manager/mods/zara-workflows.nix][zara-workflows.nix]] | Home Manager-owned base workflows plus the Qwen3-TTS service integration; private Zara runtime config remains unmanaged. |
 | Agent verification | [[file:../../nix/home-manager/mods/agent-verification.nix][agent-verification.nix]] | Global Codex/OpenCode policy, durable Prolog gate, and Codex lifecycle hooks. |
 | NixOS | [[file:../../nix/nixos/][nix/nixos/]] | Hosts and installer definitions. |

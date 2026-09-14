@@ -582,17 +582,17 @@ in
     }) (builtins.attrNames cfg.commands);
 
     xdg.configFile = commandFiles;
-    home.packages = lib.optional (opencodeWorker != null) opencodeWorker;
+    home.packages =
+      lib.optional (opencodeWorker != null) opencodeWorker
+      ++ lib.optionals cfg.web.enable [
+        opencodeAttach
+        opencodeWebOpen
+      ];
     home.sessionVariables.OPENCODE_GLOBAL_SKILLS_CHECKOUT = cfg.globalSkills.sourceCheckout;
 
     home.file."${config.xdg.configHome}/opencode/AGENTS.md" = mkIf (cfg.globalAgentsFile != null) {
       source = cfg.globalAgentsFile;
     };
-
-    home.packages = lib.optionals cfg.web.enable [
-      opencodeAttach
-      opencodeWebOpen
-    ];
 
     xdg.desktopEntries.opencode-web = mkIf cfg.web.enable {
       name = "OpenCode Web";
