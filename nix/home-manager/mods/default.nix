@@ -7,6 +7,7 @@
     inputs.qwen3-tts.homeManagerModules.default
     ./outrun-theme.nix
     ./opencode.nix
+    ./opencode-tmux.nix
     ./codex.nix
     ./agent-verification.nix
     ./chatgpt-desktop.nix

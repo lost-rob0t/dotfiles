@@ -15,6 +15,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:emacs.org][Emacs and Doom]] - desktop Doom plus the Doom-free Android Org profile and profile switching.
 - [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, desktop workflows, and desktop integration.
 - [[file:opencode-commands.org][Global OpenCode commands]] - declarative =/= commands, reusable skills, the =opencode-worker= Unix contract, model routing, and hosting workflows.
+- [[file:../../scripts/opencode-tmux.org][OpenCode tmux sessions and EZF]] - named sessions, fzf/Emacs selection, hardened completion transport, installation, and verification.
 - [[file:llm-log.org][llm-log telemetry]] - adjacent z.AI/GPT quota meters and the new accurate API grapher.
 - [[file:zara.org][Zara workflows]] - declarative Zara base config, private-overlay ownership, Qwen3-TTS voice service, desktop/voice workflows, and bounded system updates.
 - [[file:screen-capture.org][Screen capture]] - stable screenshot/recording CLI, backends, Qtile bindings, Emacs picker, and Home Manager options.
@@ -47,6 +48,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
 | Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |
 | OpenCode | [[file:../../nix/home-manager/mods/opencode.org][opencode.org]] | Literate Home Manager source for global policy, commands, theme, routing, and the optional web workspace; tangles to =opencode.nix=. |
+| OpenCode tmux / EZF | [[file:../../scripts/opencode-tmux.org][scripts/opencode-tmux.org]] | Standalone session commands, private-file Emacs bridge, and optional Home Manager packaging. |
 | Zara workflows | [[file:../../nix/home-manager/mods/zara-workflows.nix][zara-workflows.nix]] | Home Manager-owned base workflows plus the Qwen3-TTS service integration; private Zara runtime config remains unmanaged. |
 | Agent verification | [[file:../../nix/home-manager/mods/agent-verification.nix][agent-verification.nix]] | Global Codex/OpenCode policy, durable Prolog gate, and Codex lifecycle hooks. |
 | NixOS | [[file:../../nix/nixos/][nix/nixos/]] | Hosts and installer definitions. |
