@@ -20,6 +20,12 @@
     enable = true;
   };
 
+  opencode.web = {
+    enable = true;
+    hostname = "127.0.0.1";
+    port = 4096;
+  };
+
   hackmode.enable = true;
 
   zara = {
@@ -117,8 +123,7 @@
   # incompatible changes.
   #
   # You can update this value in your configuration without breakage.
-  # See the Home Manager release notes for a list of state version
-  # changes.
+  # See the Home Manager release notes for more information.
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
