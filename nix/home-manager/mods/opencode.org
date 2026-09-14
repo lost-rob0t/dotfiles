@@ -33,8 +33,11 @@ complete child task, stdout is usable model output, stderr is diagnostics, and
 status is success or failure.  Logical model names resolve against the live
 OpenCode catalog.  Model-selected children in RAGE, ADADR/ARADR, GRILL, review,
 research, delegation, and fleets use that wrapper; ordinary model-agnostic
-subtasks may remain native.  Worker concurrency and retries are bounded, and
-parallel mutation requires isolated Git worktrees.
+subtasks may remain native.  Worker concurrency, retries, and prompt size are
+bounded (Linux caps one process argument near 128 KiB, so oversized prompts are
+rejected before launch), parallel mutation requires isolated Git worktrees, and
+worker results are emitted through plain sized writes so downstream closure is
+observable.
 
 RAGE remains the existing issue-to-merge workflow and ADADR remains its actual
 architecture loop; =/aradr= first discovers whether a project defines a distinct
