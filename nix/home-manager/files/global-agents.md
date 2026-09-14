@@ -35,6 +35,13 @@ issue prose, research notes, README text, or a schema filename.
    consumer. `schema_version` is the immutable base/wire schema family and may be
    older than the release/profile version.
 
+   If the local agent runtime is still pinned to a skills revision that predates
+   `starintel-spec-version`, do **not** guess or continue from remembered numbers.
+   Read the lock JSON directly and run the repository-native lock checker when one
+   exists. Record `release_version`, `schema_version`, `canonical_repository`, and
+   `canonical_commit`; then use those values exactly. Updating the skills pin is a
+   deployment task, not permission to bypass spec resolution.
+
 2. Follow the lock's `canonical_repository` and `canonical_commit`. When a matching
    local canonical checkout is available, verify it with the same helper's `check`
    command and `--canonical-root`.
