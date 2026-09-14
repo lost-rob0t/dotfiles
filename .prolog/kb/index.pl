@@ -9,3 +9,4 @@
 :- consult("literate_sync").
 :- consult("forgejo_ci").
 :- consult("opencode_commands").
+:- consult("opencode_worker").
