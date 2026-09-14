@@ -123,7 +123,7 @@
   # incompatible changes.
   #
   # You can update this value in your configuration without breakage.
-  # See the Home Manager release notes for more information.
+  # See the Home Manager release notes for
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
