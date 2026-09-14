@@ -20,6 +20,12 @@
     enable = true;
   };
 
+  opencode.web = {
+    enable = true;
+    hostname = "127.0.0.1";
+    port = 4096;
+  };
+
   hackmode.enable = true;
 
   zara = {
