@@ -156,6 +156,8 @@ The focused checks are:
 ** Global OpenCode commands
 The canonical [[file:../../nix/home-manager/mods/opencode.org][OpenCode Org module]] renders enabled =opencode.commands= entries in deterministic frontmatter order under =~/.config/opencode/commands=.  The built-in =/skills=, =/skills-new=, =/skill-edit=, and =/skills-edit= alias are thin skill selectors.  They distinguish project-owned =.opencode/skills= and =.agents/skills= from pinned global installations and record =/home/unseen/Documents/AI/skills= explicitly as the editable global source checkout.  Project =.opencode/commands= files are outside Home Manager ownership and continue to use OpenCode's normal project precedence.
 
+The command set, the =opencode-worker= Unix filter contract, model routing, rate limiting, worker isolation, and the =merge-on-green= / =sync-remotes= hosting workflows are documented in [[file:opencode-commands.org][Global OpenCode commands]].
+
 * LLM tooling and Brave Search MCP
 Enabling =llm.enable= also enables the reusable [[file:../../nix/home-manager/mods/brave-mcp.nix][Brave MCP module]] by default, installs Brave's =bx= CLI plus the typed =brave-mcp= stdio adapter, and exposes that MCP server to OpenCode through the shared MCP Home Manager integration.  A host may still override =braveMcp.enable = false= explicitly.
 

@@ -1,0 +1,153 @@
+#+TITLE: Global OpenCode Commands, Skills, and Workers
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Purpose
+This page documents the global OpenCode command system: how =/= commands
+are declared in Nix, generated into =~/.config/opencode/commands=, how
+they delegate to reusable skills, and how skills launch model-specific
+child workers through the shared =opencode-worker= helper.
+
+The canonical sources are:
+
+- [[file:../../nix/home-manager/mods/opencode.org][nix/home-manager/mods/opencode.org]] - literate source for the Home
+  Manager module; tangles to =opencode.nix=.
+- The global skills repository checkout (=$OPENCODE_GLOBAL_SKILLS_CHECKOUT=,
+  default =~/Documents/AI/skills=) - owns the =opencode-worker=,
+  =opencode-orchestrate=, =worker-orchestration=, =grill=, =merge-on-green=,
+  =git=, and =skill-scope= skills plus their executable helpers.
+
+* Architecture
+
+#+begin_example
+  /command $ARGUMENTS                    (thin intent prompt)
+        |
+        v
+  reusable skill                         (workflow knowledge)
+        |
+        +--> native OpenCode subtasks    (model identity irrelevant)
+        |
+        +--> scripts                     (deterministic mechanics)
+        |
+        +--> opencode-worker             (model/version/variant selected)
+                |
+                v
+             opencode run --model ... --variant ... [--attach server]
+#+end_example
+
+Rules of the layers:
+
+- Slash commands express intent and name a skill; they never embed an
+  implementation framework.  A command definition is one or two
+  sentences plus literal OpenCode placeholders (= $ARGUMENTS=, =$1=).
+- Skills hold reusable workflow knowledge and may call scripts.
+- Scripts hold deterministic, testable mechanics (worker wrapper,
+  model resolver, merge gating, drift reporting).
+- The instant a child agent needs a particular model, provider,
+  version, variant, or agent profile, it MUST be launched through
+  =opencode-worker=.  Model-agnostic subtasks may stay native.
+- Project-local =.opencode/commands= and =.opencode/skills= keep
+  OpenCode's native precedence and are never touched by Home Manager.
+
+* Command declaration and generation
+
+Declare commands under =opencode.commands= in the OpenCode module.
+Each entry supports =enable=, =description=, =template=, =agent=,
+=model=, =variant=, and =subtask=.  Generation is deterministic:
+enabled commands render as Markdown files with YAML frontmatter under
+=~/.config/opencode/commands/<name>.md=, sorted, with placeholder text
+preserved literally until OpenCode expands it at invocation time.
+
+Safety and invariants:
+
+- Command names must match =^[A-Za-z0-9][A-Za-z0-9._-]*$=; path
+  traversal (for example =../escape=) fails evaluation via assertion.
+- Disabled commands produce no file.
+- Deterministic generation is proven by the reverse/forward insertion
+  fixtures in [[file:../../tests/opencode-commands.nix][tests/opencode-commands.nix]].
+- Run =nix build '.#checks.x86_64-linux.opencode-commands'= to verify.
+
+To add a command, append one =commandSpecs= entry (description + skill
+name).  Only add a special template when the generic skill dispatch is
+insufficient (for example =/skills-new= needs the global checkout
+path, =/unfuck= needs the logical-model mandate).
+
+* Worker contract (Unix filter)
+
+=opencode-worker= (from the =opencode-worker= skill, installed on PATH
+by Home Manager as =packages.<system>.opencode-worker=) behaves like a
+normal Unix program:
+
+#+begin_example
+stdin   -> complete child task/prompt
+stdout  -> usable child-agent response (plain text; no escapes)
+stderr  -> model, session, retries, diagnostics, timing
+exit    -> child success/failure (130/143 on signals)
+#+end_example
+
+#+begin_src shell
+result="$(build-review-prompt |
+  opencode-worker --model "$review_model" --role reviewer --dir "$PWD")"
+#+end_src
+
+Options: =--model=, =--variant=, =--agent=, =--role= (prompt metadata,
+never a CLI flag), =--dir=, =--session=, =--continue=, =--fork=,
+=--attach=, =--title=, =--format text|json=, =--mode
+readonly|isolated-mutate=, =--max-retries=, =--max-delay=,
+=--lock-file=.  Only flags the installed OpenCode actually supports
+are forwarded; =opencode run --help= is the authority.
+
+Model selection is data-driven: logical names map through
+=config/models.tsv= (for example =astra-medium= -> =openai/gpt-6-astra=
+with variant =medium=) and =resolve-model= probes the live =opencode
+models= catalog, failing rather than inventing IDs.  Rate limiting is
+bounded: retries only on recognizable 429/rate-limit failures,
+=Retry-After= honored and capped by =--max-delay=, exhaustion returns
+a distinct status.  Mutation safety: =--mode isolated-mutate= requires
+a linked Git worktree and rejects shared session state; read-only is
+the default; =--lock-file= serializes workers sharing a resource.
+A running server can be reused with =--attach=; standalone operation
+remains correct without it.
+
+* Model-selecting workflows
+
+=continue=, =rage=, =auto-rage=, =aradr=, =star-aradr=, =grill=,
+=unfuck=, =deep-research=, =adversarial-review=, =reviewer=,
+=delegate=, =fleet=, and =route= are wired so that any child whose
+model identity is selected goes through =opencode-worker=.  The usual
+flow: the skill determines the ROLE, the parent or =/route= resolves
+the MODEL from configured providers, and the worker launches it.  RAGE
+roles (researcher, architect, adversary, verifier) may map to
+different models; do not hardwire one model for all roles.
+
+To add another model-selecting workflow: implement the workflow in a
+skill, resolve logical models with =opencode-worker-resolve-model=,
+and launch children only through =opencode-worker=.  Never add a
+private worker launcher.
+
+* Hosting workflows
+
+- =/merge-on-green= loads the =merge-on-green= skill and runs its
+  =scripts/merge-on-green=.  The provider is detected from the origin
+  remote (GitHub -> =gh=, =git.starintel.actor= -> Forgejo REST API
+  with =FORGEJO_TOKEN=).  Invariant: the merged commit must be the
+  exact head whose gates and reviews were verified; any head change
+  invalidates green evidence and restarts validation.  Pending,
+  failed, cancelled, conflict, review-required, rate-limited, and API
+  failure states are bounded with backoff, never busy-looped.  Exit
+  codes: 0 merged, 2 configuration, 3 provider failure, 4
+  blocked/timeout, 5 rate-limited.
+- =/sync-remotes= loads the =git= skill and runs its
+  =scripts/sync-remotes= to report canonical-vs-mirror branch drift
+  and to fast-forward the mirror safely with =--push= (dirty worktree
+  refuses; diverged branches are only reported).  Issues and PRs are
+  never duplicated across hosts.
+
+* Verification commands
+
+#+begin_src shell
+nix build '.#checks.x86_64-linux.opencode-commands'
+bash scripts/check-literate-sync
+nix build --no-link '.#homeConfigurations."unseen@desktop".activationPackage'
+python3 -m pytest tests/ -q   # in the skills checkout
+#+end_src
