@@ -14,17 +14,20 @@ use tea for forgjo actions.
 
 For **any StarIntel work** — including StarIntel repositories, document/schema changes,
 actors, APIs, ingest, research tooling, bindings, conformance, or consumers of the
-StarIntel document contract — use the `starintel-spec-version` skill before relying
-on a version number.
+StarIntel document contract — load and follow the `starintel-spec-version` skill
+before relying on a version number.
 
 The active release must be resolved from repository authority, never from memory,
 issue prose, research notes, README text, or a schema filename.
 
 1. If the current repository contains `schema/starintel-schema.lock.json`, resolve
-   that lock first:
+   that lock first with the `starintel-spec-version` skill. Its read-only helper is
+   `scripts/starintel_spec_version.py` inside the installed skill; use the agent
+   runtime's resolved skill location rather than guessing a home-directory path.
+   The equivalent invocation is:
 
    ```bash
-   python3 "$HOME/skills/skills/starintel-spec-version/scripts/starintel_spec_version.py" \
+   python3 <starintel-spec-version-skill>/scripts/starintel_spec_version.py \
      current --lock schema/starintel-schema.lock.json
    ```
 
