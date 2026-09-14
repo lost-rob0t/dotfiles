@@ -177,6 +177,22 @@
         "type": "github"
       }
     },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1789149629,
+        "narHash": "sha256-H6GwaZzZf+4npqv0tph94w9tZddSjFjmQrVsW0z78uk=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "eaad089433ca2bb662274377d33df3d0e51ef28b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "qwen3-tts": {
       "inputs": {
         "nixpkgs": [
@@ -213,12 +229,15 @@
       }
     },
     "skills": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_2"
+      },
       "locked": {
-        "lastModified": 1789214642,
-        "narHash": "sha256-avb7d/+/Kq3xCJaNt+oOEtnF7n5RcjjImujMn7YyFVM=",
+        "lastModified": 1789358758,
+        "narHash": "sha256-QhE3eli2hiph163ef4zMIzuT1yN5WUzUuW7Cwbar2Yo=",
         "owner": "lost-rob0t",
         "repo": "skills",
-        "rev": "0abda3fb0cbdd99c3a7465babffdd0f7a08fb78b",
+        "rev": "1c8a7d00e07ee597ab873dcb3ee57871cbfe3e5a",
         "type": "github"
       },
       "original": {
