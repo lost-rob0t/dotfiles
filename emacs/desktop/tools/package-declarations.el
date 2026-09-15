@@ -11,6 +11,27 @@
    (t (or (star-port-contains-package-declaration-p (car form))
           (star-port-contains-package-declaration-p (cdr form))))))
 
+(defun star-port-declaration-test (form)
+  "Resolve a package declaration condition without executing upstream Lisp.
+
+Doom package files sometimes use `package!' as the test of `when'.  Treat that
+as a declaration plus a truth value.  Logical forms recurse through this
+function so declarations nested in `and', `or', or `not' cannot be missed."
+  (cond
+   ((eq (car-safe form) 'package!)
+    (star-port-declaration form)
+    (and (assq (cadr form) star-port-packages) t))
+   ((eq (car-safe form) 'and)
+    (cl-every #'star-port-declaration-test (cdr form)))
+   ((eq (car-safe form) 'or)
+    (cl-some #'star-port-declaration-test (cdr form)))
+   ((eq (car-safe form) 'not)
+    (not (star-port-declaration-test (cadr form))))
+   ;; The migration models the Emacs 31 Nix desktop target, not the Ubuntu
+   ;; runner's build flags.  Nix's Emacs has native tree-sitter support.
+   ((equal form '(treesit-available-p)) t)
+   (t (star-port-test form))))
+
 (defun star-port-declaration (form)
   "Collect selected package declarations without executing upstream Lisp.
 
@@ -45,19 +66,19 @@ module cannot silently disappear from the native package closure."
        ;; but package declarations nested inside the wrapper must still be seen.
        (mapc #'star-port-declaration (cdr form)))
       ('when
-       (when (star-port-test (cadr form))
+       (when (star-port-declaration-test (cadr form))
          (mapc #'star-port-declaration (cddr form))))
       ('unless
-       (unless (star-port-test (cadr form))
+       (unless (star-port-declaration-test (cadr form))
          (mapc #'star-port-declaration (cddr form))))
       ('if
-       (if (star-port-test (cadr form))
+       (if (star-port-declaration-test (cadr form))
            (star-port-declaration (caddr form))
          (mapc #'star-port-declaration (cdddr form))))
       ('cond
        (let ((clause
               (cl-find-if
-               (lambda (item) (star-port-test (car item)))
+               (lambda (item) (star-port-declaration-test (car item)))
                (cdr form))))
          (mapc #'star-port-declaration (cdr clause))))
       ('unpin!

@@ -26,6 +26,34 @@
    (should (equal (plist-get (alist-get 'nested-package star-port-packages) :pin)
                   "deadbeef"))))
 
+(ert-deftest star-port-package-declaration-can-be-a-when-condition ()
+  (star-port-test-with-empty-state
+   (star-port-declaration
+    '(when (package! cuda-mode :pin "cuda")
+       (package! cuda-helper :pin "helper")))
+   (should (assq 'cuda-mode star-port-packages))
+   (should (assq 'cuda-helper star-port-packages))))
+
+(ert-deftest star-port-disabled-package-condition-is-false ()
+  (star-port-test-with-empty-state
+   (star-port-declaration '(package! sample :pin "one"))
+   (star-port-declaration
+    '(when (package! sample :disable t)
+       (package! should-not-exist)))
+   (should-not (assq 'sample star-port-packages))
+   (should-not (assq 'should-not-exist star-port-packages))))
+
+(ert-deftest star-port-tree-sitter-condition-uses-target-capability ()
+  (let ((star-port-packages nil)
+        (star-port-package-sources nil)
+        (star-port-source "test")
+        (star-port-modules '((:lang json (+tree-sitter))))
+        (star-port-current-module '(:lang json (+tree-sitter))))
+    (star-port-declaration
+     '(when (and (modulep! +tree-sitter) (treesit-available-p))
+        (package! json-ts-helper)))
+    (should (assq 'json-ts-helper star-port-packages))))
+
 (ert-deftest star-port-unknown-metadata-without-packages-is-safe-to-ignore ()
   (star-port-test-with-empty-state
    (star-port-declaration '(defvar lsp-use-plists t))
