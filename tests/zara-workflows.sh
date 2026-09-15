@@ -34,9 +34,9 @@ grep -Fq '".config/zarathushtra/config.pl"' "$workflow_module" || fail "workflow
 grep -Fq 'github:lost-rob0t/Qwen3-TTS_server' "$repo_root/flake.nix" || fail "Qwen3-TTS flake input is missing"
 grep -Fq '"qwen3-tts": "qwen3-tts"' "$repo_root/flake.lock" || fail "Qwen3-TTS flake input is not locked"
 
-grep -Fq -- '--endpoint tcp://0.0.0.0:7731' "$desktop" || fail "Arch desktop Zara listener is not exposed on TCP 7731"
-grep -Fq -- '--security-dir %h/.local/state/zarathushtra/security' "$desktop" || fail "Arch desktop Zara listener has no persistent security state"
-grep -Fq -- '--security-init' "$desktop" || fail "Arch desktop Zara security state is not initialized"
+! grep -Fq -- '--endpoint tcp://' "$desktop" || fail "local Zara must use its owner-private IPC default"
+! grep -Fq -- '--security-dir' "$desktop" || fail "local Zara must not require CURVE setup"
+! grep -Fq -- '--security-init' "$desktop" || fail "local Zara must not require security enrollment"
 ! grep -Fq '7731 # Zara authenticated ZARA/1 listener' "$nixos_networking" || fail "Arch Zara listener must not be modeled as NixOS firewall state"
 
 grep -Fq 'search_engine("https://search.brave.com/search?q=~w").' "$config" || fail "Brave Search is not configured"
