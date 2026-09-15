@@ -13,7 +13,6 @@ let
     emacs-async = "async";
     ppcre2el = "pcre2el";
     "pcap-mode.el" = "pcap-mode";
-    "podman.el" = "podman";
   };
 
   nativeBuiltinPackages = [
@@ -32,20 +31,25 @@ let
   nativeEmacsPackages =
     epkgs:
     let
-      names = lib.unique (map nativePackageName nativePackageManifest.packages);
+      names = lib.unique nativePackageManifest.packages;
       custom = import ./emacs-native-packages.nix {
         inherit lib pkgs epkgs;
       };
       resolve =
-        name:
+        rawName:
+        let
+          name = nativePackageName rawName;
+        in
         if builtins.elem name nativeBuiltinPackages then
           null
+        else if builtins.hasAttr rawName custom then
+          builtins.getAttr rawName custom
         else if builtins.hasAttr name custom then
           builtins.getAttr name custom
         else if builtins.hasAttr name epkgs then
           builtins.getAttr name epkgs
         else
-          throw "Native Emacs manifest package has no Nix package: ${name}";
+          throw "Native Emacs manifest package has no Nix package: ${rawName}";
     in
     builtins.filter (package: package != null) (map resolve names);
 in

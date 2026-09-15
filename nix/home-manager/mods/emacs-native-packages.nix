@@ -53,7 +53,7 @@ in
     repo = "evil-quick-diff";
     rev = "69c883720b30a892c63bc89f49d4f0e8b8028908";
     hash = "sha256-oGzl1ayW9rIuq0haoiFS7RZsS8NFMdEA7K1BSozgnJU=";
-    packageRequires = [ epkgs.evil ];
+    packageRequires = with epkgs; [ evil magit ];
   };
 
   libvirt = buildGitHubPackage {
@@ -86,7 +86,7 @@ in
     repo = "org-recoll";
     rev = "1e21fbc70b5e31b746257c12d00acba3dcc1dd5c";
     hash = lib.fakeHash;
-    packageRequires = [ epkgs.org ];
+    packageRequires = with epkgs; [ dash org ];
   };
 
   org-timed-alerts = buildGitHubPackage {
@@ -105,16 +105,16 @@ in
     ];
   };
 
-  podman = buildGitHubPackage {
+  "podman.el" = buildGitHubPackage {
     pname = "podman";
     owner = "akirak";
     repo = "podman.el";
     rev = "93f19860badedb0ad1519358fda441940ef688e7";
     hash = lib.fakeHash;
     packageRequires = with epkgs; [
-      tablist
+      compat
+      s
       transient
-      ts
     ];
   };
 
