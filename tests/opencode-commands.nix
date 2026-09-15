@@ -170,6 +170,12 @@ assert
 assert !unsafeEvaluation.success;
 assert builtins.length (builtins.attrNames defaults) == 78;
 assert lib.all (name: builtins.hasAttr name defaults) expectedCommands;
+assert lib.all (name: lib.hasInfix "for `/${name}`" defaults.${name}.template) expectedCommands;
+assert lib.all (name: lib.hasInfix "$ARGUMENTS" defaults.${name}.template) expectedCommands;
+assert lib.all (name: !lib.hasInfix "complete goal:" defaults.${name}.template) expectedCommands;
+assert lib.hasInfix "Command intent: Report concise real execution state." defaults.status.template;
+assert lib.hasInfix "User arguments (may be empty):" defaults.status.template;
+assert lib.hasInfix "Do not invent a goal when no arguments were supplied." defaults.status.template;
 assert lib.hasInfix "opencode-worker" defaults.unfuck.template;
 assert lib.hasInfix "astra-medium" defaults.unfuck.template;
 assert !lib.hasInfix "openai/gpt-6-astra" defaults.unfuck.template;

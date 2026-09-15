@@ -436,7 +436,11 @@ let
   defaultCommands = lib.mapAttrs (name: spec: {
     description = builtins.elemAt spec 0;
     template = ''
-      Load and follow the `${builtins.elemAt spec 1}` skill for this command. Apply it to the complete goal: $ARGUMENTS.${lib.optionalString (builtins.elem name modelWorkerCommands) " Any child whose model, provider, version, variant, or agent profile is selected MUST be launched through the shared `opencode-worker` executable; never bake that selection into this command."}
+      Load and follow the `${builtins.elemAt spec 1}` skill for `/${name}`.
+      Command intent: ${builtins.elemAt spec 0}.
+      User arguments (may be empty):
+      $ARGUMENTS
+      Do not invent a goal when no arguments were supplied. Treat arguments as command input, not as an implied goal; follow the skill's no-argument semantics and recover repository/session state when the command is stateful.${lib.optionalString (builtins.elem name modelWorkerCommands) " Any child whose model, provider, version, variant, or agent profile is selected MUST be launched through the shared `opencode-worker` executable; never bake that selection into this command."}
     '';
   }) commandSpecs;
 
@@ -534,17 +538,39 @@ in
       description = "Declarative user-global OpenCode commands.";
       default = defaultCommands // {
         skills.template = ''
-          Load and follow the `skill-scope` skill. List project-local skills from the current repository's .opencode/skills and .agents/skills separately from global skills installed from ${cfg.globalSkills.installedSource}; the editable global checkout is ${cfg.globalSkills.sourceCheckout}. Apply any filter in $ARGUMENTS.
+          Load and follow the `skill-scope` skill for `/skills`.
+          Command intent: List global, project-local, and relevant skills.
+          User arguments (may be empty):
+          $ARGUMENTS
+          Do not invent a goal when no arguments were supplied. List project-local skills from the current repository's .opencode/skills and .agents/skills separately from global skills installed from ${cfg.globalSkills.installedSource}; the editable global checkout is ${cfg.globalSkills.sourceCheckout}. Apply any non-empty arguments as a filter.
         '';
         skills-new.template = ''
-          Load and follow the `skill-scope` skill to create $ARGUMENTS. Use project-local .opencode/skills or .agents/skills unless global scope is explicit; global source is ${cfg.globalSkills.sourceCheckout}. Never edit ${cfg.globalSkills.installedSource}.
+          Load and follow the `skill-scope` skill for `/skills-new`.
+          Command intent: Create a reusable local or global skill.
+          User arguments (may be empty):
+          $ARGUMENTS
+          Do not invent a goal when no arguments were supplied. Use project-local .opencode/skills or .agents/skills unless global scope is explicit; global source is ${cfg.globalSkills.sourceCheckout}. Never edit ${cfg.globalSkills.installedSource}.
         '';
         skill-edit.template = ''
-          Load and follow the `skill-edit` and `skill-scope` skills for $ARGUMENTS. Resolve local and global origins explicitly; edit global skills only in ${cfg.globalSkills.sourceCheckout}, never ${cfg.globalSkills.installedSource}.
+          Load and follow the `skill-edit` and `skill-scope` skills for `/skill-edit`.
+          Command intent: Improve an existing local or global skill.
+          User arguments (may be empty):
+          $ARGUMENTS
+          Do not invent a goal when no arguments were supplied. Resolve local and global origins explicitly; edit global skills only in ${cfg.globalSkills.sourceCheckout}, never ${cfg.globalSkills.installedSource}.
         '';
-        skill-skills-edit.template = defaultCommands.skill-edit.template;
+        skill-skills-edit.template = ''
+          Load and follow the `skill-edit` and `skill-scope` skills for `/skill-skills-edit` (alias of `/skill-edit`).
+          Command intent: Alias for skill-edit.
+          User arguments (may be empty):
+          $ARGUMENTS
+          Do not invent a goal when no arguments were supplied. Resolve local and global origins explicitly; edit global skills only in ${cfg.globalSkills.sourceCheckout}, never ${cfg.globalSkills.installedSource}.
+        '';
         unfuck.template = ''
-          Load and follow the `opencode-worker` and `opencode-orchestrate` skills to repair $ARGUMENTS end-to-end. Resolve the logical model `astra-medium` through the shared resolver, then invoke the specialist only through `opencode-worker`; do not invent or hardcode a model ID. The parent retains repository orchestration.
+          Load and follow the `opencode-worker` and `opencode-orchestrate` skills for `/unfuck`.
+          Command intent: Repair a path end-to-end with Astra Medium.
+          User arguments (may be empty):
+          $ARGUMENTS
+          Do not invent a goal when no arguments were supplied. Resolve the logical model `astra-medium` through the shared resolver, then invoke the specialist only through `opencode-worker`; do not invent or hardcode a model ID. The parent retains repository orchestration.
         '';
       };
     };

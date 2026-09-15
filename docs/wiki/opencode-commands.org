@@ -37,9 +37,13 @@ The canonical sources are:
 
 Rules of the layers:
 
-- Slash commands express intent and name a skill; they never embed an
-  implementation framework.  A command definition is one or two
-  sentences plus literal OpenCode placeholders (= $ARGUMENTS=, =$1=).
+- Slash commands express intent and name both the slash command and the
+  reusable skill; they never embed an implementation framework.  The
+  generated prompt states the command intent and passes =$ARGUMENTS= as
+  optional command input rather than pretending every invocation supplies a
+  goal.  Empty arguments must never become punctuation-only pseudo-goals such
+  as =goal: .=; stateful no-argument commands such as =/status= recover their
+  repository/session context through the skill's own semantics.
 - Skills hold reusable workflow knowledge and may call scripts.
 - Scripts hold deterministic, testable mechanics (worker wrapper,
   model resolver, merge gating, drift reporting).
@@ -63,6 +67,9 @@ Safety and invariants:
 - Command names must match =^[A-Za-z0-9][A-Za-z0-9._-]*$=; path
   traversal (for example =../escape=) fails evaluation via assertion.
 - Disabled commands produce no file.
+- Every default command prompt identifies its =/<name>= and preserves
+  =$ARGUMENTS= without relabeling empty input as a goal.  The regression suite
+  checks this contract across the full command set, including bare =/status=.
 - Deterministic generation is proven by the reverse/forward insertion
   fixtures in [[file:../../tests/opencode-commands.nix][tests/opencode-commands.nix]].
 - Run =nix build '.#checks.x86_64-linux.opencode-commands'= to verify.
@@ -70,7 +77,8 @@ Safety and invariants:
 To add a command, append one =commandSpecs= entry (description + skill
 name).  Only add a special template when the generic skill dispatch is
 insufficient (for example =/skills-new= needs the global checkout
-path, =/unfuck= needs the logical-model mandate).
+path, =/unfuck= needs the logical-model mandate).  Special templates must
+preserve the same command identity and optional-argument contract.
 
 * Worker contract (Unix filter)
 
