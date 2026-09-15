@@ -10,6 +10,62 @@ if there is outage with that host then use github as fall back.
 
 use tea for forgjo actions.
 
+## StarIntel spec authority
+
+For **any StarIntel work** — including StarIntel repositories, document/schema changes,
+actors, APIs, ingest, research tooling, bindings, conformance, or consumers of the
+StarIntel document contract — load and follow the `starintel-spec-version` skill
+before relying on a version number.
+
+The active release must be resolved from repository authority, never from memory,
+issue prose, research notes, README text, or a schema filename.
+
+1. If the current repository contains `schema/starintel-schema.lock.json`, resolve
+   that lock first with the `starintel-spec-version` skill. Its read-only helper is
+   `scripts/starintel_spec_version.py` inside the installed skill; use the agent
+   runtime's resolved skill location rather than guessing a home-directory path.
+   The equivalent invocation is:
+
+   ```bash
+   python3 <starintel-spec-version-skill>/scripts/starintel_spec_version.py \
+     current --lock schema/starintel-schema.lock.json
+   ```
+
+   The value called `release_version` is the active StarIntel release for that
+   consumer. `schema_version` is the immutable base/wire schema family and may be
+   older than the release/profile version.
+
+   If the local agent runtime is still pinned to a skills revision that predates
+   `starintel-spec-version`, do **not** guess or continue from remembered numbers.
+   Read the lock JSON directly and run the repository-native lock checker when one
+   exists. Record `release_version`, `schema_version`, `canonical_repository`, and
+   `canonical_commit`; then use those values exactly. Updating the skills pin is a
+   deployment task, not permission to bypass spec resolution.
+
+2. Follow the lock's `canonical_repository` and `canonical_commit`. When a matching
+   local canonical checkout is available, verify it with the same helper's `check`
+   command and `--canonical-root`.
+3. In the canonical schema repository, run its repository-owned release tooling:
+
+   ```bash
+   python3 scripts/schema-release.py current
+   python3 scripts/schema-release.py check
+   ```
+
+4. Never infer the current release from names such as
+   `starintel-doc-v0.9.0.schema.json`. In the additive v0.9 line, the immutable base
+   schema may remain `0.9.0` while release/profile versions advance (`0.9.1`,
+   `0.9.2`, and later).
+5. Never hand-edit a StarIntel release/profile bump with `sed`, search/replace, or
+   ad hoc scripts. Use the canonical repository's bump script, then repin consumers
+   through their existing schema lock/sync workflow and run conformance.
+6. If lock, manifest, canonical commit, generated schema, or bump checker disagree,
+   fail closed and repair the authority chain before implementing StarIntel work.
+
+At the time this policy was written, the active release/profile is `0.9.1` and the
+next additive release is `0.9.2`. This sentence is historical context only: the
+live lock and canonical scripts always outrank it.
+
 ## Durable Prolog project memory
 
 For substantive repository work, use the `prolog-project-kb` skill.

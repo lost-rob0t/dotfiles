@@ -12,10 +12,12 @@ In particular, keep literate Org sources and their tangled/generated outputs syn
 + [[./AGENTS.md][Agent instructions]]
 + [[./bash.org][Bash]]
 + [[./.doom.d/config.org][Desktop Emacs config]]
++ [[./emacs/profiles.org][Emacs profile switcher]]
 + [[./bootstrap-termux.org][Termux bootstrap]]
 + [[./scripts/termux-remote.org][Termux remote desktop workflows]]
++ [[./android/config.org][Native Android Org/Vim config]]
 + [[./android/doom/config.org][Termux Doom config]]
-+ [[./android/README.org][Android Emacs reader]]
++ [[./android/README.org][Android Emacs profiles]]
 + [[./.config/qtile/qtile-ai.org][Qtile literate config]]
 + [[./.config/qtile/qtile.org][Qtile runtime notes]]
 + [[./.config/dunst/dunst.org][Dunst Config]]
@@ -40,21 +42,50 @@ Otherwise
 Clone the repo to =~/.dotfiles= and run GNU Stow from the checkout.
 
 ** Android / Termux
-The Termux bootstrap is platform-aware and keeps the native Android toolchain separate from the Linux compatibility guest.  It installs SWI-Prolog, SBCL on supported 64-bit Android architectures, Nim, Python, Emacs, the dedicated Termux Doom profile, OpenCode through a PRoot guest, and Termux:Widget shortcuts.
+Android has a Doom-free, Org-first native Emacs profile and a separate full Doom
+profile for Termux development.  The native profile uses Evil/Vim bindings,
+=org-modern=, native touch behavior, and an Org-centric bottom toolbar.  The
+Doom profiles keep the existing desktop/Termux feature set intact.
+
+For a fresh Termux install:
 
 #+begin_src sh
 curl -fsSL https://raw.githubusercontent.com/lost-rob0t/dotfiles/master/bootstrap-termux.sh | bash
 #+end_src
 
+The bootstrap performs a full Termux upgrade and installs Git, GNU Stow, Emacs,
+SWI-Prolog, SBCL on supported 64-bit Android architectures, Nim, Python, the
+full Termux Doom profile, OpenCode through a PRoot guest, and Termux:Widget
+shortcuts.
+
 Useful entry points after installation:
 
 #+begin_src sh
 platform-enter --info
-platform-enter
-emacs-termux
+emacs-org                 # Doom-free Org/Vim profile
+emacs-termux              # full Termux Doom
+android-emacs-stow        # install the native ~/.emacs.d wrapper
 doom-termux sync
+git --version
 ai
 #+end_src
+
+Chemacs/profile users can select explicitly:
+
+#+begin_src sh
+emacs --with-profile android
+emacs --with-profile org
+emacs --with-profile doomemacs
+emacs --with-profile termux-doom
+emacs --with-profile temple
+#+end_src
+
+The paired Android build workflow builds GNU Emacs for the =com.termux= shared
+user and packages current Termux, Termux:API, and Termux:Widget APKs re-signed
+with the same compatibility key.  That lets native Emacs execute the Termux Git
+installation via =PATH= without setting =LD_LIBRARY_PATH=.  See
+[[./android/README.org][android/README.org]] for the signature/install caveat and
+release bundle layout.
 
 The remote desktop helpers and extra Termux widgets are maintained in [[./scripts/termux-remote.org][scripts/termux-remote.org]].  They add fast SSH recovery for the =flake= desktop, remote ChatGPT startup under tmux, Org capture, an Agent Zero local-forward widget, and a visible dotfiles sync shortcut.
 
@@ -75,7 +106,10 @@ agent-zero-tunnel flake 50080
 
 The Agent Zero tunnel forwards the remote loopback service to =http://127.0.0.1:50080= on the phone.  Both remote workflows use five-second SSH keepalives by default and remain configurable through the environment variables documented in the literate source.
 
-The canonical bootstrap source is [[./bootstrap-termux.org][bootstrap-termux.org]].  The phone-specific Doom source is [[./android/doom/config.org][android/doom/config.org]].  The lightweight native Android research reader under [[./android/][android/]] remains separate.
+The canonical Android sources are [[./android/config.org][android/config.org]],
+[[./emacs/profiles.org][emacs/profiles.org]],
+[[./bootstrap-termux.org][bootstrap-termux.org]], and
+[[./android/doom/config.org][android/doom/config.org]].
 
 ** GPT TODO sync
 The durable task-state checkout defaults to =~/Documents/gpt-todos= and only its

@@ -1,0 +1,38 @@
+#+title: Emacs Profiles
+#+author: lost-rob0t
+#+startup: overview
+#+property: header-args:emacs-lisp :comments no :mkdirp yes
+
+* Purpose
+
+This is the source of truth for =.emacs-profiles.el=.  Chemacs remains the
+small profile router: desktop Doom keeps the full =~/.doom.d= feature set,
+Termux Doom keeps its dedicated profile, and Android/Temple enter through the
+Doom-free native Android wrapper.
+
+* Profiles
+
+#+begin_src emacs-lisp :tangle ../.emacs-profiles.el
+(("default" . ((user-emacs-directory . "~/.config/emacs")
+               (env . (("DOOMDIR" . "~/.doom.d")))
+               (server-name . "doom")))
+ ("hackmode" . ((server-name . "hack")
+                (user-emacs-directory . "~/.local/share/hackmacs/")))
+ ("doomemacs" . ((server-name . "doom")
+                 (user-emacs-directory . "~/.config/emacs")
+                 (env . (("DOOMDIR" . "~/.doom.d")))))
+ ("termux-doom" . ((server-name . "termux-doom")
+                   (user-emacs-directory . "~/.config/emacs")
+                   (env . (("DOOMDIR" . "~/.dotfiles/android/doom")))))
+ ("android" . ((server-name . "android")
+               (user-emacs-directory . "~/.dotfiles/android/stow/android-emacs/.emacs.d")))
+ ("org" . ((server-name . "android-org")
+           (user-emacs-directory . "~/.dotfiles/android/stow/android-emacs/.emacs.d")))
+ ("temple" . ((server-name . "temple")
+              (user-emacs-directory . "~/.dotfiles/android/stow/android-emacs/.emacs.d")
+              (env . (("TEMPLE_MODE" . "active"))))))
+#+end_src
+
+Use =emacs --with-profile android= (or =org=) for the native Org-first profile,
+=emacs --with-profile doomemacs= for the full desktop Doom environment, and
+=emacs --with-profile temple= for Temple compatibility.

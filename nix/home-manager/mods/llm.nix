@@ -2,7 +2,7 @@
 
 let
   comfyui = pkgs.comfyui.override { withManager = true; };
-  llmLogRevision = "92c6062148fe3b5213043d65136ac0521742691a";
+  llmLogRevision = "171cf7a21a8a0f669ff07f3358fc82852c3406ef";
   llmLogFlake = builtins.getFlake "github:lost-rob0t/llm-log/${llmLogRevision}";
   llmLogPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.default;
   llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
@@ -33,6 +33,18 @@ in
   options = with lib; {
     llm = {
       enable = mkEnableOption "Enable LLM and zara utils";
+      quotaTelemetry = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Collect provider-reported z.AI and GPT quota metadata for Qtile.";
+        };
+        environmentFile = mkOption {
+          type = types.str;
+          default = "${config.xdg.configHome}/llm-log/quotas.env";
+          description = "Optional private runtime environment file; never put API keys in Nix values.";
+        };
+      };
     };
   };
 
@@ -57,6 +69,18 @@ in
         anthropic = "https://api.anthropic.com";
         chatgpt = "https://chatgpt.com";
       };
+    };
+
+    # Read-only quota observations use existing managed auth. Bypass the Codex
+    # capture wrapper so telemetry requests cannot feed back into token history.
+    # The optional file supplies ZAI_API_KEY or LLM_LOG_ZAI_KEY_FILE at runtime.
+    systemd.user.services.llm-log.Service = mkIf config.llm.quotaTelemetry.enable {
+      Environment = lib.mkAfter [
+        "LLM_LOG_QUOTAS_ENABLED=1"
+        "LLM_LOG_CODEX_BIN=${config.codex.package}/bin/codex"
+        "CODEX_HOME=${if config.home.preferXdgDirectories then "${config.xdg.configHome}/codex" else "${config.home.homeDirectory}/.codex"}"
+      ];
+      EnvironmentFile = lib.mkAfter [ "-${config.llm.quotaTelemetry.environmentFile}" ];
     };
 
     outrunTheme.enable = true;
@@ -112,6 +136,7 @@ in
       STARINTEL_TIMEOUT_SECONDS = mkDefault "10";
       ANTHROPIC_BASE_URL = mkDefault "${proxyBase}/anthropic";
       LLM_LOG_BASE_URL = mkDefault proxyBase;
+      LLM_LOG_API_URL = mkDefault proxyBase;
     };
 
     # Brave Search MCP is part of the default LLM tool plane. Authentication

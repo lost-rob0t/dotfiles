@@ -1,0 +1,380 @@
+#+title: llm-log quota widgets: z.AI and GPT
+#+property: header-args:python :mkdirp yes :results none
+
+* Usage and ownership
+Two adjacent widgets read =GET /api/v1/quotas= from the Python llm-log capture
+service. The separate Common Lisp forwarding executable does not expose that
+API. Default URL: =http://127.0.0.1:8787=; override =LLM_LOG_API_URL= in Qtile's
+environment. Provider credentials belong to llm-log, never this consumer.
+Backend work: https://github.com/lost-rob0t/llm-log/issues/79
+Consumer work: https://github.com/lost-rob0t/dotfiles/issues/233
+
+The labels are =z.AI= and =GPT=. Percentages mean USED. Each widget rotates its
+reported windows every five seconds. Left-click advances and pauses; middle
+click resumes; right-click shows plan, source, meter, reset and freshness details.
+The GPT meter retains Codex scope: it is not all ChatGPT web/voice/model usage.
+Plans are metadata, not a hard-coded entitlement table. Missing/stale/expired
+values are neutral and explicit, never synthetic green zero or unlimited.
+
+Colors default to green below 70%, yellow from 70%, red from 90%. Constructor
+=warning= / =critical= and =palette= configure them. Automatic insertion uses
+=llm_log_widget_options= from config globals for those options. The old
+OpenRouter graph and widgets remain unchanged. Widgets are inserted as one
+adjacent pair before the clock, or at the end of the horizontal bar.
+
+A shared daemon worker polls only llm-log every 30 seconds; UI redraw/rotation
+is 1 Hz and reads memory only. The worker parks when its last widget finalizes,
+so reloads/multiple screens do not create one provider poller per widget. HTTP
+requests are local-only, bounded, proxy-free, redirect-free and credential-free.
+Provider polling inside llm-log is separately cached. No actual account quota
+or live Qtile session was available in the editing environment.
+
+* Provider-neutral local client
+#+begin_src python :tangle llm_log_client.py
+"""Bounded localhost quota snapshots; no provider credentials or token guesses."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime, timezone
+import ipaddress
+import json
+import math
+import threading
+import time
+from urllib.parse import urlsplit
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
+
+MAX_BYTES = 262144
+LABELS = {"zai": "z.AI", "gpt": "GPT"}
+STATES = {"ok", "unknown", "unavailable", "disabled", "stale", "expired"}
+
+
+def finite(value, low=0, high=1e15):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value) if low <= value <= high and math.isfinite(value) else None
+
+
+def clean(value, fallback="unknown"):
+    if not isinstance(value, str) or not value:
+        return fallback
+    return "".join(c for c in value if c.isprintable())[:64]
+
+
+@dataclass(frozen=True)
+class Window:
+    id: str
+    meter: str
+    label: str
+    used_percent: float | None
+    state: str
+    resets_at: float | None
+
+
+@dataclass(frozen=True)
+class Provider:
+    id: str
+    state: str
+    plan: str
+    source: str
+    scope: str
+    updated_at: float
+    windows: tuple[Window, ...]
+
+
+@dataclass(frozen=True)
+class Snapshot:
+    generated_at: float
+    fetched_at: float
+    stale_after: float
+    providers: tuple[Provider, ...]
+
+
+def decode_quotas(payload, now: float) -> Snapshot:
+    if not isinstance(payload, dict) or type(payload.get("schema_version")) is not int or payload["schema_version"] != 1:
+        raise ValueError("unsupported quota schema")
+    rows = payload.get("providers")
+    generated = finite(payload.get("generated_at"), low=1)
+    ttl = finite(payload.get("stale_after_seconds"), low=1, high=10800)
+    if not isinstance(rows, list) or len(rows) > 8 or generated is None or ttl is None:
+        raise ValueError("invalid quota snapshot")
+    providers = []
+    seen = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise ValueError("invalid provider")
+        key = row.get("id")
+        if key not in LABELS:
+            continue
+        if key in seen:
+            raise ValueError("duplicate provider")
+        seen.add(key)
+        raw_windows = row.get("windows")
+        if not isinstance(raw_windows, list) or len(raw_windows) > 64:
+            raise ValueError("invalid quota windows")
+        windows, ids = [], set()
+        for raw in raw_windows:
+            if not isinstance(raw, dict):
+                raise ValueError("invalid quota window")
+            identity = clean(raw.get("id"))
+            if identity in ids:
+                raise ValueError("duplicate quota window")
+            ids.add(identity)
+            state = raw.get("state")
+            state = state if state in STATES else "unknown"
+            percent = finite(raw.get("used_percent"), high=100)
+            if percent is None and state == "ok":
+                state = "unknown"
+            windows.append(Window(identity, clean(raw.get("meter")), clean(raw.get("label"), "period?"),
+                                  percent, state, finite(raw.get("resets_at"), low=1)))
+        state = row.get("state")
+        providers.append(Provider(key, state if state in STATES else "unknown",
+                                  clean(row.get("plan")), clean(row.get("source")), clean(row.get("scope")),
+                                  finite(row.get("updated_at")) or 0, tuple(windows)))
+    return Snapshot(generated, now, ttl, tuple(providers))
+
+
+def find_provider(snapshot: Snapshot | None, key: str) -> Provider | None:
+    return next((p for p in snapshot.providers if p.id == key), None) if snapshot else None
+
+
+def render_quota(snapshot: Snapshot | None, key: str, index: int, now: float, *,
+                 offline=False, warning=70, critical=90) -> tuple[str, str]:
+    if key not in LABELS or not 0 <= warning < critical <= 100:
+        raise ValueError("invalid quota display configuration")
+    item = find_provider(snapshot, key)
+    if item is None or not item.windows:
+        return f"{LABELS[key]} {item.state if item and item.state != 'ok' else 'unavailable'}", "neutral"
+    assert snapshot is not None
+    row = item.windows[index % len(item.windows)]
+    state = row.state if row.state != "ok" else item.state
+    if row.resets_at is not None and now >= row.resets_at:
+        state = "expired"
+    elif offline or not item.updated_at or any(now - stamp > snapshot.stale_after or stamp > now + 30
+                                               for stamp in (item.updated_at, snapshot.generated_at, snapshot.fetched_at)):
+        state = "stale"
+    prefix = f"{LABELS[key]} {row.label}"
+    if key == "gpt":
+        # Even the compact bar preserves which account meter this really is.
+        prefix = f"{LABELS[key]} {row.meter} {row.label}"
+    if state != "ok" or row.used_percent is None:
+        return f"{prefix} ? {state}", "neutral"
+    percent = row.used_percent
+    level = "red" if percent >= critical else "yellow" if percent >= warning else "green"
+    return f"{prefix} {percent:g}%", level
+
+
+def details(snapshot: Snapshot | None, key: str, now: float, *, offline=False) -> str:
+    item = find_provider(snapshot, key)
+    if item is None:
+        return "Quota unavailable: enable llm-log provider telemetry and check its local API."
+    lines = [f"plan: {item.plan}", f"source: {item.source}", f"scope: {item.scope}"]
+    if key == "gpt":
+        lines.append("Account meters (e.g. Codex), not all ChatGPT web/voice usage.")
+    for i, row in enumerate(item.windows):
+        lines.append(render_quota(snapshot, key, i, now, offline=offline)[0])
+        if row.resets_at is not None:
+            try:
+                stamp = datetime.fromtimestamp(row.resets_at, timezone.utc).isoformat()
+                lines.append(f"  reset: {stamp}")
+            except (ValueError, OverflowError, OSError):
+                lines.append("  reset: unavailable")
+    return "\n".join(lines)
+
+
+def validate_base_url(value: str) -> str:
+    parsed = urlsplit(value)
+    try:
+        host = parsed.hostname
+        local = host == "localhost" or ipaddress.ip_address(host or "").is_loopback
+        port = parsed.port
+    except ValueError:
+        raise ValueError("llm-log URL must use a loopback host") from None
+    if (not local or parsed.scheme not in ("http", "https") or parsed.username is not None
+            or parsed.password is not None or parsed.query or parsed.fragment
+            or parsed.path not in ("", "/") or (port is not None and port == 0)):
+        raise ValueError("llm-log URL must be a credential-free loopback origin")
+    return value.rstrip("/")
+
+
+class NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, *_args, **_kwargs):
+        raise ValueError("llm-log redirects are disabled")
+
+
+def fetch_json(url: str):
+    opener = build_opener(ProxyHandler({}), NoRedirect())
+    with opener.open(Request(url, headers={"Accept": "application/json"}), timeout=3) as response:
+        raw = response.read(MAX_BYTES + 1)
+    if len(raw) > MAX_BYTES:
+        raise ValueError("llm-log response too large")
+    return json.loads(raw)
+
+
+class QuotaFeed:
+    """One bounded daemon owner shared across the quota pair and all screens."""
+    def __init__(self, base_url: str, interval: float = 30):
+        if not 5 <= interval <= 3600:
+            raise ValueError("invalid local polling interval")
+        self.base_url = validate_base_url(base_url)
+        self.interval = interval
+        self._lock = threading.Lock()
+        self._wake = threading.Event()
+        self._thread = None
+        self._users = 0
+        self._snapshot = None
+        self._failed = False
+
+    def read(self) -> tuple[Snapshot | None, bool]:
+        with self._lock:
+            return self._snapshot, self._failed
+
+    def publish(self, snapshot: Snapshot) -> None:
+        with self._lock:
+            self._snapshot, self._failed = snapshot, False
+
+    def refresh_once(self) -> None:
+        try:
+            self.publish(decode_quotas(fetch_json(self.base_url + "/api/v1/quotas"), time.time()))
+        except (OSError, ValueError, TypeError, KeyError):
+            # Never persist or show a server error body/exception that might contain secrets.
+            with self._lock:
+                self._failed = True
+
+    def acquire(self) -> None:
+        with self._lock:
+            self._users += 1
+            if self._thread is None:
+                self._thread = threading.Thread(target=self._run, name="qtile-llm-log-quotas", daemon=True)
+                self._thread.start()
+        self._wake.set()
+
+    def release(self) -> None:
+        with self._lock:
+            self._users = max(0, self._users - 1)
+        self._wake.set()
+
+    def _run(self) -> None:
+        while True:
+            with self._lock:
+                active = self._users > 0
+            if active:
+                self.refresh_once()
+            self._wake.wait(self.interval if active else None)
+            self._wake.clear()
+
+
+_feeds: dict[str, QuotaFeed] = {}
+
+
+def shared_feed(base_url: str) -> QuotaFeed:
+    # Called only from Qtile configuration, never worker threads.
+    url = validate_base_url(base_url)
+    if url not in _feeds:
+        if len(_feeds) >= 8:
+            raise ValueError("too many llm-log endpoints")
+        _feeds[url] = QuotaFeed(url)
+    return _feeds[url]
+#+end_src
+
+* Qtile pair and installation
+#+begin_src python :tangle qtile_llm_log.py
+"""Adjacent z.AI/GPT quota widgets; all render-time reads are in memory."""
+from __future__ import annotations
+
+from html import escape
+import os
+import re
+import time
+
+from libqtile.widget import base
+from notify import notify
+from llm_log_client import LABELS, details, find_provider, render_quota, shared_feed
+
+PALETTE = {"green": "#57c785", "yellow": "#e5c54b", "red": "#ef6464", "neutral": "#999999"}
+
+
+class LLMQuota(base.InLoopPollText):
+    orientations = base.ORIENTATION_HORIZONTAL
+
+    def __init__(self, provider_id, *, base_url="http://127.0.0.1:8787", warning=70,
+                 critical=90, rotate_seconds=5, palette=None, **config):
+        if provider_id not in LABELS or not 0 <= warning < critical <= 100 or not 1 <= rotate_seconds <= 3600:
+            raise ValueError("invalid quota widget configuration")
+        self.provider_id = provider_id
+        self.feed = shared_feed(base_url)
+        self.warning, self.critical = warning, critical
+        self.rotate_seconds = rotate_seconds
+        self.palette = {**PALETTE, **(palette or {})}
+        if any(not re.fullmatch(r"#[0-9a-fA-F]{6}", c) for c in self.palette.values()):
+            raise ValueError("quota palette must use #RRGGBB colors")
+        self.index, self.paused, self._attached = 0, False, False
+        self.changed_at = time.monotonic()
+        defaults = {"update_interval": 1, "markup": True, "fontsize": 12, "padding": 5,
+                    "name": f"llm_quota_{provider_id}"}
+        super().__init__(f"{LABELS[provider_id]} …", **{**defaults, **config})
+        self.add_callbacks({"Button1": self.advance, "Button2": self.resume, "Button3": self.show_details})
+
+    def _configure(self, qtile, bar):
+        super()._configure(qtile, bar)
+        if not self._attached:
+            self.feed.acquire()
+            self._attached = True
+
+    def finalize(self):
+        if self._attached:
+            self.feed.release()
+            self._attached = False
+        super().finalize()
+
+    def poll(self):
+        snapshot, failed = self.feed.read()
+        item = find_provider(snapshot, self.provider_id)
+        count = len(item.windows) if item else 0
+        now = time.monotonic()
+        if not self.paused and count and now - self.changed_at >= self.rotate_seconds:
+            steps = int((now - self.changed_at) // self.rotate_seconds)
+            self.index = (self.index + steps) % count
+            self.changed_at += steps * self.rotate_seconds
+        text, level = render_quota(snapshot, self.provider_id, self.index, time.time(),
+                                   offline=failed, warning=self.warning, critical=self.critical)
+        return f'<span foreground="{self.palette[level]}">{escape(text)}</span>'
+
+    def advance(self):
+        self.index += 1
+        self.paused = True
+        self.changed_at = time.monotonic()
+        self.update(self.poll())
+
+    def resume(self):
+        self.paused = False
+        self.changed_at = time.monotonic()
+        self.update(self.poll())
+
+    def show_details(self):
+        snapshot, failed = self.feed.read()
+        notify(f"{LABELS[self.provider_id]} quota", escape(details(snapshot, self.provider_id,
+                                                                 time.time(), offline=failed)))
+
+
+def make_quota_widgets(**options):
+    options = {"base_url": os.environ.get("LLM_LOG_API_URL", "http://127.0.0.1:8787"), **options}
+    return [LLMQuota("zai", **options), LLMQuota("gpt", **options)]
+
+
+def install_llm_log_widgets(config_globals):
+    """Insert one adjacent pair, once per horizontal bar; retain other widgets."""
+    options = config_globals.get("llm_log_widget_options", {})
+    visited = set()
+    for screen in config_globals.get("screens", ()):
+        for position in ("top", "bottom"):
+            target = getattr(screen, position, None)
+            if target is None or id(target) in visited:
+                continue
+            visited.add(id(target))
+            widgets = getattr(target, "widgets", None)
+            if widgets is None or any(getattr(w, "name", "") == "llm_quota_zai" for w in widgets):
+                continue
+            index = next((i for i, w in enumerate(widgets) if getattr(w, "name", "") == "clock"), len(widgets))
+            widgets[index:index] = make_quota_widgets(**options)
+#+end_src

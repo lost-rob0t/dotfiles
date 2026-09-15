@@ -128,7 +128,7 @@ interactive Emacs path and the standalone skill share one output implementation.
 
 | Module | Local options | Complete client configuration |
 |--------+---------------+-------------------------------|
-| [[file:../../nix/home-manager/mods/opencode.nix][opencode.nix]] | =opencode.enable=, package, native =--auto= usage, and llm-log routing | Home Manager's =programs.opencode=: settings, TUI, web service, context, commands, agents, skills, themes, tools, extra packages, and shared MCP integration |
+| [[file:../../nix/home-manager/mods/opencode.org][opencode.org]] | =opencode.enable=, package, declarative global commands, explicit global-skill source metadata, llm-log routing, and the optional =opencode.web= workspace; tangles to =opencode.nix= | Home Manager's =programs.opencode=: settings, TUI, web service, context, commands, agents, skills, themes, tools, extra packages, and shared MCP integration |
 | [[file:../../nix/home-manager/mods/codex.nix][codex.nix]] | =codex.enable=, package, pinned skills, llm-log routing, and explicit =manageConfig= ownership | Home Manager's =programs.codex=: settings, profiles, context, hooks, plugins, marketplaces, skills, rules, and shared MCP integration |
 | [[file:../../nix/home-manager/mods/chatgpt-desktop.nix][chatgpt-desktop.nix]] | =programs.chatgpt-desktop=: package plus dark/light appearance, code-theme, font-size, smoothing, cursor, and diff-marker settings | The desktop application's native =[desktop]= configuration |
 
@@ -150,7 +150,13 @@ The focused checks are:
 #+begin_src shell
   nix build '.#checks.x86_64-linux.ai-client-theme'
   nix build '.#checks.x86_64-linux.codex-config-patch'
+  nix build '.#checks.x86_64-linux.opencode-commands'
 #+end_src
+
+** Global OpenCode commands
+The canonical [[file:../../nix/home-manager/mods/opencode.org][OpenCode Org module]] renders enabled =opencode.commands= entries in deterministic frontmatter order under =~/.config/opencode/commands=.  The built-in =/skills=, =/skills-new=, =/skill-edit=, and =/skills-edit= alias are thin skill selectors.  They distinguish project-owned =.opencode/skills= and =.agents/skills= from pinned global installations and record =/home/unseen/Documents/AI/skills= explicitly as the editable global source checkout.  Project =.opencode/commands= files are outside Home Manager ownership and continue to use OpenCode's normal project precedence.
+
+The command set, the =opencode-worker= Unix filter contract, model routing, rate limiting, worker isolation, and the =merge-on-green= / =sync-remotes= hosting workflows are documented in [[file:opencode-commands.org][Global OpenCode commands]].
 
 * LLM tooling and Brave Search MCP
 Enabling =llm.enable= also enables the reusable [[file:../../nix/home-manager/mods/brave-mcp.nix][Brave MCP module]] by default, installs Brave's =bx= CLI plus the typed =brave-mcp= stdio adapter, and exposes that MCP server to OpenCode through the shared MCP Home Manager integration.  A host may still override =braveMcp.enable = false= explicitly.

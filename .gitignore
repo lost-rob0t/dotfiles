@@ -45,5 +45,7 @@ tmp/
 /.local/bin/pnpx
 /.local/bin/yarn
 /.local/bin/yarnpkg
-/.prolog/
+/.prolog/*
+!/.prolog/kb/
+!/.prolog/kb/**
 /result

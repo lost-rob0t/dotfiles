@@ -133,7 +133,7 @@
     kdePackages.breeze-icons
     lxqt.lxqt-qtplugin
     ly #login manager
-    xorg.xinit
+    xinit
     picom
     mpvScripts.mpris
     ## Services

@@ -26,6 +26,8 @@ jobs:
           shellcheck --severity=warning scripts/*.sh tests/home-manager-updater.sh tests/gpt-todos-sync.sh tests/llm-log-expert-consumer.sh tests/skill-sync.sh tests/variety-home-manager.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh scripts/agent-zero-tunnel scripts/remote-gui-launch scripts/install-termux-widgets scripts/starintel-tunnel tests/agent-zero-tunnel.sh tests/remote-gui-launch.sh tests/starintel-tunnel.sh
       - name: Run StarIntel tunnel tests
         run: bash tests/starintel-tunnel.sh
+      - name: Run Nix deprecation contract
+        run: bash tests/nix-deprecations.sh
       - name: Run llm-log expert consumer contract
         run: bash tests/llm-log-expert-consumer.sh
       - name: Verify bash.org and .bashrc are tangled in sync

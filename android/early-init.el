@@ -1,12 +1,9 @@
 ;;; early-init.el --- Native Android Emacs early init -*- lexical-binding: t; -*-
 
 ;;; Commentary:
-;; Keep startup cheap and expose the paired Termux toolchain to native Emacs.
-;; Do not set LD_LIBRARY_PATH: Android Emacs and Termux manage their own native
-;; library lookup and only executable discovery is shared here.
-;;
-;; The Temple Chemacs profile also enters through this directory.  Keep small
-;; compatibility shims that must run before Temple package loading here.
+;; Generated from early-init.org.  Keep startup cheap and expose an accessible
+;; paired Termux toolchain.  Never import its HOME or native library environment.
+;; Temple compatibility shims must run before package loading.
 
 ;;; Code:
 
@@ -16,6 +13,26 @@
       (featurep 'android)))
 
 (defconst star/android-termux-prefix "/data/data/com.termux/files/usr")
+
+(defun star/android-termux-enable ()
+  "Expose paired Termux executables and Bash to native Android Emacs.
+Return non-nil when enabled.  Leave desktop and inaccessible installs unchanged.
+This cannot grant Android permissions: matching APK UIDs and signers are needed."
+  (let* ((bin (expand-file-name "bin" star/android-termux-prefix))
+         (bash (expand-file-name "bash" bin)))
+    (when (and (android-p) (file-executable-p bash))
+      (setenv "PATH"
+              (mapconcat #'identity
+                         (cons bin (delete bin (split-string
+                                                (or (getenv "PATH") "")
+                                                path-separator t)))
+                         path-separator))
+      (setq exec-path (cons bin (delete bin (copy-sequence exec-path)))
+            shell-file-name bash
+            explicit-shell-file-name bash)
+      (setenv "SHELL" bash)
+      (setenv "PREFIX" star/android-termux-prefix)
+      t)))
 
 (defun star/async-sanitize-readable-output (&optional buffer)
   "Make printed opaque objects readable as Lisp in BUFFER.
@@ -47,9 +64,7 @@ child output.  BUFFER defaults to the current buffer."
     (advice-add 'async-when-done :before #'star/async-sanitize-process-output)))
 
 (when (android-p)
-  (let ((bin (expand-file-name "bin" star/android-termux-prefix)))
-    (setenv "PATH" (concat bin path-separator (or (getenv "PATH") "")))
-    (add-to-list 'exec-path bin))
+  (star/android-termux-enable)
 
   (setq android-use-legacy-external-storage nil
         touch-screen-display-keyboard t

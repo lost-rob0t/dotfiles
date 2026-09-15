@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Generated from scripts/opencode-tmux.org.
+set -euo pipefail
+lib_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../lib/dotfiles" && pwd -P)"
+exec python3 "$lib_dir/opencode_tmux.py" launch "$@"

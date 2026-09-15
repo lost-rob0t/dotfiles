@@ -193,6 +193,6 @@ in
     variety
     file
     yt-dlp # For Emacs
-    inputs.bixby-studio.packages.${pkgs.system}.default
+    inputs.bixby-studio.packages.${pkgs.stdenv.hostPlatform.system}.default
   ];
 }

@@ -20,7 +20,12 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `scripts/dotfiles-sync.org` is the source of truth for `scripts/dotfiles-sync`.
 - `scripts/termux-remote.org` is the source of truth for `scripts/remote-gui-launch`, `scripts/agent-zero-tunnel`, and `scripts/install-termux-widgets`.
 - `bootstrap-termux.org` is the source of truth for `bootstrap-termux.sh`.
+- `android/build.org` is the source of truth for `android/build.py`.
+- `android/early-init.org` is the source of truth for `android/early-init.el`.
+- `android/config.org` is the source of truth for `android/lisp/star-android-modern.el`, the `android/stow/android-emacs/` wrapper, `android/bin/install-native-profile`, and `android/tests/star-android-modern-test.el`.
+- `nix/home-manager/mods/opencode.org` is the source of truth for `nix/home-manager/mods/opencode.nix`.
 - `android/doom/config.org` is the source of truth for `android/doom/init.el`, `android/doom/packages.el`, and `android/doom/config.el`.
+- `emacs/profiles.org` is the source of truth for `.emacs-profiles.el`.
 - Do not make a lasting change only in a generated/tangled file.
 
 When a change touches a literate configuration:

@@ -1,0 +1,61 @@
+name: llm-log Qtile quota widgets
+on:
+  pull_request:
+    paths:
+      - '.config/qtile/**'
+      - 'nix/home-manager/mods/llm.nix'
+      - 'tests/llm-log-quota-consumer.*'
+      - '.github/workflows/llm-log-qtile.yml'
+  push:
+    branches: [feat/233-llm-log-qtile-quotas]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quota-widgets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact head
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install actual Qtile and Cairo for compatibility tests
+        run: python -m pip install 'qtile==0.37.0'
+      - name: Quota models, HTTP, graph geometry, Cairo, widgets and Org parity
+        run: python -m unittest discover -s .config/qtile/tests -p 'test_llm_log_*.py' -v
+      - name: Verify quota-capable service revision
+        run: python tests/llm-log-quota-consumer.py
+      - name: Compile changed runtime modules
+        run: python -m py_compile .config/qtile/llm_log_client.py .config/qtile/qtile_llm_log.py .config/qtile/qtile_telemetry.py .config/qtile/llm_log_graph.py .config/qtile/qtile_llm_log_graph.py
+      - name: Construct actual Qtile widgets and verify adjacent insertion without network
+        env:
+          PYTHONPATH: .config/qtile
+        run: |
+          python - <<'PY'
+          from types import SimpleNamespace
+          from qtile_llm_log import install_llm_log_widgets
+          from qtile_llm_log_graph import install_llm_log_graph
+          bar = SimpleNamespace(widgets=[SimpleNamespace(name='clock')])
+          config = {'screens': [SimpleNamespace(top=bar, bottom=None)]}
+          for _ in range(2):
+              install_llm_log_widgets(config)
+              install_llm_log_graph(config)
+          assert [w.name for w in bar.widgets] == ['llm_quota_zai', 'llm_quota_gpt', 'llm_log_graph', 'clock']
+          pair = bar.widgets[:2]
+          assert pair[0].feed is pair[1].feed
+          assert 'z.AI' in pair[0].poll()
+          assert 'GPT' in pair[1].poll()
+          assert pair[0].feed._thread is None
+          assert bar.widgets[2].feed.worker is None
+          print('Actual Qtile pair/graph constructor and adjacency smoke passed (not a live WM test).')
+          PY
+      - uses: cachix/install-nix-action@v31
+      - name: Evaluate Nix service environment, auth paths and disablement
+        run: nix-instantiate --eval --strict --json tests/llm-log-quota-consumer.nix
