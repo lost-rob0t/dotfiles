@@ -200,11 +200,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789195714,
-        "narHash": "sha256-WaCpQfOsRHa2Jhh63yELAgA6oDORn7J6fIdpiwgxTJM=",
+        "lastModified": 1789443822,
+        "narHash": "sha256-3mn4k6A+8XRNa/WSz0nuvAapPTwr8f3J89G15fPf9dE=",
         "owner": "lost-rob0t",
         "repo": "Qwen3-TTS_server",
-        "rev": "b60753e540d55067f77b41d3568861476dbc602d",
+        "rev": "a9f34178dca6c3f118aa936baa6a968d06705495",
         "type": "github"
       },
       "original": {
@@ -283,11 +283,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789202482,
-        "narHash": "sha256-lT9WwJWU1zYZn7psYqE1XXnP3IZAMtDWT7PbzDdAKZk=",
+        "lastModified": 1789444550,
+        "narHash": "sha256-eynGnHGsQrZoJ+iy5fCOtoPWNxS2exEKGZSCk6eFcPQ=",
         "owner": "lost-rob0t",
         "repo": "zara",
-        "rev": "a6605f5e1dd36273834cd3c58aca89a55b07bba8",
+        "rev": "e317c51e437cae3aaebd9432453439172ee1161b",
         "type": "github"
       },
       "original": {
