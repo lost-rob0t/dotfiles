@@ -1,0 +1,77 @@
+;;; gpt-todos.el -*- lexical-binding: t; -*-
+
+(defcustom gpt-todos-sync-script
+  (or
+   (getenv "GPT_TODOS_SYNC")
+   (expand-file-name "~/.dotfiles/scripts/gpt-todos-sync"))
+  "Path to the dotfiles-owned gpt-todos sync script." :type 'file)
+
+
+(defcustom gpt-todos-agenda-directory
+  (file-name-as-directory
+   (or
+    (getenv "GPT_TODOS_ORG_DIR")
+    (expand-file-name "~/Documents/Notes/org/agenda")))
+  "Live Org agenda directory mirrored by gpt-todos-sync." :type 'directory)
+
+
+(defun gpt-todos--agenda-org-file-p
+    (file)
+  "Return non-nil when FILE is logically below the synced agenda directory."
+  (when file
+    (let
+	((agenda
+	  (file-name-as-directory
+	   (expand-file-name gpt-todos-agenda-directory)))
+	 (candidate
+	  (expand-file-name file)))
+      (and
+       (string-equal
+	(file-name-extension candidate)
+	"org")
+       (string-prefix-p agenda candidate)))))
+
+
+;;;###autoload
+(defun gpt-todos-sync
+    (&optional file)
+  "Run gpt-todos sync asynchronously.\nWhen FILE is non-nil, preserve and synchronize that just-saved agenda file."
+  (interactive)
+  (let*
+      ((buffer
+	(get-buffer-create " *gpt-todos-sync*"))
+       (command
+	(append
+	 (list "/usr/bin/env" "bash" gpt-todos-sync-script)
+	 (when file
+	   (list "--file"
+		 (expand-file-name file)))))
+       (proc
+	(make-process :name "gpt-todos-sync" :buffer buffer :command command :connection-type 'pipe :noquery t)))
+    (set-process-sentinel proc
+			  (lambda
+			    (p _event)
+			    (when
+				(memq
+				 (process-status p)
+				 '(exit signal))
+			      (if
+				  (= 0
+				     (process-exit-status p))
+				  (message "gpt-todos sync complete")
+				(message "gpt-todos sync failed; see %s"
+					 (buffer-name
+					  (process-buffer p)))))))
+    (message "gpt-todos sync started")
+    proc))
+
+
+;;;###autoload
+(defun gpt-todos-sync-after-save nil "Synchronize a just-saved Org file when it belongs to the live agenda tree."
+       (when
+	   (gpt-todos--agenda-org-file-p buffer-file-name)
+	 (gpt-todos-sync buffer-file-name)))
+
+
+;;;###autoload
+(add-hook 'after-save-hook #'gpt-todos-sync-after-save)

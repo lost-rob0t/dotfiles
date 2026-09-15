@@ -1,0 +1,4049 @@
+#+TITLE: Desktop integration autoloads
+#+STARTUP: overview
+#+PROPERTY: header-args:emacs-lisp :comments no :padline yes :mkdirp yes
+
+The active code below is ordinary Emacs Lisp. Doom is not loaded.
+One time a human wrote this. The parentheses remember.
+
+* activity-watch
+#+begin_src emacs-lisp :tangle autoload/activity-watch.el
+;;; activity-watch.el --- Early ActivityWatch declarations -*- lexical-binding: t; -*-
+
+;;;###autoload
+(defvar activity-watch-mode nil "Non-nil when ActivityWatch is enabled in the current buffer.")
+
+
+;;;###autoload
+(defvar global-activity-watch-mode nil "Non-nil when ActivityWatch is enabled globally.")
+
+
+(provide '+activity-watch-autoloads)
+
+;;; activity-watch.el ends here
+
+#+end_src
+
+* chatgpt-books
+#+begin_src emacs-lisp :tangle autoload/chatgpt-books.el
+;;; chatgpt-books.el --- Doom entrypoint for chatgpt-books -*- lexical-binding: t; -*-
+
+(require 'seq)
+
+
+(defgroup +chatgpt-books nil "Integration for the local chatgpt-books checkout." :group 'org)
+
+
+(defcustom +chatgpt-books-root nil "Explicit path to the local chatgpt-books checkout.\n\nWhen nil, `+chatgpt-books--find-root' tries `CHATGPT_BOOKS_ROOT', the\ncurrent directory hierarchy, and conventional project locations under HOME." :type
+  '(choice
+    (const :tag "Auto-detect" nil)
+    directory)
+  :group '+chatgpt-books)
+
+
+(defun +chatgpt-books--checkout-p
+    (root)
+  "Return non-nil when ROOT looks like the chatgpt-books checkout."
+  (and root
+       (file-directory-p root)
+       (file-readable-p
+	(expand-file-name "AGENTS.md" root))
+       (file-readable-p
+	(expand-file-name "README.org" root))
+       (file-readable-p
+	(expand-file-name "elisp/chatgpt-books.el" root))))
+
+
+(defun +chatgpt-books--candidate-roots nil "Return candidate chatgpt-books checkout roots in priority order."
+       (delete-dups
+	(delq nil
+	      (list +chatgpt-books-root
+		    (getenv "CHATGPT_BOOKS_ROOT")
+		    (locate-dominating-file default-directory "AGENTS.md")
+		    (expand-file-name "~/Documents/Projects/chatgpt-books")
+		    (expand-file-name "~/Documents/chatgpt-books")
+		    (expand-file-name "~/Projects/chatgpt-books")
+		    (expand-file-name "~/src/chatgpt-books")
+		    (expand-file-name "~/chatgpt-books")))))
+
+
+(defun +chatgpt-books--find-root nil "Return the first valid local chatgpt-books checkout root."
+       (seq-find #'+chatgpt-books--checkout-p
+		 (+chatgpt-books--candidate-roots)))
+
+
+;;;###autoload
+(defun +chatgpt-books/load nil "Load the project-local chatgpt-books Emacs package.\n\nDotfiles owns only checkout discovery and package loading.  The books\nrepository owns its Org-roam database, capture templates, export behavior,\nand project-specific settings."
+       (interactive)
+       (let
+	   ((root
+	     (+chatgpt-books--find-root)))
+	 (unless root
+	   (user-error
+	    (concat "Cannot find chatgpt-books checkout; set CHATGPT_BOOKS_ROOT " "or customize +chatgpt-books-root")))
+	 (add-to-list 'load-path
+		      (expand-file-name "elisp" root))
+	 (require 'chatgpt-books)
+	 root))
+
+
+;;;###autoload
+(defun +chatgpt-books/open nil "Load chatgpt-books and open its project landing page."
+       (interactive)
+       (+chatgpt-books/load)
+       (call-interactively #'chatgpt-books))
+
+
+(provide '+chatgpt-books-autoloads)
+
+;;; chatgpt-books.el ends here
+
+#+end_src
+
+* dired-dirvish
+#+begin_src emacs-lisp :tangle autoload/dired-dirvish.el
+;;; dired-dirvish.el --- Fast Dirvish-backed Dired defaults -*- lexical-binding: t; -*-
+
+;;; Commentary:
+;; Keep ordinary directory visits cheap and predictable while retaining the
+;; richer Dirvish UI on demand.  In particular, do not eagerly compute Git/VC
+;; metadata or start preview processes for every Dired buffer.  Large local
+;; directories use Dirvish's asynchronous fd path when fd is available.
+
+;;; Code:
+
+;;;###autoload
+(with-eval-after-load 'dired
+  (setq dired-listing-switches "-l --almost-all --human-readable --group-directories-first --no-group" dired-dwim-target t dired-recursive-copies 'always dired-recursive-deletes 'top delete-by-moving-to-trash t)
+  (when
+      (boundp 'dired-kill-when-opening-new-dired-buffer)
+    (setq dired-kill-when-opening-new-dired-buffer t))
+  (when
+      (boundp 'dired-mouse-drag-files)
+    (setq dired-mouse-drag-files t)))
+
+
+;;;###autoload
+(progn
+  (setq dirvish-attributes
+	'(subtree-state file-time file-size)
+	dirvish-side-attributes
+	'(file-size)
+	dirvish-default-layout nil dirvish-mode-line-format
+	'(:left
+	  (sort symlink)
+	  :right
+	  (omit yank index))
+	dirvish-preview-dispatchers
+	'(image gif archive pdf)
+	dirvish-preview-buffers-max-count 2 dirvish-preview-large-file-threshold
+	(* 256 1024)
+	dirvish-large-directory-threshold
+	(and
+	 (executable-find "fd")
+	 10000))
+  (autoload 'dirvish-override-dired-mode "dirvish" nil t)
+  (dirvish-override-dired-mode)
+  (with-eval-after-load 'dirvish
+    (setq dirvish-quick-access-entries
+	  '(("h" "~/" "Home")
+	    ("d" "~/Downloads/" "Downloads")
+	    ("s" "/mnt/share" "Share Drive")
+	    ("t" "~/.local/share/Trash/files/" "TrashCan")))
+    (global-set-key
+     (kbd "C-c f")
+     #'dirvish-fd)
+    (define-key dirvish-mode-map
+		(kbd "?")
+		#'dirvish-dispatch)
+    (define-key dirvish-mode-map
+		(kbd "a")
+		#'dirvish-quick-access)
+    (define-key dirvish-mode-map
+		(kbd "f")
+		#'dirvish-file-info-menu)
+    (define-key dirvish-mode-map
+		(kbd "y")
+		#'dirvish-yank-menu)
+    (define-key dirvish-mode-map
+		(kbd "N")
+		#'dirvish-narrow)
+    (define-key dirvish-mode-map
+		(kbd "^")
+		#'dirvish-history-last)
+    (define-key dirvish-mode-map
+		(kbd "h")
+		#'dirvish-history-jump)
+    (define-key dirvish-mode-map
+		(kbd "s")
+		#'dirvish-quicksort)
+    (define-key dirvish-mode-map
+		(kbd "v")
+		#'dirvish-vc-menu)
+    (define-key dirvish-mode-map
+		(kbd "TAB")
+		#'dirvish-subtree-toggle)
+    (define-key dirvish-mode-map
+		(kbd "M-f")
+		#'dirvish-history-go-forward)
+    (define-key dirvish-mode-map
+		(kbd "M-b")
+		#'dirvish-history-go-backward)
+    (define-key dirvish-mode-map
+		(kbd "M-l")
+		#'dirvish-ls-switches-menu)
+    (define-key dirvish-mode-map
+		(kbd "M-m")
+		#'dirvish-mark-menu)
+    (define-key dirvish-mode-map
+		(kbd "M-t")
+		#'dirvish-layout-toggle)
+    (define-key dirvish-mode-map
+		(kbd "M-s")
+		#'dirvish-setup-menu)
+    (define-key dirvish-mode-map
+		(kbd "M-e")
+		#'dirvish-emerge-menu)
+    (define-key dirvish-mode-map
+		(kbd "M-j")
+		#'dirvish-fd-jump)))
+
+
+(provide '+dired-dirvish)
+
+;;; dired-dirvish.el ends here
+
+#+end_src
+
+* gpt-todos
+#+begin_src emacs-lisp :tangle autoload/gpt-todos.el
+;;; gpt-todos.el -*- lexical-binding: t; -*-
+
+(defcustom gpt-todos-sync-script
+  (or
+   (getenv "GPT_TODOS_SYNC")
+   (expand-file-name "~/.dotfiles/scripts/gpt-todos-sync"))
+  "Path to the dotfiles-owned gpt-todos sync script." :type 'file)
+
+
+(defcustom gpt-todos-agenda-directory
+  (file-name-as-directory
+   (or
+    (getenv "GPT_TODOS_ORG_DIR")
+    (expand-file-name "~/Documents/Notes/org/agenda")))
+  "Live Org agenda directory mirrored by gpt-todos-sync." :type 'directory)
+
+
+(defun gpt-todos--agenda-org-file-p
+    (file)
+  "Return non-nil when FILE is logically below the synced agenda directory."
+  (when file
+    (let
+	((agenda
+	  (file-name-as-directory
+	   (expand-file-name gpt-todos-agenda-directory)))
+	 (candidate
+	  (expand-file-name file)))
+      (and
+       (string-equal
+	(file-name-extension candidate)
+	"org")
+       (string-prefix-p agenda candidate)))))
+
+
+;;;###autoload
+(defun gpt-todos-sync
+    (&optional file)
+  "Run gpt-todos sync asynchronously.\nWhen FILE is non-nil, preserve and synchronize that just-saved agenda file."
+  (interactive)
+  (let*
+      ((buffer
+	(get-buffer-create " *gpt-todos-sync*"))
+       (command
+	(append
+	 (list "/usr/bin/env" "bash" gpt-todos-sync-script)
+	 (when file
+	   (list "--file"
+		 (expand-file-name file)))))
+       (proc
+	(make-process :name "gpt-todos-sync" :buffer buffer :command command :connection-type 'pipe :noquery t)))
+    (set-process-sentinel proc
+			  (lambda
+			    (p _event)
+			    (when
+				(memq
+				 (process-status p)
+				 '(exit signal))
+			      (if
+				  (= 0
+				     (process-exit-status p))
+				  (message "gpt-todos sync complete")
+				(message "gpt-todos sync failed; see %s"
+					 (buffer-name
+					  (process-buffer p)))))))
+    (message "gpt-todos sync started")
+    proc))
+
+
+;;;###autoload
+(defun gpt-todos-sync-after-save nil "Synchronize a just-saved Org file when it belongs to the live agenda tree."
+       (when
+	   (gpt-todos--agenda-org-file-p buffer-file-name)
+	 (gpt-todos-sync buffer-file-name)))
+
+
+;;;###autoload
+(add-hook 'after-save-hook #'gpt-todos-sync-after-save)
+
+
+#+end_src
+
+* llm
+#+begin_src emacs-lisp :tangle autoload/star-autoload-llm.el
+;;; llm.el --- Doom autoload entrypoints for the local gptel stack -*- lexical-binding: t; -*-
+
+;;;###autoload
+(autoload #'ai/chat "chat" "Create and open a persistent Org agent chat." t)
+
+
+;;;###autoload
+(autoload #'ai/meme-generate "meme" "Generate a meme from a region or prompt." t)
+
+
+;;;###autoload
+(autoload #'ai/youtube-context "youtube-context" "Fetch YouTube context asynchronously." t)
+
+
+;;;###autoload
+(autoload #'ai/prompt-menu "ai-prompts" "Open reusable prompt and image commands." t)
+
+
+;;;###autoload
+(autoload #'ai/image-generate "ai-image" "Generate an image with OpenAI's image tool." t)
+
+
+;;;###autoload
+(autoload #'ai/image-generate-template "ai-image" "Generate an image from a reusable prompt template." t)
+
+
+;;;###autoload
+(autoload #'ai/image-edit "ai-image" "Edit an image with OpenAI's image tool." t)
+
+
+;;;###autoload
+(autoload #'mara "mara" "Open the local Mara runtime." t)
+
+
+;;;###autoload
+(autoload #'seductress "gptel-personas" "Open a dedicated Seductress gptel chat." t)
+
+
+;;;###autoload
+(defun +llm/bind-keys nil "Bind the local LLM entrypoints after Doom finishes loading."
+       (define-key star-leader-map
+		   (kbd "y i")
+		   #'+llm/image-generate)
+       (define-key star-leader-map
+		   (kbd "y m g")
+		   #'ai/meme-generate)
+       (define-key star-leader-map
+		   (kbd "y p")
+		   #'+llm/prompt-menu)
+       (define-key star-leader-map
+		   (kbd "y v")
+		   #'+llm/youtube-context)
+       (define-key star-leader-map
+		   (kbd "y y")
+		   #'ai/chat))
+
+
+;;;###autoload
+(add-hook 'star-after-init-hook #'+llm/bind-keys)
+
+
+;;;###autoload
+(with-eval-after-load 'gptel
+  (run-at-time 0 nil
+	       (lambda nil
+		 (require 'ai-init)
+		 (require 'gptel-personas)
+		 (ai/llm-apply-defaults)
+		 (ai/gptel-apply-directives))))
+
+
+;;;###autoload
+(defun +llm/load nil "Load the complete local LLM configuration."
+       (interactive)
+       (require 'ai-init)
+       (require 'gptel-personas)
+       (ai/llm-apply-defaults)
+       (ai/gptel-apply-directives)
+       (ai/mcp-connect-all 'noerror)
+       (message "LLM stack loaded: %s / %s" ai/llm-provider ai/llm-model))
+
+
+;;;###autoload
+(defun +llm/mcp-connect-all
+    (&optional noerror)
+  "Start configured MCP servers and register their tools with gptel."
+  (interactive)
+  (require 'ai-mcp)
+  (ai/mcp-connect-all noerror))
+
+
+;;;###autoload
+(defun +llm/proxmox-register
+    (&optional noerror)
+  "Register the Proxmox MCP server."
+  (interactive)
+  (require 'ai-mcp)
+  (ai/mcp-register-proxmox noerror))
+
+
+;;;###autoload
+(defun +llm/unifi-register
+    (&optional noerror)
+  "Register the UDM Pro / UniFi MCP server."
+  (interactive)
+  (require 'ai-mcp)
+  (ai/mcp-register-unifi noerror))
+
+
+;;;###autoload
+(defun +llm/discord-register
+    (&optional noerror)
+  "Register the Discord MCP server."
+  (interactive)
+  (require 'ai-mcp)
+  (ai/mcp-register-discord noerror))
+
+
+;;;###autoload
+(defun +llm/proxmox-connect nil "Connect the Proxmox MCP server."
+       (interactive)
+       (require 'ai-mcp)
+       (ai/mcp-connect-proxmox))
+
+
+;;;###autoload
+(defun +llm/unifi-connect nil "Connect the UDM Pro / UniFi MCP server."
+       (interactive)
+       (require 'ai-mcp)
+       (ai/mcp-connect-unifi))
+
+
+;;;###autoload
+(defun +llm/discord-connect nil "Connect the Discord MCP server."
+       (interactive)
+       (require 'ai-mcp)
+       (ai/mcp-connect-discord))
+
+
+;;;###autoload
+(defun +llm/chat nil "Open a persistent Org gptel agent chat."
+       (interactive)
+       (call-interactively #'ai/chat))
+
+
+;;;###autoload
+(defun +llm/youtube-context nil "Fetch a video transcript asynchronously and copy it as LLM context."
+       (interactive)
+       (call-interactively #'ai/youtube-context))
+
+
+(defalias '+llm/yt-dlp-context #'+llm/youtube-context)
+
+
+;;;###autoload
+(defun +llm/prompt-menu nil "Open the reusable prompt-template and image-generation menu."
+       (interactive)
+       (require 'ai-prompts)
+       (ai/prompt-menu))
+
+
+;;;###autoload
+(defun +llm/image-generate nil "Generate an image from the active region or a minibuffer prompt."
+       (interactive)
+       (require 'ai-image)
+       (call-interactively #'ai/image-generate))
+
+
+;;;###autoload
+(defun +llm/image-generate-template nil "Generate an image from a reusable prompt template."
+       (interactive)
+       (require 'ai-image)
+       (call-interactively #'ai/image-generate-template))
+
+
+;;;###autoload
+(defun +llm/image-edit nil "Edit an image using OpenAI's image-generation tool."
+       (interactive)
+       (require 'ai-image)
+       (call-interactively #'ai/image-edit))
+
+
+;;;###autoload
+(defun +llm/use-glm-5.2
+    (&optional local)
+  "Switch to GLM-5.2 through OpenRouter."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-glm-5.2 local))
+
+
+;;;###autoload
+(defun +llm/use-gpt-5.6-sol
+    (&optional local)
+  "Switch to GPT-5.6 Sol through OpenRouter."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-gpt-5.6-sol local))
+
+
+;;;###autoload
+(defun +llm/use-gpt-luna
+    (&optional local)
+  "Switch to GPT-5.6 Luna through OpenRouter."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-gpt-luna local))
+
+
+;;;###autoload
+(defun +llm/use-fable
+    (&optional local)
+  "Switch to Claude Fable 5 through OpenRouter."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-fable local))
+
+
+;;;###autoload
+(defun +llm/use-openai-oauth
+    (&optional local)
+  "Switch to GPT-5.6 Sol through OpenAI subscription OAuth."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-openai-oauth local))
+
+
+;;;###autoload
+(defun +llm/openai-login nil "Authenticate the OpenAI subscription backend."
+       (interactive)
+       (require 'ai)
+       (ai/llm-openai-oauth-login))
+
+
+;;;###autoload
+(defun +llm/agent-context nil "Toggle project instruction files in gptel context."
+       (interactive)
+       (require 'ai-agent)
+       (ai/agent-context-mode 'toggle))
+
+
+(provide '+llm-autoloads)
+
+;;; llm.el ends here
+
+#+end_src
+
+* org-agenda-compat
+#+begin_src emacs-lisp :tangle autoload/org-agenda-compat.el
+;;; org-agenda-compat.el --- Doom startup compatibility -*- lexical-binding: t; -*-
+
+;;; Commentary:
+;; `setq!' validates user options through their Customize widget.  Current
+;; org-super-agenda declares `org-super-agenda-groups' too narrowly for valid
+;; nested selectors such as :and/:not and selector value lists.  Treat the
+;; option as a general Lisp expression before config.el assigns it.
+
+;;; Code:
+
+;;;###autoload
+(with-eval-after-load 'org-super-agenda
+  (put 'org-super-agenda-groups 'custom-type 'sexp))
+
+
+(provide '+org-agenda-compat)
+
+;;; org-agenda-compat.el ends here
+
+#+end_src
+
+* research-approval
+#+begin_src emacs-lisp :tangle autoload/research-approval.el
+;;; research-approval.el -*- lexical-binding: t; -*-
+
+(require 'cl-lib)
+
+(require 'subr-x)
+
+
+(defconst nsa/research-approval--path-regexp "\\`research/[^/]+\\.org\\'" "Repository-relative paths accepted by the approval command.")
+
+
+(defconst nsa/research-approval--fields
+  '("approval_schema" "approval_state" "approval_actor" "approval_evidence" "approval_base_commit" "approval_base_blob" "approval_decided_at")
+  "Approval fields in their required order.")
+
+
+(defconst nsa/research-approval--schema "prolog-rlm.research-approval.v1" "Canonical research approval schema identifier.")
+
+
+(defun nsa/research-approval--git-result
+    (directory &rest arguments)
+  "Run Git with ARGUMENTS in DIRECTORY and return (STATUS . OUTPUT)."
+  (with-temp-buffer
+    (let
+	((default-directory
+	  (file-name-as-directory directory)))
+      (cons
+       (apply #'process-file "git" nil
+	      (list
+	       (current-buffer)
+	       t)
+	      nil arguments)
+       (string-trim-right
+	(buffer-string))))))
+
+
+(defun nsa/research-approval--git
+    (directory &rest arguments)
+  "Run Git with ARGUMENTS and signal a `user-error' on failure."
+  (pcase-let
+      ((`(,status \, output)
+	(apply #'nsa/research-approval--git-result directory arguments)))
+    (unless
+	(and
+	 (integerp status)
+	 (zerop status))
+      (user-error "Git %s failed%s"
+		  (string-join arguments " ")
+		  (if
+		      (string-empty-p output)
+		      ""
+		    (format ": %s" output))))
+    output))
+
+
+(defun nsa/research-approval--git-lines
+    (directory &rest arguments)
+  "Run Git with ARGUMENTS and return nonempty output lines."
+  (split-string
+   (apply #'nsa/research-approval--git directory arguments)
+   "\n" t))
+
+
+(defun nsa/research-approval--one
+    (description values)
+  "Return the only member of VALUES or reject ambiguous DESCRIPTION."
+  (unless
+      (=
+       (length values)
+       1)
+    (user-error "Cannot prove %s: expected one value, found %d" description
+		(length values)))
+  (car values))
+
+
+(defun nsa/research-approval--eligible-path-p
+    (path)
+  "Return non-nil when PATH is a tracked research Org record."
+  (string-match-p nsa/research-approval--path-regexp path))
+
+
+(defun nsa/research-approval--github-url-p
+    (url)
+  "Return non-nil when URL is an unambiguous GitHub repository URL."
+  (string-match-p
+   (concat "\\`\\(?:git@github\\.com:" "\\|ssh://git@github\\.com/" "\\|https://github\\.com/\\)" "[^/[:space:]]+/[^/[:space:]]+\\(?:\\.git\\)?/?\\'")
+   url))
+
+
+(defun nsa/research-approval--context
+    (&optional require-clean)
+  "Return verified Git context for the current buffer.\nWhen REQUIRE-CLEAN is non-nil, reject every visible working-tree change."
+  (unless
+      (and buffer-file-name
+	   (file-regular-p buffer-file-name))
+    (user-error "This buffer is not visiting a regular file"))
+  (when
+      (file-remote-p buffer-file-name)
+    (user-error "Remote files are not supported"))
+  (when
+      (buffer-modified-p)
+    (user-error "Save or discard existing buffer edits before approval"))
+  (let*
+      ((file
+	(file-truename buffer-file-name))
+       (directory
+	(file-name-directory file))
+       (root
+	(file-name-as-directory
+	 (file-truename
+	  (nsa/research-approval--git directory "rev-parse" "--show-toplevel"))))
+       (path
+	(file-relative-name file root)))
+    (unless
+	(nsa/research-approval--eligible-path-p path)
+      (user-error "%s is not a research/*.org record" path))
+    (nsa/research-approval--git root "ls-files" "--error-unmatch" "--" path)
+    (when require-clean
+      (let
+	  ((status
+	    (nsa/research-approval--git root "status" "--porcelain=v1" "--untracked-files=all")))
+	(unless
+	    (string-empty-p status)
+	  (user-error "Repository is dirty; approval requires a clean checkout:\n%s" status))))
+    (let*
+	((branch-result
+	  (nsa/research-approval--git-result root "symbolic-ref" "--quiet" "--short" "HEAD"))
+	 (branch
+	  (cdr branch-result)))
+      (unless
+	  (and
+	   (zerop
+	    (car branch-result))
+	   (not
+	    (string-empty-p branch)))
+	(user-error "Detached HEAD: approval requires a named current branch"))
+      (let*
+	  ((remote
+	    (nsa/research-approval--one
+	     (format "remote for branch %s" branch)
+	     (nsa/research-approval--git-lines root "config" "--get-all"
+					       (format "branch.%s.remote" branch))))
+	   (merge-ref
+	    (nsa/research-approval--one
+	     (format "upstream branch for %s" branch)
+	     (nsa/research-approval--git-lines root "config" "--get-all"
+					       (format "branch.%s.merge" branch)))))
+	(when
+	    (string= remote ".")
+	  (user-error "Branch %s tracks a local branch, not GitHub" branch))
+	(unless
+	    (string-prefix-p "refs/heads/" merge-ref)
+	  (user-error "Upstream %s is not a remote branch" merge-ref))
+	(let*
+	    ((upstream-branch
+	      (string-remove-prefix "refs/heads/" merge-ref))
+	     (upstream
+	      (nsa/research-approval--git root "rev-parse" "--abbrev-ref" "--symbolic-full-name" "@{upstream}"))
+	     (expected-upstream
+	      (concat remote "/" upstream-branch))
+	     (push-url
+	      (nsa/research-approval--one
+	       (format "push URL for remote %s" remote)
+	       (nsa/research-approval--git-lines root "remote" "get-url" "--push" "--all" remote))))
+	  (unless
+	      (string= upstream expected-upstream)
+	    (user-error "Upstream mismatch: configured %s, resolved %s" expected-upstream upstream))
+	  (unless
+	      (nsa/research-approval--github-url-p push-url)
+	    (user-error "Push URL is not a proven GitHub repository: %s" push-url))
+	  (list :root root :path path :branch branch :remote remote :merge-ref merge-ref :upstream upstream :push-url push-url :head
+		(nsa/research-approval--git root "rev-parse" "HEAD")))))))
+
+
+(defun nsa/research-approval--field-regexp
+    (field)
+  "Return the exact canonical keyword regexp for FIELD."
+  (format "^#\\+%s: \\(.*\\)$"
+	  (regexp-quote field)))
+
+
+(defun nsa/research-approval--field-values
+    (field)
+  "Return (LINE . VALUE) entries for canonical FIELD in the buffer."
+  (let
+      ((regexp
+	(nsa/research-approval--field-regexp field))
+       values)
+    (save-excursion
+      (goto-char
+       (point-min))
+      (while
+	  (re-search-forward regexp nil t)
+	(push
+	 (cons
+	  (line-number-at-pos
+	   (match-beginning 0))
+	  (match-string-no-properties 1))
+	 values)))
+    (nreverse values)))
+
+
+(defun nsa/research-approval--keyword-lines
+    (keyword)
+  "Return line numbers for case-insensitive Org KEYWORD entries."
+  (let
+      (lines)
+    (save-excursion
+      (goto-char
+       (point-min))
+      (let
+	  ((case-fold-search t))
+	(while
+	    (re-search-forward
+	     (format "^#\\+%s:[ \\t]*.*$"
+		     (regexp-quote keyword))
+	     nil t)
+	  (push
+	   (line-number-at-pos
+	    (match-beginning 0))
+	   lines))))
+    (nreverse lines)))
+
+
+(defun nsa/research-approval--canonical-block-errors
+    (&optional expected-state)
+  "Return human-readable errors for the current record.\nWhen EXPECTED-STATE is non-nil, require that approval state."
+  (let
+      ((titles
+	(nsa/research-approval--keyword-lines "title"))
+       (statuses
+	(nsa/research-approval--keyword-lines "status"))
+       errors)
+    (unless
+	(=
+	 (length titles)
+	 1)
+      (push
+       (format "line 1: expected exactly one #+title keyword, found %d"
+	       (length titles))
+       errors))
+    (unless
+	(=
+	 (length statuses)
+	 1)
+      (push
+       (format "line 1: expected exactly one #+status keyword, found %d"
+	       (length statuses))
+       errors))
+    (when
+	(and
+	 (=
+	  (length titles)
+	  1)
+	 (=
+	  (length statuses)
+	  1)
+	 (>=
+	  (car titles)
+	  (car statuses)))
+      (push
+       (format "line %d: #+title must precede lifecycle #+status"
+	       (car statuses))
+       errors))
+    (when
+	(=
+	 (length statuses)
+	 1)
+      (save-excursion
+	(goto-char
+	 (point-min))
+	(forward-line
+	 (1-
+	  (car statuses)))
+	(let
+	    ((case-fold-search t))
+	  (when
+	      (re-search-forward "^#\\+status:[ \\t]*\\(.*\\)$"
+				 (line-end-position)
+				 t)
+	    (let
+		((lifecycle
+		  (upcase
+		   (string-trim
+		    (match-string-no-properties 1)))))
+	      (when
+		  (member lifecycle
+			  '("APPROVED" "REJECTED"))
+		(push
+		 (format "line %d: lifecycle status cannot be %s; use #+approval_state"
+			 (car statuses)
+			 lifecycle)
+		 errors)))))))
+    (dolist
+	(field nsa/research-approval--fields)
+      (let
+	  ((values
+	    (nsa/research-approval--field-values field)))
+	(unless
+	    (=
+	     (length values)
+	     1)
+	  (push
+	   (format "line 1: approval field #+%s must occur exactly once, found %d" field
+		   (length values))
+	   errors))))
+    (when
+	(=
+	 (length statuses)
+	 1)
+      (let
+	  ((status-line
+	    (car statuses)))
+	(cl-loop for field in nsa/research-approval--fields for offset from 1 for expected-line =
+		 (+ status-line offset)
+		 for expected =
+		 (if
+		     (string= field "approval_schema")
+		     (format "#+%s: %s" field nsa/research-approval--schema)
+		   (let
+		       ((value
+			 (cdr
+			  (car
+			   (nsa/research-approval--field-values field)))))
+		     (format "#+%s: %s" field
+			     (or value ""))))
+		 do
+		 (save-excursion
+		   (goto-char
+		    (point-min))
+		   (forward-line
+		    (1- expected-line))
+		   (let
+		       ((actual
+			 (buffer-substring-no-properties
+			  (line-beginning-position)
+			  (line-end-position))))
+		     (unless
+			 (string= actual expected)
+		       (push
+			(format "line %d: canonical approval block expected #+%s immediately after #+status" expected-line field)
+			errors)))))))
+    (let
+	((case-fold-search t))
+      (save-excursion
+	(goto-char
+	 (point-min))
+	(while
+	    (re-search-forward "^[ \\t]*#\\+\\(?:approval\\|approved\\|approve\\|reject\\)[[:alnum:]_-]*:" nil t)
+	  (let
+	      ((line
+		(line-number-at-pos
+		 (match-beginning 0)))
+	       (text
+		(buffer-substring-no-properties
+		 (line-beginning-position)
+		 (line-end-position))))
+	    (unless
+		(or
+		 (string-match-p "\\`#\\+approval_schema: prolog-rlm\\.research-approval\\.v1\\'" text)
+		 (string-match-p "\\`#\\+approval_\\(?:state\\|actor\\|evidence\\|base_commit\\|base_blob\\|decided_at\\): " text))
+	      (push
+	       (format "line %d: noncanonical approval keyword or layout" line)
+	       errors)))))
+      (save-excursion
+	(goto-char
+	 (point-min))
+	(while
+	    (re-search-forward "^[ \\t]*:[^: \\t]*\\(?:approval\\|approve\\|reject\\)[^:]*:" nil t)
+	  (push
+	   (format "line %d: noncanonical approval property"
+		   (line-number-at-pos
+		    (match-beginning 0)))
+	   errors)))
+      (save-excursion
+	(goto-char
+	 (point-min))
+	(while
+	    (re-search-forward "^#\\+property:.*\\(?:approval\\|approve\\|reject\\)" nil t)
+	  (push
+	   (format "line %d: noncanonical approval property"
+		   (line-number-at-pos
+		    (match-beginning 0)))
+	   errors)))
+      (save-excursion
+	(goto-char
+	 (point-min))
+	(while
+	    (re-search-forward "^[ \\t]*\\(?:[-+*][ \\t]+\\)?\\[[xX]\\][ \\t]+\\(?:APPROVE[D]?\\|REJECT[ED]?\\)\\(?:[ \\t]\\|$\\)" nil t)
+	  (push
+	   (format "line %d: checked approval box is not authoritative; use #+approval_state"
+		   (line-number-at-pos
+		    (match-beginning 0)))
+	   errors))))
+    (let*
+	((state-values
+	  (nsa/research-approval--field-values "approval_state"))
+	 (state
+	  (and state-values
+	       (cdr
+		(car state-values)))))
+      (when
+	  (=
+	   (length state-values)
+	   1)
+	(unless
+	    (member state
+		    '("PENDING" "APPROVED" "REJECTED"))
+	  (push
+	   (format "line %d: approval_state must be exactly PENDING, APPROVED, or REJECTED"
+		   (caar state-values))
+	   errors))
+	(when
+	    (string= state "PENDING")
+	  (dolist
+	      (field
+	       (cdr
+		(cdr nsa/research-approval--fields)))
+	    (let
+		((values
+		  (nsa/research-approval--field-values field)))
+	      (when values
+		(let
+		    ((value
+		      (cdr
+		       (car values))))
+		  (unless
+		      (string= value "NONE")
+		    (push
+		     (format "line %d: PENDING %s must be NONE"
+			     (car
+			      (car values))
+			     field)
+		     errors)))))))
+	(when
+	    (and expected-state
+		 (not
+		  (string= state expected-state)))
+	  (push
+	   (format "line %d: approval command requires state %s, found %s"
+		   (caar state-values)
+		   expected-state state)
+	   errors))))
+    (nreverse errors)))
+
+
+(defun nsa/research-approval--validate-record
+    (&optional expected-state)
+  "Signal a `user-error' unless the current record is canonical."
+  (let
+      ((errors
+	(nsa/research-approval--canonical-block-errors expected-state)))
+    (when errors
+      (user-error "Invalid research approval layout:\n%s"
+		  (string-join errors "\n")))))
+
+
+(defun nsa/research-approval--only-intended-edit-p
+    (context)
+  "Return non-nil when CONTEXT's file is the sole unstaged edit."
+  (let*
+      ((root
+	(plist-get context :root))
+       (path
+	(plist-get context :path)))
+    (and
+     (equal
+      (nsa/research-approval--git-lines root "status" "--porcelain=v1" "--untracked-files=all")
+      (list
+       (concat " M " path)))
+     (equal
+      (nsa/research-approval--git-lines root "diff" "--name-only" "--")
+      (list path))
+     (null
+      (nsa/research-approval--git-lines root "diff" "--cached" "--name-only" "--")))))
+
+
+(defun nsa/research-approval--approval-diff-p
+    (context)
+  "Return non-nil when only canonical approval fields changed."
+  (let*
+      ((root
+	(plist-get context :root))
+       (path
+	(plist-get context :path))
+       (diff
+	(nsa/research-approval--git root "diff" "--no-ext-diff" "--no-color" "--unified=0" "--" path))
+       (lines
+	(split-string diff "\n" t)))
+    (and lines
+	 (cl-every
+	  (lambda
+	    (line)
+	    (or
+	     (string-prefix-p "@@" line)
+	     (string-prefix-p "diff --" line)
+	     (string-prefix-p "index " line)
+	     (string-prefix-p "---" line)
+	     (string-prefix-p "+++" line)
+	     (and
+	      (string-match-p "^[+-]#\\+approval_[a-z_]+: " line)
+	      (not
+	       (string-prefix-p " " line)))))
+	  lines))))
+
+
+(defun nsa/research-approval--same-target-p
+    (before after)
+  "Return non-nil when BEFORE and AFTER describe the same checkout target."
+  (cl-every
+   (lambda
+     (key)
+     (equal
+      (plist-get before key)
+      (plist-get after key)))
+   '(:root :path :branch :remote :merge-ref :upstream :push-url :head)))
+
+
+(defun nsa/research-approval--same-push-target-p
+    (before after)
+  "Return non-nil when BEFORE and AFTER have the same push target."
+  (cl-every
+   (lambda
+     (key)
+     (equal
+      (plist-get before key)
+      (plist-get after key)))
+   '(:root :path :branch :remote :merge-ref :upstream :push-url)))
+
+
+(defun nsa/research-approval--restore-buffer
+    (contents point)
+  "Restore the current buffer to CONTENTS and POINT, then save it."
+  (let
+      ((inhibit-read-only t))
+    (erase-buffer)
+    (insert contents)
+    (goto-char
+     (min point
+	  (point-max)))
+    (save-buffer)))
+
+
+(defun nsa/research-approval--replace-field
+    (field value)
+  "Replace the sole canonical FIELD value with VALUE."
+  (let
+      ((values
+	(nsa/research-approval--field-values field)))
+    (unless
+	(=
+	 (length values)
+	 1)
+      (user-error "Cannot replace #+%s: expected one canonical field" field))
+    (goto-char
+     (point-min))
+    (unless
+	(re-search-forward
+	 (nsa/research-approval--field-regexp field)
+	 nil t)
+      (user-error "Cannot replace missing #+%s" field))
+    (replace-match
+     (format "#+%s: %s" field value)
+     t t)))
+
+
+(defun nsa/research-approval--safe-value-p
+    (value)
+  "Return non-nil when VALUE is a nonempty, one-line field value."
+  (and
+   (stringp value)
+   (not
+    (string= value "NONE"))
+   (not
+    (string-match-p
+     (string 10)
+     value))
+   (not
+    (string-match-p
+     (string 13)
+     value))
+   (string-match-p "\\`[^ \\t]" value)
+   (string-match-p "[^ \\t]\\'" value)))
+
+
+(defun nsa/research-approval--verify-binding
+    (context base-commit base-blob)
+  "Verify that BASE-COMMIT:path resolves exactly to BASE-BLOB."
+  (let*
+      ((root
+	(plist-get context :root))
+       (path
+	(plist-get context :path))
+       (commit-spec
+	(concat base-commit "^{commit}"))
+       (object-spec
+	(concat base-commit ":" path)))
+    (unless
+	(string=
+	 (nsa/research-approval--git root "rev-parse" "--verify" commit-spec)
+	 base-commit)
+      (user-error "Base commit is not a proven commit object"))
+    (unless
+	(and
+	 (string=
+	  (nsa/research-approval--git root "cat-file" "-t" object-spec)
+	  "blob")
+	 (string=
+	  (nsa/research-approval--git root "rev-parse" "--verify" object-spec)
+	  base-blob))
+      (user-error "Base commit does not resolve to the recorded file blob"))
+    t))
+
+
+(defun nsa/research-approval--commit-verified-p
+    (context base-commit)
+  "Return non-nil when HEAD is a verified approval-only child of BASE-COMMIT."
+  (let*
+      ((root
+	(plist-get context :root))
+       (path
+	(plist-get context :path))
+       (parent
+	(nsa/research-approval--git root "rev-parse" "HEAD^"))
+       (files
+	(nsa/research-approval--git-lines root "diff-tree" "--no-commit-id" "--name-only" "-r" "HEAD")))
+    (let
+	((clean
+	  (string-empty-p
+	   (nsa/research-approval--git root "status" "--porcelain=v1" "--untracked-files=all"))))
+      (and
+       (string= parent base-commit)
+       (equal files
+	      (list path))
+       clean))))
+
+
+(defun nsa/research-approval--prompt-value
+    (prompt default)
+  "Read a safe nonempty field value for PROMPT, using DEFAULT."
+  (let
+      ((value
+	(read-string prompt default)))
+    (unless
+	(nsa/research-approval--safe-value-p value)
+      (user-error "Approval field must be a nonempty one-line value other than NONE"))
+    value))
+
+
+(defun nsa/research-approval--preview
+    (context diff base-commit base-blob state)
+  "Display DIFF and its verified approval target before confirmation."
+  (let
+      ((buffer
+	(get-buffer-create "*Research approval preview*")))
+    (with-current-buffer buffer
+      (let
+	  ((inhibit-read-only t))
+	(erase-buffer)
+	(insert
+	 (format "Research approval dry-run\n  file: %s\n  state: %s\n  branch: %s\n"
+		 (plist-get context :path)
+		 state
+		 (plist-get context :branch)))
+	(insert
+	 (format "  upstream: %s\n  push URL: %s\n"
+		 (plist-get context :upstream)
+		 (plist-get context :push-url)))
+	(insert
+	 (format "  base commit: %s\n  base blob: %s\n\n" base-commit base-blob))
+	(insert diff "\n")
+	(diff-mode)
+	(goto-char
+	 (point-min))))
+    (display-buffer buffer)))
+
+
+(defun nsa/research-approval--decide-and-push
+    (state)
+  "Record STATE for the current research record, commit it, and push upstream."
+  (interactive)
+  (let*
+      ((context
+	(nsa/research-approval--context t))
+       (root
+	(plist-get context :root))
+       (path
+	(plist-get context :path))
+       (_validated
+	(progn
+	  (nsa/research-approval--validate-record "PENDING")
+	  t))
+       (base-commit
+	(plist-get context :head))
+       (base-blob
+	(nsa/research-approval--git root "rev-parse" "--verify"
+				    (concat base-commit ":" path)))
+       (_binding
+	(progn
+	  (nsa/research-approval--verify-binding context base-commit base-blob)
+	  t))
+       (actor
+	(nsa/research-approval--prompt-value "Human decision-maker: "
+					     (nsa/research-approval--git root "config" "user.name")))
+       (evidence
+	(nsa/research-approval--prompt-value "Durable approval evidence: " ""))
+       (timestamp
+	(format-time-string "%Y-%m-%dT%H:%M:%S%:z"))
+       (original
+	(buffer-substring-no-properties
+	 (point-min)
+	 (point-max)))
+       (original-point
+	(point))
+       (approval-contents nil)
+       (committed nil))
+    (nsa/research-approval--git root "push" "--dry-run" "--porcelain"
+				(plist-get context :remote)
+				(concat "HEAD:"
+					(plist-get context :merge-ref)))
+    (unwind-protect
+	(progn
+	  (dolist
+	      (field
+	       `(("approval_state" \, state)
+		 ("approval_actor" \, actor)
+		 ("approval_evidence" \, evidence)
+		 ("approval_base_commit" \, base-commit)
+		 ("approval_base_blob" \, base-blob)
+		 ("approval_decided_at" \, timestamp)))
+	    (nsa/research-approval--replace-field
+	     (car field)
+	     (cdr field)))
+	  (setq approval-contents
+		(buffer-substring-no-properties
+		 (point-min)
+		 (point-max)))
+	  (save-buffer)
+	  (unless
+	      (equal approval-contents
+		     (buffer-substring-no-properties
+		      (point-min)
+		      (point-max)))
+	    (user-error "A save hook changed more than the approval fields"))
+	  (nsa/research-approval--validate-record state)
+	  (unless
+	      (and
+	       (nsa/research-approval--only-intended-edit-p context)
+	       (nsa/research-approval--approval-diff-p context))
+	    (user-error "Repository changed beyond the canonical approval fields"))
+	  (nsa/research-approval--preview context
+					  (nsa/research-approval--git root "diff" "--no-ext-diff" "--no-color" "--unified=0" "--" path)
+					  base-commit base-blob state)
+	  (let
+	      ((current
+		(nsa/research-approval--context nil)))
+	    (unless
+		(nsa/research-approval--same-target-p context current)
+	      (user-error "Checkout or push target changed; refusing to commit")))
+	  (unless
+	      (yes-or-no-p
+	       (format "Commit only %s as %s and push to %s? " path state
+		       (plist-get context :upstream)))
+	    (user-error "Approval cancelled; file restored"))
+	  (nsa/research-approval--git root "commit" "--only" "-m"
+				      (format "docs(research): %s %s"
+					      (downcase state)
+					      (file-name-base path))
+				      "--" path)
+	  (setq committed t)
+	  (unless
+	      (and
+	       (nsa/research-approval--commit-verified-p context base-commit)
+	       (nsa/research-approval--verify-binding context base-commit base-blob))
+	    (user-error "Local approval commit verification failed; nothing was pushed"))
+	  (let
+	      ((current
+		(nsa/research-approval--context t)))
+	    (unless
+		(nsa/research-approval--same-push-target-p context current)
+	      (user-error "Push target changed after commit; approval commit remains local")))
+	  (condition-case error-data
+	      (nsa/research-approval--git root "push" "--porcelain"
+					  (plist-get context :remote)
+					  (concat "HEAD:"
+						  (plist-get context :merge-ref)))
+	    (error
+	     (user-error "Approval commit %s is verified locally but push failed: %s"
+			 (nsa/research-approval--git root "rev-parse" "HEAD")
+			 (error-message-string error-data))))
+	  (message "Recorded %s for %s, verified commit, and pushed %s" state path
+		   (plist-get context :upstream)))
+      (unless committed
+	(when
+	    (and approval-contents
+		 (equal
+		  (buffer-substring-no-properties
+		   (point-min)
+		   (point-max))
+		  (with-temp-buffer
+		    (insert-file-contents buffer-file-name)
+		    (buffer-string)))
+		 (string=
+		  (nsa/research-approval--git root "rev-parse" "HEAD")
+		  base-commit)
+		 (equal
+		  (nsa/research-approval--git-lines root "status" "--porcelain=v1" "--untracked-files=all")
+		  (list
+		   (concat " M " path)))
+		 (equal
+		  (nsa/research-approval--git-lines root "diff" "--name-only" "--" path)
+		  (list path)))
+	  (ignore-errors
+	    (nsa/research-approval--git root "restore" "--staged" "--" path))
+	  (nsa/research-approval--restore-buffer original original-point))))))
+
+
+;;;###autoload
+(defun nsa/research-approve-and-push nil "Record APPROVED for the current canonical research record and push it."
+       (interactive)
+       (nsa/research-approval--decide-and-push "APPROVED"))
+
+
+;;;###autoload
+(defun nsa/research-reject-and-push nil "Record REJECTED for the current canonical research record and push it."
+       (interactive)
+       (nsa/research-approval--decide-and-push "REJECTED"))
+
+
+(provide 'research-approval)
+
+
+#+end_src
+
+* research-dashboard-evil
+#+begin_src emacs-lisp :tangle autoload/research-dashboard-evil.el
+;;; research-dashboard-evil.el --- Evil integration for research dashboard -*- lexical-binding: t; -*-
+
+(require 'subr-x)
+
+
+(defconst nsa/research-dashboard-evil--command-states
+  '(normal motion)
+  "Evil states where research dashboard commands must remain directly usable.")
+
+
+(defconst nsa/research-dashboard-evil--bindings
+  '(("g" . nsa/research-dashboard-refresh)
+    ("RET" . nsa/research-dashboard-view)
+    ("a" . nsa/research-dashboard-approve)
+    ("r" . nsa/research-dashboard-reject)
+    ("e" . nsa/research-dashboard-errors)
+    ("s" . nsa/research-dashboard-search)
+    ("/" . nsa/research-dashboard-search)
+    ("f" . nsa/research-dashboard-filter)
+    ("c" . nsa/research-dashboard-clear-filters)
+    ("L" . nsa/research-dashboard-toggle-legacy)
+    ("?" . nsa/research-dashboard-help))
+  "Research dashboard commands available from Evil command states.")
+
+
+(defun nsa/research-dashboard-evil--apply-bindings nil "Install dashboard-local Evil command-state bindings in the current buffer."
+       (dolist
+	   (state nsa/research-dashboard-evil--command-states)
+	 (dolist
+	     (binding nsa/research-dashboard-evil--bindings)
+	   (evil-local-set-key state
+			       (kbd
+				(car binding))
+			       (cdr binding)))))
+
+
+;;;###autoload
+(defun nsa/research-dashboard-evil-setup nil "Make research dashboard controls work directly in Evil command states."
+       (if
+	   (fboundp 'evil-local-set-key)
+	   (nsa/research-dashboard-evil--apply-bindings)
+	 (let
+	     ((dashboard
+	       (current-buffer)))
+	   (with-eval-after-load 'evil
+	     (when
+		 (buffer-live-p dashboard)
+	       (with-current-buffer dashboard
+		 (nsa/research-dashboard-evil--apply-bindings)))))))
+
+
+;;;###autoload
+(add-hook 'nsa/research-dashboard-mode-hook #'nsa/research-dashboard-evil-setup)
+
+
+(provide 'research-dashboard-evil)
+
+;;; research-dashboard-evil.el ends here
+
+#+end_src
+
+* research-dashboard-local-defaults
+#+begin_src emacs-lisp :tangle autoload/research-dashboard-local-defaults.el
+;;; research-dashboard-local-defaults.el --- Local research roots -*- lexical-binding: t; -*-
+
+;;; Commentary:
+;; Machine-local research roots tracked by the research dashboard.  These
+;; forms are emitted into Doom's generated autoloads so the roots and local
+;; DWIM adapter are available whenever the dashboard is opened.
+
+;;; Code:
+
+;;;###autoload
+(setq nsa/research-dashboard-local-checkouts
+      (list
+       (expand-file-name "~/starintel")
+       (expand-file-name "~/Documents/Projects/prolog-rlm")))
+
+
+;;;###autoload
+(with-eval-after-load 'research-dashboard
+  (require 'research-dashboard-local)
+  (require 'research-dashboard-local-dwim))
+
+
+(provide 'research-dashboard-local-defaults)
+
+;;; research-dashboard-local-defaults.el ends here
+
+#+end_src
+
+* research-dashboard-local-dwim
+#+begin_src emacs-lisp :tangle autoload/research-dashboard-local-dwim.el
+;;; research-dashboard-local-dwim.el --- DWIM forge identity for research dashboard -*- lexical-binding: t; -*-
+
+(require 'json)
+
+(require 'subr-x)
+
+(require 'research-dashboard-local)
+
+
+(defvar-local nsa/research-dashboard-local-dwim--identities nil "Map local research item ids to forge/provider identity metadata.")
+
+
+(defun nsa/research-dashboard-local-dwim--command
+    (directory program &rest args)
+  "Run PROGRAM ARGS in DIRECTORY and return trimmed stdout on success."
+  (when
+      (executable-find program)
+    (let
+	((default-directory
+	  (file-name-as-directory directory)))
+      (with-temp-buffer
+	(when
+	    (zerop
+	     (apply #'process-file program nil t nil args))
+	  (string-trim
+	   (buffer-string)))))))
+
+
+(defun nsa/research-dashboard-local-dwim--parse-remote
+    (remote)
+  "Parse REMOTE into a plist with :host, :slug and :ssh-user when available."
+  (cond
+   ((and remote
+	 (string-match "\\`\\([^/@:]+\\)@\\([^/:]+\\):\\(.+\\)\\'" remote))
+    (list :ssh-user
+	  (match-string 1 remote)
+	  :host
+	  (downcase
+	   (match-string 2 remote))
+	  :slug
+	  (string-remove-suffix ".git"
+				(match-string 3 remote))))
+   ((and remote
+	 (string-match "\\`ssh://\\(?:\\([^/@]+\\)@\\)?\\([^/:]+\\)\\(?::[0-9]+\\)?/\\(.+\\)\\'" remote))
+    (list :ssh-user
+	  (match-string 1 remote)
+	  :host
+	  (downcase
+	   (match-string 2 remote))
+	  :slug
+	  (string-remove-suffix ".git"
+				(match-string 3 remote))))
+   ((and remote
+	 (string-match "\\`https?://\\([^/]+\\)/\\(.+\\)\\'" remote))
+    (list :host
+	  (downcase
+	   (match-string 1 remote))
+	  :slug
+	  (string-remove-suffix ".git"
+				(match-string 2 remote))))
+   (t nil)))
+
+
+(defun nsa/research-dashboard-local-dwim--json-login
+    (text)
+  "Return a forge login from JSON TEXT, tolerating login/username/user keys."
+  (when
+      (and text
+	   (not
+	    (string-empty-p text)))
+    (condition-case nil
+	(let
+	    ((object
+	      (json-parse-string text :object-type 'alist)))
+	  (or
+	   (alist-get "login" object nil nil #'string=)
+	   (alist-get "username" object nil nil #'string=)
+	   (alist-get "user" object nil nil #'string=)))
+      (error nil))))
+
+
+(defun nsa/research-dashboard-local-dwim--github-info
+    (repo-root parsed)
+  "Resolve GitHub repository and actor metadata for REPO-ROOT and PARSED remote."
+  (let*
+      ((slug
+	(or
+	 (nsa/research-dashboard-local-dwim--command repo-root "gh" "repo" "view" "--json" "nameWithOwner" "--jq" ".nameWithOwner")
+	 (plist-get parsed :slug)))
+       (actor
+	(nsa/research-dashboard-local-dwim--command repo-root "gh" "api" "user" "--jq" ".login")))
+    (list :provider 'github :host "github.com" :repo slug :actor actor)))
+
+
+(defun nsa/research-dashboard-local-dwim--tea-info
+    (repo-root parsed)
+  "Resolve Forgejo/Gitea actor metadata for REPO-ROOT using tea context."
+  (let*
+      ((raw
+	(nsa/research-dashboard-local-dwim--command repo-root "tea" "api" "/user"))
+       (actor
+	(nsa/research-dashboard-local-dwim--json-login raw))
+       (host
+	(plist-get parsed :host))
+       (slug
+	(plist-get parsed :slug)))
+    (when actor
+      (list :provider 'forgejo :host host :repo
+	    (and slug host
+		 (format "%s/%s" host slug))
+	    :actor actor))))
+
+
+(defun nsa/research-dashboard-local-dwim--forge-info
+    (repo-root remote)
+  "DWIM forge metadata for REPO-ROOT from REMOTE.\n\nGitHub is resolved through `gh'.  Other remotes are offered to `tea', which\nuses the checkout's Git remote context to select the matching Forgejo/Gitea\nlogin.  Plain Git parsing remains the final fallback."
+  (let*
+      ((parsed
+	(nsa/research-dashboard-local-dwim--parse-remote remote))
+       (host
+	(plist-get parsed :host))
+       (slug
+	(plist-get parsed :slug)))
+    (cond
+     ((string= host "github.com")
+      (nsa/research-dashboard-local-dwim--github-info repo-root parsed))
+     ((and parsed
+	   (nsa/research-dashboard-local-dwim--tea-info repo-root parsed)))
+     (parsed
+      (list :provider 'git :host host :repo
+	    (if
+		(and host slug)
+		(format "%s/%s" host slug)
+	      slug)
+	    :actor nil))
+     (t nil))))
+
+
+(defun nsa/research-dashboard-local-dwim--checkout-info-advice
+    (original directory)
+  "Augment checkout info with DWIM provider and authenticated actor identity."
+  (let*
+      ((info
+	(funcall original directory))
+       (repo-root
+	(plist-get info :repo-root))
+       (remote
+	(nsa/research-dashboard-local--git repo-root "remote" "get-url" "origin"))
+       (forge
+	(and remote
+	     (nsa/research-dashboard-local-dwim--forge-info repo-root remote))))
+    (when forge
+      (let
+	  ((repo
+	    (plist-get forge :repo)))
+	(when
+	    (and repo
+		 (not
+		  (string-empty-p repo)))
+	  (setq info
+		(plist-put info :repo repo))))
+      (setq info
+	    (plist-put info :provider
+		       (plist-get forge :provider))
+	    info
+	    (plist-put info :host
+		       (plist-get forge :host))
+	    info
+	    (plist-put info :actor
+		       (plist-get forge :actor))
+	    info
+	    (plist-put info :remote remote)))
+    info))
+
+
+(defun nsa/research-dashboard-local-dwim--item-advice
+    (original info file)
+  "Remember forge identity metadata for the item built from INFO and FILE."
+  (let
+      ((item
+	(funcall original info file)))
+    (when item
+      (unless
+	  (hash-table-p nsa/research-dashboard-local-dwim--identities)
+	(setq nsa/research-dashboard-local-dwim--identities
+	      (make-hash-table :test #'equal)))
+      (puthash
+       (nsa/research-dashboard-local--id item)
+       (list :provider
+	     (plist-get info :provider)
+	     :host
+	     (plist-get info :host)
+	     :actor
+	     (plist-get info :actor)
+	     :remote
+	     (plist-get info :remote))
+       nsa/research-dashboard-local-dwim--identities))
+    item))
+
+
+(defun nsa/research-dashboard-local-dwim--scan-advice
+    (original &rest args)
+  "Reset identity metadata before rescanning local sources."
+  (setq nsa/research-dashboard-local-dwim--identities
+	(make-hash-table :test #'equal))
+  (apply original args))
+
+
+(defun nsa/research-dashboard-local-dwim--identity
+    (item)
+  "Return DWIM forge identity metadata for ITEM."
+  (and
+   (hash-table-p nsa/research-dashboard-local-dwim--identities)
+   (gethash
+    (nsa/research-dashboard-local--id item)
+    nsa/research-dashboard-local-dwim--identities)))
+
+
+(defun nsa/research-dashboard-local-dwim--decide-advice
+    (original state item file)
+  "Use the forge-authenticated actor as the local decision prompt default."
+  (let*
+      ((identity
+	(nsa/research-dashboard-local-dwim--identity item))
+       (actor
+	(plist-get identity :actor))
+       (nsa/research-dashboard--login
+	(or actor nsa/research-dashboard--login)))
+    (funcall original state item file)))
+
+
+(defun nsa/research-dashboard-local-dwim--install nil "Install DWIM provider/identity behavior once."
+       (unless
+	   (advice-member-p #'nsa/research-dashboard-local-dwim--checkout-info-advice 'nsa/research-dashboard-local--checkout-info)
+	 (advice-add 'nsa/research-dashboard-local--checkout-info :around #'nsa/research-dashboard-local-dwim--checkout-info-advice)
+	 (advice-add 'nsa/research-dashboard-local--item :around #'nsa/research-dashboard-local-dwim--item-advice)
+	 (advice-add 'nsa/research-dashboard-local--scan-current-buffer :around #'nsa/research-dashboard-local-dwim--scan-advice)
+	 (advice-add 'nsa/research-dashboard-local--decide :around #'nsa/research-dashboard-local-dwim--decide-advice)))
+
+
+;;;###autoload
+(add-hook 'nsa/research-dashboard-mode-hook #'nsa/research-dashboard-local-dwim--install)
+
+
+(provide 'research-dashboard-local-dwim)
+
+;;; research-dashboard-local-dwim.el ends here
+
+#+end_src
+
+* research-dashboard-local
+#+begin_src emacs-lisp :tangle autoload/research-dashboard-local.el
+;;; research-dashboard-local.el --- Local checkout support for research dashboard -*- lexical-binding: t; -*-
+
+(require 'cl-lib)
+
+(require 'seq)
+
+(require 'subr-x)
+
+(require 'research-dashboard)
+
+
+(defcustom nsa/research-dashboard-local-checkouts nil "Local Git checkouts or directories to scan for research Org files.\n\nGit checkouts infer repository identity from `remote.origin.url'.  A local\nitem shadows the same repository/path discovered from GitHub, so review and\napproval operate on the checkout copy instead of stale remote content." :type
+  '(repeat directory)
+  :group 'nsa/research-dashboard)
+
+
+(defvar nsa/research-dashboard-local--installed nil)
+
+(defvar-local nsa/research-dashboard-local--files nil)
+
+
+(defun nsa/research-dashboard-local--id
+    (item)
+  (concat
+   (nsa/research-item-repo item)
+   ":"
+   (nsa/research-item-path item)))
+
+
+(defun nsa/research-dashboard-local--git
+    (directory &rest args)
+  (when
+      (executable-find "git")
+    (with-temp-buffer
+      (when
+	  (zerop
+	   (apply #'process-file "git" nil t nil "-C" directory args))
+	(string-trim
+	 (buffer-string))))))
+
+
+(defun nsa/research-dashboard-local--git-root
+    (directory)
+  (let
+      ((root
+	(nsa/research-dashboard-local--git directory "rev-parse" "--show-toplevel")))
+    (and root
+	 (file-directory-p root)
+	 (file-truename root))))
+
+
+(defun nsa/research-dashboard-local--github-slug
+    (remote)
+  (when
+      (and remote
+	   (string-match "github\\.com[:/]\\(.+\\)\\'" remote))
+    (string-remove-suffix ".git"
+			  (match-string 1 remote))))
+
+
+(defun nsa/research-dashboard-local--checkout-info
+    (directory)
+  (let*
+      ((scan-root
+	(file-truename directory))
+       (repo-root
+	(or
+	 (nsa/research-dashboard-local--git-root scan-root)
+	 scan-root))
+       (remote
+	(nsa/research-dashboard-local--git repo-root "config" "--get" "remote.origin.url"))
+       (slug
+	(nsa/research-dashboard-local--github-slug remote))
+       (branch
+	(or
+	 (nsa/research-dashboard-local--git repo-root "symbolic-ref" "--quiet" "--short" "HEAD")
+	 "local"))
+       (commit
+	(or
+	 (nsa/research-dashboard-local--git repo-root "rev-parse" "HEAD")
+	 "LOCAL")))
+    (list :scan-root scan-root :repo-root repo-root :repo
+	  (or slug
+	      (concat "local:"
+		      (file-name-nondirectory repo-root)))
+	  :branch branch :commit commit)))
+
+
+(defun nsa/research-dashboard-local--read
+    (file)
+  (with-temp-buffer
+    (insert-file-contents file)
+    (buffer-string)))
+
+
+(defun nsa/research-dashboard-local--blob
+    (file repo-root)
+  (or
+   (nsa/research-dashboard-local--git repo-root "hash-object" file)
+   (concat "local:"
+	   (secure-hash 'sha256
+			(nsa/research-dashboard-local--read file)))))
+
+
+(defun nsa/research-dashboard-local--eligible-file-p
+    (file)
+  (and
+   (string-suffix-p ".org" file t)
+   (not
+    (member
+     (downcase
+      (file-name-nondirectory file))
+     nsa/research-dashboard--auxiliary-files))))
+
+
+(defun nsa/research-dashboard-local--item
+    (info file)
+  (when
+      (nsa/research-dashboard-local--eligible-file-p file)
+    (let*
+	((content
+	  (nsa/research-dashboard-local--read file))
+	 (title
+	  (or
+	   (nsa/research-dashboard--keyword content "title")
+	   (file-name-base file)))
+	 (lifecycle
+	  (or
+	   (nsa/research-dashboard--keyword content "status")
+	   "MISSING"))
+	 (approval
+	  (upcase
+	   (or
+	    (nsa/research-dashboard--keyword content "approval_state")
+	    "LEGACY"))))
+      (when
+	  (or
+	   (string= approval "PENDING")
+	   (and
+	    (string= approval "LEGACY")
+	    (nsa/research-dashboard--legacy-reviewable-p lifecycle)))
+	(let*
+	    ((repo-root
+	      (plist-get info :repo-root))
+	     (path
+	      (file-relative-name file repo-root)))
+	  (nsa/research-item-create :repo
+				    (plist-get info :repo)
+				    :branch
+				    (plist-get info :branch)
+				    :path path :blob
+				    (nsa/research-dashboard-local--blob file repo-root)
+				    :title title :lifecycle lifecycle :approval approval :content content))))))
+
+
+(defun nsa/research-dashboard-local--register
+    (item file)
+  (let
+      ((id
+	(nsa/research-dashboard-local--id item)))
+    (puthash id file nsa/research-dashboard-local--files)
+    (when
+	(hash-table-p nsa/research-dashboard--seen)
+      (puthash id t nsa/research-dashboard--seen))
+    (setq nsa/research-dashboard--items
+	  (cons item
+		(seq-remove
+		 (lambda
+		   (existing)
+		   (string= id
+			    (nsa/research-dashboard-local--id existing)))
+		 nsa/research-dashboard--items)))))
+
+
+(defun nsa/research-dashboard-local--scan-directory
+    (directory)
+  (condition-case error-data
+      (let*
+	  ((info
+	    (nsa/research-dashboard-local--checkout-info directory))
+	   (scan-root
+	    (plist-get info :scan-root)))
+	(dolist
+	    (file
+	     (directory-files-recursively scan-root "\\.org\\'"))
+	  (let
+	      ((item
+		(nsa/research-dashboard-local--item info file)))
+	    (when item
+	      (nsa/research-dashboard-local--register item file)))))
+    (error
+     (push
+      (format "Local research %s: %s" directory
+	      (error-message-string error-data))
+      nsa/research-dashboard--errors))))
+
+
+(defun nsa/research-dashboard-local--scan-current-buffer nil
+  (unless
+      (hash-table-p nsa/research-dashboard-local--files)
+    (setq nsa/research-dashboard-local--files
+	  (make-hash-table :test #'equal)))
+  (clrhash nsa/research-dashboard-local--files)
+  (dolist
+      (directory nsa/research-dashboard-local-checkouts)
+    (let
+	((expanded
+	  (expand-file-name directory)))
+      (if
+	  (file-directory-p expanded)
+	  (nsa/research-dashboard-local--scan-directory expanded)
+	(push
+	 (format "Local research directory missing: %s" expanded)
+	 nsa/research-dashboard--errors))))
+  (nsa/research-dashboard--schedule-render))
+
+
+(defun nsa/research-dashboard-local--file-for-item
+    (item)
+  (and
+   (hash-table-p nsa/research-dashboard-local--files)
+   (gethash
+    (nsa/research-dashboard-local--id item)
+    nsa/research-dashboard-local--files)))
+
+
+(defun nsa/research-dashboard-local--refresh-advice
+    (original &rest args)
+  (prog1
+      (apply original args)
+    (when
+	(derived-mode-p 'nsa/research-dashboard-mode)
+      (nsa/research-dashboard-local--scan-current-buffer))))
+
+
+(defun nsa/research-dashboard-local--job-done-advice
+    (original generation &optional item error-text)
+  (if
+      (and item
+	   (nsa/research-dashboard-local--file-for-item item))
+      (funcall original generation nil error-text)
+    (funcall original generation item error-text)))
+
+
+(defun nsa/research-dashboard-local--render-advice
+    (original &rest args)
+  (prog1
+      (apply original args)
+    (when
+	(and
+	 (derived-mode-p 'nsa/research-dashboard-mode)
+	 nsa/research-dashboard-local-checkouts)
+      (setq header-line-format
+	    (concat header-line-format
+		    (format "   local:%d [d add dir] [D remove dir]"
+			    (hash-table-count nsa/research-dashboard-local--files)))))))
+
+
+(defun nsa/research-dashboard-local--view-advice
+    (original &rest args)
+  (let*
+      ((item
+	(nsa/research-dashboard--at-point))
+       (file
+	(nsa/research-dashboard-local--file-for-item item)))
+    (if
+	(not file)
+	(apply original args)
+      (unless
+	  (file-exists-p file)
+	(user-error "Local research file disappeared: %s" file))
+      (pop-to-buffer
+       (find-file-noselect file)))))
+
+
+(defun nsa/research-dashboard-local--checkout-metadata
+    (file)
+  (let*
+      ((directory
+	(file-name-directory file))
+       (repo-root
+	(or
+	 (nsa/research-dashboard-local--git-root directory)
+	 directory))
+       (commit
+	(or
+	 (nsa/research-dashboard-local--git repo-root "rev-parse" "HEAD")
+	 "LOCAL")))
+    (cons commit
+	  (nsa/research-dashboard-local--blob file repo-root))))
+
+
+(defun nsa/research-dashboard-local--assert-writable
+    (file expected)
+  (let
+      ((visiting
+	(get-file-buffer file)))
+    (when
+	(and visiting
+	     (with-current-buffer visiting
+	       (buffer-modified-p)))
+      (user-error "Local research buffer has unsaved changes: %s" file)))
+  (unless
+      (string= expected
+	       (nsa/research-dashboard-local--read file))
+    (user-error "Research changed since refresh; refresh first")))
+
+
+(defun nsa/research-dashboard-local--write
+    (file expected updated)
+  (nsa/research-dashboard-local--assert-writable file expected)
+  (let
+      ((coding-system-for-write 'utf-8-unix))
+    (write-region updated nil file nil 'silent))
+  (let
+      ((visiting
+	(get-file-buffer file)))
+    (when
+	(and visiting
+	     (not
+	      (with-current-buffer visiting
+		(buffer-modified-p))))
+      (with-current-buffer visiting
+	(revert-buffer :ignore-auto :noconfirm)))))
+
+
+(defun nsa/research-dashboard-local--preview
+    (item file state updated)
+  (let
+      ((buffer
+	(get-buffer-create "*Research Approval Preview*")))
+    (with-current-buffer buffer
+      (let
+	  ((inhibit-read-only t))
+	(erase-buffer)
+	(insert
+	 (format "%s\n%s\n%s\n\n"
+		 (nsa/research-item-repo item)
+		 (nsa/research-item-path item)
+		 file))
+	(dolist
+	    (field nsa/research-dashboard--fields)
+	  (insert
+	   (format "#+%s: %s\n" field
+		   (nsa/research-dashboard--keyword updated field))))
+	(insert "\nDelivery: direct local checkout write; Git is left dirty for review/commit.\n")
+	(special-mode)))
+    (display-buffer buffer)
+    (yes-or-no-p
+     (format "%s local %s? " state
+	     (file-name-nondirectory file)))))
+
+
+(defun nsa/research-dashboard-local--decide
+    (state item file)
+  (when
+      (nsa/research-item-busy item)
+    (user-error "Decision already running"))
+  (let*
+      ((actor
+	(read-string "Human decision-maker: "
+		     (or nsa/research-dashboard--login user-login-name)))
+       (evidence
+	(read-string "Durable approval evidence: " "human:emacs-research-dashboard-local")))
+    (when
+	(or
+	 (string-empty-p
+	  (string-trim actor))
+	 (string-empty-p
+	  (string-trim evidence)))
+      (user-error "Actor and evidence must be nonempty"))
+    (setf
+     (nsa/research-item-busy item)
+     t)
+    (nsa/research-dashboard--render)
+    (condition-case error-data
+	(let*
+	    ((content
+	      (nsa/research-dashboard-local--read file))
+	     (metadata
+	      (nsa/research-dashboard-local--checkout-metadata file))
+	     (commit
+	      (car metadata))
+	     (blob
+	      (cdr metadata))
+	     (updated
+	      (nsa/research-dashboard--decision-content content state actor evidence commit blob
+							(format-time-string "%Y-%m-%dT%H:%M:%S%:z"))))
+	  (unless
+	      (string= content
+		       (nsa/research-item-content item))
+	    (user-error "Research changed since refresh; refresh first"))
+	  (if
+	      (not
+	       (nsa/research-dashboard-local--preview item file state updated))
+	      (progn
+		(setf
+		 (nsa/research-item-busy item)
+		 nil)
+		(nsa/research-dashboard--render))
+	    (nsa/research-dashboard-local--write file content updated)
+	    (message "%s %s — updated local checkout; Git left dirty" state file)
+	    (nsa/research-dashboard-refresh)))
+      (error
+       (setf
+	(nsa/research-item-busy item)
+	nil)
+       (nsa/research-dashboard--render)
+       (signal
+	(car error-data)
+	(cdr error-data))))))
+
+
+(defun nsa/research-dashboard-local--decide-advice
+    (original state)
+  (let*
+      ((item
+	(nsa/research-dashboard--at-point))
+       (file
+	(nsa/research-dashboard-local--file-for-item item)))
+    (if file
+	(nsa/research-dashboard-local--decide state item file)
+      (funcall original state))))
+
+
+;;;###autoload
+(defun nsa/research-dashboard-local-add-directory
+    (directory)
+  "Add DIRECTORY to the research dashboard's local sources and refresh."
+  (interactive
+   (list
+    (read-directory-name "Add research checkout/directory: ")))
+  (let
+      ((directory
+	(file-truename
+	 (expand-file-name directory))))
+    (unless
+	(file-directory-p directory)
+      (user-error "Not a directory: %s" directory))
+    (cl-pushnew directory nsa/research-dashboard-local-checkouts :test #'string=)
+    (when
+	(derived-mode-p 'nsa/research-dashboard-mode)
+      (nsa/research-dashboard-refresh))
+    (message "Research local source added: %s" directory)))
+
+
+;;;###autoload
+(defun nsa/research-dashboard-local-remove-directory
+    (directory)
+  "Remove DIRECTORY from the research dashboard's local sources and refresh."
+  (interactive
+   (list
+    (completing-read "Remove research checkout/directory: " nsa/research-dashboard-local-checkouts nil t)))
+  (setq nsa/research-dashboard-local-checkouts
+	(delete directory nsa/research-dashboard-local-checkouts))
+  (when
+      (derived-mode-p 'nsa/research-dashboard-mode)
+    (nsa/research-dashboard-refresh))
+  (message "Research local source removed: %s" directory))
+
+
+(defun nsa/research-dashboard-local--install nil
+  (unless nsa/research-dashboard-local--installed
+    (advice-add 'nsa/research-dashboard-refresh :around #'nsa/research-dashboard-local--refresh-advice)
+    (advice-add 'nsa/research-dashboard--job-done :around #'nsa/research-dashboard-local--job-done-advice)
+    (advice-add 'nsa/research-dashboard--render :around #'nsa/research-dashboard-local--render-advice)
+    (advice-add 'nsa/research-dashboard-view :around #'nsa/research-dashboard-local--view-advice)
+    (advice-add 'nsa/research-dashboard--decide :around #'nsa/research-dashboard-local--decide-advice)
+    (define-key nsa/research-dashboard-mode-map
+		(kbd "d")
+		#'nsa/research-dashboard-local-add-directory)
+    (define-key nsa/research-dashboard-mode-map
+		(kbd "D")
+		#'nsa/research-dashboard-local-remove-directory)
+    (setq nsa/research-dashboard-local--installed t)))
+
+
+;;;###autoload
+(defun nsa/research-dashboard-local-setup nil "Install local checkout support in the current research dashboard buffer."
+       (nsa/research-dashboard-local--install)
+       (setq-local nsa/research-dashboard-local--files
+		   (make-hash-table :test #'equal)))
+
+
+;;;###autoload
+(add-hook 'nsa/research-dashboard-mode-hook #'nsa/research-dashboard-local-setup)
+
+
+(provide 'research-dashboard-local)
+
+;;; research-dashboard-local.el ends here
+
+#+end_src
+
+* research-dashboard
+#+begin_src emacs-lisp :tangle autoload/research-dashboard.el
+;;; research-dashboard.el --- Async cross-repository research review UI -*- lexical-binding: t; -*-
+
+(require 'cl-lib)
+
+(require 'json)
+
+(require 'seq)
+
+(require 'subr-x)
+
+(require 'tabulated-list)
+
+(require 'url-util)
+
+
+(defgroup nsa/research-dashboard nil "Review research across GitHub repositories." :group 'tools)
+
+
+(defcustom nsa/research-dashboard-owners nil "Owners to scan.  Nil means the authenticated `gh' user plus visible orgs." :type
+  '(repeat string))
+
+
+(defcustom nsa/research-dashboard-max-workers 6 "Maximum concurrent repository-tree and research-file fetches." :type 'integer)
+
+
+(defcustom nsa/research-dashboard-show-legacy-default nil "Whether unmigrated review-ready research is visible when the dashboard opens." :type 'boolean)
+
+
+(defconst nsa/research-dashboard--auxiliary-files
+  '("index.org" "sources.org" "search-log.org"))
+
+
+(defconst nsa/research-dashboard--schema "prolog-rlm.research-approval.v1")
+
+(defconst nsa/research-dashboard--approval-pr-marker "<!-- starintel-research-approval:v1 -->")
+
+(defconst nsa/research-dashboard--fields
+  '("approval_schema" "approval_state" "approval_actor" "approval_evidence" "approval_base_commit" "approval_base_blob" "approval_decided_at"))
+
+(defconst nsa/research-dashboard--legacy-reviewable-lifecycles
+  '("REVIEW" "RESEARCHED" "VERIFIED"))
+
+
+(defface nsa/research-dashboard-pending-face
+  '((t :inherit warning :weight bold))
+  "Face for pending approval.")
+
+(defface nsa/research-dashboard-review-face
+  '((t :inherit font-lock-keyword-face :weight semibold))
+  "Face for active research lifecycle states.")
+
+(defface nsa/research-dashboard-repo-face
+  '((t :inherit font-lock-constant-face :weight semibold))
+  "Face for repository names.")
+
+(defface nsa/research-dashboard-project-face
+  '((t :inherit font-lock-type-face))
+  "Face for project names.")
+
+(defface nsa/research-dashboard-lifecycle-face
+  '((t :inherit font-lock-keyword-face))
+  "Face for lifecycle states.")
+
+(defface nsa/research-dashboard-title-face
+  '((t :inherit default :weight semibold))
+  "Face for research titles.")
+
+(defface nsa/research-dashboard-path-face
+  '((t :inherit shadow))
+  "Face for repository paths.")
+
+(defface nsa/research-dashboard-unmigrated-face
+  '((t :inherit shadow :slant italic))
+  "Face for old-format reviewable research.")
+
+(defface nsa/research-dashboard-busy-face
+  '((t :inherit success :weight bold))
+  "Face for decisions being written.")
+
+
+(defconst nsa/research-dashboard-font-lock-keywords
+  '(("\\_<PENDING\\_>" quote nsa/research-dashboard-pending-face)
+    ("\\_<UNMIGRATED\\_>" quote nsa/research-dashboard-unmigrated-face)
+    ("\\_<\\(REVIEW\\|RESEARCHED\\|VERIFIED\\|DONE\\)\\_>" quote nsa/research-dashboard-lifecycle-face)))
+
+
+(cl-defstruct
+    (nsa/research-item
+     (:constructor nsa/research-item-create))
+  repo branch path blob title lifecycle approval content busy)
+
+(cl-defstruct
+    (nsa/research-decision
+     (:constructor nsa/research-decision-create))
+  dashboard item state actor evidence commit blob content updated approval-branch approval-commit pr-number pr-url)
+
+
+(defvar-local nsa/research-dashboard--items nil)
+
+(defvar-local nsa/research-dashboard--errors nil)
+
+(defvar-local nsa/research-dashboard--generation 0)
+
+(defvar-local nsa/research-dashboard--scanning nil)
+
+(defvar-local nsa/research-dashboard--login nil)
+
+(defvar-local nsa/research-dashboard--processes nil)
+
+(defvar-local nsa/research-dashboard--queue nil)
+
+(defvar-local nsa/research-dashboard--active 0)
+
+(defvar-local nsa/research-dashboard--searches-left 0)
+
+(defvar-local nsa/research-dashboard--seen nil)
+
+(defvar-local nsa/research-dashboard--render-timer nil)
+
+(defvar-local nsa/research-dashboard--search-text "")
+
+(defvar-local nsa/research-dashboard--field-filters nil)
+
+(defvar-local nsa/research-dashboard--show-legacy nil)
+
+
+(defun nsa/research-dashboard--mode-map nil
+  (let
+      ((map
+	(make-sparse-keymap)))
+    (set-keymap-parent map tabulated-list-mode-map)
+    (define-key map
+		(kbd "g")
+		#'nsa/research-dashboard-refresh)
+    (define-key map
+		(kbd "RET")
+		#'nsa/research-dashboard-view)
+    (define-key map
+		(kbd "a")
+		#'nsa/research-dashboard-approve)
+    (define-key map
+		(kbd "r")
+		#'nsa/research-dashboard-reject)
+    (define-key map
+		(kbd "e")
+		#'nsa/research-dashboard-errors)
+    (define-key map
+		(kbd "s")
+		#'nsa/research-dashboard-search)
+    (define-key map
+		(kbd "/")
+		#'nsa/research-dashboard-search)
+    (define-key map
+		(kbd "f")
+		#'nsa/research-dashboard-filter)
+    (define-key map
+		(kbd "c")
+		#'nsa/research-dashboard-clear-filters)
+    (define-key map
+		(kbd "L")
+		#'nsa/research-dashboard-toggle-legacy)
+    (define-key map
+		(kbd "?")
+		#'nsa/research-dashboard-help)
+    map))
+
+
+(defvar nsa/research-dashboard-mode-map
+  (nsa/research-dashboard--mode-map))
+
+
+(defun nsa/research-dashboard--json
+    (text)
+  (json-parse-string text :object-type 'alist :array-type 'list :null-object nil :false-object nil))
+
+(defun nsa/research-dashboard--get
+    (key object)
+  (alist-get key object nil nil #'string=))
+
+
+(defun nsa/research-dashboard--cancel nil
+  (dolist
+      (process nsa/research-dashboard--processes)
+    (when
+	(process-live-p process)
+      (process-put process 'nsa-cancelled t)
+      (delete-process process)))
+  (setq nsa/research-dashboard--processes nil)
+  (when
+      (timerp nsa/research-dashboard--render-timer)
+    (cancel-timer nsa/research-dashboard--render-timer))
+  (setq nsa/research-dashboard--render-timer nil))
+
+
+(cl-defun nsa/research-dashboard--gh
+    (dashboard callback args &key input)
+  "Run `gh' asynchronously; CALLBACK receives (OK OUTPUT)."
+  (if
+      (not
+       (executable-find "gh"))
+      (funcall callback nil "GitHub CLI `gh' is required")
+    (let
+	((buffer
+	  (generate-new-buffer " *research-gh*"))
+	 process)
+      (condition-case error-data
+	  (setq process
+		(make-process :name
+			      (make-temp-name "research-gh-")
+			      :buffer buffer :command
+			      (cons "gh" args)
+			      :connection-type 'pipe :coding 'utf-8-unix :noquery t :sentinel
+			      (lambda
+				(proc _event)
+				(when
+				    (memq
+				     (process-status proc)
+				     '(exit signal))
+				  (let
+				      ((ok
+					(and
+					 (eq
+					  (process-status proc)
+					  'exit)
+					 (zerop
+					  (process-exit-status proc))))
+				       (output
+					(if
+					    (buffer-live-p buffer)
+					    (with-current-buffer buffer
+					      (buffer-string))
+					  "")))
+				    (when
+					(buffer-live-p dashboard)
+				      (with-current-buffer dashboard
+					(setq nsa/research-dashboard--processes
+					      (delq proc nsa/research-dashboard--processes))))
+				    (when
+					(buffer-live-p buffer)
+				      (kill-buffer buffer))
+				    (when
+					(and
+					 (buffer-live-p dashboard)
+					 (not
+					  (process-get proc 'nsa-cancelled)))
+				      (funcall callback ok output)))))))
+	(error
+	 (when
+	     (buffer-live-p buffer)
+	   (kill-buffer buffer))
+	 (funcall callback nil
+		  (error-message-string error-data))))
+      (when process
+	(with-current-buffer dashboard
+	  (push process nsa/research-dashboard--processes))
+	(when input
+	  (condition-case error-data
+	      (progn
+		(process-send-string process input)
+		(process-send-eof process))
+	    (error
+	     (process-put process 'nsa-cancelled t)
+	     (when
+		 (process-live-p process)
+	       (delete-process process))
+	     (funcall callback nil
+		      (error-message-string error-data))))))
+      process)))
+
+
+(defun nsa/research-dashboard--gh-json
+    (dashboard callback args &optional input)
+  (nsa/research-dashboard--gh dashboard
+			      (lambda
+				(ok output)
+				(if
+				    (not ok)
+				    (funcall callback nil
+					     (string-trim output))
+				  (condition-case error-data
+				      (funcall callback t
+					       (nsa/research-dashboard--json output))
+				    (error
+				     (funcall callback nil
+					      (error-message-string error-data))))))
+			      args :input input))
+
+
+(defun nsa/research-dashboard--keyword
+    (content keyword)
+  (with-temp-buffer
+    (insert content)
+    (goto-char
+     (point-min))
+    (let
+	((case-fold-search t)
+	 (limit
+	  (or
+	   (and
+	    (re-search-forward "^\\*" nil t)
+	    (line-beginning-position))
+	   (point-max))))
+      (goto-char
+       (point-min))
+      (when
+	  (re-search-forward
+	   (format "^#\\+%s:[ \\t]*\\(.*\\)$"
+		   (regexp-quote keyword))
+	   limit t)
+	(string-trim
+	 (match-string-no-properties 1))))))
+
+
+(defun nsa/research-dashboard--candidate-path-p
+    (path)
+  (and
+   (stringp path)
+   (string-suffix-p ".org" path t)
+   (not
+    (string-prefix-p "../" path))
+   (or
+    (string-prefix-p "research/" path)
+    (string-match-p "/research/" path))
+   (not
+    (member
+     (downcase
+      (file-name-nondirectory path))
+     nsa/research-dashboard--auxiliary-files))))
+
+
+(defun nsa/research-dashboard--legacy-reviewable-p
+    (lifecycle)
+  (member
+   (upcase
+    (string-trim
+     (or lifecycle "")))
+   nsa/research-dashboard--legacy-reviewable-lifecycles))
+
+
+(defun nsa/research-dashboard--item
+    (repo branch path blob content)
+  (let*
+      ((title
+	(or
+	 (nsa/research-dashboard--keyword content "title")
+	 (file-name-base path)))
+       (lifecycle
+	(or
+	 (nsa/research-dashboard--keyword content "status")
+	 "MISSING"))
+       (approval
+	(upcase
+	 (or
+	  (nsa/research-dashboard--keyword content "approval_state")
+	  "LEGACY"))))
+    (when
+	(and
+	 (nsa/research-dashboard--candidate-path-p path)
+	 (or
+	  (string= approval "PENDING")
+	  (and
+	   (string= approval "LEGACY")
+	   (nsa/research-dashboard--legacy-reviewable-p lifecycle))))
+      (nsa/research-item-create :repo repo :branch branch :path path :blob blob :title title :lifecycle lifecycle :approval approval :content content))))
+
+
+(defun nsa/research-dashboard--project
+    (item)
+  (let*
+      ((parts
+	(split-string
+	 (nsa/research-item-path item)
+	 "/" t))
+       (after
+	(cdr
+	 (member "research" parts))))
+    (or
+     (car after)
+     "(root)")))
+
+
+(defun nsa/research-dashboard--search-haystack
+    (item)
+  (mapconcat #'identity
+	     (list
+	      (nsa/research-item-repo item)
+	      (nsa/research-dashboard--project item)
+	      (nsa/research-item-lifecycle item)
+	      (nsa/research-item-approval item)
+	      (nsa/research-item-title item)
+	      (nsa/research-item-path item))
+	     "\n"))
+
+
+(defun nsa/research-dashboard--filter-value
+    (item field)
+  (pcase field
+    ('repository
+     (nsa/research-item-repo item))
+    ('project
+     (nsa/research-dashboard--project item))
+    ('lifecycle
+     (nsa/research-item-lifecycle item))
+    ('approval
+     (nsa/research-item-approval item))
+    (_ "")))
+
+
+(defun nsa/research-dashboard--visible-p
+    (item)
+  (and
+   (or nsa/research-dashboard--show-legacy
+       (not
+	(string=
+	 (nsa/research-item-approval item)
+	 "LEGACY")))
+   (or
+    (string-empty-p nsa/research-dashboard--search-text)
+    (string-match-p
+     (regexp-quote
+      (downcase nsa/research-dashboard--search-text))
+     (downcase
+      (nsa/research-dashboard--search-haystack item))))
+   (seq-every-p
+    (lambda
+      (filter)
+      (string=
+       (downcase
+	(cdr filter))
+       (downcase
+	(nsa/research-dashboard--filter-value item
+					      (car filter)))))
+    nsa/research-dashboard--field-filters)))
+
+
+(defun nsa/research-dashboard--visible-items nil
+  (seq-filter #'nsa/research-dashboard--visible-p nsa/research-dashboard--items))
+
+
+(defun nsa/research-dashboard--face-state
+    (value)
+  (let
+      ((state
+	(upcase
+	 (or value ""))))
+    (cond
+     ((string= state "PENDING")
+      'nsa/research-dashboard-pending-face)
+     ((member state
+	      '("REVIEW" "RESEARCHED" "RESEARCHING" "VERIFIED" "DRAFT" "ACCEPTED-FOR-REALIZATION"))
+      'nsa/research-dashboard-review-face)
+     ((string= state "LEGACY")
+      'nsa/research-dashboard-unmigrated-face)
+     (t 'default))))
+
+
+(defun nsa/research-dashboard--row
+    (item)
+  (let
+      ((approval
+	(nsa/research-item-approval item))
+       (lifecycle
+	(nsa/research-item-lifecycle item)))
+    (list
+     (concat
+      (nsa/research-item-repo item)
+      ":"
+      (nsa/research-item-path item))
+     (vector
+      (propertize
+       (if
+	   (nsa/research-item-busy item)
+	   (concat
+	    (if
+		(string= approval "LEGACY")
+		"UNMIGRATED" approval)
+	    " …")
+	 (if
+	     (string= approval "LEGACY")
+	     "UNMIGRATED" approval))
+       'face
+       (if
+	   (nsa/research-item-busy item)
+	   'nsa/research-dashboard-busy-face
+	 (if
+	     (string= approval "LEGACY")
+	     'nsa/research-dashboard-unmigrated-face
+	   (nsa/research-dashboard--face-state approval))))
+      (propertize
+       (nsa/research-item-repo item)
+       'face 'nsa/research-dashboard-repo-face)
+      (propertize
+       (nsa/research-dashboard--project item)
+       'face 'nsa/research-dashboard-project-face)
+      (propertize lifecycle 'face 'nsa/research-dashboard-lifecycle-face)
+      (propertize
+       (nsa/research-item-title item)
+       'face 'nsa/research-dashboard-title-face)
+      (propertize
+       (nsa/research-item-path item)
+       'face 'nsa/research-dashboard-path-face)))))
+
+
+(defun nsa/research-dashboard--filter-summary nil
+  (string-join
+   (delq nil
+	 (list
+	  (unless
+	      (string-empty-p nsa/research-dashboard--search-text)
+	    (format "search:%s" nsa/research-dashboard--search-text))
+	  (when nsa/research-dashboard--field-filters
+	    (mapconcat
+	     (lambda
+	       (filter)
+	       (format "%s:%s"
+		       (car filter)
+		       (cdr filter)))
+	     (reverse nsa/research-dashboard--field-filters)
+	     ","))
+	  (when nsa/research-dashboard--show-legacy "unmigrated:on")))
+   "  "))
+
+
+(defun nsa/research-dashboard--render nil
+  (let
+      ((visible
+	(nsa/research-dashboard--visible-items)))
+    (setq tabulated-list-entries
+	  (mapcar #'nsa/research-dashboard--row visible)
+	  header-line-format
+	  (format "Research  %d/%d shown%s  queued:%d active:%d errors:%d   [/ search] [f filter] [c clear] [L unmigrated] [a approve] [r reject] [g refresh]%s"
+		  (length visible)
+		  (length nsa/research-dashboard--items)
+		  (if nsa/research-dashboard--scanning "  scanning…" "")
+		  (length nsa/research-dashboard--queue)
+		  nsa/research-dashboard--active
+		  (length nsa/research-dashboard--errors)
+		  (let
+		      ((summary
+			(nsa/research-dashboard--filter-summary)))
+		    (if
+			(string-empty-p summary)
+			""
+		      (concat "   " summary)))))
+    (tabulated-list-print t)))
+
+
+(defun nsa/research-dashboard--schedule-render nil
+  (unless
+      (timerp nsa/research-dashboard--render-timer)
+    (let
+	((dashboard
+	  (current-buffer)))
+      (setq nsa/research-dashboard--render-timer
+	    (run-at-time 0.05 nil
+			 (lambda nil
+			   (when
+			       (buffer-live-p dashboard)
+			     (with-current-buffer dashboard
+			       (setq nsa/research-dashboard--render-timer nil)
+			       (nsa/research-dashboard--render)))))))))
+
+
+(defun nsa/research-dashboard--done-p nil
+  (and
+   (zerop nsa/research-dashboard--searches-left)
+   (zerop nsa/research-dashboard--active)
+   (null nsa/research-dashboard--queue)))
+
+(defun nsa/research-dashboard--finish nil
+  (when
+      (and nsa/research-dashboard--scanning
+	   (nsa/research-dashboard--done-p))
+    (setq nsa/research-dashboard--scanning nil)
+    (nsa/research-dashboard--render)))
+
+
+(defun nsa/research-dashboard--job-done
+    (generation &optional item error-text)
+  (when
+      (= generation nsa/research-dashboard--generation)
+    (when item
+      (push item nsa/research-dashboard--items))
+    (when error-text
+      (push error-text nsa/research-dashboard--errors))
+    (cl-decf nsa/research-dashboard--active)
+    (nsa/research-dashboard--schedule-render)
+    (nsa/research-dashboard--pump generation)
+    (nsa/research-dashboard--finish)))
+
+
+(defun nsa/research-dashboard--blob-job
+    (generation repo branch path blob)
+  (let
+      ((dashboard
+	(current-buffer))
+       (id
+	(concat repo ":" path)))
+    (nsa/research-dashboard--gh-json dashboard
+				     (lambda
+				       (ok result)
+				       (when
+					   (and
+					    (buffer-live-p dashboard)
+					    (= generation
+					       (buffer-local-value 'nsa/research-dashboard--generation dashboard)))
+					 (with-current-buffer dashboard
+					   (if
+					       (not ok)
+					       (nsa/research-dashboard--job-done generation nil
+										 (format "%s: %s" id result))
+					     (condition-case error-data
+						 (let
+						     ((encoding
+						       (nsa/research-dashboard--get "encoding" result))
+						      (content
+						       (nsa/research-dashboard--get "content" result)))
+						   (unless
+						       (and
+							(string= encoding "base64")
+							(stringp content))
+						     (error "unsupported blob encoding"))
+						   (nsa/research-dashboard--job-done generation
+										     (nsa/research-dashboard--item repo branch path blob
+														   (decode-coding-string
+														    (base64-decode-string content)
+														    'utf-8))))
+					       (error
+						(nsa/research-dashboard--job-done generation nil
+										  (format "%s: %s" id
+											  (error-message-string error-data)))))))))
+				     (list "api"
+					   (format "repos/%s/git/blobs/%s" repo blob)))))
+
+
+(defun nsa/research-dashboard--tree-job
+    (generation repo branch)
+  "Enumerate research files from REPO's current default BRANCH tree."
+  (let
+      ((dashboard
+	(current-buffer)))
+    (nsa/research-dashboard--gh-json dashboard
+				     (lambda
+				       (ok result)
+				       (when
+					   (and
+					    (buffer-live-p dashboard)
+					    (= generation
+					       (buffer-local-value 'nsa/research-dashboard--generation dashboard)))
+					 (with-current-buffer dashboard
+					   (cond
+					    ((not ok)
+					     (nsa/research-dashboard--job-done generation nil
+									       (format "%s@%s tree: %s" repo branch result)))
+					    ((nsa/research-dashboard--get "truncated" result)
+					     (nsa/research-dashboard--job-done generation nil
+									       (format "%s@%s: recursive Git tree was truncated; research scan is incomplete" repo branch)))
+					    (t
+					     (dolist
+						 (entry
+						  (nsa/research-dashboard--get "tree" result))
+					       (let
+						   ((path
+						     (nsa/research-dashboard--get "path" entry))
+						    (type
+						     (nsa/research-dashboard--get "type" entry))
+						    (blob
+						     (nsa/research-dashboard--get "sha" entry)))
+						 (when
+						     (and
+						      (string= type "blob")
+						      blob
+						      (nsa/research-dashboard--candidate-path-p path))
+						   (let
+						       ((id
+							 (concat repo ":" path)))
+						     (unless
+							 (gethash id nsa/research-dashboard--seen)
+						       (puthash id t nsa/research-dashboard--seen)
+						       (setq nsa/research-dashboard--queue
+							     (nconc nsa/research-dashboard--queue
+								    (list
+								     (list 'blob repo branch path blob)))))))))
+					     (nsa/research-dashboard--job-done generation))))))
+				     (list "api" "--method" "GET"
+					   (format "repos/%s/git/trees/%s" repo
+						   (url-hexify-string branch))
+					   "-f" "recursive=1"))))
+
+
+(defun nsa/research-dashboard--start-job
+    (generation job)
+  (pcase job
+    (`(tree ,repo ,branch)
+     (nsa/research-dashboard--tree-job generation repo branch))
+    (`(blob ,repo ,branch ,path ,blob)
+     (nsa/research-dashboard--blob-job generation repo branch path blob))
+    (_
+     (nsa/research-dashboard--job-done generation nil
+				       (format "Invalid dashboard job: %S" job)))))
+
+
+(defun nsa/research-dashboard--pump
+    (generation)
+  (while
+      (and
+       (= generation nsa/research-dashboard--generation)
+       (< nsa/research-dashboard--active
+	  (max 1 nsa/research-dashboard-max-workers))
+       nsa/research-dashboard--queue)
+    (cl-incf nsa/research-dashboard--active)
+    (nsa/research-dashboard--start-job generation
+				       (pop nsa/research-dashboard--queue)))
+  (nsa/research-dashboard--schedule-render))
+
+
+(defun nsa/research-dashboard--owner-repos-args
+    (owner login)
+  (if
+      (string= owner login)
+      (list "api" "--method" "GET" "--paginate" "user/repos" "-f" "affiliation=owner" "-f" "per_page=100" "--jq" ".[] | [.full_name, (.default_branch // \"\")] | @tsv")
+    (list "api" "--method" "GET" "--paginate"
+	  (format "orgs/%s/repos" owner)
+	  "-f" "type=all" "-f" "per_page=100" "--jq" ".[] | [.full_name, (.default_branch // \"\")] | @tsv")))
+
+
+(defun nsa/research-dashboard--list-owner-repos
+    (generation owner login)
+  "List OWNER repositories and queue current default-branch tree scans."
+  (let
+      ((dashboard
+	(current-buffer)))
+    (nsa/research-dashboard--gh dashboard
+				(lambda
+				  (ok output)
+				  (when
+				      (and
+				       (buffer-live-p dashboard)
+				       (= generation
+					  (buffer-local-value 'nsa/research-dashboard--generation dashboard)))
+				    (with-current-buffer dashboard
+				      (if
+					  (not ok)
+					  (push
+					   (format "%s repositories: %s" owner
+						   (string-trim output))
+					   nsa/research-dashboard--errors)
+					(dolist
+					    (line
+					     (split-string output "\n" t))
+					  (pcase-let
+					      ((`(,repo ,branch)
+						(split-string line "	" nil)))
+					    (if
+						(or
+						 (not repo)
+						 (string-empty-p
+						  (or branch "")))
+						(push
+						 (format "%s: repository has no default branch"
+							 (or repo owner))
+						 nsa/research-dashboard--errors)
+					      (setq nsa/research-dashboard--queue
+						    (nconc nsa/research-dashboard--queue
+							   (list
+							    (list 'tree repo branch))))))))
+				      (cl-decf nsa/research-dashboard--searches-left)
+				      (nsa/research-dashboard--pump generation)
+				      (nsa/research-dashboard--finish))))
+				(nsa/research-dashboard--owner-repos-args owner login))))
+
+
+(defun nsa/research-dashboard--start-searches
+    (generation login owners)
+  (setq nsa/research-dashboard--searches-left
+	(length owners))
+  (dolist
+      (owner owners)
+    (nsa/research-dashboard--list-owner-repos generation owner login))
+  (nsa/research-dashboard--finish))
+
+
+(defun nsa/research-dashboard--discover
+    (generation)
+  (let
+      ((dashboard
+	(current-buffer)))
+    (nsa/research-dashboard--gh dashboard
+				(lambda
+				  (ok output)
+				  (when
+				      (and
+				       (buffer-live-p dashboard)
+				       (= generation
+					  (buffer-local-value 'nsa/research-dashboard--generation dashboard)))
+				    (with-current-buffer dashboard
+				      (if
+					  (not ok)
+					  (progn
+					    (push
+					     (string-trim output)
+					     nsa/research-dashboard--errors)
+					    (setq nsa/research-dashboard--scanning nil)
+					    (nsa/research-dashboard--render))
+					(let
+					    ((login
+					      (string-trim output)))
+					  (setq nsa/research-dashboard--login login)
+					  (if nsa/research-dashboard-owners
+					      (nsa/research-dashboard--start-searches generation login
+										      (delete-dups
+										       (copy-sequence nsa/research-dashboard-owners)))
+					    (nsa/research-dashboard--gh dashboard
+									(lambda
+									  (org-ok org-output)
+									  (when
+									      (buffer-live-p dashboard)
+									    (with-current-buffer dashboard
+									      (unless org-ok
+										(push
+										 (string-trim org-output)
+										 nsa/research-dashboard--errors))
+									      (nsa/research-dashboard--start-searches generation login
+														      (delete-dups
+														       (cons login
+															     (if org-ok
+																 (split-string org-output "\n" t)
+															       nil)))))))
+									(list "api" "--paginate" "user/orgs" "--jq" ".[].login"))))))))
+				(list "api" "user" "--jq" ".login"))))
+
+
+(defun nsa/research-dashboard-refresh nil "Refresh asynchronously from current default-branch repository trees."
+       (interactive)
+       (cl-incf nsa/research-dashboard--generation)
+       (nsa/research-dashboard--cancel)
+       (let
+	   ((generation nsa/research-dashboard--generation))
+	 (setq nsa/research-dashboard--items nil nsa/research-dashboard--errors nil nsa/research-dashboard--queue nil nsa/research-dashboard--active 0 nsa/research-dashboard--searches-left 0 nsa/research-dashboard--scanning t nsa/research-dashboard--seen
+	       (make-hash-table :test #'equal))
+	 (nsa/research-dashboard--render)
+	 (nsa/research-dashboard--discover generation)))
+
+
+(defun nsa/research-dashboard-search
+    (text)
+  "Search all visible research fields for TEXT."
+  (interactive
+   (list
+    (read-string "Research search (empty clears): " nsa/research-dashboard--search-text)))
+  (setq nsa/research-dashboard--search-text
+	(string-trim text))
+  (nsa/research-dashboard--render))
+
+
+(defun nsa/research-dashboard--field-values
+    (field)
+  (sort
+   (delete-dups
+    (mapcar
+     (lambda
+       (item)
+       (nsa/research-dashboard--filter-value item field))
+     nsa/research-dashboard--items))
+   #'string-lessp))
+
+
+(defun nsa/research-dashboard-filter
+    (field value)
+  "Filter the dashboard by FIELD and exact VALUE."
+  (interactive
+   (let*
+       ((field-name
+	 (completing-read "Filter field: "
+			  '("repository" "project" "lifecycle" "approval")
+			  nil t))
+	(field
+	 (intern field-name))
+	(value
+	 (completing-read
+	  (format "%s: " field-name)
+	  (nsa/research-dashboard--field-values field)
+	  nil t)))
+     (list field value)))
+  (setq nsa/research-dashboard--field-filters
+	(cons
+	 (cons field value)
+	 (assq-delete-all field nsa/research-dashboard--field-filters)))
+  (nsa/research-dashboard--render))
+
+
+(defun nsa/research-dashboard-clear-filters nil "Clear text search and all field filters."
+       (interactive)
+       (setq nsa/research-dashboard--search-text "" nsa/research-dashboard--field-filters nil)
+       (nsa/research-dashboard--render))
+
+
+(defun nsa/research-dashboard-toggle-legacy nil "Toggle visibility of review-ready unmigrated research."
+       (interactive)
+       (setq nsa/research-dashboard--show-legacy
+	     (not nsa/research-dashboard--show-legacy))
+       (nsa/research-dashboard--render)
+       (message "Unmigrated research %s"
+		(if nsa/research-dashboard--show-legacy "shown" "hidden")))
+
+
+(defun nsa/research-dashboard-help nil "Show dashboard key bindings and filtering semantics."
+       (interactive)
+       (with-help-window "*Research Dashboard Help*"
+	 (princ "Research Dashboard\n\n")
+	 (princ "RET  view research\n")
+	 (princ "a    approve\n")
+	 (princ "r    reject\n")
+	 (princ "g    async refresh\n")
+	 (princ "/ s  local search\n")
+	 (princ "f    exact field filter\n")
+	 (princ "c    clear search/filters\n")
+	 (princ "L    show/hide unmigrated review-ready research\n")
+	 (princ "e    show scan/decision errors\n")
+	 (princ "?    this help\n\n")
+	 (princ "Discovery reads each visible repository's current default-branch tree.\n")
+	 (princ "By default only canonical PENDING research is visible.\n")
+	 (princ "UNMIGRATED means REVIEW/RESEARCHED/VERIFIED without the canonical approval block.\n")))
+
+
+(defun nsa/research-dashboard--at-point nil
+  (let
+      ((id
+	(tabulated-list-get-id)))
+    (or
+     (seq-find
+      (lambda
+	(item)
+	(string= id
+		 (concat
+		  (nsa/research-item-repo item)
+		  ":"
+		  (nsa/research-item-path item))))
+      nsa/research-dashboard--items)
+     (user-error "No research item on this row"))))
+
+
+(defun nsa/research-dashboard-view nil
+  (interactive)
+  (let*
+      ((item
+	(nsa/research-dashboard--at-point))
+       (buffer
+	(get-buffer-create
+	 (format "*Research: %s*"
+		 (nsa/research-item-title item)))))
+    (with-current-buffer buffer
+      (let
+	  ((inhibit-read-only t))
+	(erase-buffer)
+	(insert
+	 (nsa/research-item-content item))
+	(org-mode)
+	(read-only-mode 1)
+	(setq-local header-line-format
+		    (format "%s — %s"
+			    (nsa/research-item-repo item)
+			    (nsa/research-item-path item)))))
+    (pop-to-buffer buffer)))
+
+
+(defun nsa/research-dashboard-errors nil
+  (interactive)
+  (with-output-to-temp-buffer "*Research Dashboard Errors*"
+    (princ
+     (if nsa/research-dashboard--errors
+	 (string-join
+	  (reverse nsa/research-dashboard--errors)
+	  "\n\n")
+       "No errors."))))
+
+
+(defun nsa/research-dashboard--encode-path
+    (path)
+  (mapconcat #'url-hexify-string
+	     (split-string path "/" t)
+	     "/"))
+
+(defun nsa/research-dashboard--field-regexp
+    (field)
+  (format "^#\\+%s:[ \\t]*.*$"
+	  (regexp-quote field)))
+
+(defun nsa/research-dashboard--has-field-p
+    (content)
+  (seq-some
+   (lambda
+     (field)
+     (string-match-p
+      (nsa/research-dashboard--field-regexp field)
+      content))
+   nsa/research-dashboard--fields))
+
+(defun nsa/research-dashboard--canonical-p
+    (content)
+  (string-match-p
+   (concat "^#\\+status:.*\n#\\+approval_schema: "
+	   (regexp-quote nsa/research-dashboard--schema)
+	   "\n#\\+approval_state: PENDING\n#\\+approval_actor: .*\n" "#\\+approval_evidence: .*\n#\\+approval_base_commit: .*\n" "#\\+approval_base_blob: .*\n#\\+approval_decided_at: .*$")
+   content))
+
+
+(defun nsa/research-dashboard--replace-field
+    (content field value)
+  (with-temp-buffer
+    (insert content)
+    (goto-char
+     (point-min))
+    (unless
+	(re-search-forward
+	 (nsa/research-dashboard--field-regexp field)
+	 nil t)
+      (user-error "Missing #+%s" field))
+    (replace-match
+     (format "#+%s: %s" field value)
+     t t)
+    (when
+	(re-search-forward
+	 (nsa/research-dashboard--field-regexp field)
+	 nil t)
+      (user-error "Duplicate #+%s" field))
+    (buffer-string)))
+
+
+(defun nsa/research-dashboard--decision-content
+    (content state actor evidence commit blob timestamp)
+  (let
+      ((values
+	`(("approval_schema" \, nsa/research-dashboard--schema)
+	  ("approval_state" \, state)
+	  ("approval_actor" \, actor)
+	  ("approval_evidence" \, evidence)
+	  ("approval_base_commit" \, commit)
+	  ("approval_base_blob" \, blob)
+	  ("approval_decided_at" \, timestamp))))
+    (cond
+     ((nsa/research-dashboard--canonical-p content)
+      (dolist
+	  (pair values content)
+	(setq content
+	      (nsa/research-dashboard--replace-field content
+						     (car pair)
+						     (cdr pair)))))
+     ((nsa/research-dashboard--has-field-p content)
+      (user-error "Partial/noncanonical approval metadata exists"))
+     (t
+      (with-temp-buffer
+	(insert content)
+	(goto-char
+	 (point-min))
+	(unless
+	    (re-search-forward "^#\\+status:.*$" nil t)
+	  (user-error "Legacy research has no #+status; cannot safely record approval"))
+	(end-of-line)
+	(insert "\n"
+		(mapconcat
+		 (lambda
+		   (field)
+		   (format "#+%s: %s" field
+			   (alist-get field values nil nil #'string=)))
+		 nsa/research-dashboard--fields "\n"))
+	(buffer-string))))))
+
+
+(defun nsa/research-dashboard--branch-head
+    (decision callback)
+  (let*
+      ((item
+	(nsa/research-decision-item decision))
+       (dashboard
+	(nsa/research-decision-dashboard decision)))
+    (nsa/research-dashboard--gh-json dashboard
+				     (lambda
+				       (ok result)
+				       (if ok
+					   (funcall callback t
+						    (nsa/research-dashboard--get "sha"
+										 (nsa/research-dashboard--get "commit" result)))
+					 (funcall callback nil result)))
+				     (list "api"
+					   (format "repos/%s/branches/%s"
+						   (nsa/research-item-repo item)
+						   (url-hexify-string
+						    (nsa/research-item-branch item)))))))
+
+
+(defun nsa/research-dashboard--remote-file
+    (decision commit callback)
+  (let*
+      ((item
+	(nsa/research-decision-item decision))
+       (dashboard
+	(nsa/research-decision-dashboard decision)))
+    (nsa/research-dashboard--gh-json dashboard
+				     (lambda
+				       (ok result)
+				       (if
+					   (not ok)
+					   (funcall callback nil result)
+					 (let
+					     ((content
+					       (nsa/research-dashboard--get "content" result))
+					      (encoding
+					       (nsa/research-dashboard--get "encoding" result)))
+					   (if
+					       (not
+						(and
+						 (string= encoding "base64")
+						 (stringp content)))
+					       (funcall callback nil "unsupported contents encoding")
+					     (funcall callback t
+						      (cons
+						       (nsa/research-dashboard--get "sha" result)
+						       (decode-coding-string
+							(base64-decode-string content)
+							'utf-8)))))))
+				     (list "api" "--method" "GET"
+					   (format "repos/%s/contents/%s"
+						   (nsa/research-item-repo item)
+						   (nsa/research-dashboard--encode-path
+						    (nsa/research-item-path item)))
+					   "-f"
+					   (concat "ref=" commit)))))
+
+
+(defun nsa/research-dashboard--fail
+    (decision text)
+  (let
+      ((dashboard
+	(nsa/research-decision-dashboard decision))
+       (item
+	(nsa/research-decision-item decision)))
+    (when
+	(buffer-live-p dashboard)
+      (with-current-buffer dashboard
+	(setf
+	 (nsa/research-item-busy item)
+	 nil)
+	(push text nsa/research-dashboard--errors)
+	(nsa/research-dashboard--render)
+	(message "Research decision failed: %s" text)))))
+
+
+(defun nsa/research-dashboard--approval-branch-name
+    (decision)
+  (let*
+      ((item
+	(nsa/research-decision-item decision))
+       (stem
+	(replace-regexp-in-string "[^A-Za-z0-9._-]+" "-"
+				  (file-name-base
+				   (nsa/research-item-path item)))))
+    (format "research-approval/%s-%s"
+	    (downcase stem)
+	    (format-time-string "%Y%m%d%H%M%S"))))
+
+
+(defun nsa/research-dashboard--approval-commit-message
+    (decision)
+  (let
+      ((item
+	(nsa/research-decision-item decision)))
+    (format "docs(research): %s %s [skip ci]"
+	    (downcase
+	     (nsa/research-decision-state decision))
+	    (file-name-base
+	     (nsa/research-item-path item)))))
+
+
+(defun nsa/research-dashboard--create-approval-branch
+    (decision)
+  (let*
+      ((dashboard
+	(nsa/research-decision-dashboard decision))
+       (item
+	(nsa/research-decision-item decision))
+       (branch
+	(nsa/research-dashboard--approval-branch-name decision))
+       (payload
+	(json-encode
+	 `((ref \,
+		(concat "refs/heads/" branch))
+	   (sha \,
+		(nsa/research-decision-commit decision))))))
+    (setf
+     (nsa/research-decision-approval-branch decision)
+     branch)
+    (nsa/research-dashboard--gh-json dashboard
+				     (lambda
+				       (ok result)
+				       (if ok
+					   (nsa/research-dashboard--write-approval-branch decision)
+					 (nsa/research-dashboard--fail decision
+								       (format "Could not create approval branch: %s" result))))
+				     (list "api" "--method" "POST"
+					   (format "repos/%s/git/refs"
+						   (nsa/research-item-repo item))
+					   "--input" "-")
+				     payload)))
+
+
+(defun nsa/research-dashboard--write-approval-branch
+    (decision)
+  (let*
+      ((dashboard
+	(nsa/research-decision-dashboard decision))
+       (item
+	(nsa/research-decision-item decision))
+       (payload
+	(json-encode
+	 `((message \,
+		    (nsa/research-dashboard--approval-commit-message decision))
+	   (content \,
+		    (base64-encode-string
+		     (nsa/research-decision-updated decision)
+		     t))
+	   (sha \,
+		(nsa/research-decision-blob decision))
+	   (branch \,
+		   (nsa/research-decision-approval-branch decision))))))
+    (nsa/research-dashboard--gh-json dashboard
+				     (lambda
+				       (ok result)
+				       (if
+					   (not ok)
+					   (nsa/research-dashboard--fail decision
+									 (format "Could not write approval branch: %s" result))
+					 (let*
+					     ((commit
+					       (nsa/research-dashboard--get "commit" result))
+					      (sha
+					       (nsa/research-dashboard--get "sha" commit)))
+					   (setf
+					    (nsa/research-decision-approval-commit decision)
+					    sha)
+					   (nsa/research-dashboard--create-approval-pr decision))))
+				     (list "api" "--method" "PUT"
+					   (format "repos/%s/contents/%s"
+						   (nsa/research-item-repo item)
+						   (nsa/research-dashboard--encode-path
+						    (nsa/research-item-path item)))
+					   "--input" "-")
+				     payload)))
+
+
+(defun nsa/research-dashboard--create-approval-pr
+    (decision)
+  (let*
+      ((dashboard
+	(nsa/research-decision-dashboard decision))
+       (item
+	(nsa/research-decision-item decision))
+       (state
+	(nsa/research-decision-state decision))
+       (payload
+	(json-encode
+	 `((title \,
+		  (format "docs(research): %s %s"
+			  (downcase state)
+			  (file-name-base
+			   (nsa/research-item-path item))))
+	   (head \,
+		 (nsa/research-decision-approval-branch decision))
+	   (base \,
+		 (nsa/research-item-branch item))
+	   (body \,
+		 (format "%s\n\nHuman research decision recorded by the Emacs research dashboard.\n\nDecision: `%s`\nActor: `%s`\nEvidence: `%s`\n\nApproval-only metadata change. CI intentionally skipped." nsa/research-dashboard--approval-pr-marker state
+			 (nsa/research-decision-actor decision)
+			 (nsa/research-decision-evidence decision)))))))
+    (nsa/research-dashboard--gh-json dashboard
+				     (lambda
+				       (ok result)
+				       (if
+					   (not ok)
+					   (nsa/research-dashboard--fail decision
+									 (format "Could not open approval PR: %s" result))
+					 (setf
+					  (nsa/research-decision-pr-number decision)
+					  (nsa/research-dashboard--get "number" result)
+					  (nsa/research-decision-pr-url decision)
+					  (nsa/research-dashboard--get "html_url" result))
+					 (nsa/research-dashboard--merge-approval-pr decision)))
+				     (list "api" "--method" "POST"
+					   (format "repos/%s/pulls"
+						   (nsa/research-item-repo item))
+					   "--input" "-")
+				     payload)))
+
+
+(defun nsa/research-dashboard--merge-approval-pr
+    (decision)
+  (let*
+      ((dashboard
+	(nsa/research-decision-dashboard decision))
+       (item
+	(nsa/research-decision-item decision))
+       (number
+	(nsa/research-decision-pr-number decision))
+       (payload
+	(json-encode
+	 `((merge_method . "rebase")
+	   (sha \,
+		(nsa/research-decision-approval-commit decision))))))
+    (nsa/research-dashboard--gh-json dashboard
+				     (lambda
+				       (ok result)
+				       (if
+					   (not ok)
+					   (nsa/research-dashboard--fail decision
+									 (format "Approval PR %s could not merge immediately: %s%s" number result
+										 (if
+										     (nsa/research-decision-pr-url decision)
+										     (format "\n%s"
+											     (nsa/research-decision-pr-url decision))
+										   "")))
+					 (if
+					     (nsa/research-dashboard--get "merged" result)
+					     (with-current-buffer dashboard
+					       (message "%s %s:%s — approval PR #%s merged"
+							(nsa/research-decision-state decision)
+							(nsa/research-item-repo item)
+							(nsa/research-item-path item)
+							number)
+					       (nsa/research-dashboard-refresh))
+					   (nsa/research-dashboard--fail decision
+									 (format "Approval PR #%s was not merged: %s" number
+										 (or
+										  (nsa/research-dashboard--get "message" result)
+										  result))))))
+				     (list "api" "--method" "PUT"
+					   (format "repos/%s/pulls/%s/merge"
+						   (nsa/research-item-repo item)
+						   number)
+					   "--input" "-")
+				     payload)))
+
+
+(defun nsa/research-dashboard--recheck-file
+    (decision ok remote)
+  (if
+      (not ok)
+      (nsa/research-dashboard--fail decision remote)
+    (if
+	(not
+	 (and
+	  (string=
+	   (nsa/research-decision-blob decision)
+	   (car remote))
+	  (string=
+	   (nsa/research-decision-content decision)
+	   (cdr remote))))
+	(nsa/research-dashboard--fail decision "Research changed during review; refresh first")
+      (nsa/research-dashboard--create-approval-branch decision))))
+
+
+(defun nsa/research-dashboard--recheck-head
+    (decision ok head)
+  (if
+      (not ok)
+      (nsa/research-dashboard--fail decision head)
+    (if
+	(not
+	 (string= head
+		  (nsa/research-decision-commit decision)))
+	(nsa/research-dashboard--fail decision "Branch changed during review; refresh first")
+      (nsa/research-dashboard--remote-file decision head
+					   (lambda
+					     (file-ok remote)
+					     (nsa/research-dashboard--recheck-file decision file-ok remote))))))
+
+
+(defun nsa/research-dashboard--confirm
+    (decision)
+  (let*
+      ((item
+	(nsa/research-decision-item decision))
+       (buffer
+	(get-buffer-create "*Research Approval Preview*")))
+    (with-current-buffer buffer
+      (let
+	  ((inhibit-read-only t))
+	(erase-buffer)
+	(insert
+	 (format "%s\n%s\n\n"
+		 (nsa/research-item-repo item)
+		 (nsa/research-item-path item)))
+	(dolist
+	    (field nsa/research-dashboard--fields)
+	  (insert
+	   (format "#+%s: %s\n" field
+		   (nsa/research-dashboard--keyword
+		    (nsa/research-decision-updated decision)
+		    field))))
+	(insert "\nDelivery: approval-only PR, [skip ci], immediate rebase merge\n")
+	(special-mode)))
+    (display-buffer buffer)
+    (if
+	(not
+	 (yes-or-no-p
+	  (format "%s %s/%s? "
+		  (nsa/research-decision-state decision)
+		  (nsa/research-item-repo item)
+		  (file-name-nondirectory
+		   (nsa/research-item-path item)))))
+	(let
+	    ((dashboard
+	      (nsa/research-decision-dashboard decision)))
+	  (with-current-buffer dashboard
+	    (setf
+	     (nsa/research-item-busy item)
+	     nil)
+	    (nsa/research-dashboard--render)))
+      (nsa/research-dashboard--branch-head decision
+					   (lambda
+					     (ok head)
+					     (nsa/research-dashboard--recheck-head decision ok head))))))
+
+
+(defun nsa/research-dashboard--got-file
+    (decision ok remote)
+  (if
+      (not ok)
+      (nsa/research-dashboard--fail decision remote)
+    (let*
+	((item
+	  (nsa/research-decision-item decision))
+	 (blob
+	  (car remote))
+	 (content
+	  (cdr remote)))
+      (if
+	  (not
+	   (and
+	    (string= blob
+		     (nsa/research-item-blob item))
+	    (string= content
+		     (nsa/research-item-content item))))
+	  (nsa/research-dashboard--fail decision "Research changed since refresh; refresh first")
+	(condition-case error-data
+	    (progn
+	      (setf
+	       (nsa/research-decision-blob decision)
+	       blob
+	       (nsa/research-decision-content decision)
+	       content
+	       (nsa/research-decision-updated decision)
+	       (nsa/research-dashboard--decision-content content
+							 (nsa/research-decision-state decision)
+							 (nsa/research-decision-actor decision)
+							 (nsa/research-decision-evidence decision)
+							 (nsa/research-decision-commit decision)
+							 blob
+							 (format-time-string "%Y-%m-%dT%H:%M:%S%:z")))
+	      (nsa/research-dashboard--confirm decision))
+	  (error
+	   (nsa/research-dashboard--fail decision
+					 (error-message-string error-data))))))))
+
+
+(defun nsa/research-dashboard--got-head
+    (decision ok commit)
+  (if
+      (not ok)
+      (nsa/research-dashboard--fail decision commit)
+    (setf
+     (nsa/research-decision-commit decision)
+     commit)
+    (nsa/research-dashboard--remote-file decision commit
+					 (lambda
+					   (file-ok remote)
+					   (nsa/research-dashboard--got-file decision file-ok remote)))))
+
+
+(defun nsa/research-dashboard--decide
+    (state)
+  (let*
+      ((dashboard
+	(current-buffer))
+       (item
+	(nsa/research-dashboard--at-point)))
+    (when
+	(nsa/research-item-busy item)
+      (user-error "Decision already running"))
+    (let
+	((actor
+	  (read-string "Human decision-maker: "
+		       (or nsa/research-dashboard--login "")))
+	 (evidence
+	  (read-string "Durable approval evidence: " "human:emacs-research-dashboard")))
+      (when
+	  (or
+	   (string-empty-p
+	    (string-trim actor))
+	   (string-empty-p
+	    (string-trim evidence)))
+	(user-error "Actor and evidence must be nonempty"))
+      (setf
+       (nsa/research-item-busy item)
+       t)
+      (nsa/research-dashboard--render)
+      (let
+	  ((decision
+	    (nsa/research-decision-create :dashboard dashboard :item item :state state :actor actor :evidence evidence)))
+	(nsa/research-dashboard--branch-head decision
+					     (lambda
+					       (ok commit)
+					       (nsa/research-dashboard--got-head decision ok commit)))))))
+
+
+(defun nsa/research-dashboard-approve nil
+  (interactive)
+  (nsa/research-dashboard--decide "APPROVED"))
+
+(defun nsa/research-dashboard-reject nil
+  (interactive)
+  (nsa/research-dashboard--decide "REJECTED"))
+
+
+(define-derived-mode nsa/research-dashboard-mode tabulated-list-mode "Research-Review" "Major mode for cross-repository human research approval."
+  (setq-local truncate-lines t)
+  (setq-local tabulated-list-padding 2)
+  (setq-local font-lock-defaults
+	      '(nsa/research-dashboard-font-lock-keywords))
+  (setq tabulated-list-format
+	[("Approval" 12 t)
+	 ("Repository" 30 t)
+	 ("Project" 20 t)
+	 ("Lifecycle" 22 t)
+	 ("Title" 56 t)
+	 ("Path" 64 t)]
+	tabulated-list-sort-key
+	'("Repository")
+	nsa/research-dashboard--show-legacy nsa/research-dashboard-show-legacy-default)
+  (tabulated-list-init-header)
+  (hl-line-mode 1)
+  (add-hook 'kill-buffer-hook #'nsa/research-dashboard--cancel nil t))
+
+
+;;;###autoload
+(defun nsa/research-dashboard nil "Show open research across GitHub without blocking Emacs."
+       (interactive)
+       (let
+	   ((buffer
+	     (get-buffer-create "*Research Dashboard*")))
+	 (with-current-buffer buffer
+	   (unless
+	       (derived-mode-p 'nsa/research-dashboard-mode)
+	     (nsa/research-dashboard-mode))
+	   (nsa/research-dashboard-refresh))
+	 (pop-to-buffer buffer)))
+
+
+(provide 'research-dashboard)
+
+;;; research-dashboard.el ends here
+
+#+end_src
+
+* screen-capture
+#+begin_src emacs-lisp :tangle autoload/screen-capture.el
+;;; screen-capture.el --- quick recording UI -*- lexical-binding: t; -*-
+
+(require 'subr-x)
+
+
+(defgroup screen-capture nil "Small Emacs UI for the dotfiles screen-capture command." :group 'external)
+
+
+(defcustom screen-capture-video-directory
+  (expand-file-name "~/Videos/")
+  "Default directory offered for new recordings." :type 'directory)
+
+
+(defun screen-capture--default-path nil
+  (expand-file-name
+   (format-time-string "recording-%Y-%m-%d_%H-%M-%S.mp4")
+   screen-capture-video-directory))
+
+
+(defun screen-capture--ui-frame nil
+  (make-frame
+   '((name . "screen-capture")
+     (title . "Record screen")
+     (width . 72)
+     (height . 12)
+     (minibuffer . t)
+     (unsplittable . t))))
+
+
+(defun screen-capture--sentinel
+    (process event)
+  (when
+      (memq
+       (process-status process)
+       '(exit signal))
+    (let
+	((buffer
+	  (process-buffer process)))
+      (if
+	  (and
+	   (=
+	    (process-exit-status process)
+	    0)
+	   (buffer-live-p buffer))
+	  (with-current-buffer buffer
+	    (message "%s"
+		     (string-trim
+		      (buffer-string))))
+	(message "screen-capture: %s"
+		 (string-trim event)))
+      (when
+	  (buffer-live-p buffer)
+	(kill-buffer buffer)))))
+
+
+;;;###autoload
+(defun screen-capture-record
+    (&optional mode)
+  "Prompt quickly for MODE and destination, then start recording asynchronously."
+  (interactive)
+  (let
+      ((frame
+	(screen-capture--ui-frame)))
+    (unwind-protect
+	(progn
+	  (select-frame-set-input-focus frame)
+	  (let*
+	      ((choice
+		(or mode
+		    (completing-read "Record: "
+				     '("window" "screen")
+				     nil t nil nil "window")))
+	       (default
+		(screen-capture--default-path))
+	       (path
+		(read-file-name "Save video: " screen-capture-video-directory default nil
+				(file-name-nondirectory default)))
+	       (command
+		(pcase choice
+		  ("window" "record-window")
+		  ("screen" "record-screen")
+		  (_
+		   (user-error "Unknown recording mode: %s" choice))))
+	       (buffer
+		(generate-new-buffer " *screen-capture*")))
+	    (make-process :name "screen-capture-record" :buffer buffer :command
+			  (list "screen-capture" command path)
+			  :noquery t :sentinel #'screen-capture--sentinel)
+	    (message "Recording started: %s" path)))
+      (when
+	  (frame-live-p frame)
+	(delete-frame frame)))))
+
+
+;;;###autoload
+(defun screen-capture-stop nil "Stop and finalize the current screen recording."
+       (interactive)
+       (make-process :name "screen-capture-stop" :command
+		     '("screen-capture" "stop")
+		     :noquery t :sentinel #'screen-capture--sentinel))
+
+
+(provide 'screen-capture)
+
+;;; screen-capture.el ends here
+
+#+end_src
+
+* starintel-research
+#+begin_src emacs-lisp :tangle autoload/starintel-research.el
+;;; starintel-research.el --- Lazy Starintel research entry point -*- lexical-binding: t; -*-
+
+;;;###autoload
+(defun star/research nil "Open the Starintel research control surface."
+       (interactive)
+       (load "research" nil nil)
+       (call-interactively #'star/research-dispatch))
+
+
+;;; starintel-research.el ends here
+
+#+end_src
+
+* starintel
+#+begin_src emacs-lisp :tangle autoload/star-autoload-starintel.el
+;;; starintel.el --- StarIntel staging client for doom -*- lexical-binding: t; -*-
+
+;; Operator config for the StarIntel Emacs client.  Lives in the dotfiles;
+;; the bearer credential never does: it is resolved per-request from
+;; `auth-source' (see ~/.authinfo, mode 600) with an env fallback, and is
+;; never written to buffers, logs, or Customize.
+
+(require 'client nil t)
+                 ; vendored: lisp/starintel/client.el
+
+(defgroup nsa/starintel nil "StarIntel staging client configuration." :group 'starintel)
+
+
+(defcustom nsa/starintel-server-url
+  (or
+   (getenv "STARINTEL_SERVER_URL")
+   "http://ingest.star.intel")
+  "Base URL of the staging ingest StarIntel server." :type 'string :group 'nsa/starintel)
+
+
+(defcustom nsa/starintel-auth-host nil "auth-source host entry for the StarIntel API key.\nWhen nil it is derived from `nsa/starintel-server-url'." :type
+  '(choice
+    (const :tag "Derive from server URL" nil)
+    string)
+  :group 'nsa/starintel)
+
+
+(defun nsa/starintel-url-host-port nil "Return (HOST . PORT) for `nsa/starintel-server-url'."
+       (let*
+	   ((url
+	     (if
+		 (string-match-p "://" nsa/starintel-server-url)
+		 nsa/starintel-server-url
+	       (concat "http://" nsa/starintel-server-url)))
+	    (parsed
+	     (url-generic-parse-url url))
+	    (host
+	     (url-host parsed))
+	    (port
+	     (url-port parsed)))
+	 (cons
+	  (or host "127.0.0.1")
+	  (or port 80))))
+
+
+(defun nsa/starintel-auth-token nil "Return the StarIntel bearer token without exposing it.\nResolution order: $STARINTEL_API_KEY, then auth-source (entry for\nthe server host).  Returns nil when neither is available."
+       (let*
+	   ((host-port
+	     (nsa/starintel-url-host-port))
+	    (host
+	     (or nsa/starintel-auth-host
+		 (car host-port)))
+	    (port
+	     (number-to-string
+	      (cdr host-port))))
+	 (or
+	  (getenv "STARINTEL_API_KEY")
+	  (let*
+	      ((entry
+		(car
+		 (auth-source-search :max 1 :user "starintel" :host host :port port :require
+				     '(:secret))))
+	       (secret
+		(plist-get entry :secret)))
+	    (cond
+	     ((functionp secret)
+	      (funcall secret))
+	     ((stringp secret)
+	      secret)
+	     (t nil))))))
+
+
+(defun nsa/starintel-connect nil "Connect Emacs to the staging StarIntel server via auth-source."
+       (interactive)
+       (require 'client)
+       (setq starintel-api-base-url nsa/starintel-server-url starintel-api-token-function #'nsa/starintel-auth-token)
+       (starintel-connect))
+
+
+(with-eval-after-load 'client
+  (setq starintel-api-base-url
+	(or
+	 (getenv "STARINTEL_SERVER_URL")
+	 starintel-api-base-url nsa/starintel-server-url)
+	starintel-api-token-function #'nsa/starintel-auth-token))
+
+
+(global-set-key
+ (kbd "C-c S c")
+ #'nsa/starintel-connect)
+
+(global-set-key
+ (kbd "C-c S s")
+ #'starintel-search)
+
+(global-set-key
+ (kbd "C-c S d")
+ #'starintel-document)
+
+(global-set-key
+ (kbd "C-c S S")
+ #'starintel-status)
+
+
+(provide 'starintel)
+
+;;; starintel.el ends here
+
+#+end_src
+
