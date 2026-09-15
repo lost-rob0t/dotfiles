@@ -12,9 +12,11 @@ account limits; the graph uses captured completed-request token buckets.
 The two domains must not be converted into each other by guessing a plan cap.
 
 * Home Manager wiring
-The LLM profile pins llm-log to =171cf7a21a8a0f669ff07f3358fc82852c3406ef=,
-whose analytics/quota tests and Python package build passed exact-head CI.
-=llm.quotaTelemetry.enable= defaults to true when the LLM profile is enabled.
+The LLM profile pins llm-log to =692d3820f638c011fc248a7694ecabd72a6e2895=,
+whose analytics, quota, Python, Home Manager, and Common Lisp/Tek9/SWI-Prolog
+expert contracts passed exact-head CI. This revision also includes historical
+expert backfill, bounded live expert queries, and provenance-preserving dataset
+export. =llm.quotaTelemetry.enable= defaults to true when the LLM profile is enabled.
 This sets =LLM_LOG_QUOTAS_ENABLED=1= on the existing capture service.
 
 The service uses the underlying =config.codex.package=, not the capture wrapper,
