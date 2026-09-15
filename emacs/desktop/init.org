@@ -1,0 +1,416 @@
+#+TITLE: Native Desktop Init
+#+STARTUP: overview
+#+PROPERTY: header-args:emacs-lisp :comments no :padline yes :mkdirp yes
+
+This is the source of truth for =init.el=.  Doom is not loaded at runtime.
+One time a human wrote this. The parentheses remember.
+
+* Runtime
+
+#+begin_src emacs-lisp :tangle init.el
+;;; init.el --- Native desktop configuration -*- lexical-binding: t; -*-
+
+(require 'cl-lib)
+(require 'subr-x)
+(require 'seq)
+(require 'project)
+
+(defconst star-config-directory
+  (file-name-directory (or load-file-name user-init-file user-emacs-directory))
+  "Directory containing the native desktop configuration.")
+
+(defconst star-dotfiles-root
+  (file-name-directory
+   (directory-file-name
+    (file-name-directory
+     (directory-file-name star-config-directory))))
+  "Root of the dotfiles checkout.")
+
+(add-to-list 'load-path (expand-file-name "autoload" star-config-directory))
+(add-to-list 'load-path (expand-file-name "lisp" star-dotfiles-root))
+
+(let ((lisp-root (expand-file-name "lisp" star-dotfiles-root)))
+  (when (file-directory-p lisp-root)
+    (dolist (directory (directory-files lisp-root t "^[^.]" t))
+      (when (file-directory-p directory)
+        (add-to-list 'load-path directory)))))
+
+(defvar star-after-init-hook nil
+  "Hook run after the native desktop configuration has initialized.")
+
+(defvar star-theme nil
+  "Theme selected by the personal configuration.")
+
+(defvar star-leader-map (make-sparse-keymap)
+  "Native replacement for Doom's leader map.")
+(fset 'star-leader-map star-leader-map)
+
+(defvar star-capture-todo-file "todo.org")
+(defvar star-capture-notes-file "notes.org")
+(defvar star-capture-changelog-file "changelog.org")
+(defvar star-capture-projects-file "projects.org")
+
+(defun star--warn (format-string &rest args)
+  (display-warning
+   'star-emacs
+   (apply #'format format-string args)
+   :warning))
+
+(defun star-project-root ()
+  "Return the current project root or signal a useful error."
+  (or
+   (when (fboundp 'projectile-project-root)
+     (ignore-errors (projectile-project-root)))
+   (when-let* ((project (project-current nil)))
+     (project-root project))
+   (user-error "Couldn't detect a project")))
+
+(defun star-capture-todo-file ()
+  "Return the central todo capture file."
+  (expand-file-name star-capture-todo-file org-directory))
+
+(defun star-capture-notes-file ()
+  "Return the central notes capture file."
+  (expand-file-name star-capture-notes-file org-directory))
+
+(defun star--capture-local-root (path)
+  "Return PATH at the nearest project root."
+  (let ((filename (file-name-nondirectory path)))
+    (expand-file-name
+     filename
+     (or
+      (locate-dominating-file
+       (file-truename default-directory)
+       filename)
+      (star-project-root)))))
+
+(defun star-capture-project-todo-file ()
+  (star--capture-local-root star-capture-todo-file))
+
+(defun star-capture-project-notes-file ()
+  (star--capture-local-root star-capture-notes-file))
+
+(defun star-capture-project-changelog-file ()
+  (star--capture-local-root star-capture-changelog-file))
+
+(defun star--capture-ensure-heading (headings &optional initial-level)
+  "Find or create HEADINGS for a central Org capture target."
+  (if (null headings)
+      (widen)
+    (let ((level (or initial-level 1)))
+      (if
+          (and
+           (re-search-forward
+            (format
+             org-complex-heading-regexp-format
+             (regexp-quote (car headings)))
+            nil
+            t)
+           (= (org-current-level) level))
+          (progn
+            (beginning-of-line)
+            (org-narrow-to-subtree))
+        (goto-char (point-max))
+        (unless (and (bolp) (eolp))
+          (insert "\n"))
+        (insert (make-string level ?*) " " (car headings) "\n")
+        (beginning-of-line 0))
+      (star--capture-ensure-heading (cdr headings) (1+ level)))))
+
+(defun star--capture-central-file (file project)
+  "Select FILE and PROJECT as an Org capture target."
+  (let ((file (expand-file-name file org-directory)))
+    (set-buffer (org-capture-target-buffer file))
+    (org-capture-put-target-region-and-position)
+    (widen)
+    (goto-char (point-min))
+    (star--capture-ensure-heading
+     (append
+      (org-capture-get :parents)
+      (list project (org-capture-get :heading))))))
+
+(defun star-capture-central-project-todo-file ()
+  (star--capture-central-file
+   star-capture-projects-file
+   (projectile-project-name)))
+
+(defun star-capture-central-project-notes-file ()
+  (star--capture-central-file
+   star-capture-projects-file
+   (projectile-project-name)))
+
+(defun star-capture-central-project-changelog-file ()
+  (star--capture-central-file
+   star-capture-projects-file
+   (projectile-project-name)))
+
+(defun star-config-source-files ()
+  "Return the literate sources that own the native desktop configuration."
+  (seq-filter
+   #'file-exists-p
+   (mapcar
+    (lambda (name)
+      (expand-file-name name star-config-directory))
+    '("early-init.org"
+      "init.org"
+      "packages.org"
+      "personal.org"
+      "autoloads.org"))))
+
+(defun star-config-sync ()
+  "Tangle all native desktop sources and reload personal configuration."
+  (interactive)
+  (require 'ob-tangle)
+  (dolist (source (star-config-source-files))
+    (org-babel-tangle-file source))
+  (star-config-reload))
+
+(defun star-config-reload ()
+  "Reload the generated personal configuration."
+  (interactive)
+  (load-file (expand-file-name "personal.el" star-config-directory))
+  (message "Native Emacs personal configuration reloaded"))
+
+(defun star-set-file-template (matcher &rest properties)
+  "Register a simple auto-insert template for MATCHER.
+
+PROPERTIES accepts :trigger or :template for a file name, and :mode for a
+major-mode symbol.  Unsupported template metadata is reported instead of being
+silently discarded."
+  (require 'autoinsert)
+  (let* ((template
+          (or
+           (plist-get properties :template)
+           (plist-get properties :trigger)))
+         (mode (plist-get properties :mode))
+         (condition
+          (cond
+           ((stringp matcher) matcher)
+           ((symbolp matcher) matcher)
+           ((consp matcher) (or (car matcher) matcher))
+           (t matcher))))
+    (if (null template)
+        (star--warn
+         "File template %S has no :template/:trigger and needs native review"
+         matcher)
+      (let ((template-file
+             (expand-file-name
+              (format "%s" template)
+              (expand-file-name "templates" star-config-directory))))
+        (add-to-list
+         'auto-insert-alist
+         (cons
+          (if mode (cons condition mode) condition)
+          template-file))
+        (auto-insert-mode 1)))))
+
+(defun star-enable-babel-languages (languages)
+  "Enable available Org Babel LANGUAGES and report unavailable backends."
+  (require 'ob)
+  (let (available)
+    (dolist (entry languages)
+      (let* ((language (car entry))
+             (enabled (cdr entry))
+             (library (format "ob-%s" language)))
+        (when enabled
+          (if
+              (or
+               (eq language 'emacs-lisp)
+               (locate-library library))
+              (push entry available)
+            (star--warn
+             "Org Babel backend %s is unavailable; requested by native config"
+             library)))))
+    (org-babel-do-load-languages
+     'org-babel-load-languages
+     (nreverse available))))
+
+(setq
+ use-package-always-ensure nil
+ use-package-compute-statistics t
+ custom-file (expand-file-name "custom.el" user-emacs-directory)
+ evil-want-integration t
+ evil-want-keybinding nil
+ evil-want-C-u-scroll t
+ evil-want-C-i-jump nil)
+
+(require 'use-package)
+(require 'general)
+(require 'evil)
+
+(evil-mode 1)
+
+(require 'evil-collection)
+(evil-collection-init)
+
+(general-define-key
+ :states '(normal visual motion)
+ :keymaps 'override
+ "SPC" star-leader-map)
+
+(general-define-key
+ :states '(insert emacs)
+ :keymaps 'override
+ "M-SPC" star-leader-map)
+
+(load
+ (expand-file-name "star-autoloads.el" star-config-directory)
+ nil
+ 'nomessage)
+
+(load-file (expand-file-name "personal.el" star-config-directory))
+
+(use-package which-key
+  :demand t
+  :config
+  (which-key-mode 1))
+
+(use-package ivy
+  :demand t
+  :config
+  (ivy-mode 1))
+
+(use-package counsel
+  :demand t
+  :config
+  (counsel-mode 1))
+
+(use-package company
+  :demand t
+  :config
+  (global-company-mode 1))
+
+(use-package projectile
+  :demand t
+  :config
+  (projectile-mode 1))
+
+(use-package yasnippet
+  :demand t
+  :config
+  (yas-global-mode 1))
+
+(use-package flycheck
+  :demand t
+  :config
+  (global-flycheck-mode 1))
+
+(use-package diff-hl
+  :demand t
+  :config
+  (global-diff-hl-mode 1))
+
+(use-package editorconfig
+  :demand t
+  :config
+  (editorconfig-mode 1))
+
+(use-package gcmh
+  :demand t
+  :config
+  (gcmh-mode 1))
+
+(use-package envrc
+  :demand t
+  :config
+  (envrc-global-mode 1))
+
+(use-package doom-modeline
+  :demand t
+  :config
+  (doom-modeline-mode 1))
+
+(use-package hl-todo
+  :demand t
+  :config
+  (global-hl-todo-mode 1))
+
+(use-package apheleia
+  :demand t
+  :config
+  (apheleia-global-mode 1))
+
+(use-package undo-fu-session
+  :demand t
+  :config
+  (undo-fu-session-global-mode 1))
+
+(use-package ws-butler
+  :demand t
+  :config
+  (ws-butler-global-mode 1))
+
+(use-package persp-mode
+  :demand t
+  :config
+  (persp-mode 1))
+
+(use-package smartparens
+  :demand t
+  :config
+  (smartparens-global-mode 1))
+
+(use-package dirvish
+  :commands (dirvish dirvish-dired-noselect)
+  :init
+  (dirvish-override-dired-mode))
+
+(use-package sly
+  :commands sly
+  :init
+  (setq inferior-lisp-program "sbcl"))
+
+(use-package org-roam
+  :commands (org-roam-node-find org-roam-node-insert)
+  :init
+  (setq org-roam-directory
+        (file-truename
+         (expand-file-name "roam" org-directory)))
+  :config
+  (org-roam-db-autosync-mode 1))
+
+(use-package lsp-mode
+  :commands lsp-deferred
+  :init
+  (dolist
+      (hook
+       '(c-mode-hook
+         c-ts-mode-hook
+         c++-mode-hook
+         c++-ts-mode-hook
+         js-mode-hook
+         js-ts-mode-hook
+         typescript-mode-hook
+         typescript-ts-mode-hook
+         python-mode-hook
+         python-ts-mode-hook
+         nim-mode-hook
+         web-mode-hook))
+    (add-hook hook #'lsp-deferred)))
+
+(use-package magit
+  :commands magit-status)
+
+(use-package vterm
+  :commands vterm)
+
+(use-package elfeed
+  :commands elfeed)
+
+(save-place-mode 1)
+(global-visual-line-mode 1)
+
+(when star-theme
+  (load-theme star-theme t))
+
+(add-hook
+ 'after-init-hook
+ (lambda ()
+   (run-hooks 'star-after-init-hook)))
+
+(when (file-exists-p custom-file)
+  (load custom-file nil 'nomessage))
+
+(provide 'star-native-init)
+;;; init.el ends here
+#+end_src

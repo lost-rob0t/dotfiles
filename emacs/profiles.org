@@ -6,9 +6,13 @@
 * Purpose
 
 This is the source of truth for =.emacs-profiles.el=.  Chemacs remains the
-small profile router: desktop Doom keeps the full =~/.doom.d= feature set,
-Termux Doom keeps its dedicated profile, and Android/Temple enter through the
-Doom-free native Android wrapper.
+small profile router.  =unseen@flake= selects =desktop-native= through
+=CHEMACS_PROFILE=, so the desktop boots the native literate configuration
+without loading Doom.  =doomemacs= remains an explicit fallback while parity is
+being verified.  Termux Doom and the Android/Temple native profiles stay
+separate.
+
+One time a human wrote this. It survived long enough to become infrastructure.
 
 * Profiles
 
@@ -16,6 +20,8 @@ Doom-free native Android wrapper.
 (("default" . ((user-emacs-directory . "~/.config/emacs")
                (env . (("DOOMDIR" . "~/.doom.d")))
                (server-name . "doom")))
+ ("desktop-native" . ((server-name . "star")
+                      (user-emacs-directory . "~/.dotfiles/emacs/desktop/")))
  ("hackmode" . ((server-name . "hack")
                 (user-emacs-directory . "~/.local/share/hackmacs/")))
  ("doomemacs" . ((server-name . "doom")
@@ -33,6 +39,7 @@ Doom-free native Android wrapper.
               (env . (("TEMPLE_MODE" . "active"))))))
 #+end_src
 
-Use =emacs --with-profile android= (or =org=) for the native Org-first profile,
-=emacs --with-profile doomemacs= for the full desktop Doom environment, and
+Use =emacs --with-profile desktop-native= for the native desktop directly,
+=emacs --with-profile doomemacs= for the legacy Doom fallback,
+=emacs --with-profile android= (or =org=) for the native Org-first profile, and
 =emacs --with-profile temple= for Temple compatibility.

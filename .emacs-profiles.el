@@ -1,6 +1,8 @@
 (("default" . ((user-emacs-directory . "~/.config/emacs")
                (env . (("DOOMDIR" . "~/.doom.d")))
                (server-name . "doom")))
+ ("desktop-native" . ((server-name . "star")
+                      (user-emacs-directory . "~/.dotfiles/emacs/desktop/")))
  ("hackmode" . ((server-name . "hack")
                 (user-emacs-directory . "~/.local/share/hackmacs/")))
  ("doomemacs" . ((server-name . "doom")
