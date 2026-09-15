@@ -1,0 +1,23 @@
+#+TITLE: Native desktop Emacs migration
+#+STARTUP: overview
+
+* Scope
+This is the in-progress native desktop port for =unseen@flake=, tracked in
+[[https://github.com/lost-rob0t/dotfiles/issues/231][issue #231]]. The legacy
+=.doom.d= source is the migration baseline, not the intended runtime.
+
+One time a human wrote this. The parentheses have declined to identify them.
+
+* Evidence, not vibes
+=tools/inventory.el= reads the old module list and package declarations without
+executing the old init or package installation code. The upstream audit inputs
+are pinned in =.github/workflows/native-emacs.yml=. Conditional package declarations
+are a conservative superset until resolved; they are not a claim about the old
+machine's installed dependency closure.
+
+One time a human wrote this. Future maintainers may request archaeological funding.
+
+* Runtime status
+The native profile is under construction; this inventory commit does not switch
+any Home Manager profile. No successful native startup or feature-parity result
+is claimed by this initial audit.

@@ -5,6 +5,54 @@
   inputs,
   ...
 }:
+let
+  nativePackageManifest =
+    builtins.fromJSON (builtins.readFile ../../../emacs/desktop/packages.json);
+
+  nativePackageAliases = {
+    emacs-async = "async";
+    ppcre2el = "pcre2el";
+    "pcap-mode.el" = "pcap-mode";
+  };
+
+  nativeBuiltinPackages = [
+    "css-mode"
+    "elisp-mode"
+    "flymake"
+    "hideshow"
+    "rx"
+    "smerge-mode"
+    "vc"
+    "vc-annotate"
+  ];
+
+  nativePackageName = name: nativePackageAliases.${name} or name;
+
+  nativeEmacsPackages =
+    epkgs:
+    let
+      names = lib.unique nativePackageManifest.packages;
+      custom = import ./emacs-native-packages.nix {
+        inherit lib pkgs epkgs;
+      };
+      resolve =
+        rawName:
+        let
+          name = nativePackageName rawName;
+        in
+        if builtins.elem name nativeBuiltinPackages then
+          null
+        else if builtins.hasAttr rawName custom then
+          builtins.getAttr rawName custom
+        else if builtins.hasAttr name custom then
+          builtins.getAttr name custom
+        else if builtins.hasAttr name epkgs then
+          builtins.getAttr name epkgs
+        else
+          throw "Native Emacs manifest package has no Nix package: ${rawName}";
+    in
+    builtins.filter (package: package != null) (map resolve names);
+in
 {
   imports = [
     ./gpt-todos.nix
@@ -46,7 +94,7 @@
       extraPackages = mkOption {
         type = types.listOf types.package;
         default = [ ];
-        description = "Extra packages to install ontop of the base ones included with this module";
+        description = "Extra packages to install on top of the native desktop closure";
       };
     };
   };
@@ -59,7 +107,7 @@
     emacs.diredXDG.pkg = pkgs.makeDesktopItem {
       name = "dired";
       desktopName = "Dired";
-      exec = "emacsclient --eval \"(dired \"%f\")\"";
+      exec = "emacsclient --eval \"(dired \\\"%f\\\")\"";
       terminal = false;
       mimeTypes = [
         "application/x-directory"
@@ -78,46 +126,46 @@
       };
     };
 
-    # programs.gpg.enable = true;
     programs.emacs = {
       enable = true;
       package = config.emacs.package;
-      extraPackages = epkgs: [
-        (inputs.emacs-auto-research.lib.mkPackage { inherit pkgs epkgs; })
-        pkgs.shfmt
-        epkgs.khoj
-        epkgs.vterm
-        epkgs.direnv
-        epkgs.lsp-pyright
-        epkgs.pylint
-        epkgs.w3m
-        epkgs.pandoc
-        epkgs.xclip
-        pkgs.aspell
-        pkgs.aspellDicts.en
-        pkgs.libnotify # for alert.el
-        pkgs.xdotool # for emacs everywhere
-        pkgs.ffmpegthumbnailer # Video thumbnails
-        pkgs.imagemagick # photo thumbnails
-        pkgs.mediainfo # audio previews
-        pkgs.mpv # for bongo
-        pkgs.pyright
-        # TODO we need a single source of truth for python versions!
-        pkgs.python311
-        pkgs.python311Packages.flake8
-        # Notifications
-        pkgs.libnotify
-        pkgs.coreutils
-        pkgs.zip
-        pkgs.rar
-        pkgs.ripgrep
-        pkgs.bashInteractive
-        pkgs.recoll
-        # For emacs everywhere which seemly only works on xorg rn
-        pkgs.xwininfo
-        pkgs.xdotool
-        pkgs.fd
-      ];
+      extraPackages =
+        epkgs:
+        [
+          (inputs.emacs-auto-research.lib.mkPackage { inherit pkgs epkgs; })
+          pkgs.shfmt
+          epkgs.khoj
+          epkgs.vterm
+          epkgs.direnv
+          epkgs.lsp-pyright
+          epkgs.pylint
+          epkgs.w3m
+          epkgs.pandoc
+          epkgs.xclip
+          pkgs.aspell
+          pkgs.aspellDicts.en
+          pkgs.libnotify
+          pkgs.xdotool
+          pkgs.ffmpegthumbnailer
+          pkgs.imagemagick
+          pkgs.mediainfo
+          pkgs.mpv
+          pkgs.pyright
+          pkgs.python311
+          pkgs.python311Packages.flake8
+          pkgs.libnotify
+          pkgs.coreutils
+          pkgs.zip
+          pkgs.rar
+          pkgs.ripgrep
+          pkgs.bashInteractive
+          pkgs.recoll
+          pkgs.xwininfo
+          pkgs.xdotool
+          pkgs.fd
+        ]
+        ++ nativeEmacsPackages epkgs
+        ++ config.emacs.extraPackages;
     };
 
     xdg = mkIf config.emacs.diredXDG.enable {

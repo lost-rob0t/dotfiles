@@ -1,0 +1,90 @@
+name: Native Emacs source materialization
+
+on:
+  pull_request:
+    paths:
+      - 'emacs/desktop/tools/migrate.el'
+      - 'emacs/desktop/tools/package-declarations.el'
+      - 'emacs/desktop/tests/package-declarations-test.el'
+      - '.github/workflows/native-emacs-materialize.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  materialize:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'port/native-emacs-20260912'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Read exact owned branch head
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git init .
+          git remote add origin https://github.com/lost-rob0t/dotfiles.git
+          git -c credential.helper= fetch --depth=1 origin "$SOURCE_SHA"
+          git checkout --detach FETCH_HEAD
+      - name: Install source reader
+        run: sudo apt-get update && sudo apt-get install -y emacs-nox
+      - name: Test package declaration reader
+        run: |
+          emacs -Q --batch \
+            -l emacs/desktop/tests/package-declarations-test.el \
+            -f ert-run-tests-batch-and-exit
+      - name: Fetch pinned package declaration sources
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/doom-core"
+          git -C "$RUNNER_TEMP/doom-core" fetch --depth=1 https://github.com/doomemacs/core.git 01d68aaf6bd7db073365385cd82e1ad7e815295c
+          git -C "$RUNNER_TEMP/doom-core" checkout --detach FETCH_HEAD
+          git init "$RUNNER_TEMP/doom-modules"
+          git -C "$RUNNER_TEMP/doom-modules" fetch --depth=1 https://github.com/doomemacs/modules.git d57ab52a3425b6d39564fb011b0e9571da0e270f
+          git -C "$RUNNER_TEMP/doom-modules" checkout --detach FETCH_HEAD
+      - name: Generate ordinary Org and Lisp without loading Doom
+        env:
+          DOOM_AUDIT_CORE: ${{ runner.temp }}/doom-core
+          DOOM_AUDIT_MODULES: ${{ runner.temp }}/doom-modules
+        run: |
+          emacs -Q --batch \
+            -l emacs/desktop/tools/migrate.el \
+            -l emacs/desktop/tools/package-declarations.el \
+            --eval '(star-port-generate default-directory)'
+      - name: Commit only migration outputs to the unchanged source branch
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          branch=port/native-emacs-20260912
+          remote_head=$(git ls-remote origin "refs/heads/$branch" | cut -f1)
+          test "$remote_head" = "$SOURCE_SHA"
+          git add -- emacs/desktop/packages.org emacs/desktop/packages.json emacs/desktop/personal.org emacs/desktop/personal.el emacs/desktop/autoloads.org emacs/desktop/autoload emacs/desktop/star-autoloads.el
+          if git diff --cached --quiet; then exit 0; fi
+          git -c user.name='Native Emacs source generator' -c user.email='noreply@users.noreply.github.com' commit -m 'build(emacs): materialize reviewed native Org sources from Doom baseline'
+          # The helper string is intentionally expanded by the helper shell, not
+          # by this workflow shell.
+          # shellcheck disable=SC2016
+          git -c credential.helper='!f() { echo username=x-access-token; echo "password=$GITHUB_TOKEN"; }; f' push origin "HEAD:refs/heads/$branch"
+      - uses: cachix/install-nix-action@v31
+      - name: Report exact pinned Nix package gaps without dropping anything
+        run: |
+          # ${n} below is Nix interpolation inside the quoted Nix expression.
+          # shellcheck disable=SC2016
+          nix eval --impure --json --expr '
+            let f = builtins.getFlake (toString ./.);
+                p = f.inputs.nixpkgs.legacyPackages.x86_64-linux;
+                e = p.emacsPackages;
+                names = (builtins.fromJSON (builtins.readFile ./emacs/desktop/packages.json)).packages;
+                aliases = { emacs-async = "async"; ppcre2el = "pcre2el"; "podman.el" = "podman"; "pcap-mode.el" = "pcap-mode"; };
+                builtin = [ "rx" "css-mode" "elisp-mode" "flymake" "hideshow" "smerge-mode" "vc" "vc-annotate" ];
+            in {
+              emacs = p.emacs.version;
+              missing = builtins.filter (n: !(builtins.elem n builtin) && !(builtins.hasAttr (aliases.${n} or n) e)) names;
+              selectedCount = builtins.length names;
+            }
+          '

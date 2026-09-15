@@ -1,0 +1,122 @@
+name: Native Emacs
+
+on:
+  pull_request:
+    paths:
+      - 'emacs/desktop/**'
+      - 'emacs/profiles.org'
+      - '.emacs-profiles.el'
+      - 'nix/home-manager/mods/emacs*.nix'
+      - 'nix/home-manager/systems/flake/home.nix'
+      - '.github/workflows/native-emacs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-emacs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact head without submodule credential traversal
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          SOURCE_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SOURCE_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
+          git init .
+          git remote add origin "https://github.com/$SOURCE_REPOSITORY.git"
+          git -c credential.helper= fetch --depth=1 origin "$SOURCE_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+
+      - name: Install Emacs test runtime
+        run: sudo apt-get update && sudo apt-get install -y emacs-nox
+
+      - name: Verify native literate sources are tangled in sync
+        run: |
+          set -euo pipefail
+          emacs -Q --batch \
+            --eval "(require 'org)" \
+            --eval '(org-babel-tangle-file "emacs/profiles.org")' \
+            --eval '(org-babel-tangle-file "emacs/desktop/early-init.org")' \
+            --eval '(org-babel-tangle-file "emacs/desktop/init.org")'
+          git diff --exit-code -- \
+            .emacs-profiles.el \
+            emacs/desktop/early-init.el \
+            emacs/desktop/init.el
+
+      - name: Fetch pinned upstream audit sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git init "$RUNNER_TEMP/doom-core"
+          git -C "$RUNNER_TEMP/doom-core" fetch --depth=1 https://github.com/doomemacs/core.git 01d68aaf6bd7db073365385cd82e1ad7e815295c
+          git -C "$RUNNER_TEMP/doom-core" checkout --detach FETCH_HEAD
+          git init "$RUNNER_TEMP/doom-modules"
+          git -C "$RUNNER_TEMP/doom-modules" fetch --depth=1 https://github.com/doomemacs/modules.git d57ab52a3425b6d39564fb011b0e9571da0e270f
+          git -C "$RUNNER_TEMP/doom-modules" checkout --detach FETCH_HEAD
+
+      - name: Inventory declarations and legacy APIs without loading Doom
+        env:
+          DOOM_AUDIT_CORE: ${{ runner.temp }}/doom-core
+          DOOM_AUDIT_MODULES: ${{ runner.temp }}/doom-modules
+        run: emacs -Q --batch -l emacs/desktop/tools/inventory.el
+
+      - uses: cachix/install-nix-action@v31
+
+      - name: Verify flake selects the native profile
+        run: |
+          set -euo pipefail
+          profile="$(
+            nix eval --impure --raw --expr \
+              '(builtins.getFlake (toString ./.)).homeConfigurations."unseen@flake".config.home.sessionVariables.CHEMACS_PROFILE'
+          )"
+          test "$profile" = desktop-native
+          grep -Fq '"desktop-native"' .emacs-profiles.el
+
+      - name: Build the exact Home Manager Emacs closure
+        id: native-emacs-build
+        run: |
+          set -euo pipefail
+          emacs_path="$(
+            nix build --impure --no-link --print-out-paths --expr \
+              '(builtins.getFlake (toString ./.)).homeConfigurations."unseen@flake".config.programs.emacs.finalPackage'
+          )"
+          test -x "$emacs_path/bin/emacs"
+          echo "emacs_path=$emacs_path" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke-test native startup without Doom
+        env:
+          EMACS_PATH: ${{ steps.native-emacs-build.outputs.emacs_path }}
+        run: |
+          set -euo pipefail
+          export HOME="$RUNNER_TEMP/native-home"
+          mkdir -p "$HOME"
+          ln -s "$GITHUB_WORKSPACE" "$HOME/.dotfiles"
+
+          "$EMACS_PATH/bin/emacs" --batch -Q \
+            -l "$GITHUB_WORKSPACE/emacs/desktop/early-init.el" \
+            -l "$GITHUB_WORKSPACE/emacs/desktop/init.el" \
+            --eval '
+              (progn
+                (require (quote org))
+                (require (quote org-agenda))
+                (when (featurep (quote doom))
+                  (error "Doom runtime leaked into native desktop"))
+                (unless (keymapp star-leader-map)
+                  (error "Native leader map is unavailable"))
+                (unless (bound-and-true-p evil-mode)
+                  (error "Evil is not enabled"))
+                (unless (bound-and-true-p ivy-mode)
+                  (error "Ivy is not enabled"))
+                (unless (bound-and-true-p global-company-mode)
+                  (error "Company is not enabled"))
+                (dolist (library (quote ("gptel" "mcp" "org-roam" "magit" "vterm" "sly")))
+                  (unless (locate-library library)
+                    (error "Required library is missing: %s" library)))
+                (message "native-emacs-smoke-ok"))'

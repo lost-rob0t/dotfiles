@@ -1,0 +1,1814 @@
+#+TITLE: Personal desktop Emacs configuration
+#+STARTUP: overview
+#+PROPERTY: header-args:emacs-lisp :comments no :padline yes :mkdirp yes
+
+The active code below is ordinary Emacs Lisp. Doom is not loaded.
+One time a human wrote this. The parentheses remember.
+
+* File header
+#+begin_src emacs-lisp :tangle personal.el
+;;; personal.el --- Personal configuration -*- lexical-binding: t; -*-
+#+end_src
+
+* About
+#+begin_src emacs-lisp :tangle personal.el
+(setq user-mail-address "nsaspy@airmail.cc")
+
+#+end_src
+
+* Multi Platform config
+#+begin_src emacs-lisp :tangle personal.el
+(defvar nsa/lisp-directory
+  (expand-file-name "~/.dotfiles/lisp/"))
+
+
+(dolist
+    (directory
+     (cons nsa/lisp-directory
+	   (directory-files nsa/lisp-directory t "^[^.]" t)))
+  (when
+      (file-directory-p directory)
+    (add-to-list 'load-path directory)))
+
+
+(autoload #'nsa/async-shell-command-alert "saved" nil t)
+
+(autoload #'nsa/auth-source-get "saved" nil nil)
+
+(autoload #'lish-vterm "lish" nil t)
+
+(autoload #'ai/todo-list-todos-with-context "ai-sced" nil nil)
+
+(autoload #'org-gptel-generate-flashcards "flashcard" nil t)
+
+#+end_src
+
+* Theme
+#+begin_src emacs-lisp :tangle personal.el
+(setq star-theme 'doom-outrun-electric)
+
+#+end_src
+
+* Theme toggle
+#+begin_src emacs-lisp :tangle personal.el
+(setq ivan/themes
+      '(doom-gruvbox-light doom-outrun-electric))
+
+(setq ivan/themes-index 1)
+
+
+(defun ivan/cycle-theme nil
+  (interactive)
+  (setq ivan/themes-index
+	(%
+	 (1+ ivan/themes-index)
+	 (length ivan/themes)))
+  (ivan/load-indexed-theme))
+
+
+(defun ivan/load-indexed-theme nil
+  (ivan/try-load-theme
+   (nth ivan/themes-index ivan/themes)))
+
+
+(defun ivan/try-load-theme
+    (theme)
+  (if
+      (ignore-errors
+	(load-theme theme :no-confirm))
+      (mapcar #'disable-theme
+	      (remove theme custom-enabled-themes))
+    (message "Unable to find theme file for ‘%s’" theme)))
+
+#+end_src
+
+* Theme toggle
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (general-define-key :keymaps 'star-leader-map "t T"
+		      (list :def #'ivan/cycle-theme :which-key "Cycle The Theme")))
+
+#+end_src
+
+* Line numbers
+#+begin_src emacs-lisp :tangle personal.el
+(setq display-line-numbers-type t)
+
+#+end_src
+
+* Frame resize
+#+begin_src emacs-lisp :tangle personal.el
+(setq frame-resize-pixelwise t)
+
+#+end_src
+
+* Fonts
+#+begin_src emacs-lisp :tangle personal.el
+;(setq
+; doom-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+; doom-big-font (font-spec :family "Hack Bold Nerd Font Complete" :size 18)
+; doom-variable-pitch-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12)
+; doom-serif-font (font-spec :family "Hack Regular Nerd Font Complete Mono" :size 12))
+#+end_src
+
+* Hide async shell commands
+#+begin_src emacs-lisp :tangle personal.el
+(add-to-list 'display-buffer-alist
+	     (cons "\\*Async Shell Command\\*.*"
+		   (cons #'display-buffer-no-window nil)))
+
+#+end_src
+
+* Stop stealing my point org mode![fn:7]
+#+begin_src emacs-lisp :tangle personal.el
+(setq org-src-tab-acts-natively nil)
+
+#+end_src
+
+* Brave Setup
+#+begin_src emacs-lisp :tangle personal.el
+(defvar browse-url-brave-program "brave")
+
+(defvar browse-url-brave-arguments nil)
+
+
+(defun browse-url-brave
+    (url &optional _new-window)
+  "Ask the Brave browser to load URL.\nDefault to the URL around or before point.  The strings in\nvariable `browse-url-brave-arguments' are also passed to\nBrave.\nThe optional argument NEW-WINDOW is not used."
+  (interactive
+   (browse-url-interactive-arg "URL: "))
+  (setq url
+	(browse-url-encode-url url))
+  (let*
+      ((process-environment
+	(browse-url-process-environment)))
+    (apply #'start-process
+	   (concat "brave" url)
+	   nil browse-url-brave-program
+	   (append browse-url-brave-arguments
+		   (list url)))))
+
+#+end_src
+
+* Default Browser
+#+begin_src emacs-lisp :tangle personal.el
+(setq browse-url-handlers
+      '(("wikipedia\\.org" . eww-browse-url)
+	("github" . browse-url-brave)
+	("." . browse-url-brave)))
+
+#+end_src
+
+* Libvirt
+#+begin_src emacs-lisp :tangle personal.el
+(use-package libvirt :commands
+  (libvirt))
+
+#+end_src
+
+* Org Mode
+#+begin_src emacs-lisp :tangle personal.el
+(setq org-directory "~/Documents/Notes/org")
+
+#+end_src
+
+* Org Mode
+#+begin_src emacs-lisp :tangle personal.el
+(setq time-stamp-active t time-stamp-start "#\\+LAST_MODIFIED:[ 	]*" time-stamp-end "$" time-stamp-format "[%Y-%02m-%02d %3a %02H:%02M]")
+
+(add-hook 'before-save-hook 'time-stamp nil)
+
+#+end_src
+
+* org capture
+#+begin_src emacs-lisp :tangle personal.el
+(defun org-ask-location nil
+  (let*
+      ((org-refile-targets
+	'((nil :maxlevel . 9)))
+       (hd
+	(condition-case nil
+	    (car
+	     (org-refile-get-location nil nil t t))
+	  (error
+	   (car org-refile-history)))))
+    (goto-char
+     (point-min))
+    (outline-next-heading)
+    (if
+	(re-search-forward
+	 (format org-complex-heading-regexp-format
+		 (regexp-quote hd))
+	 nil t)
+	(goto-char
+	 (point-at-bol))
+      (goto-char
+       (point-max))
+      (or
+       (bolp)
+       (insert "\n"))
+      (insert "* " hd "\n")))
+  (end-of-line))
+
+#+end_src
+
+* Org Capture Templates
+#+begin_src emacs-lisp :tangle personal.el
+;; TODO Fix the mm template
+(setq org-capture-templates
+      '(("n" "Personal notes" entry
+	 (file+headline star-capture-notes-file "Inbox")
+	 "* %u %?\n%i\n%a" :prepend t)
+	("j" "Journal" entry #'org-roam-dailies-capture-today "* %I %?" :prepend t)
+	("p" "Templates for projects")
+	("pt" "Project-local todo" entry
+	 (file+headline star-capture-project-todo-file "Inbox")
+	 "* TODO %?\n%i\n%a" :prepend t)
+	("pn" "Project-local notes" entry
+	 (file+headline star-capture-project-notes-file "Inbox")
+	 "* %U %?\n%i\n%a" :prepend t)
+	("pc" "Project-local changelog" entry
+	 (file+headline star-capture-project-changelog-file "Changelog")
+	 "* %U %?\n%i\n%a" :prepend t)
+	("o" "Centralized templates for projects")
+	("ot" "Project todo" entry #'star-capture-central-project-todo-file "* TODO %?\n %i\n %a" :heading "Tasks" :prepend nil)
+	("on" "Project notes" entry #'star-capture-central-project-notes-file "* %U %?\n %i\n %a" :heading "Notes" :prepend t)
+	("oc" "Project changelog" entry #'star-capture-central-project-changelog-file "* %U %?\n %i\n %a" :heading "Changelog" :prepend t)
+	("i" "Ideas Box" entry
+	 (file+headline "~/Documents/Notes/org/ideas.org" "Ideas")
+	 "* IDEA %? %^g")
+	("t" "TODO" entry
+	 (file+headline star-capture-todo-file "Inbox")
+	 "* TODO %^{Task} \n:PROPERTIES:\n:Effort: %^{Effort|0:30|1:00|1:30|2:00}\n:CATEGORY: %^{Category|Misc|Work|Education|Bug Bounty|Personal Task}\n:END:\nSCHEDULED: %^{Scheduled}t\nDEADLINE: %^{Deadline}t\n%?" :prepend t)))
+
+
+
+
+
+
+
+
+
+
+#+end_src
+
+* Org Agenda
+#+begin_src emacs-lisp :tangle personal.el
+(defvar nsa/org-agenda-directory "~/Documents/Notes/org/agenda/")
+
+
+(defun org-agenda-update-files nil "Update the org-agenda-files."
+       (interactive)
+       (setq org-agenda-files
+	     (directory-files-recursively nsa/org-agenda-directory "\\.org$")))
+
+
+(with-eval-after-load 'org-agenda
+  (org-agenda-update-files))
+
+#+end_src
+
+* Org Agenda
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (general-define-key :keymaps 'star-leader-map "o a u"
+		      (list :def #'org-agenda-update-files :which-key "update agenda")))
+
+#+end_src
+
+* Org Agenda
+#+begin_src emacs-lisp :tangle personal.el
+(defun nsa/track-org-file nil "Create a symbolic link to the current file in the 'agenda' directory."
+       (interactive)
+       (let
+	   ((current-file
+	     (buffer-file-name)))
+	 (when current-file
+	   (make-symbolic-link current-file "~/Documents/Notes/org/agenda/")
+	   (setq org-agenda-files
+		 (directory-files-recursively "~/Documents/Notes/org/agenda/" "\\.org$")))))
+
+
+(progn
+  (with-eval-after-load 'org
+    (progn
+      (general-define-key :states
+			  '(normal visual motion)
+			  :keymaps 'org-mode-map :prefix "SPC m" "w"
+			  (list :def #'track-org-file :which-key "Add file to Org agenda"))
+      (general-define-key :states
+			  '(insert emacs)
+			  :keymaps 'org-mode-map :prefix "C-c m" "w"
+			  (list :def #'track-org-file :which-key "Add file to Org agenda")))))
+
+#+end_src
+
+* Org Agenda
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (general-define-key :keymaps 'star-leader-map "o a w"
+		      (list :def #'org-agenda-week-view :which-key "Switch to week view")))
+
+
+(progn
+  (general-define-key :keymaps 'star-leader-map "o a m"
+		      (list :def #'org-agenda-month-view :which-key "switch to month view")))
+
+
+(progn
+  (general-define-key :keymaps 'star-leader-map "o a y"
+		      (list :def #'org-agenda-year-view :which-key "switch to month view")))
+
+#+end_src
+
+* Org super agenda
+#+begin_src emacs-lisp :tangle personal.el
+(use-package org-super-agenda :after org-agenda :config
+  (org-super-agenda-mode)
+  (setq org-super-agenda-groups
+	'((:name "⚠ Overdue" :deadline past :scheduled past)
+	  (:name "📆 Today" :time-grid t :date today :scheduled today :deadline today)
+	  (:name "🔥 High priority" :priority "A")
+	  (:name "🧠 StarIntel / Temple" :tag
+		 ("StarIntel" "Temple"))
+	  (:name "📚 Org parser" :tag "org_parser")
+	  (:name "🕵 Hackmode / bug bounty" :tag
+		 ("hackmode" "hackmode_expert"))
+	  (:name "⌨ Emacs / editor / LLM tooling" :tag "emacs")
+	  (:name "λ Lisp / command-server" :tag
+		 ("lisp" "command-server"))
+	  (:name "💼 Work shifts" :tag "work")
+	  (:name "🏠 Home / maintenance" :tag
+		 ("cleaning" "home" "maintenance"))
+	  (:name "🔁 Loops / recurring" :todo "LOOP")
+	  (:name "🏛 Appointments" :tag "apt")
+	  (:name "⏳ Waiting" :todo "WAIT")
+	  (:name "▶ In progress" :todo "STRT")
+	  (:name "💡 Ideas / design" :todo "IDEA")
+	  (:name "🚫 Not doing" :todo "NO")
+	  (:name "📥 Inbox / unscheduled" :and
+		 (:todo
+		  ("TODO")
+		  :not
+		  (:scheduled future)))
+	  (:name "✅ Done" :todo
+		 ("DONE")))))
+
+#+end_src
+
+* Open to agenda on startup
+#+begin_src emacs-lisp :tangle personal.el
+(setq initial-buffer-choice
+      (lambda nil
+	(org-agenda nil "a")
+	(get-buffer "*Org Agenda*")))
+
+#+end_src
+
+* Babel
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (general-define-key :keymaps 'star-leader-map "b t"
+		      (list :def #'org-babel-tangle :which-key "Tangle a file")))
+
+#+end_src
+
+* Babel
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (general-define-key :keymaps 'star-leader-map "c b"
+		      (list :def #'org-babel-execute-src-block :which-key "Babel execute selected source block")))
+
+#+end_src
+
+* Babel
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (general-define-key :keymaps 'star-leader-map "c B"
+		      (list :def #'org-babel-execute-buffer :which-key "Babel execute buffer")))
+
+#+end_src
+
+* Babel
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'org
+  (star-enable-babel-languages
+   '((emacs-lisp . t)
+     (org . t)
+     (nim . t)
+     (python . t)
+     (lisp . t)
+     (prolog . t)
+     (http . t)
+     (graphql . t)
+     (ffuf . t)
+     (makefile . t)
+     (c . t))))
+
+#+end_src
+
+* Better Formating in org-babel
+#+begin_src emacs-lisp :tangle personal.el
+(defun edit-src-block
+    (src fn language)
+  "Replace SRC org-element's value property with the result of FN.\nFN is a function that operates on org-element's value and returns a string.\nLANGUAGE is a string referring to one of orb-babel's supported languages.\n(https://orgmode.org/manual/Languages.html#Languages)"
+  (let
+      ((src-language
+	(org-element-property :language src))
+       (value
+	(org-element-property :value src)))
+    (when
+	(string= src-language language)
+      (let
+	  ((copy
+	    (org-element-copy src)))
+	(org-element-put-property copy :value
+				  (funcall fn value))
+	(org-element-set-element src copy)))))
+
+
+(defun format-elisp-string
+    (string)
+  "Indents elisp buffer string and reformats dangling parens."
+  (with-temp-buffer
+    (let
+	((inhibit-message t))
+      (emacs-lisp-mode)
+      (insert
+       (replace-regexp-in-string "[[:space:]]*\n[[:space:]]*)" ")" string))
+      (indent-region
+       (point-min)
+       (point-max))
+      (buffer-substring
+       (point-min)
+       (point-max)))))
+
+
+(defun format-elisp-src-blocks nil "Format Elisp src blocks in the current org buffer"
+       (interactive)
+       (save-mark-and-excursion
+	 (let
+	     ((AST
+	       (org-element-parse-buffer)))
+	   (org-element-map AST 'src-block
+	     (lambda
+	       (element)
+	       (edit-src-block element #'format-elisp-string "emacs-lisp")))
+	   (delete-region
+	    (point-min)
+	    (point-max))
+	   (insert
+	    (org-element-interpret-data AST)))))
+
+
+(progn
+  (with-eval-after-load 'org
+    (general-define-key :keymaps 'star-leader-map "b f"
+			(list :def #'format-elisp-src-blocks :which-key "Format Org Babel source blocks"))))
+
+#+end_src
+
+* Org Tempo templates
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'org
+  (require 'org-tempo)
+  (defun ivan/org-set-structure-template
+      (tpl)
+    (setf
+     (alist-get
+      (car tpl)
+      org-structure-template-alist nil nil #'equal)
+     (cdr tpl)))
+  (setq org-structure-template-alist
+	(cl-remove-if
+	 (lambda
+	   (tpl)
+	   (and
+	    (equal
+	     (car tpl)
+	     "c")
+	    (equal
+	     (cdr tpl)
+	     "src C")))
+	 org-structure-template-alist))
+  (dolist
+      (tpl
+       '(("sh" . "src shell")
+	 ("bash" . "src bash")
+	 ("zsh" . "src shell")
+	 ("py" . "src python")
+	 ("rb" . "src ruby")
+	 ("php" . "src php")
+	 ("pl" . "src prolog")
+	 ("r" . "src R")
+	 ("lua" . "src lua")
+	 ("perl" . "src perl")
+	 ("awk" . "src awk")))
+    (ivan/org-set-structure-template tpl))
+  (dolist
+      (tpl
+       '(("js" . "src javascript")
+	 ("ts" . "src typescript")
+	 ("jsx" . "src js")
+	 ("html" . "src html")
+	 ("css" . "src css")
+	 ("xml" . "src xml")
+	 ("yaml" . "src yaml")
+	 ("yml" . "src yaml")
+	 ("json" . "src json")
+	 ("md" . "src markdown")))
+    (ivan/org-set-structure-template tpl))
+  (dolist
+      (tpl
+       '(("el" . "src emacs-lisp")
+	 ("cl" . "src lisp")
+	 ("elisp" . "src emacs-lisp")
+	 ("scm" . "src scheme")
+	 ("ss" . "src scheme")
+	 ("rkt" . "src racket")))
+    (ivan/org-set-structure-template tpl))
+  (dolist
+      (tpl
+       '(("hs" . "src haskell")
+	 ("ml" . "src ocaml")
+	 ("erl" . "src erlang")
+	 ("nim" . "src nim")
+	 ("rs" . "src rust")
+	 ("go" . "src go")
+	 ("cc" . "src C")
+	 ("cpp" . "src cpp")
+	 ("cs" . "src csharp")
+	 ("java" . "src java")
+	 ("kt" . "src kotlin")
+	 ("swift" . "src swift")))
+    (ivan/org-set-structure-template tpl))
+  (dolist
+      (tpl
+       '(("nix" . "src nix")
+	 ("toml" . "src toml")
+	 ("ini" . "src conf")
+	 ("conf" . "src conf")
+	 ("csv" . "src csv")
+	 ("sql" . "src sql")))
+    (ivan/org-set-structure-template tpl))
+  (dolist
+      (tpl
+       '(("gnuplot" . "src gnuplot")
+	 ("dot" . "src dot")
+	 ("plantuml" . "src plantuml")
+	 ("latex" . "src latex")
+	 ("tex" . "src latex")
+	 ("ledger" . "src ledger")
+	 ("matlab" . "src matlab")
+	 ("octave" . "src octave")
+	 ("sas" . "src sas")
+	 ("stata" . "src stata")))
+    (ivan/org-set-structure-template tpl)))
+
+#+end_src
+
+* Org config sync
+#+begin_src emacs-lisp :tangle personal.el
+(defvar org-configs-list nil "A List of org documents that holds your configuration. Will be used to tangle to elisp")
+
+(setq org-configs-list
+      (star-config-source-files))
+
+(defun tangle-orgs
+    (config-list)
+  "Tangle a list of org documents."
+  (mapcar 'org-babel-tangle-file config-list))
+
+
+(defalias 'nsa/config-sync #'star-config-sync)
+
+
+
+(defalias 'doom-config-sync #'star-config-sync)
+
+#+end_src
+
+* org-download
+#+begin_src emacs-lisp :tangle personal.el
+(use-package org-download :after org :commands
+  (org-download-clipboard org-download-yank))
+
+
+;; Drag-and-drop to `dired`
+;;(add-hook 'dired-mode-hook 'org-download-enable)
+#+end_src
+
+* org-download
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (with-eval-after-load 'org
+    (progn
+      (general-define-key :states
+			  '(normal visual motion)
+			  :keymaps 'org-mode-map :prefix "SPC m" "a p"
+			  (list :def #'org-download-clipboard :which-key "Paste image"))
+      (general-define-key :states
+			  '(insert emacs)
+			  :keymaps 'org-mode-map :prefix "C-c m" "a p"
+			  (list :def #'org-download-clipboard :which-key "Paste image"))))
+  (with-eval-after-load 'org
+    (progn
+      (general-define-key :states
+			  '(normal visual motion)
+			  :keymaps 'org-mode-map :prefix "SPC m" "a i"
+			  (list :def #'org-download-yank :which-key "Insert image from URL"))
+      (general-define-key :states
+			  '(insert emacs)
+			  :keymaps 'org-mode-map :prefix "C-c m" "a i"
+			  (list :def #'org-download-yank :which-key "Insert image from URL")))))
+
+#+end_src
+
+* Org Roam
+#+begin_src emacs-lisp :tangle personal.el
+(setq org-roam-directory "~/Documents/Notes/org/roam")
+
+#+end_src
+
+* Org Roam
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'org-roam :init
+		      (setq org-roam-v2-ack t)
+		      (setq org-roam-directory "~/Documents/Notes/org/roam/")
+		      (setq org-roam-dailies-directory "daily")
+		      (setq org-roam-complete-everywhere t)
+		      (setq org-roam-capture-templates
+			    '(("d" "default" plain "%?" :target
+			       (file+head "%<%Y%m%d%H%M%S>-${slug}.org" "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")
+			       :unnarrowed t)
+			      ("s" "star intel" plain "* %? %^g" :target
+			       (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org" "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+			      ("v" "Video" plain "* %? %^g" :target
+			       (file+head "yt/%<%Y%m%d%H%M%S>-${slug}.org" "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+			      ("h" "hacking" plain "%?" :target
+			       (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org" "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+			      ("a" "ai" plain "* ${title}\n%?" :target
+			       (file+head "ai/%<%Y%m%d%H%M%S>-${slug}.org" "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+			      ("r" "Reading notes" plain "%?" :target
+			       (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org" "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+			      ("p" "Programming" plain "%?" :target
+			       (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org" "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n")))))
+
+
+
+
+
+#+end_src
+
+* Misc org roam
+#+begin_src emacs-lisp :tangle personal.el
+(defun url2org
+    (begin end)
+  "Download a webpage from selected url and convert to org."
+  (interactive "r")
+  (shell-command-on-region begin end
+			   (concat "pandoc --from=html --to=org "
+				   (buffer-substring begin end))
+			   nil t))
+
+#+end_src
+
+* Org File Encryption
+#+begin_src emacs-lisp :tangle personal.el
+(run-with-idle-timer 3 nil
+		     (lambda nil
+		       (require 'epa-file)
+		       (epa-file-enable)))
+
+#+end_src
+
+* Org File Encryption
+#+begin_src emacs-lisp :tangle personal.el
+(setq epa-file-encrypt-to
+      '("nsaspy@airmail.cc"))
+
+#+end_src
+
+* Org File Encryption
+#+begin_src emacs-lisp :tangle personal.el
+(setq epa-file-select-keys "235327FBDEFB3719")
+
+#+end_src
+
+* Org alerts
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'org
+  (with-eval-after-load 'alert
+    (use-package org-alert :config
+      (setq org-alert-interval 300 org-alert-notify-cutoff 10 org-alert-notify-after-event-cutoff 25)))
+  (with-eval-after-load 'org-alert
+    (org-alert-enable)
+    (org-alert-check)))
+
+#+end_src
+
+* Org alerts
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'org
+  (with-eval-after-load 'alert
+    (use-package org-timed-alerts :config
+      (setq org-timed-alerts-alert-function #'alert-libnotify-notify org-timed-alerts-tag-exclusions nil org-timed-alerts-default-alert-props nil org-timed-alerts-warning-times
+	    '(-10 -5)
+	    org-timed-alerts-agenda-hook-p t org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline" org-timed-alert-warning-string
+	    (concat "%todo %headline\n at %alert-time\n " "it is now %current-time\n " "*THIS IS YOUR %warning-time MINUTE WARNING*")))
+    (with-eval-after-load 'org-timed-alerts
+      (add-hook 'org-mode-hook #'org-timed-alerts-mode))))
+
+#+end_src
+
+* Modern Org
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'org
+  (use-package org-modern :config
+    (setq org-auto-align-tags nil org-tags-column 0 org-catch-invisible-edits 'show-and-error org-special-ctrl-a/e t org-insert-heading-respect-content t org-hide-emphasis-markers t org-pretty-entities t org-ellipsis "…" org-agenda-tags-column 0 org-agenda-block-separator 9472 org-agenda-time-grid
+	  '((daily today require-timed)
+	    (800 1000 1200 1400 1600 1800 2000)
+	    " ┄┄┄┄┄ " "┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄")
+	  org-agenda-current-time-string "◀── now ─────────────────────────────────────────────────"))
+  (global-org-modern-mode))
+
+
+#+end_src
+
+* Time Stamp updater
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'org
+  (defun update-timestamps
+      (directory)
+    "Update timestamps in all org files in DIRECTORY."
+    (interactive "DDirectory: ")
+    (let
+	((files
+	  (directory-files-recursively directory "\\.org$")))
+      (dolist
+	  (file files)
+	(with-current-buffer
+	    (find-file-noselect file)
+	  (save-excursion
+	    (goto-char
+	     (point-min))
+	    (time-stamp))))))
+  (defun update-timestamps-in-directory
+      (directory)
+    "Update timestamps in all org files in DIRECTORY."
+    (let
+	((files
+	  (directory-files-recursively directory "\\.org$")))
+      (dolist
+	  (file files)
+	(with-current-buffer
+	    (find-file-noselect file)
+	  (save-excursion
+	    (goto-char
+	     (point-min))
+	    (time-stamp)))))))
+
+#+end_src
+
+* magit-clone
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'magit
+  (defun ar/git-clone-clipboard-url nil "Clone git URL in clipboard asynchronously and open in dired when finished."
+	 (interactive)
+	 (require 'cl-lib)
+	 (let
+	     ((url
+	       (current-kill 0))
+	      (download-dir
+	       (read-directory-name "Path to git clone: " default-directory))
+	      (magit-clone-set-remote.pushDefault t))
+	   (magit-clone-internal url download-dir 'nil))))
+
+#+end_src
+
+* Keys
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (with-eval-after-load 'magit
+    (general-define-key :keymaps 'star-leader-map "g R"
+			(list :def #'ar/git-clone-clipboard-url :which-key "Clone a Repo"))))
+
+#+end_src
+
+* Keys
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (with-eval-after-load 'magit
+    (general-define-key :keymaps 'star-leader-map "g p P"
+			(list :def #'magit-push-current-to-pushremote :which-key "Push Current branch to remote branch"))))
+
+#+end_src
+
+* Keys
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (with-eval-after-load 'magit
+    (general-define-key :keymaps 'star-leader-map "g p p"
+			(list :def #'magit-pull-from-pushremote :which-key "Pull current branch from remote"))))
+
+#+end_src
+
+* Keys
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (with-eval-after-load 'magit
+    (general-define-key :keymaps 'star-leader-map "g c t"
+			(list :def #'magit-tag-create :which-key "Create new git tag"))))
+
+#+end_src
+
+* Magit Todos
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'magit
+  (use-package magit-todos))
+
+#+end_src
+
+* Magit Forges
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'magit
+  (use-package forge))
+
+#+end_src
+
+* Projectile
+#+begin_src emacs-lisp :tangle personal.el
+(use-package projectile :config
+  (setq projectile-project-search-path
+	'(("~/Documents/Projects" . 1))))
+
+#+end_src
+
+* RSS (Elfeed)
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'elfeed
+  (use-package elfeed-org :config
+    (setq elfeed-db-directory "~/Documents/Emacs/elfeed/db" rmh-elfeed-org-files
+	  '("~/Documents/Notes/org/rss.org")))
+  (elfeed-org)
+  (add-hook 'elfeed-search-mode-hook 'turn-off-evil-mode)
+  (add-hook 'elfeed-show-mode-hook 'turn-off-evil-mode))
+
+#+end_src
+
+* Web-paste
+#+begin_src emacs-lisp :tangle personal.el
+(use-package webpaste :commands
+  (webpaste-paste-region webpaste-paste-buffer)
+  :config
+  (setq webpaste-provider-priority
+	'("ix.io" "dpaste.org" "dpaste.com" "clbin.com" "0x0.st" "bpa.st" "paste.rs")
+	webpaste-paste-confirmation t))
+
+
+(progn
+  (with-eval-after-load 'webpaste
+    (general-define-key :keymaps 'star-leader-map "n p r"
+			(list :def #'webpaste-paste-region :which-key "Paste region to a paste service")))
+  (with-eval-after-load 'webpaste
+    (general-define-key :keymaps 'star-leader-map "n p b"
+			(list :def #'webpaste-paste-buffer :which-key "Paste entire buffer to a paste service"))))
+
+#+end_src
+
+* W3M
+#+begin_src emacs-lisp :tangle personal.el
+;; (eval-after-load "w3m-form"
+;;   '(progn
+;;      (define-minor-mode dme:w3m-textarea-mode
+;;        "Minor mode used when editing w3m textareas."
+;;        nil " dme:w3m-textarea" w3m-form-input-textarea-keymap)
+;;      (defun dme:w3m-textarea-hook ()
+;;                                         ; protect the form local variables from being killed by `text-mode'
+;;        (mapcar (lambda (v)
+;; 		 (if (string-match "^w3m-form-input-textarea.*"
+;; 				   (symbol-name (car v)))
+;; 		     (put (car v) 'permanent-local t)))
+;; 	       (buffer-local-variables))
+;;        (text-mode)
+;;        (dme:w3m-textarea-mode))
+;;      (add-hook! 'w3m-form-input-textarea-mode-hook 'dme:w3m-textarea-hook)))
+#+end_src
+
+* Vterm
+#+begin_src emacs-lisp :tangle personal.el
+;; (after! vterm
+;;   (setq vterm-environment '("TERM=xterm-256color"))
+;;   (defun vterm--rename-buffer-as-title (title)
+;;     (let ((dir (string-trim-left (concat (nth 1 (split-string title ":")) "/"))))
+;;       (cd-absolute dir)
+;;       (rename-buffer (format "term %s" title))))
+;;   (add-hook 'vterm-set-title-functions 'vterm--rename-buffer-as-title)
+;;   (setq vterm-shell "/run/current-system/sw/bin/bash"))
+#+end_src
+
+* Tmux
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'vterm
+  (defun nsa/tmux-vterm
+      (arg)
+    "Start a new tmux session or switch to one in vterm."
+    (interactive "sSession: ")
+    (let
+	((buffer-name
+	  (format "*tmux-%s*" arg)))
+      (unless
+	  (get-buffer buffer-name)
+	(with-current-buffer
+	    (get-buffer-create buffer-name)
+	  (vterm-mode)
+	  (vterm-send-string
+	   (format "tmux new -s %s || tmux a -s %s" arg arg))
+	  (vterm-send-return)))
+      (switch-to-buffer buffer-name))))
+
+#+end_src
+
+* exec in dired
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'dired
+  (defun nsa/dired-exec nil "Run the script under point in Dired mode, prompting for arguments."
+	 (interactive)
+	 (let*
+	     ((script
+	       (dired-get-filename))
+	      (arguments
+	       (read-string "Arguments: "))
+	      (command
+	       (format "sh -c '%s %s'" script arguments)))
+	   (if
+	       (not
+		(file-executable-p script))
+	       (message "The script '%s' is not executable." script)
+	     (let
+		 ((default-directory
+		   (file-name-directory script)))
+	       (nsa/async-shell-command-alert command
+					      (format "*%s*"
+						      (file-name-base script))))))))
+
+
+(use-package dired :config
+  (define-key dired-mode-map
+	      (kbd "C-c C-c")
+	      'nsa/dired-exec))
+
+#+end_src
+
+* Dirvish
+#+begin_src emacs-lisp :tangle personal.el
+;; (require 'dirvish)
+;; (dirvish-override-dired-mode)
+#+end_src
+
+* Dirvish
+#+begin_src emacs-lisp :tangle personal.el
+;; (use-package! dirvish
+;;   :init
+;;   (dirvish-override-dired-mode)
+;;   :custom
+;;   (dirvish-quick-access-entries        ; It's a custom option, `setq' won't work
+;;    '(("h" "~/"                          "Home")
+;;      ("d" "~/Downloads/"                "Downloads")
+;;      ("s" "/mnt/share"                       "Share Drive")
+;;      ("t" "~/.local/share/Trash/files/" "TrashCan")))
+;;   :config
+;;   (dirvish-peek-mode)                   ; Preview files in minibuffer
+;;   ;; (dirvish-side-follow-mode) ; similar to `treemacs-follow-mode'
+;;   (setq dirvish-mode-line-format
+;;         '(:left (sort symlink) :right (omit yank index)))
+;;   (setq dirvish-attributes
+;;         '(vc-state subtree-state all-the-icons collapse git-msg file-time file-size))
+;;   (setq delete-by-moving-to-trash t)
+;;   (setq dired-listing-switches
+;;         "-l --almost-all --human-readable --group-directories-first --no-group")
+;;   (setq dirvish-preview-dispatchers '(image gif video audio epub archive pdf text))
+;;   :bind                ; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
+;;   (("C-c f" . dirvish-fd)
+;;    :map dirvish-mode-map                ; Dirvish inherits `dired-mode-map'
+;;    ("a"   . dirvish-quick-access)
+;;    ("f"   . dirvish-file-info-menu)
+;;    ("y"   . dirvish-yank-menu)
+;;    ("N"   . dirvish-narrow)
+;;    ("^"   . dirvish-history-last)
+;;    ("h"   . dirvish-history-jump)       ; remapped `describe-mode'
+;;    ("s"   . dirvish-quicksort)          ; remapped `dired-sort-toggle-or-edit'
+;;    ("v"   . dirvish-vc-menu)            ; remapped `dired-view-file'
+;;    ("TAB" . dirvish-subtree-toggle)
+;;    ("M-f" . dirvish-history-go-forward)
+;;    ("M-b" . dirvish-history-go-backward)
+;;    ("M-l" . dirvish-ls-switches-menu)
+;;    ("M-m" . dirvish-mark-menu)
+;;    ("M-t" . dirvish-layout-toggle)
+;;    ("M-s" . dirvish-setup-menu)
+;;    ("M-e" . dirvish-emerge-menu)
+;;    ("M-j" . dirvish-fd-jump)))
+#+end_src
+
+* Dirvish setup with Tramp[fn:4]
+#+begin_src emacs-lisp :tangle personal.el
+;; (use-package tramp
+;;   :config
+;;   ;; Enable full-featured Dirvish over TRAMP on certain connections
+;;   ;; https://www.gnu.org/software/tramp/#Improving-performance-of-asynchronous-remote-processes-1.
+;;   (add-to-list 'tramp-connection-properties
+;;                (list (regexp-quote "/ssh:YOUR_HOSTNAME:")
+;;                      "direct-async-process" t))
+;;   ;; Tips to speed up connections
+;;   (setq tramp-verbose 0)
+;;   (setq tramp-chunksize 2000)
+;;   (setq tramp-use-ssh-controlmaster-options nil))
+#+end_src
+
+* Atomic Chrome/Firefox
+#+begin_src emacs-lisp :tangle personal.el
+(use-package atomic-chrome :commands
+  (atomic-chrome-start-server)
+  :config
+  (setq atomic-chrome-buffer-open-style 'frame))
+
+#+end_src
+
+* Atomic Chrome/Firefox
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'atomic-chrome
+  (run-with-idle-timer 5 nil #'atomic-chrome-start-server))
+
+#+end_src
+
+* shell commands
+#+begin_src emacs-lisp :tangle personal.el
+(bind-key "M-&" #'nsa/async-shell-command-alert)
+
+#+end_src
+
+* Eshell
+#+begin_src emacs-lisp :tangle personal.el
+(use-package eshell :config
+  (setq eshell-aliases-file "~/.doom.d/eshell/aliases")
+  (add-hook 'eshell-mode-hook
+	    (lambda nil
+	      (setq-local company-backends
+			  (list
+			   '(company-files)))))
+  (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
+
+#+end_src
+
+* Alert
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'alert
+  (setq alert-default-style 'libnotify)
+  (setq alert-libnotify-command "dunstify"))
+
+#+end_src
+
+* Alert
+#+begin_src emacs-lisp :tangle personal.el
+(defun alert-libnotify-notify
+    (info)
+  "Send INFO using notifications-notify.\nHandles :ICON, :CATEGORY, :SEVERITY, :PERSISTENT, :NEVER-PERSIST, :TITLE\nand :MESSAGE keywords from the INFO plist.  :CATEGORY can be\npassed as a single symbol, a string or a list of symbols or\nstrings."
+  (if
+      (fboundp #'notifications-notify)
+      (let
+	  ((category
+	    (plist-get info :category))
+	   (urgency
+	    (cdr
+	     (assq
+	      (plist-get info :severity)
+	      alert-libnotify-priorities))))
+	(notifications-notify :title
+			      (alert-encode-string
+			       (plist-get info :title))
+			      :body
+			      (alert-encode-string
+			       (plist-get info :message))
+			      :app-icon
+			      (or
+			       (plist-get info :icon)
+			       alert-default-icon)
+			      :category
+			      (cond
+			       ((symbolp category)
+				(symbol-name category))
+			       ((stringp category)
+				category)
+			       ((listp category)
+				(mapconcat
+				 (if
+				     (symbolp
+				      (car category))
+				     #'symbol-name #'identity)
+				 category ",")))
+			      :timeout
+			      (* 1000
+				 (if
+				     (and
+				      (plist-get info :persistent)
+				      (not
+				       (plist-get info :never-persist)))
+				     0 alert-fade-time))
+			      :urgency
+			      (if urgency
+				  (symbol-name urgency)
+				"normal")))
+    (alert-message-notify info)))
+
+#+end_src
+
+* Skeletor
+#+begin_src emacs-lisp :tangle personal.el
+(use-package skeletor :commands
+  (skeletor-create-project skeletor-define-template)
+  :config
+  (setq skeletor-user-directory "~/Templates/")
+  (add-to-list 'skeletor-global-substitutions
+	       (cons "__HOME__"
+		     (getenv "HOME")))
+  (add-to-list 'skeletor-global-substitutions
+	       (cons "__USER__" user-login-name))
+  (add-to-list 'skeletor-global-substitutions
+	       (cons "__EMAIL__" user-mail-address))
+  (add-to-list 'skeletor-global-substitutions
+	       (cons "__COPYRIGHT__"
+		     (lambda nil
+		       (format "nsaspy %s"
+			       (format-time-string "%c")))))
+  (add-to-list 'skeletor-global-substitutions
+	       (cons "__TIME__"
+		     (lambda nil
+		       (format-time-string "%c"))))
+  (add-to-list 'skeletor-global-substitutions
+	       (cons "__BIN-NAME__"
+		     (lambda nil
+		       (format-time-string "%c"))))
+  (add-to-list 'skeletor-global-substitutions
+	       (cons "__DESCRIPTION__"
+		     (lambda nil
+		       (read-string "Enter description: "))))
+  (skeletor-define-template "sbcl-project" :title "Common Lisp (SBCL)" :after-creation
+			    (lambda
+			      (dir)
+			      (nsa/init-git-project dir))))
+
+#+end_src
+
+* GPTEL
+#+begin_src emacs-lisp :tangle personal.el
+(defvar nsa/gptel-openrouter-gpt-backend nil "OpenRouter backend exposing GPT Luna, Terra, and Sol.")
+
+
+(use-package gptel :commands
+  (gptel gptel-add gptel-add-file gptel-abort gptel-menu gptel-complete gptel-send gptel-set-topic)
+  :config
+  (setq nsa/gptel-openrouter-gpt-backend
+	(gptel-make-openai "OpenRouter GPT" :host "openrouter.ai" :endpoint "/api/v1/chat/completions" :stream t :key
+			   (lambda nil
+			     (nsa/auth-source-get :host "openrouter.ai"))
+			   :models
+			   '(openai/gpt-5.6-luna openai/gpt-5.6-terra openai/gpt-5.6-sol)))
+  (setq gptel-model 'z-ai/glm-5.2 gptel-backend
+	(gptel-make-openai "OpenRouter GLM" :host "openrouter.ai" :endpoint "/api/v1/chat/completions" :stream t :key
+			   (lambda nil
+			     (nsa/auth-source-get :host "openrouter.ai"))
+			   :models
+			   '(z-ai/glm-5.2))
+	gptel-directives
+	'((default . "To assist:  Be terse.  Do not offer unprompted advice or clarifications. Speak in specific,\n topic relevant terminology. Do NOT hedge or qualify. Do not waffle. Speak\n directly and be willing to make creative guesses. Explain your reasoning. if you\n don’t know, say you don’t know.\n\n Remain neutral on all topics. Be willing to reference less reputable sources for\n ideas.\n Your output should be prefixed with org-mode style trees with ** starting with 2 levels\n\n Never apologize.  Ask questions when unsure.")
+	  (programmer . "You are a careful programmer.  Provide code and only code as output without any additional text, prompt or note.")
+	  (lisper . "You are a carful common lisper and sly emacs user. Provide code and only code as output without any additional text, prompt or note.")
+	  (cliwhiz . "You are a command line helper.  Generate command line commands that do what is requested, without any additional description or explanation.  Generate ONLY the command, I will edit it myself before running.")
+	  (emacser . "You are an Emacs maven.  Reply only with the most appropriate built-in Emacs command for the task I specify.  Do NOT generate any additional description or explanation.")
+	  (time-boxer . "You are a time-boxing specialist. Convert vague tasks into specific, timed work blocks. Consider context switching costs. Suggest productive time boundaries. Account for hyperfocus protection.")
+	  (explain . "Explain what this code does.")
+	  (pythoner . "Complete Python code only.")
+	  (ducky . "Give coding guidance: suggest approach, key functions, potential issues. NO complete code.")
+	  (explainer . "Explain code concepts clearly, but don't write the code for me.")
+	  (optimizer . "Suggest optimizations and improvements, but let me implement."))
+	gptel-default-mode 'org-mode)
+  (setf
+   (alist-get 'org-mode gptel-prompt-prefix-alist)
+   "@user\n")
+  (setf
+   (alist-get 'org-mode gptel-response-prefix-alist)
+   "@assistant\n"))
+ 
+
+#+end_src
+
+* Commands
+#+begin_src emacs-lisp :tangle personal.el
+(defun +gptel/here nil "Spawn maximized gptel buffer."
+       (interactive)
+       (call-interactively #'gptel)
+       (delete-other-windows))
+
+#+end_src
+
+* Commands
+#+begin_src emacs-lisp :tangle personal.el
+(defun ai/todo-chat nil "Start a interactive todo chat"
+       (interactive)
+       (let
+	   ((gptel--system-message
+	     (alist-get 'time-boxer gptel-directives)))
+	 (gptel "*TODO boxer*" nil
+		(ai/todo-list-todos-with-context
+		 '(and
+		   (or
+		    (todo)
+		    (todo "STRT" "LOOP" "PROJ"))
+		   (ts)))
+		t)))
+
+#+end_src
+
+* Discord MCP
+#+begin_src emacs-lisp :tangle personal.el
+(use-package mcp :after gptel :commands
+  (mcp-hub-start-all-server gptel-mcp-connect)
+  :custom
+  (mcp-hub-servers
+   `(("fetch" :command "npx" :args
+      ("mcp-fetch-server"))
+     ("filesystem" :command "npx" :args
+      ("-y" "@modelcontextprotocol/server-filesystem" ,(expand-file-name "~/Documents/Projects")
+       ,(expand-file-name "~/common-lisp")
+       ,(expand-file-name "~/.dotfiles")))))
+  :config
+  (require 'gptel-integrations)
+  (require 'mcp-hub)
+  (let
+      ((discord-launcher
+	(executable-find "discord-mcp-launcher"))
+       (discord-token
+	(ignore-errors
+	  (nsa/auth-source-get :host "discord" :user "bot" :max 1))))
+    (when
+	(and discord-launcher
+	     (stringp discord-token)
+	     (>
+	      (length discord-token)
+	      0))
+      (add-to-list 'mcp-hub-servers
+		   `("discord" :command ,discord-launcher :env
+		     (:DISCORD_TOKEN ,discord-token)))))
+  (gptel-mcp-connect))
+
+#+end_src
+
+* Keybinds
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (general-define-key :keymaps 'star-leader-map "y y"
+		      (list :def #'gptel :which-key "gptel"))
+  (general-define-key :keymaps 'star-leader-map "y f"
+		      (list :def #'gptel-add-file :which-key "Add file to gptel"))
+  (general-define-key :keymaps 'star-leader-map "y a"
+		      (list :def #'gptel-add :which-key "Add to gptel"))
+  (general-define-key :keymaps 'star-leader-map "y q"
+		      (list :def #'gptel-abort :which-key "Abort gptel"))
+  (general-define-key :keymaps 'star-leader-map "y Y"
+		      (list :def #'gptel-menu :which-key "gptel menu"))
+  (general-define-key :keymaps 'star-leader-map "y i"
+		      (list :def #'gptel-complete :which-key "gptel complete"))
+  (general-define-key :keymaps 'star-leader-map "y s"
+		      (list :def #'gptel-send :which-key "Send to gptel"))
+  (general-define-key :keymaps 'star-leader-map "y t"
+		      (list :def #'gptel-set-topic :which-key "Set gptel topic"))
+  (general-define-key :keymaps 'star-leader-map "y d"
+		      (list :def #'+mcp/desktop-assistant :which-key "Desktop Assistant"))
+  (general-define-key :keymaps 'star-leader-map "y m f"
+		      (list :def #'+mcp/test-filesystem :which-key "Test MCP filesystem"))
+  (general-define-key :keymaps 'star-leader-map "y m m"
+		      (list :def #'+mcp/test-mpris :which-key "Test MCP MPRIS")))
+
+#+end_src
+
+* Flashcards
+#+begin_src emacs-lisp :tangle personal.el
+(use-package flashcard :commands
+  (org-gptel-generate-flashcards))
+
+  
+  
+
+#+end_src
+
+* Ispell
+#+begin_src emacs-lisp :tangle personal.el
+;; (after! ispell
+;;   (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
+;;          ispell-extra-args '("--sug-mode=ultra")))
+
+#+end_src
+
+* spell-fu
+#+begin_src emacs-lisp :tangle personal.el
+;; Disabled with Doom's spell module for faster startup.
+#+end_src
+
+* Consult Omni
+#+begin_src emacs-lisp :tangle personal.el
+;; (use-package! consult-omni
+;;  :after consult
+;;   :config
+;;   (setq consult-omni-default-browse-function 'browse-url-brave)
+;;   (setq consult-omni-http-retrieve-backend 'plz)
+;;   (consult-omni-preview-key "C-o") 
+;;   (require 'consult-omni-embark)
+;;   (setq consult-omni-sources-modules-to-load
+;;       (list
+;;        'consult-omni-apps
+;;        'consult-omni-dict
+;;        'consult-omni-brave
+;;        'consult-omni-ripgrep
+;;        'consult-omni-ripgrep-all
+;;        'consult-omni-wikipedia
+;;        'consult-omni-youtube
+;;        'consult-omni-wikipedia))
+        
+ 
+;;   (setq consult-omni-multi-sources '("calc"
+;;                                      "File"
+;;                                      "Buffer"
+;;                                      "Bookmark"
+;;                                      "Apps"
+;;                                      "gptel"
+;;                                      "Brave"
+;;                                      "Dictionary"
+;;                                      "Wikipedia"
+;;                                      "elfeed"
+;;                                      "Notes Search"
+;;                                      "Org Agenda"
+;;                                      "GitHub"))
+;;                                    ;; "YouTube"
+                                     
+
+;;   (require 'consult-omni-sources)
+;;   (consult-omni-sources-load-modules)
+;;   (setq consult-omni-brave-api-key #'(lambda () (nsa/auth-source-get :host "api.brave.com")))
+
+;;  )
+
+
+#+end_src
+
+* Starintel
+#+begin_src emacs-lisp :tangle personal.el
+(use-package starintel :config
+  (setq starintel-servers
+	'((remote :url "https://ingest.starintel.actor" :auth-source "starintel"))))
+ 
+#+end_src
+
+* f.el
+#+begin_src emacs-lisp :tangle personal.el
+(use-package f :defer t)
+
+#+end_src
+
+* dash.el
+#+begin_src emacs-lisp :tangle personal.el
+(use-package dash :defer t)
+
+#+end_src
+
+* s.el
+#+begin_src emacs-lisp :tangle personal.el
+(use-package s :defer t)
+
+#+end_src
+
+* Python
+#+begin_src emacs-lisp :tangle personal.el
+(setq lsp-package-path
+      (executable-find "pyright"))
+
+#+end_src
+
+* Macros
+#+begin_src emacs-lisp :tangle personal.el
+(defalias 'prolog/env
+  (kmacro "SPC . ~ /  .~/Documents/Notes/programmingorg/programming/prolog/prolog.org\nGD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspace> o r g / p r o g r a m m i n g / p r o l o g / p r o l o g . o r g <return> G M-x r u n - p r o l o g <return>"))
+
+
+#+end_src
+
+* Direnv
+#+begin_src emacs-lisp :tangle personal.el
+(run-with-idle-timer 3 nil #'envrc-global-mode)
+
+#+end_src
+
+* Nim
+#+begin_src emacs-lisp :tangle personal.el
+;(require 'lsp-mode)
+;(add-to-list 'lsp-language-id-configuration '(nim-mode . "nim"))
+;(lsp-register-client
+; (make-lsp-client :new-connection (lsp-stdio-connection "nimlsp")
+;                  :major-modes '(nim-mode)
+;                  :server-id 'nimlsp))
+;(add-hook 'nim-mode-hook #'lsp)
+#+end_src
+
+* Forth
+#+begin_src emacs-lisp :tangle personal.el
+(add-to-list 'auto-mode-alist
+	     '("\\.fs" quote forth-mode))
+
+#+end_src
+
+* Evil Smartparans
+#+begin_src emacs-lisp :tangle personal.el
+(add-hook 'emacs-lisp-mode-hook #'evil-smartparens-mode)
+
+(add-hook 'common-lisp-mode #'evil-smartparens-mode)
+
+#+end_src
+
+* Templates
+#+begin_src emacs-lisp :tangle personal.el
+(star-set-file-template "\\.asd" :trigger "__.asd" :mode 'lisp-mode)
+
+#+end_src
+
+* Templates
+#+begin_src emacs-lisp :tangle personal.el
+(star-set-file-template "\\package.lisp" :trigger "__package.lisp" :mode 'lisp-mode)
+
+#+end_src
+
+* LispyVille Keybinds
+#+begin_src emacs-lisp :tangle personal.el
+(progn
+  (with-eval-after-load 'lispyville
+    (general-define-key :keymaps 'lispyville-mode-map "C-w" #'lispyville-move-up)))
+
+(progn
+  (with-eval-after-load 'evil
+    (general-define-key :keymaps 'lispyville-mode-map "C-s" #'lispyville-move-down)))
+
+#+end_src
+
+* Defstar
+#+begin_src emacs-lisp :tangle personal.el
+(with-eval-after-load 'lisp-mode
+  (put 'defvar* 'doc-string-elt 3)
+  (put 'defparameter* 'doc-string-elt 3)
+  (put 'defconstant* 'doc-string-elt 3)
+  (put 'lambda* 'doc-string-elt 2)
+  (defvar +star-lisp-special-forms
+    (regexp-opt
+     '("defvar*" "defconstant*" "defparameter*" "defgeneric*" "defmethod*" "lambda*" "flet*" "labels*")
+     'words))
+  (font-lock-add-keywords 'common-lisp-mode
+			  `((,+star-lisp-special-forms . font-lock-keyword-face))))
+
+
+#+end_src
+
+* Flycheck
+#+begin_src emacs-lisp :tangle personal.el
+(use-package flycheck-package :after flycheck :config
+  (flycheck-package-setup))
+
+#+end_src
+
+* Dumb Jump
+#+begin_src emacs-lisp :tangle personal.el
+(add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
+
+#+end_src
+
+* Environment
+#+begin_src emacs-lisp :tangle personal.el
+;;(when (memq window-system '(mac ns x))
+;;  (exec-path-from-shell-initialize))
+#+end_src
+
+* Cheat-sh
+#+begin_src emacs-lisp :tangle personal.el
+(defun open-popup-on-side-or-below
+    (buffer &optional alist)
+  (display-buffer-in-side-window buffer
+				 (append
+				  `((side \,
+					  (if
+					      (one-window-p)
+					      'right 'bottom)))
+				  alist)))
+
+
+(add-to-list 'display-buffer-alist
+	     (cons "*cheat.sh*"
+		   (cons #'open-popup-on-side-or-below nil)))
+
+(progn
+  (general-define-key :keymaps 'star-leader-map "s c"
+		      (list :def #'cheat-sh :which-key "Cheat sheet")))
+
+#+end_src
+
+* Bookmarks
+#+begin_src emacs-lisp :tangle personal.el
+(setq bookmark-file "~/Documents/Emacs/bookmarks")
+
+#+end_src
+
+* Activity Watch
+#+begin_src emacs-lisp :tangle personal.el
+(run-with-idle-timer 10 nil #'global-activity-watch-mode)
+
+#+end_src
+
+* Clean Buffers List config
+#+begin_src emacs-lisp :tangle personal.el
+(use-package midnight :config
+  (run-with-idle-timer 10 nil #'midnight-mode)
+  (add-hook 'midnight-hook
+	    #'(lambda nil
+		(alert "Midnight mode is running.\nEmacs is fresh and clean again!")
+		(when activity-watch-mode
+		  (activity-watch-mode -1)
+		  (activity-watch-mode 1)
+		  (alert "Restarted Activity Watch mode"))
+		(elfeed-update)))
+  (midnight-delay-set 'midnight-delay "07:00am")
+  (setq clean-buffer-list-kill-predicate
+	(lambda
+	  (buffer)
+	  (let
+	      ((proc
+		(get-buffer-process buffer)))
+	    (and
+	     (not
+	      (buffer-modified-p buffer))
+	     (not
+	      (buffer-local-value 'server-buffer-clients buffer))
+	     (not
+	      (and proc
+		   (process-live-p proc)))))))
+  (setq clean-buffer-list-kill-never-regexps
+	(list "\\*\\(?:sly\\|ielm\\).*\\*" "\\*vterm.*\\*")
+	clean-buffer-list-kill-regexps
+	(list "^[^*].*/$")))
+
+
+#+end_src
+
+* Elfeed-tube
+#+begin_src emacs-lisp :tangle personal.el
+(use-package elfeed-tube :after elfeed :config
+  (elfeed-tube-setup)
+  :bind
+  (:map elfeed-show-mode-map
+	("F" . elfeed-tube-fetch)
+	([remap save-buffer]
+	 . elfeed-tube-save)
+	:map elfeed-search-mode-map
+	("F" . elfeed-tube-fetch)
+	([remap save-buffer]
+	 . elfeed-tube-save)))
+
+#+end_src
+
+* Temple
+#+begin_src emacs-lisp :tangle personal.el
+(let
+    ((temple "~/Temple/temple-loader.el"))
+  (when
+      (file-exists-p temple)
+    (load temple)))
+
+#+end_src
+
+* Auth info source
+#+begin_src emacs-lisp :tangle personal.el
+(setq auth-sources
+      '("~/.authinfo.gpg")
+      auth-source-cache-expiry 1360)
+
+#+end_src
+
+* yt-dlp.el
+#+begin_src emacs-lisp :tangle personal.el
+(setq nsa/music-dir "~/Music/Music-inbox")
+
+#+end_src
+
+* Project Tasks
+#+begin_src emacs-lisp :tangle personal.el
+(use-package project-tasks :commands
+  (project-tasks)
+  :config
+  (progn
+    (general-define-key :keymaps 'star-leader-map "p r"
+			(list :def #'project-tasks :which-key "Run Project Task"))))
+
+#+end_src
+
+* Exwm
+#+begin_src emacs-lisp :tangle personal.el
+;(require 'persp-mode)
+#+end_src
+
+* EZF fzf but emacs
+#+begin_src emacs-lisp :tangle personal.el
+(defun ezf-default
+    (filename)
+  "EZF completion with your default completion system."
+  (completing-read-multiple "Pick a Candidate: "
+			    (with-temp-buffer
+			      (insert-file-contents-literally filename nil)
+			      (string-lines
+			       (buffer-string)
+			       t))))
+
+
+
+(defvar ezf-separators " " "Regexp of separators `ezf' should use to split a line.")
+
+
+(defun ezf
+    (filename &optional field completing-fn)
+  "Wrapper that calls COMPLETION-FN with FILENAME.\n\nOptionally split each line of string by `ezf-separators' if FIELD\nis non-nil and return FIELD.\n\nIf COMPLETING-FN is nil default to `ezf-default'."
+  (when-let
+      (candidates
+       (funcall
+	(or completing-fn 'ezf-default)
+	filename))
+    (mapconcat
+     (lambda
+       (candidate)
+       (shell-quote-argument
+	(if field
+	    (nth
+	     (1- field)
+	     (split-string candidate ezf-separators t " "))
+	  candidate)))
+     candidates " ")))
+
+#+end_src
+
+* Wiki Publish
+#+begin_src emacs-lisp :tangle personal.el
+(defun nsa/wiki/toggle-publish
+    (&optional file)
+  "Toggle :PUBLISH: property in org file.\nIf FILE is provided, operate on that file, otherwise use current buffer."
+  (interactive)
+  (let
+      ((buffer
+	(if file
+	    (find-file-noselect file)
+	  (current-buffer))))
+    (with-current-buffer buffer
+      (save-excursion
+	(goto-char
+	 (point-min))
+	(if
+	    (org-entry-get
+	     (point)
+	     "PUBLISH")
+	    (org-delete-property "PUBLISH")
+	  (org-set-property "PUBLISH" "t")))
+      (unless
+	  (eq buffer
+	      (current-buffer))
+	(save-buffer)
+	(kill-buffer)))))
+
+#+end_src
+
+* Wiki Publish
+#+begin_src emacs-lisp :tangle personal.el
+(defun nsa/wiki/toggle-directory-publish
+    (directory)
+  "Toggle :PUBLISH: property for all org files in DIRECTORY."
+  (interactive "DDirectory: ")
+  (let
+      ((org-files
+	(directory-files-recursively directory "\\.org$")))
+    (dolist
+	(file org-files)
+      (nsa/wiki/toggle-publish file))
+    (message "Toggled publish state for %d org files"
+	     (length org-files))))
+
+#+end_src
+
+* Wiki Publish
+#+begin_src emacs-lisp :tangle personal.el
+(defun wiki/org-publish-to-html
+    (plist filename pub-dir)
+  "Only Uplish when the file contains a publish param."
+  (when
+      (publishp filename)
+    (org-html-publish-to-html plist filename pub-dir)))
+
+#+end_src
+
+* Frame macros
+#+begin_src emacs-lisp :tangle personal.el
+(fset 'nsa/spawn-window
+      (kmacro-lambda-form
+       [32 119 118 32 119 108 32 119 84]
+       0 "%d"))
+
+#+end_src
+
+* Fix starship prompt for vterm
+#+begin_src emacs-lisp :tangle personal.el
+;; (after! vterm
+;;   (setq vterm-shell-args '("-c" "STARSHIP_CONFIG=~/.config/starship-plain.toml exec bash")))
+#+end_src
+
+* StarIntel Social
+#+begin_src emacs-lisp :tangle personal.el
+;; Dslide: clear stale pre-generic API cells before loading the current package.
+(defun +dslide/require nil "Load Dslide without mixing it with the pre-generic implementation."
+       (require 'cl-generic)
+       (dolist
+	   (symbol
+	    '(dslide-next-child dslide-previous-child))
+	 (when
+	     (and
+	      (fboundp symbol)
+	      (not
+	       (cl-generic-p symbol)))
+	   (fmakunbound symbol)))
+       (require 'dslide)
+       (setq dslide-slide-in-effect t dslide-animation-duration 0.25 dslide-slide-in-blank-lines 8 dslide-default-actions
+	     '(dslide-action-hide-markup dslide-action-propertize dslide-action-kmacro dslide-action-babel dslide-action-image dslide-action-item-reveal)))
+
+
+(defun +dslide/insert-state nil "Keep Dslide presentation buffers in Evil insert state."
+       (when
+	   (fboundp 'evil-insert-state)
+	 (evil-insert-state)))
+
+
+(defun +dslide/setup-effects nil "Apply presentation-only spacing and cursor behavior."
+       (setq-local line-spacing 0.2)
+       (setq-local cursor-type nil)
+       (+dslide/insert-state))
+
+
+(add-hook 'dslide-start-hook #'+dslide/setup-effects)
+
+(add-hook 'dslide-develop-hook #'+dslide/setup-effects)
+
+(add-hook 'dslide-present-hook #'+dslide/setup-effects)
+
+
+(defun +dslide/start nil "Start the current Org document as a Dslide deck."
+       (interactive)
+       (+dslide/require)
+       (dslide-deck-start))
+
+
+(defun +dslide/develop nil "Open the current Org document in Dslide's development layout."
+       (interactive)
+       (+dslide/require)
+       (dslide-deck-develop))
+
+
+(defun +dslide/present nil "Present the current Org document through Dslide."
+       (interactive)
+       (+dslide/require)
+       (dslide-deck-present))
+
+
+(progn
+  (general-define-key :keymaps 'org-mode-map "<f5>" #'+dslide/start)
+  (general-define-key :keymaps 'star-leader-map "o D"
+		      (list :def #'+dslide/start :which-key "Start Dslide deck"))
+  (general-define-key :keymaps 'star-leader-map "o C"
+		      (list :def #'+dslide/develop :which-key "Develop Dslide deck"))
+  (general-define-key :keymaps 'star-leader-map "o V"
+		      (list :def #'+dslide/present :which-key "Present Dslide deck")))
+
+
+;; StarIntel Social: optional external editorial workstation.
+(let
+    ((root
+      (getenv "STARINTEL_SOCIAL_ROOT")))
+  (when
+      (and root
+	   (not
+	    (string= root "")))
+    (let
+	((entry
+	  (expand-file-name "elisp/starintel-social.el" root)))
+      (when
+	  (file-readable-p entry)
+	(load entry nil 'nomessage)))))
+
+#+end_src
+
