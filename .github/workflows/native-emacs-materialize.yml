@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'emacs/desktop/tools/migrate.el'
+      - 'emacs/desktop/tools/package-declarations.el'
+      - 'emacs/desktop/tests/package-declarations-test.el'
       - '.github/workflows/native-emacs-materialize.yml'
 
 permissions:
@@ -29,6 +31,11 @@ jobs:
           git checkout --detach FETCH_HEAD
       - name: Install source reader
         run: sudo apt-get update && sudo apt-get install -y emacs-nox
+      - name: Test package declaration reader
+        run: |
+          emacs -Q --batch \
+            -l emacs/desktop/tests/package-declarations-test.el \
+            -f ert-run-tests-batch-and-exit
       - name: Fetch pinned package declaration sources
         run: |
           set -euo pipefail
@@ -42,8 +49,11 @@ jobs:
         env:
           DOOM_AUDIT_CORE: ${{ runner.temp }}/doom-core
           DOOM_AUDIT_MODULES: ${{ runner.temp }}/doom-modules
-          STAR_PORT_GENERATE: '1'
-        run: emacs -Q --batch -l emacs/desktop/tools/migrate.el
+        run: |
+          emacs -Q --batch \
+            -l emacs/desktop/tools/migrate.el \
+            -l emacs/desktop/tools/package-declarations.el \
+            --eval '(star-port-generate default-directory)'
       - name: Commit only migration outputs to the unchanged source branch
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
@@ -56,10 +66,15 @@ jobs:
           git add -- emacs/desktop/packages.org emacs/desktop/packages.json emacs/desktop/personal.org emacs/desktop/personal.el emacs/desktop/autoloads.org emacs/desktop/autoload emacs/desktop/star-autoloads.el
           if git diff --cached --quiet; then exit 0; fi
           git -c user.name='Native Emacs source generator' -c user.email='noreply@users.noreply.github.com' commit -m 'build(emacs): materialize reviewed native Org sources from Doom baseline'
+          # The helper string is intentionally expanded by the helper shell, not
+          # by this workflow shell.
+          # shellcheck disable=SC2016
           git -c credential.helper='!f() { echo username=x-access-token; echo "password=$GITHUB_TOKEN"; }; f' push origin "HEAD:refs/heads/$branch"
       - uses: cachix/install-nix-action@v31
       - name: Report exact pinned Nix package gaps without dropping anything
         run: |
+          # ${n} below is Nix interpolation inside the quoted Nix expression.
+          # shellcheck disable=SC2016
           nix eval --impure --json --expr '
             let f = builtins.getFlake (toString ./.);
                 p = f.inputs.nixpkgs.legacyPackages.x86_64-linux;
