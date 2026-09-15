@@ -33,20 +33,21 @@ let
     epkgs:
     let
       names = lib.unique (map nativePackageName nativePackageManifest.packages);
-      missing = builtins.filter (
+      custom = import ./emacs-native-packages.nix {
+        inherit lib pkgs epkgs;
+      };
+      resolve =
         name:
-        !(builtins.elem name nativeBuiltinPackages)
-        && !(builtins.hasAttr name epkgs)
-      ) names;
-      available = builtins.filter (
-        name:
-        !(builtins.elem name nativeBuiltinPackages)
-        && builtins.hasAttr name epkgs
-      ) names;
+        if builtins.elem name nativeBuiltinPackages then
+          null
+        else if builtins.hasAttr name custom then
+          builtins.getAttr name custom
+        else if builtins.hasAttr name epkgs then
+          builtins.getAttr name epkgs
+        else
+          throw "Native Emacs manifest package has no Nix package: ${name}";
     in
-    lib.warnIf (missing != [ ])
-      "Native Emacs manifest has unresolved packages: ${lib.concatStringsSep ", " missing}"
-      (map (name: builtins.getAttr name epkgs) available);
+    builtins.filter (package: package != null) (map resolve names);
 in
 {
   imports = [
