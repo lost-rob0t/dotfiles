@@ -21,9 +21,12 @@ private state does not.
 
 * Qwen3-TTS backend
 The desktop profile imports the =Qwen3-TTS_server= Home Manager flake module,
-installs its =qwen3-tts= command, and keeps the loopback-only ROCm service
-running at =http://127.0.0.1:7860=.  Zara orders its daemon with that service,
-but Home Manager deliberately does not own =~/.config/zarathushtra/config.toml=.
+installs its =qwen3-tts= command, and enables the Vulkan GPU service on
+=http://127.0.0.1:7860=.  The service runs the pinned upstream
+=qwentts.cpp= GGML image on =/dev/dri= render nodes only; =/dev/kfd= and the
+retired PyTorch/ROCm path are gone entirely.  Zara streams speech from it in
+real time (s16le 24 kHz PCM) instead of buffering whole WAV files.  Home
+Manager deliberately does not own =~/.config/zarathushtra/config.toml=.
 
 Merge this table into that mutable file.  Replace its existing =[tts]= table if
 present; TOML does not allow two tables with the same name.
@@ -38,21 +41,24 @@ read_timeout = 120.0
 total_timeout = 180.0
 #+end_src
 
+The =voice= name must reference a registered clone voice or a model speaker;
+create a =zara= voice (below) before switching the provider.
+
 Apply and verify the services:
 
 #+begin_src shell
 home-manager switch --flake ~/.dotfiles#unseen@desktop
-qwen3-tts doctor rocm
+qwen3-tts doctor vulkan
 systemctl --user restart qwen3-tts zara-server
 qwen3-tts status
 sudo loginctl enable-linger "$USER"
 #+end_src
 
 The =loginctl= command makes the user services start at boot without waiting
-for an interactive login.  The first Qwen start builds the ROCm container and
-downloads model data, so it can take a while.  Persistent models, generated
-output, and reference voices live under =~/.local/share/qwen3-tts= rather than
-in this repository.
+for an interactive login.  The first Qwen start pulls the pinned image and
+downloads sha256-verified GGUF models (0.6B talker plus 12 Hz codec, about
+1.2 GB); later starts are immediate.  Persistent models and reference voices
+live under =~/.local/share/qwen3-tts= rather than in this repository.
 
 Create and manage voices from any FFmpeg-supported audio or video source:
 
@@ -68,13 +74,19 @@ qwen3-tts voice remove narrator
 #+end_src
 
 Use =--replace= with =voice add= to update an existing name.  Supplying the
-exact =--text= improves cloning and avoids an automatic Whisper transcription.
-After changing =voice= in =config.toml=, restart =zara-server=; adding or
-replacing the referenced clip itself does not require restarting Qwen.
+exact =--text= persists a same-stem =.txt= transcript next to the voice WAV,
+which the server registers for higher-fidelity ICL clone mode; without it the
+voice falls back to the x-vector-only path.  After changing =voice= in
+=config.toml=, restart =zara-server=; adding or replacing the referenced clip
+itself does not require restarting Qwen.
 
-The configured AMD backend requires Docker access plus host =/dev/kfd= and
-=/dev/dri=.  Current ROCm does not support Polaris cards such as the RX 580; use
-=backend = "cpu";= in the desktop Home Manager profile on unsupported hardware.
+The Vulkan backend needs Docker access plus host =/dev/dri= with a render
+node (=renderD128=); it never touches =/dev/kfd=, and GGML keeps its compute
+queue off the graphics queue so the desktop session is not the failure
+surface.  Validated live on the RX 5500 XT (RDNA1): model load, 896 MB
+KV-cache allocation, synthesis, and realtime streaming all pass with zero
+kernel GPU faults.  On hosts without a usable Vulkan driver use
+=backend = "cpu";= as the explicit emergency mode.
 
 * Arch desktop remote listener
 The current desktop host is Arch Linux.  Zara's remote listener is therefore

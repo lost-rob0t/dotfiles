@@ -49,12 +49,14 @@
     };
   };
 
-  # Keep Qwen available as a flake input, but do not create/start its ROCm
-  # user service on login. The GPU backend must be validated manually first;
-  # a driver hang here takes the graphical session down with it.
+  # Qwen3-TTS runs the pinned upstream GGML server on Vulkan: /dev/dri render
+  # nodes only (no /dev/kfd), compute stays off the graphics queue, restarts
+  # are bounded, and the pinned image + sha256-verified GGUF models provision
+  # on first start. Validated live on the RX 5500 XT with zero kernel faults.
   services.qwen3-tts = {
-    enable = false;
-    backend = "rocm";
+    enable = true;
+    autoStart = true;
+    backend = "vulkan";
     port = 7860;
   };
 
