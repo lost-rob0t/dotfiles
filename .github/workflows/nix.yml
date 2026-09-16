@@ -22,8 +22,8 @@ jobs:
       - name: Check shell scripts
         run: |
           set -euo pipefail
-          bash -n .bashrc scripts/*.sh tests/home-manager-updater.sh tests/gpt-todos-sync.sh tests/llm-log-expert-consumer.sh tests/skill-sync.sh tests/variety-home-manager.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh scripts/agent-zero-tunnel scripts/remote-gui-launch scripts/install-termux-widgets scripts/starintel-tunnel tests/agent-zero-tunnel.sh tests/remote-gui-launch.sh tests/starintel-tunnel.sh
-          shellcheck --severity=warning scripts/*.sh tests/home-manager-updater.sh tests/gpt-todos-sync.sh tests/llm-log-expert-consumer.sh tests/skill-sync.sh tests/variety-home-manager.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh scripts/agent-zero-tunnel scripts/remote-gui-launch scripts/install-termux-widgets scripts/starintel-tunnel tests/agent-zero-tunnel.sh tests/remote-gui-launch.sh tests/starintel-tunnel.sh
+          bash -n .bashrc scripts/*.sh scripts/org-logseq-sync tests/home-manager-updater.sh tests/gpt-todos-sync.sh tests/org-logseq-sync.sh tests/llm-log-expert-consumer.sh tests/skill-sync.sh tests/variety-home-manager.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh scripts/agent-zero-tunnel scripts/remote-gui-launch scripts/install-termux-widgets scripts/starintel-tunnel tests/agent-zero-tunnel.sh tests/remote-gui-launch.sh tests/starintel-tunnel.sh
+          shellcheck --severity=warning scripts/*.sh scripts/org-logseq-sync tests/home-manager-updater.sh tests/gpt-todos-sync.sh tests/org-logseq-sync.sh tests/llm-log-expert-consumer.sh tests/skill-sync.sh tests/variety-home-manager.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh scripts/agent-zero-tunnel scripts/remote-gui-launch scripts/install-termux-widgets scripts/starintel-tunnel tests/agent-zero-tunnel.sh tests/remote-gui-launch.sh tests/starintel-tunnel.sh
       - name: Run StarIntel tunnel tests
         run: bash tests/starintel-tunnel.sh
       - name: Run Nix deprecation contract
@@ -59,6 +59,8 @@ jobs:
         run: bash tests/skill-sync.sh
       - name: Run GPT TODO bidirectional sync tests
         run: bash tests/gpt-todos-sync.sh
+      - name: Run Org/Logseq bidirectional sync tests
+        run: bash tests/org-logseq-sync.sh
       - name: Run research approval ERT tests
         run: >-
           emacs -Q --batch

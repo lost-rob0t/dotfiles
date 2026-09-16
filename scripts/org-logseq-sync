@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mode="${1:---watch}"
+
+case "$mode" in
+    --once|--watch)
+        ;;
+    *)
+        printf 'usage: org-logseq-sync [--once|--watch]\n' >&2
+        exit 64
+        ;;
+esac
+
+org_roam_dir="${ORG_ROAM_DIR:-$HOME/Documents/Notes/org/roam}"
+org_roam_dailies_rel="${ORG_ROAM_DAILIES_DIR:-daily}"
+logseq_graph_dir="${LOGSEQ_GRAPH_DIR:-$HOME/Documents/Notes/logseq}"
+debounce_seconds="${ORG_LOGSEQ_SYNC_DEBOUNCE_SECONDS:-1}"
+refresh_roam="${ORG_LOGSEQ_SYNC_REFRESH_ROAM:-1}"
+emacs_server_name="${ORG_LOGSEQ_SYNC_EMACS_SERVER_NAME:-doom}"
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/org-logseq-sync"
+lock_file="$state_dir/sync.lock"
+
+org_roam_dailies_dir="$org_roam_dir/$org_roam_dailies_rel"
+logseq_pages_dir="$logseq_graph_dir/pages"
+logseq_journals_dir="$logseq_graph_dir/journals"
+
+mkdir -p \
+    "$org_roam_dir" \
+    "$org_roam_dailies_dir" \
+    "$logseq_pages_dir" \
+    "$logseq_journals_dir" \
+    "$state_dir"
+
+collect_paths() {
+    local left=$1
+    local right=$2
+    local excluded_left_rel=${3:-}
+
+    {
+        if [[ -n "$excluded_left_rel" ]]; then
+            find "$left" \
+                -type f \
+                -name '*.org' \
+                ! -path "$left/$excluded_left_rel/*" \
+                -printf '%P\0'
+        else
+            find "$left" -type f -name '*.org' -printf '%P\0'
+        fi
+        find "$right" -type f -name '*.org' -printf '%P\0'
+    } | sort -zu
+}
+
+sync_pair() {
+    local left=$1
+    local right=$2
+    local excluded_left_rel=${3:-}
+    local path
+    local -a paths=()
+    local -a args=()
+
+    mapfile -d '' -t paths < <(
+        collect_paths "$left" "$right" "$excluded_left_rel"
+    )
+
+    if ((${#paths[@]} == 0)); then
+        return 0
+    fi
+
+    args=(
+        "$left"
+        "$right"
+        -batch
+        -auto
+        -terse
+    )
+
+    for path in "${paths[@]}"; do
+        args+=(-path "$path")
+    done
+
+    unison "${args[@]}"
+}
+
+refresh_org_roam_db() {
+    if [[ "$refresh_roam" != 1 ]]; then
+        return 0
+    fi
+
+    if ! command -v emacsclient >/dev/null 2>&1; then
+        return 0
+    fi
+
+    emacsclient \
+        --socket-name "$emacs_server_name" \
+        --eval "(when (require 'org-roam nil t) (org-roam-db-sync))" \
+        >/dev/null 2>&1 || true
+}
+
+sync_once() {
+    (
+        if ! flock -n 9; then
+            return 0
+        fi
+
+        local failed=0
+
+        sync_pair \
+            "$org_roam_dir" \
+            "$logseq_pages_dir" \
+            "$org_roam_dailies_rel" || failed=1
+
+        sync_pair \
+            "$org_roam_dailies_dir" \
+            "$logseq_journals_dir" || failed=1
+
+        if ((failed == 0)); then
+            refresh_org_roam_db
+        else
+            printf '%s\n' \
+                'org-logseq-sync: Unison left one or more conflicts/errors unresolved' \
+                >&2
+        fi
+
+        return "$failed"
+    ) 9>"$lock_file"
+}
+
+watch_forever() {
+    sync_once || true
+
+    while true; do
+        if ! inotifywait \
+            -qq \
+            -r \
+            -e close_write,create,delete,move \
+            "$org_roam_dir" \
+            "$logseq_pages_dir" \
+            "$logseq_journals_dir"; then
+            sleep 1
+            continue
+        fi
+
+        sleep "$debounce_seconds"
+        sync_once || true
+    done
+}
+
+case "$mode" in
+    --once)
+        sync_once
+        ;;
+    --watch)
+        watch_forever
+        ;;
+esac
