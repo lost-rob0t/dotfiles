@@ -1,0 +1,89 @@
+;;; native-bootstrap.el --- Native Doom core compatibility -*- lexical-binding: t; -*-
+
+(require 'cl-lib)
+
+(defun star-native-doom-set-jump-a (fn &rest args)
+  "Set a better-jumper point before calling FN with ARGS."
+  (better-jumper-set-jump (when (markerp (car args)) (car args)))
+  (let ((evil--jumps-jumping t)
+        (better-jumper--jumping t))
+    (apply fn args)))
+
+(defun star-native-doom-set-jump-h ()
+  "Record the current location before an interactive file buffer disappears."
+  (when (and (fboundp 'better-jumper-set-jump)
+             (get-buffer-window))
+    (better-jumper-set-jump))
+  nil)
+
+(defun star-native--better-jumper ()
+  "Reproduce Doom core's Evil/xref jump-history integration."
+  (when (require 'better-jumper nil t)
+    (better-jumper-mode 1)
+    (global-set-key [remap evil-jump-forward]
+                    #'better-jumper-jump-forward)
+    (global-set-key [remap evil-jump-backward]
+                    #'better-jumper-jump-backward)
+    (global-set-key [remap xref-pop-marker-stack]
+                    #'better-jumper-jump-backward)
+    (global-set-key [remap xref-go-back]
+                    #'better-jumper-jump-backward)
+    (global-set-key [remap xref-go-forward]
+                    #'better-jumper-jump-forward)
+    (add-hook 'kill-buffer-hook #'star-native-doom-set-jump-h)
+    (unless (advice-member-p #'star-native-doom-set-jump-a #'outline-up-heading)
+      (advice-add #'outline-up-heading :around #'star-native-doom-set-jump-a))
+    (unless (advice-member-p #'star-native-doom-set-jump-a #'imenu)
+      (advice-add #'imenu :around #'star-native-doom-set-jump-a))))
+
+(defun star-native--eval-overlays ()
+  "Reproduce Doom's :tools eval +overlay behavior."
+  (when (require 'eros nil t)
+    (add-hook 'emacs-lisp-mode-hook #'eros-mode)))
+
+(defun star-native-word-wrap-mode ()
+  "Use visual wrapping with adaptive indentation where it is useful."
+  (visual-line-mode 1)
+  (when (and (require 'adaptive-wrap nil t)
+             (not (derived-mode-p 'org-mode 'markdown-mode)))
+    (adaptive-wrap-prefix-mode 1)))
+
+(defun star-native--word-wrap ()
+  "Reproduce the useful part of Doom's :editor word-wrap module."
+  (dolist (hook '(text-mode-hook prog-mode-hook))
+    (add-hook hook #'star-native-word-wrap-mode)))
+
+(defun star-native--unicode ()
+  "Set up Doom's Unicode fallback support after graphical startup."
+  (when (and (display-graphic-p)
+             (require 'unicode-fonts nil t))
+    (unicode-fonts-setup)))
+
+(defun star-native--emoji ()
+  "Enable the emoji rendering behavior provided by Doom's emoji module."
+  (when (require 'emojify nil t)
+    (when (fboundp 'global-emojify-mode)
+      (global-emojify-mode 1))))
+
+(defun star-native--tty ()
+  "Enable Kitty keyboard protocol support in interactive terminal Emacs."
+  (when (and (not noninteractive)
+             (not (display-graphic-p))
+             (require 'kkp nil t)
+             (fboundp 'global-kkp-mode))
+    (global-kkp-mode 1)))
+
+(defun star-native-doom-core-compat-init ()
+  "Install behavior formerly supplied by enabled Doom core/modules."
+  (interactive)
+  (star-native--better-jumper)
+  (star-native--eval-overlays)
+  (star-native--word-wrap)
+  (star-native--unicode)
+  (star-native--emoji)
+  (star-native--tty))
+
+(add-hook 'after-init-hook #'star-native-doom-core-compat-init t)
+
+(provide 'native-bootstrap)
+;;; native-bootstrap.el ends here
