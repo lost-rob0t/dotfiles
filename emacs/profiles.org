@@ -5,12 +5,12 @@
 
 * Purpose
 
-This is the source of truth for =.emacs-profiles.el=.  Chemacs remains the
-small profile router.  =unseen@flake= selects =desktop-native= through
-=CHEMACS_PROFILE=, so the desktop boots the native literate configuration
-without loading Doom.  =doomemacs= remains an explicit fallback while parity is
-being verified.  Termux Doom and the Android/Temple native profiles stay
-separate.
+This is the source of truth for =.emacs-profiles.el=. Chemacs remains the
+small profile router. During the native desktop migration, plain =emacs= on
+=unseen@flake= deliberately continues to boot the =default= Doom profile.
+=desktop-native= is an explicit test profile until Doom-equivalent behavior and
+appearance pass CI plus a physical comparison on the machine. Termux Doom and
+the Android/Temple native profiles stay separate.
 
 One time a human wrote this. It survived long enough to become infrastructure.
 
@@ -39,7 +39,8 @@ One time a human wrote this. It survived long enough to become infrastructure.
               (env . (("TEMPLE_MODE" . "active"))))))
 #+end_src
 
-Use =emacs --with-profile desktop-native= for the native desktop directly,
-=emacs --with-profile doomemacs= for the legacy Doom fallback,
+Use =emacs --with-profile desktop-native= for the native desktop under test,
+=emacs --with-profile doomemacs= for the explicit legacy Doom profile,
 =emacs --with-profile android= (or =org=) for the native Org-first profile, and
-=emacs --with-profile temple= for Temple compatibility.
+=emacs --with-profile temple= for Temple compatibility. The default profile is
+not switched to native until the migration gate is complete.
