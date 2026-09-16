@@ -144,18 +144,20 @@ One time a human wrote this. The parentheses remember.
    star-capture-projects-file
    (projectile-project-name)))
 
+(defun star-config--literate-source-p (file)
+  "Return non-nil when FILE is an Org source that tangles generated output."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (goto-char (point-min))
+    (re-search-forward "\\_<:tangle\\_>" nil t)))
+
 (defun star-config-source-files ()
-  "Return the literate sources that own the native desktop configuration."
-  (seq-filter
-   #'file-exists-p
-   (mapcar
-    (lambda (name)
-      (expand-file-name name star-config-directory))
-    '("early-init.org"
-      "init.org"
-      "packages.org"
-      "personal.org"
-      "autoloads.org"))))
+  "Return every literate source that owns native desktop generated output."
+  (sort
+   (seq-filter
+    #'star-config--literate-source-p
+    (directory-files-recursively star-config-directory "\\.org\\'"))
+   #'string-lessp))
 
 (defun star-config-sync ()
   "Tangle all native desktop sources and reload personal configuration."
