@@ -21,7 +21,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara = {
-      url = "git+ssh://forgejo@git.starintel.actor/nsaspy/zara.git?rev=a04b5a7c2b7e7eb433396f0b08196cd68ceb7094";
+      url = "github:lost-rob0t/zara/43d8fa8c98771e02aff5ee1850ad5f2be7c35377";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     qwen3-tts = {

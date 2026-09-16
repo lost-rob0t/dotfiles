@@ -95,7 +95,7 @@ interfaces at =tcp://0.0.0.0:6060= for Android. The phone connects to the host's
 LAN address, currently =tcp://10.50.50.28:6060=. Its existing CURVE/ZAP identity and client
 registry remain outside Nix and Git under
 =~/.local/state/zarathushtra/security=. Other desktop profiles retain only
-local IPC. The Zara flake input is pinned to the tested Forgejo source commit.
+local IPC. The Zara flake input is pinned to the tested GitHub merge commit.
 
 Apply the flake user-service configuration with:
 
