@@ -52,9 +52,11 @@
   (require 'doom-ux)
   (require 'native-bootstrap)
   (require 'native-tools)
+  (require 'native-session)
   (star-doom-ux-init)
   (star-native-doom-core-compat-init)
   (star-native-tools-init)
+  (star-native-session-init)
 
   ;; Runtime boundary: native must reproduce Doom behavior, not secretly load Doom.
   (star-parity-assert (not (featurep 'doom)) "Doom runtime leaked into native desktop")
@@ -114,6 +116,19 @@
   (star-parity-remap 'xref-go-back 'better-jumper-jump-backward)
   (star-parity-remap 'xref-go-forward 'better-jumper-jump-forward)
   (star-parity-hook 'kill-buffer-hook 'star-native-doom-set-jump-h)
+
+  ;; :tools lookup restores Doom's xref front door, not just dumb-jump installation.
+  (star-parity-assert (fboundp '+lookup/definition) "+lookup/definition is missing")
+  (star-parity-assert (fboundp '+lookup/references) "+lookup/references is missing")
+  (star-parity-assert (fboundp '+lookup/implementations) "+lookup/implementations is missing")
+  (star-parity-assert (fboundp '+lookup/file) "+lookup/file is missing")
+  (star-parity-assert (fboundp '+lookup/documentation) "+lookup/documentation is missing")
+  (star-parity-remap 'xref-find-definitions '+lookup/definition)
+  (star-parity-remap 'xref-find-references '+lookup/references)
+  (star-parity-assert (eq dumb-jump-prefer-searcher 'rg)
+                      "dumb-jump is no longer preferring ripgrep")
+  (star-parity-assert (eq dumb-jump-selector 'ivy)
+                      "dumb-jump is no longer using Ivy")
 
   ;; :tools eval +overlay and :editor word-wrap were behavior, not package names.
   (star-parity-hook 'emacs-lisp-mode-hook 'eros-mode)
@@ -175,14 +190,17 @@
                      ("p p" . star-doom/project-switch)
                      ("p f" . star-doom/project-find-file)
                      ("p d" . projectile-remove-known-project)
+                     ("q c" . star-config-sync)
+                     ("q r" . star-native/restart)
+                     ("q s" . star-native/quicksave-session)
+                     ("q l" . star-native/quickload-session)
                      ("r u" . ssh-deploy-upload-handler)
                      ("s b" . swiper)
                      ("s u" . vundo)
                      ("t w" . star-native-word-wrap-mode)
                      ("t v" . visible-mode)
                      ("TAB ." . persp-switch)
-                     ("w u" . winner-undo)
-                     ("q r" . star-config-sync)))
+                     ("w u" . winner-undo)))
     (star-parity-binding (car binding) (cdr binding)))
 
   ;; Never let compatibility glue erase bindings from the user's literate config.
