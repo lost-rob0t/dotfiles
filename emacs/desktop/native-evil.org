@@ -1,0 +1,124 @@
+#+TITLE: Native Doom Evil Compatibility
+#+STARTUP: overview
+#+PROPERTY: header-args:emacs-lisp :comments no :padline yes :mkdirp yes
+
+Doom's feel lives in normal-mode muscle memory as much as in =SPC=.  This file
+ports the high-use Evil motions and completion-map behavior from the enabled
+Doom modules without importing Doom's runtime.
+
+* Runtime
+#+begin_src emacs-lisp :tangle autoload/native-evil.el
+;;; native-evil.el --- Native Doom Evil parity -*- lexical-binding: t; -*-
+
+(defun star-native/insert-newline-below ()
+  "Insert a blank line below point without entering insert state."
+  (interactive)
+  (save-excursion
+    (end-of-line)
+    (newline)))
+
+(defun star-native/insert-newline-above ()
+  "Insert a blank line above point without entering insert state."
+  (interactive)
+  (save-excursion
+    (beginning-of-line)
+    (newline)
+    (forward-line -1)))
+
+(defun star-native--evil-navigation ()
+  "Restore high-use navigation from Doom's Evil module."
+  (general-define-key
+   :states '(normal motion visual)
+   :keymaps 'override
+   "]b" #'next-buffer
+   "[b" #'previous-buffer
+   "]d" #'diff-hl-next-hunk
+   "[d" #'diff-hl-previous-hunk
+   "]t" #'hl-todo-next
+   "[t" #'hl-todo-previous
+   "]e" #'next-error
+   "[e" #'previous-error
+   "]h" #'outline-next-visible-heading
+   "[h" #'outline-previous-visible-heading
+   "gO" #'imenu
+   "gc" #'evilnc-comment-operator
+   "gx" #'evil-exchange
+   "K" #'+lookup/documentation
+   "gd" #'+lookup/definition
+   "gD" #'+lookup/references
+   "gf" #'+lookup/file
+   "gI" #'+lookup/implementations)
+  (general-define-key
+   :states '(normal)
+   :keymaps 'override
+   "gt" #'persp-next
+   "gT" #'persp-prev
+   "]w" #'persp-next
+   "[w" #'persp-prev
+   "] SPC" #'star-native/insert-newline-below
+   "[ SPC" #'star-native/insert-newline-above
+   "]o" #'star-native/insert-newline-below
+   "[o" #'star-native/insert-newline-above
+   "g=" #'evil-numbers/inc-at-pt
+   "g-" #'evil-numbers/dec-at-pt)
+  (general-define-key
+   :states '(visual)
+   :keymaps 'override
+   "g=" #'evil-numbers/inc-at-pt-incremental
+   "g-" #'evil-numbers/dec-at-pt-incremental
+   "g+" #'evil-numbers/inc-at-pt))
+
+(defun star-native--company-keys ()
+  "Restore Doom's Company navigation keys."
+  (with-eval-after-load 'company
+    (define-key company-active-map (kbd "C-w") nil)
+    (define-key company-active-map (kbd "C-n") #'company-select-next)
+    (define-key company-active-map (kbd "C-p") #'company-select-previous)
+    (define-key company-active-map (kbd "C-j") #'company-select-next)
+    (define-key company-active-map (kbd "C-k") #'company-select-previous)
+    (define-key company-active-map (kbd "C-h") #'company-show-doc-buffer)
+    (define-key company-active-map (kbd "C-u") #'company-previous-page)
+    (define-key company-active-map (kbd "C-d") #'company-next-page)
+    (define-key company-active-map (kbd "C-s") #'company-filter-candidates)
+    (define-key company-active-map (kbd "C-SPC") #'company-complete-common)
+    (define-key company-active-map (kbd "TAB") #'company-complete-common-or-cycle)
+    (define-key company-active-map (kbd "<tab>") #'company-complete-common-or-cycle)
+    (define-key company-active-map (kbd "<backtab>") #'company-select-previous)
+    (define-key company-search-map (kbd "C-n") #'company-select-next-or-abort)
+    (define-key company-search-map (kbd "C-p") #'company-select-previous-or-abort)
+    (define-key company-search-map (kbd "C-j") #'company-select-next-or-abort)
+    (define-key company-search-map (kbd "C-k") #'company-select-previous-or-abort)
+    (define-key company-search-map (kbd "C-s") #'company-filter-candidates)))
+
+(defun star-native--ivy-keys ()
+  "Restore Doom's Ivy preview/accept behavior."
+  (with-eval-after-load 'ivy
+    (define-key ivy-minibuffer-map (kbd "C-SPC") #'ivy-call-and-recenter)
+    (define-key ivy-minibuffer-map (kbd "C-l") #'ivy-alt-done))
+  (with-eval-after-load 'counsel
+    (when (boundp 'counsel-ag-map)
+      (define-key counsel-ag-map (kbd "C-SPC") #'ivy-call-and-recenter)
+      (define-key counsel-ag-map (kbd "C-l") #'ivy-done))))
+
+(defun star-native--misc-evil-keys ()
+  "Restore a few global Doom defaults that are independent of leader keys."
+  (general-define-key
+   :states '(normal)
+   :keymaps 'override
+   "C-S-f" #'toggle-frame-fullscreen
+   "C-=" #'text-scale-increase
+   "C--" #'text-scale-decrease))
+
+(defun star-native-evil-init ()
+  "Install Doom-equivalent Evil and completion key behavior."
+  (interactive)
+  (star-native--evil-navigation)
+  (star-native--company-keys)
+  (star-native--ivy-keys)
+  (star-native--misc-evil-keys))
+
+(add-hook 'after-init-hook #'star-native-evil-init t)
+
+(provide 'native-evil)
+;;; native-evil.el ends here
+#+end_src
