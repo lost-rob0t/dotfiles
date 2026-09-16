@@ -42,13 +42,25 @@
   (interactive)
   (star-doom--call 'projectile-find-file 'project-find-file))
 
+(defun star-doom/project-dired ()
+  (interactive)
+  (star-doom--call 'projectile-dired 'project-dired))
+
+(defun star-doom/project-kill-buffers ()
+  (interactive)
+  (star-doom--call 'projectile-kill-buffers 'project-kill-buffers))
+
 (defun star-doom/project-search ()
   (interactive)
   (cond
-   ((fboundp 'counsel-projectile-rg) (call-interactively #'counsel-projectile-rg))
-   ((fboundp 'projectile-ripgrep) (call-interactively #'projectile-ripgrep))
-   ((fboundp 'project-find-regexp) (call-interactively #'project-find-regexp))
-   (t (user-error "No project search command is available"))))
+   ((fboundp 'counsel-projectile-rg)
+    (call-interactively #'counsel-projectile-rg))
+   ((fboundp 'projectile-ripgrep)
+    (call-interactively #'projectile-ripgrep))
+   ((fboundp 'project-find-regexp)
+    (call-interactively #'project-find-regexp))
+   (t
+    (user-error "No project search command is available"))))
 
 (defun star-doom/search-buffer ()
   (interactive)
@@ -104,6 +116,34 @@
   (interactive)
   (star-doom--call 'org-roam-node-find 'find-file))
 
+(defun star-doom/org-roam-insert ()
+  (interactive)
+  (star-doom--call 'org-roam-node-insert 'org-insert-link))
+
+(defun star-doom/yank-file-path ()
+  (interactive)
+  (let ((path (or buffer-file-name default-directory)))
+    (unless path
+      (user-error "Current buffer has no file or directory"))
+    (kill-new (abbreviate-file-name path))
+    (message "%s" (abbreviate-file-name path))))
+
+(defun star-doom/toggle-line-numbers ()
+  (interactive)
+  (if display-line-numbers-mode
+      (display-line-numbers-mode -1)
+    (display-line-numbers-mode 1)))
+
+(defun open-popup-on-side-or-below (buffer &optional alist)
+  "Display BUFFER like the old Doom popup helper used by the private config."
+  (display-buffer-in-side-window
+   buffer
+   (append
+    `((side . ,(if (one-window-p) 'right 'bottom))
+      (slot . 0)
+      (window-height . 0.35))
+    alist)))
+
 (defun star-doom--popup-rule (regexp height)
   (add-to-list
    'display-buffer-alist
@@ -116,6 +156,21 @@
 
 (defun star-doom--disable-line-numbers ()
   (display-line-numbers-mode -1))
+
+(defun star-doom--repair-ported-config ()
+  "Repair mechanical conversion mistakes without depending on Doom macros."
+  (when (fboundp 'nsa/track-org-file)
+    (defalias 'track-org-file #'nsa/track-org-file))
+  (setq auto-mode-alist
+        (cl-remove-if
+         (lambda (entry)
+           (equal entry '("\\.fs" quote forth-mode)))
+         auto-mode-alist))
+  (add-to-list 'auto-mode-alist '("\\.fs\\'" . forth-mode))
+  (when (fboundp 'evil-smartparens-mode)
+    (add-hook 'common-lisp-mode-hook #'evil-smartparens-mode))
+  (setq eshell-aliases-file
+        (expand-file-name "eshell/aliases" star-config-directory)))
 
 (defun star-doom--visual-shell ()
   (setq inhibit-startup-screen t
@@ -203,6 +258,9 @@
     (define-key ivy-minibuffer-map (kbd "C-l") #'ivy-alt-done))
   (when (require 'ivy-rich nil t)
     (ivy-rich-mode 1))
+  (when (require 'ivy-xref nil t)
+    (setq xref-show-xrefs-function #'ivy-xref-show-xrefs
+          xref-show-definitions-function #'ivy-xref-show-defs))
   (when (require 'amx nil t)
     (amx-mode 1))
   (when (require 'counsel-projectile nil t)
@@ -229,13 +287,40 @@
   (when (require 'undo-fu-session nil t)
     (undo-fu-session-global-mode 1))
   (when (require 'yasnippet nil t)
-    (yas-global-mode 1))
+    (yas-global-mode 1)
+    (require 'yasnippet-snippets nil t)
+    (require 'doom-snippets nil t))
   (when (require 'smartparens-config nil t)
     (smartparens-global-mode 1))
   (when (require 'apheleia nil t)
     (apheleia-global-mode 1))
   (when (require 'ws-butler nil t)
     (ws-butler-global-mode 1)))
+
+(defun star-doom--lisp-editing ()
+  (when (require 'lispy nil t)
+    (dolist (hook '(emacs-lisp-mode-hook
+                    lisp-mode-hook
+                    common-lisp-mode-hook))
+      (add-hook hook #'lispy-mode)))
+  (when (require 'lispyville nil t)
+    (dolist (hook '(emacs-lisp-mode-hook
+                    lisp-mode-hook
+                    common-lisp-mode-hook))
+      (add-hook hook #'lispyville-mode)))
+  (when (require 'parinfer-rust-mode nil t)
+    (dolist (hook '(emacs-lisp-mode-hook
+                    lisp-mode-hook
+                    common-lisp-mode-hook))
+      (add-hook hook #'parinfer-rust-mode))))
+
+(defun star-doom--folding ()
+  (when (require 'vimish-fold nil t)
+    (when (fboundp 'vimish-fold-global-mode)
+      (vimish-fold-global-mode 1)))
+  (when (require 'evil-vimish-fold nil t)
+    (add-hook 'prog-mode-hook #'evil-vimish-fold-mode)
+    (add-hook 'text-mode-hook #'evil-vimish-fold-mode)))
 
 (defun star-doom--evil ()
   (setq evil-want-C-u-scroll t
@@ -247,8 +332,21 @@
         evil-vsplit-window-right t
         evil-symbol-word-search t)
   (evil-mode 1)
+  (when (require 'anzu nil t)
+    (global-anzu-mode 1))
+  (require 'evil-anzu nil t)
+  (require 'evil-args nil t)
+  (require 'evil-easymotion nil t)
+  (require 'evil-indent-plus nil t)
+  (require 'evil-nerd-commenter nil t)
+  (require 'evil-numbers nil t)
+  (require 'evil-quick-diff nil t)
+  (require 'evil-textobj-anyblock nil t)
   (when (require 'evil-surround nil t)
     (global-evil-surround-mode 1))
+  (when (require 'evil-embrace nil t)
+    (when (fboundp 'evil-embrace-enable-evil-surround-integration)
+      (evil-embrace-enable-evil-surround-integration)))
   (when (require 'evil-snipe nil t)
     (evil-snipe-mode 1)
     (evil-snipe-override-mode 1))
@@ -260,6 +358,19 @@
     (evil-goggles-mode 1))
   (when (require 'evil-visualstar nil t)
     (global-evil-visualstar-mode 1))
+  (when (require 'evil-escape nil t)
+    (when (fboundp 'evil-escape-mode)
+      (evil-escape-mode 1)))
+  (when (require 'evil-lion nil t)
+    (when (fboundp 'evil-lion-mode)
+      (evil-lion-mode 1)))
+  (when (require 'evil-traces nil t)
+    (when (fboundp 'evil-traces-mode)
+      (evil-traces-mode 1)))
+  (when (and (not (display-graphic-p))
+             (require 'evil-terminal-cursor-changer nil t)
+             (fboundp 'evil-terminal-cursor-changer-activate))
+    (evil-terminal-cursor-changer-activate))
   (when (require 'evil-org nil t)
     (add-hook 'org-mode-hook #'evil-org-mode)
     (with-eval-after-load 'evil-org
@@ -309,7 +420,9 @@
   (star-doom--popup-rule "\\*Backtrace\\*" 0.40)
   (star-doom--popup-rule "\\*Messages\\*" 0.30)
   (star-doom--popup-rule "\\*vterm" 0.32)
-  (star-doom--popup-rule "\\*eshell" 0.32))
+  (star-doom--popup-rule "\\*eshell" 0.32)
+  (star-doom--popup-rule "\\*sly-description\\*" 0.35)
+  (star-doom--popup-rule "\\*sly-compilation\\*" 0.35))
 
 (defun star-doom--prefixes ()
   (dolist (entry '(("b" . "buffer")
@@ -322,7 +435,9 @@
                    ("p" . "project")
                    ("q" . "quit/session")
                    ("s" . "search")
+                   ("t" . "toggle")
                    ("w" . "window")
+                   ("y" . "AI")
                    ("TAB" . "workspace")))
     (general-define-key
      :keymaps 'star-leader-map
@@ -342,13 +457,17 @@
    "b k" #'kill-current-buffer
    "b n" #'next-buffer
    "b p" #'previous-buffer
+   "b r" #'revert-buffer
    "b s" #'save-buffer
    "f f" #'star-doom/find-file
    "f r" #'star-doom/recent-file
    "f s" #'save-buffer
    "f S" #'write-file
+   "f y" #'star-doom/yank-file-path
    "p p" #'star-doom/project-switch
    "p f" #'star-doom/project-find-file
+   "p d" #'star-doom/project-dired
+   "p k" #'star-doom/project-kill-buffers
    "p /" #'star-doom/project-search
    "s s" #'star-doom/search-buffer
    "s p" #'star-doom/project-search
@@ -356,11 +475,14 @@
    "g g" #'magit-status
    "g b" #'magit-branch-checkout
    "g l" #'magit-log-current
+   "g d" #'magit-diff-buffer-file
+   "g f" #'magit-file-dispatch
    "o t" #'star-doom/vterm-popup
    "o e" #'star-doom/eshell-popup
    "o a" #'star-doom/org-agenda
    "o c" #'star-doom/org-capture
    "n r" #'star-doom/org-roam-find
+   "n i" #'star-doom/org-roam-insert
    "w h" #'windmove-left
    "w j" #'windmove-down
    "w k" #'windmove-up
@@ -370,6 +492,8 @@
    "w d" #'delete-window
    "w o" #'delete-other-windows
    "w =" #'balance-windows
+   "w u" #'winner-undo
+   "w r" #'winner-redo
    "TAB TAB" #'persp-switch
    "TAB n" #'persp-add-new
    "TAB d" #'persp-kill
@@ -383,6 +507,9 @@
    "f p" #'star-doom/open-config
    "f i" #'star-doom/open-init
    "f u" #'star-doom/open-ux
+   "t l" #'star-doom/toggle-line-numbers
+   "t w" #'whitespace-mode
+   "t v" #'visual-line-mode
    "q r" #'star-config-sync
    "q q" #'save-buffers-kill-terminal))
 
@@ -399,11 +526,14 @@
 (defun star-doom-ux-init ()
   "Apply Doom-equivalent behavior without loading the Doom runtime."
   (interactive)
+  (star-doom--repair-ported-config)
   (star-doom--visual-shell)
   (star-doom--theme)
   (star-doom--modeline)
   (star-doom--completion)
   (star-doom--editing)
+  (star-doom--lisp-editing)
+  (star-doom--folding)
   (star-doom--evil)
   (star-doom--company)
   (star-doom--projects)
