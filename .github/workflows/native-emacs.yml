@@ -37,18 +37,34 @@ jobs:
       - name: Install Emacs test runtime
         run: sudo apt-get update && sudo apt-get install -y emacs-nox
 
-      - name: Verify native literate sources are tangled in sync
+      - name: Verify every native literate source is tangled in sync
+        shell: bash
         run: |
           set -euo pipefail
+
           emacs -Q --batch \
             --eval "(require 'org)" \
-            --eval '(org-babel-tangle-file "emacs/profiles.org")' \
-            --eval '(org-babel-tangle-file "emacs/desktop/early-init.org")' \
-            --eval '(org-babel-tangle-file "emacs/desktop/init.org")'
+            --eval '(org-babel-tangle-file "emacs/profiles.org")'
+
+          mapfile -t sources < <(
+            grep -IlR --include='*.org' ':tangle' emacs/desktop | sort
+          )
+          test "${#sources[@]}" -ge 6
+
+          for source in "${sources[@]}"; do
+            echo "Tangling $source"
+            SOURCE="$source" emacs -Q --batch \
+              --eval "(require 'org)" \
+              --eval '(org-babel-tangle-file (getenv "SOURCE"))'
+          done
+
+          emacs -Q --batch \
+            --eval "(require 'loaddefs-gen)" \
+            --eval '(loaddefs-generate "emacs/desktop/autoload" "emacs/desktop/star-autoloads.el")'
+
           git diff --exit-code -- \
             .emacs-profiles.el \
-            emacs/desktop/early-init.el \
-            emacs/desktop/init.el
+            emacs/desktop
 
       - name: Fetch pinned upstream audit sources
         shell: bash
@@ -69,15 +85,15 @@ jobs:
 
       - uses: cachix/install-nix-action@v31
 
-      - name: Verify flake selects the native profile
+      - name: Verify Doom remains default while native parity is in progress
+        shell: bash
         run: |
           set -euo pipefail
-          profile="$(
-            nix eval --impure --raw --expr \
-              '(builtins.getFlake (toString ./.)).homeConfigurations."unseen@flake".config.home.sessionVariables.CHEMACS_PROFILE'
-          )"
-          test "$profile" = desktop-native
+          grep -Fq '"default"' .emacs-profiles.el
+          grep -Fq '(user-emacs-directory . "~/.config/emacs")' .emacs-profiles.el
+          grep -Fq '("DOOMDIR" . "~/.doom.d")' .emacs-profiles.el
           grep -Fq '"desktop-native"' .emacs-profiles.el
+          ! grep -Fq 'CHEMACS_PROFILE = "desktop-native"' nix/home-manager/systems/flake/home.nix
 
       - name: Build the exact Home Manager Emacs closure
         id: native-emacs-build
@@ -90,13 +106,17 @@ jobs:
           test -x "$emacs_path/bin/emacs"
           echo "emacs_path=$emacs_path" >> "$GITHUB_OUTPUT"
 
-      - name: Smoke-test native startup without Doom
+      - name: Smoke-test Doom-equivalent native startup without Doom
         env:
           EMACS_PATH: ${{ steps.native-emacs-build.outputs.emacs_path }}
         run: |
           set -euo pipefail
           export HOME="$RUNNER_TEMP/native-home"
-          mkdir -p "$HOME"
+          mkdir -p \
+            "$HOME/Documents/Notes/org/agenda" \
+            "$HOME/Documents/Notes/org/roam" \
+            "$HOME/Documents/Emacs" \
+            "$HOME/Templates"
           ln -s "$GITHUB_WORKSPACE" "$HOME/.dotfiles"
 
           "$EMACS_PATH/bin/emacs" --batch -Q \
@@ -106,6 +126,8 @@ jobs:
               (progn
                 (require (quote org))
                 (require (quote org-agenda))
+                (require (quote doom-ux))
+                (star-doom-ux-init)
                 (when (featurep (quote doom))
                   (error "Doom runtime leaked into native desktop"))
                 (unless (keymapp star-leader-map)
@@ -116,7 +138,22 @@ jobs:
                   (error "Ivy is not enabled"))
                 (unless (bound-and-true-p global-company-mode)
                   (error "Company is not enabled"))
-                (dolist (library (quote ("gptel" "mcp" "org-roam" "magit" "vterm" "sly")))
+                (unless (bound-and-true-p doom-modeline-mode)
+                  (error "Doom modeline is not enabled"))
+                (unless (member (quote doom-outrun-electric) custom-enabled-themes)
+                  (error "Doom Outrun Electric theme is not active"))
+                (unless (eq (lookup-key star-leader-map (kbd "."))
+                            (quote star-doom/find-file))
+                  (error "Doom-style SPC . binding is missing"))
+                (unless (eq (lookup-key star-leader-map (kbd "g g"))
+                            (quote magit-status))
+                  (error "Doom-style SPC g g binding is missing"))
+                (unless (eq (lookup-key star-leader-map (kbd "o t"))
+                            (quote star-doom/vterm-popup))
+                  (error "Doom-style SPC o t binding is missing"))
+                (dolist (library (quote ("gptel" "mcp" "org-roam" "magit" "vterm" "sly"
+                                         "doom-themes" "doom-modeline" "evil-surround"
+                                         "evil-snipe" "evil-goggles" "persp-mode")))
                   (unless (locate-library library)
-                    (error "Required library is missing: %s" library)))
-                (message "native-emacs-smoke-ok"))'
+                    (error "Required Doom-parity library is missing: %s" library)))
+                (message "native-doom-parity-smoke-ok"))'
