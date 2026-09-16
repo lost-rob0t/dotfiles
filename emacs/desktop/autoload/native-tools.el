@@ -95,13 +95,119 @@
   (add-hook 'after-save-hook #'+upload-init-after-save-h)
   (add-hook 'find-file-hook #'+upload-init-find-file-h))
 
+(defun star-native-thing-at-point-or-region (&optional kind)
+  "Return active region text or KIND at point, stripped of text properties."
+  (let ((value
+         (cond
+          ((use-region-p)
+           (buffer-substring-no-properties (region-beginning) (region-end)))
+          ((thing-at-point (or kind 'symbol) t)))))
+    (and value (string-trim value))))
+
+(defun star-native--lookup-identifier (&optional identifier kind prompt)
+  (or identifier
+      (star-native-thing-at-point-or-region kind)
+      (and prompt (read-string prompt))))
+
+(defun +lookup/definition (&optional identifier)
+  "Jump to IDENTIFIER's definition using xref with dumb-jump fallback."
+  (interactive)
+  (let ((identifier (star-native--lookup-identifier identifier 'symbol)))
+    (unless identifier
+      (user-error "Nothing under point"))
+    (condition-case xref-error
+        (xref-find-definitions identifier)
+      (error
+       (if (and (require 'dumb-jump nil t)
+                (fboundp 'dumb-jump-go))
+           (call-interactively #'dumb-jump-go)
+         (signal (car xref-error) (cdr xref-error)))))))
+
+(defun +lookup/references (&optional identifier)
+  "Show references to IDENTIFIER using xref."
+  (interactive)
+  (let ((identifier (star-native--lookup-identifier identifier 'symbol)))
+    (unless identifier
+      (user-error "Nothing under point"))
+    (xref-find-references identifier)))
+
+(defun +lookup/implementations (&optional identifier)
+  "Show implementations for IDENTIFIER, preferring the active LSP client."
+  (interactive)
+  (let ((identifier (star-native--lookup-identifier identifier 'symbol)))
+    (unless identifier
+      (user-error "Nothing under point"))
+    (cond
+     ((and (bound-and-true-p lsp-mode)
+           (fboundp 'lsp-find-implementation))
+      (call-interactively #'lsp-find-implementation))
+     ((fboundp 'xref-find-definitions)
+      (xref-find-definitions identifier))
+     (t
+      (user-error "No implementation lookup backend is active")))))
+
+(defun +lookup/type-definition (&optional identifier)
+  "Show the type definition for IDENTIFIER when the active LSP client supports it."
+  (interactive)
+  (let ((identifier (star-native--lookup-identifier identifier 'symbol)))
+    (unless identifier
+      (user-error "Nothing under point"))
+    (if (and (bound-and-true-p lsp-mode)
+             (fboundp 'lsp-find-type-definition))
+        (call-interactively #'lsp-find-type-definition)
+      (+lookup/definition identifier))))
+
+(defun +lookup/file (&optional path)
+  "Open PATH or the filename/URL at point."
+  (interactive)
+  (require 'ffap)
+  (let ((path (or path (ffap-guesser) (thing-at-point 'filename t))))
+    (unless path
+      (user-error "Couldn't find any files here"))
+    (find-file-at-point path)))
+
+(defun +lookup/documentation (&optional identifier)
+  "Show documentation for IDENTIFIER using the strongest local backend."
+  (interactive)
+  (let ((identifier
+         (star-native--lookup-identifier identifier 'symbol "Describe symbol: ")))
+    (cond
+     ((and (bound-and-true-p lsp-mode)
+           (fboundp 'lsp-describe-thing-at-point))
+      (call-interactively #'lsp-describe-thing-at-point))
+     ((and identifier
+           (intern-soft identifier)
+           (fboundp 'helpful-symbol))
+      (helpful-symbol (intern identifier)))
+     ((and identifier (intern-soft identifier))
+      (describe-symbol (intern identifier)))
+     ((fboundp 'eldoc-doc-buffer)
+      (eldoc-doc-buffer))
+     (t
+      (user-error "No documentation backend is active")))))
+
 (defun star-native--lookup ()
   "Install native lookup fallbacks used by Doom's :tools lookup module."
   (when (require 'dumb-jump nil t)
+    (setq dumb-jump-prefer-searcher 'rg
+          dumb-jump-aggressive nil
+          dumb-jump-selector 'ivy)
+    (add-hook 'dumb-jump-after-jump-hook #'better-jumper-set-jump)
     (add-hook 'xref-backend-functions #'dumb-jump-xref-activate 90))
   (when (require 'ivy-xref nil t)
     (setq xref-show-xrefs-function #'ivy-xref-show-xrefs
-          xref-show-definitions-function #'ivy-xref-show-defs)))
+          xref-show-definitions-function #'ivy-xref-show-defs))
+  (global-set-key [remap xref-find-definitions] #'+lookup/definition)
+  (global-set-key [remap xref-find-references] #'+lookup/references)
+  (when (fboundp 'general-define-key)
+    (general-define-key
+     :states '(normal visual)
+     :keymaps 'override
+     "K" #'+lookup/documentation
+     "gd" #'+lookup/definition
+     "gD" #'+lookup/references
+     "gf" #'+lookup/file
+     "gI" #'+lookup/implementations)))
 
 (defun +everywhere-app-info-hyprland ()
   "Return active-window data for Emacs Everywhere on Hyprland."
