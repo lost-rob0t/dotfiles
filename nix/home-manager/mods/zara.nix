@@ -124,6 +124,18 @@ in
           cold AgentManager/ChromaDB starts, which can take minutes.
         '';
       };
+
+      remoteEndpoint = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Optional authenticated TCP listener alongside local IPC.";
+      };
+
+      securityDir = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Owner-private, out-of-store CURVE state directory for the remote listener.";
+      };
     };
 
     desktop = {
@@ -211,6 +223,11 @@ in
 
     assertions = [
       {
+        assertion = cfg.server.remoteEndpoint == null
+          || (cfg.server.securityDir != null && lib.hasPrefix "tcp://" cfg.server.remoteEndpoint);
+        message = "zara.server.remoteEndpoint requires a TCP endpoint and zara.server.securityDir.";
+      }
+      {
         assertion = unknownRegistryPlugins == [ ];
         message = ''
           Unknown zara.plugins.registry entries: ${lib.concatStringsSep ", " unknownRegistryPlugins}.
@@ -241,7 +258,9 @@ in
         After = [ "pipewire.service" "pipewire-pulse.service" ];
       };
       Service = {
-        ExecStart = "${cfg.package}/bin/zara-server --shutdown-timeout ${toString cfg.server.shutdownTimeout}";
+        ExecStart = "${cfg.package}/bin/zara-server --shutdown-timeout ${toString cfg.server.shutdownTimeout}"
+          + lib.optionalString (cfg.server.remoteEndpoint != null && cfg.server.securityDir != null)
+            " --remote-endpoint ${cfg.server.remoteEndpoint} --security-dir ${cfg.server.securityDir}";
         EnvironmentFile = lib.optional (cfg.server.environmentFile != null) cfg.server.environmentFile;
         Restart = "on-failure";
         RestartSec = 5;
