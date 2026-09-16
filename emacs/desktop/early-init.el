@@ -13,8 +13,8 @@
 (push '(vertical-scroll-bars) default-frame-alist)
 
 (let ((config-root (file-name-directory (or load-file-name buffer-file-name))))
-  (load (expand-file-name "autoload/native-bootstrap.el" config-root)
-        nil
-        'nomessage))
+  (dolist (library '("autoload/native-bootstrap.el"
+                     "autoload/native-pdf.el"))
+    (load (expand-file-name library config-root) nil 'nomessage)))
 
 ;;; early-init.el ends here
