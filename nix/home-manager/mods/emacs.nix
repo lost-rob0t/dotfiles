@@ -22,9 +22,9 @@ let
       esac
     done
 
-    # Desktop Emacs is Doom by default.  Bypass any stale ~/.emacs profile
-    # routing and point Emacs directly at the Doom core checkout while keeping
-    # the existing ~/.doom.d configuration authoritative.
+    # Desktop Emacs is Doom by default.  Point Emacs at the Doom core checkout
+    # directly instead of relying on profile routing for the normal entry point;
+    # ~/.doom.d remains the authoritative user configuration.
     export DOOMDIR="''${DOOMDIR:-${config.home.homeDirectory}/.doom.d}"
     export EMACS_SERVER_NAME="''${EMACS_SERVER_NAME:-doom}"
     exec "$real_emacs" \
@@ -92,6 +92,7 @@ in
     home.file.".local/bin/emacs" = {
       source = doomEmacsWrapper;
       executable = true;
+      force = true;
     };
 
     emacs.diredXDG.pkg = pkgs.makeDesktopItem {
