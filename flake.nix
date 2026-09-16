@@ -21,7 +21,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara = {
-      url = "github:lost-rob0t/zara";
+      url = "github:lost-rob0t/zara/43d8fa8c98771e02aff5ee1850ad5f2be7c35377";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     qwen3-tts = {
@@ -338,6 +338,7 @@
         ai-client-theme = aiClientThemeCheck;
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
+        zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
       };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;
