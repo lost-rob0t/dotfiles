@@ -37,6 +37,14 @@ Load chatgpt-books and open its project landing page." t)
 (with-eval-after-load 'dirvish (setq dirvish-quick-access-entries '(("h" "~/" "Home") ("d" "~/Downloads/" "Downloads") ("s" "/mnt/share" "Share Drive") ("t" "~/.local/share/Trash/files/" "TrashCan"))) (global-set-key (kbd "C-c f") #'dirvish-fd) (define-key dirvish-mode-map (kbd "?") #'dirvish-dispatch) (define-key dirvish-mode-map (kbd "a") #'dirvish-quick-access) (define-key dirvish-mode-map (kbd "f") #'dirvish-file-info-menu) (define-key dirvish-mode-map (kbd "y") #'dirvish-yank-menu) (define-key dirvish-mode-map (kbd "N") #'dirvish-narrow) (define-key dirvish-mode-map (kbd "^") #'dirvish-history-last) (define-key dirvish-mode-map (kbd "h") #'dirvish-history-jump) (define-key dirvish-mode-map (kbd "s") #'dirvish-quicksort) (define-key dirvish-mode-map (kbd "v") #'dirvish-vc-menu) (define-key dirvish-mode-map (kbd "TAB") #'dirvish-subtree-toggle) (define-key dirvish-mode-map (kbd "M-f") #'dirvish-history-go-forward) (define-key dirvish-mode-map (kbd "M-b") #'dirvish-history-go-backward) (define-key dirvish-mode-map (kbd "M-l") #'dirvish-ls-switches-menu) (define-key dirvish-mode-map (kbd "M-m") #'dirvish-mark-menu) (define-key dirvish-mode-map (kbd "M-t") #'dirvish-layout-toggle) (define-key dirvish-mode-map (kbd "M-s") #'dirvish-setup-menu) (define-key dirvish-mode-map (kbd "M-e") #'dirvish-emerge-menu) (define-key dirvish-mode-map (kbd "M-j") #'dirvish-fd-jump))
 
 
+;;; Generated autoloads from autoload/doom-ux.el
+
+(autoload 'star-doom-ux-init "autoload/doom-ux" "\
+Apply Doom-equivalent behavior without loading the Doom runtime." t)
+(add-hook 'star-after-init-hook #'star-doom-ux-init)
+(register-definition-prefixes "autoload/doom-ux" '("star-doom"))
+
+
 ;;; Generated autoloads from autoload/gpt-todos.el
 
 (autoload 'gpt-todos-sync "autoload/gpt-todos" "\
