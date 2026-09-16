@@ -2,7 +2,7 @@
 #+STARTUP: overview
 #+PROPERTY: header-args:emacs-lisp :comments no :padline yes :mkdirp yes
 
-Native equivalent of the enabled Doom =:tools pdf= behavior.  Keep this small;
+Native equivalent of the enabled Doom =:tools pdf= behavior. Keep this small;
 PDFs should open like they did in Doom without loading Doom itself.
 
 * Runtime
@@ -17,8 +17,9 @@ PDFs should open like they did in Doom without loading Doom itself.
   (when (bound-and-true-p pdf-annot-list-buffer)
     (when (buffer-live-p pdf-annot-list-buffer)
       (kill-buffer pdf-annot-list-buffer)))
-  (when-let ((contents (get-buffer "*Contents*")))
-    (kill-buffer contents)))
+  (let ((contents (get-buffer "*Contents*")))
+    (when (buffer-live-p contents)
+      (kill-buffer contents))))
 
 (defun star-native-pdf-view-setup ()
   (display-line-numbers-mode -1)
