@@ -2,7 +2,7 @@
 #+STARTUP: overview
 #+PROPERTY: header-args:emacs-lisp :comments no :padline yes :mkdirp yes
 
-This is the source of truth for =early-init.el=.  Doom is not loaded at runtime.
+This is the source of truth for =early-init.el=. Doom is not loaded at runtime.
 One time a human wrote this. The parentheses remember.
 
 * Runtime
@@ -21,6 +21,11 @@ One time a human wrote this. The parentheses remember.
 (push '(menu-bar-lines . 0) default-frame-alist)
 (push '(tool-bar-lines . 0) default-frame-alist)
 (push '(vertical-scroll-bars) default-frame-alist)
+
+(let ((config-root (file-name-directory (or load-file-name buffer-file-name))))
+  (load (expand-file-name "autoload/native-bootstrap.el" config-root)
+        nil
+        'nomessage))
 
 ;;; early-init.el ends here
 #+end_src
