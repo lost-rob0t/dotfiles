@@ -32,12 +32,21 @@
    "%S does not contain %S"
    hook function))
 
+(defun star-parity-remap (command expected)
+  (let ((actual (lookup-key global-map (vector 'remap command))))
+    (star-parity-assert
+     (eq actual expected)
+     "remap %S expected %S, got %S"
+     command expected actual)))
+
 (defun star-parity-run ()
   "Fail batch Emacs when native desktop no longer behaves like its Doom baseline."
   (require 'org)
   (require 'org-agenda)
   (require 'doom-ux)
+  (require 'native-bootstrap)
   (star-doom-ux-init)
+  (star-native-doom-core-compat-init)
 
   ;; Runtime boundary: native must reproduce Doom behavior, not secretly load Doom.
   (star-parity-assert (not (featurep 'doom)) "Doom runtime leaked into native desktop")
@@ -63,8 +72,8 @@
   ;; Editing/completion baseline.
   (dolist (mode '(evil-mode ivy-mode counsel-mode global-company-mode
                   projectile-mode which-key-mode persp-mode
-                  global-diff-hl-mode global-hl-todo-mode
-                  undo-fu-session-global-mode))
+                  global-diff-hl-mode global-hl-todo-mode global-anzu-mode
+                  undo-fu-session-global-mode better-jumper-mode))
     (star-parity-assert
      (star-parity-bound-and-true-p mode)
      "%S is not active"
@@ -72,23 +81,35 @@
 
   ;; Package availability is necessary but not sufficient. These libraries implement
   ;; behavior from the enabled Doom modules and must stay in the native closure.
-  (dolist (library '("amx" "anzu" "apheleia" "counsel-projectile"
-                     "diff-hl" "dirvish" "doom-modeline" "doom-snippets"
-                     "doom-themes" "dtrt-indent" "evil-anzu" "evil-args"
-                     "evil-collection" "evil-easymotion" "evil-embrace"
-                     "evil-escape" "evil-exchange" "evil-goggles"
+  (dolist (library '("adaptive-wrap" "amx" "anzu" "apheleia" "better-jumper"
+                     "counsel-projectile" "diff-hl" "dirvish" "doom-modeline"
+                     "doom-snippets" "doom-themes" "dtrt-indent" "emojify" "eros"
+                     "evil-anzu" "evil-args" "evil-collection" "evil-easymotion"
+                     "evil-embrace" "evil-escape" "evil-exchange" "evil-goggles"
                      "evil-indent-plus" "evil-lion" "evil-nerd-commenter"
                      "evil-numbers" "evil-org" "evil-quick-diff"
                      "evil-smartparens" "evil-snipe" "evil-surround"
                      "evil-textobj-anyblock" "evil-traces" "evil-vimish-fold"
                      "evil-visualstar" "forge" "gptel" "helpful" "hl-todo"
-                     "ivy-rich" "ivy-xref" "lispy" "lispyville" "lsp-mode"
+                     "ivy-rich" "ivy-xref" "kkp" "lispy" "lispyville" "lsp-mode"
                      "magit" "mcp" "org-modern" "org-ql" "org-roam"
                      "parinfer-rust-mode" "persp-mode" "projectile" "sly"
-                     "smartparens" "solaire-mode" "swiper" "vi-tilde-fringe"
-                     "vimish-fold" "vterm" "which-key" "yasnippet"
-                     "yasnippet-snippets"))
+                     "smartparens" "solaire-mode" "swiper" "unicode-fonts"
+                     "vi-tilde-fringe" "vimish-fold" "vterm" "which-key"
+                     "yasnippet" "yasnippet-snippets"))
     (star-parity-library library))
+
+  ;; Doom core replaced Evil and xref jump history with better-jumper.
+  (star-parity-remap 'evil-jump-forward 'better-jumper-jump-forward)
+  (star-parity-remap 'evil-jump-backward 'better-jumper-jump-backward)
+  (star-parity-remap 'xref-go-back 'better-jumper-jump-backward)
+  (star-parity-remap 'xref-go-forward 'better-jumper-jump-forward)
+  (star-parity-hook 'kill-buffer-hook 'star-native-doom-set-jump-h)
+
+  ;; :tools eval +overlay and :editor word-wrap were behavior, not package names.
+  (star-parity-hook 'emacs-lisp-mode-hook 'eros-mode)
+  (star-parity-hook 'prog-mode-hook 'star-native-word-wrap-mode)
+  (star-parity-hook 'text-mode-hook 'star-native-word-wrap-mode)
 
   ;; Doom muscle memory supplied by the compatibility layer.
   (dolist (binding '(("." . star-doom/find-file)
@@ -111,8 +132,7 @@
                      ("q r" . star-config-sync)))
     (star-parity-binding (car binding) (cdr binding)))
 
-  ;; Never let the compatibility layer erase bindings from the user's literate
-  ;; config while creating Doom-style prefix groups.
+  ;; Never let compatibility glue erase bindings from the user's literate config.
   (dolist (binding '(("t T" . ivan/cycle-theme)
                      ("o a u" . org-agenda-update-files)
                      ("y y" . gptel)
