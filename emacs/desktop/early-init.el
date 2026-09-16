@@ -14,7 +14,8 @@
 
 (let ((config-root (file-name-directory (or load-file-name buffer-file-name))))
   (dolist (library '("autoload/native-bootstrap.el"
-                     "autoload/native-pdf.el"))
+                     "autoload/native-pdf.el"
+                     "autoload/native-tools.el"))
     (load (expand-file-name library config-root) nil 'nomessage)))
 
 ;;; early-init.el ends here
