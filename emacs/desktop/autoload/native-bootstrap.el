@@ -53,6 +53,11 @@
   (dolist (hook '(text-mode-hook prog-mode-hook))
     (add-hook hook #'star-native-word-wrap-mode)))
 
+(defun star-native--lisp-repair ()
+  "Correct mechanical Lisp hook conversion mistakes from the old Doom config."
+  (when (require 'evil-smartparens nil t)
+    (add-hook 'common-lisp-mode-hook #'evil-smartparens-mode)))
+
 (defun star-native--unicode ()
   "Set up Doom's Unicode fallback support after graphical startup."
   (when (and (display-graphic-p)
@@ -79,6 +84,7 @@
   (star-native--better-jumper)
   (star-native--eval-overlays)
   (star-native--word-wrap)
+  (star-native--lisp-repair)
   (star-native--unicode)
   (star-native--emoji)
   (star-native--tty))
