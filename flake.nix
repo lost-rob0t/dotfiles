@@ -21,7 +21,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara = {
-      url = "github:lost-rob0t/zara";
+      url = "git+ssh://forgejo@git.starintel.actor/nsaspy/zara.git?rev=a04b5a7c2b7e7eb433396f0b08196cd68ceb7094";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     qwen3-tts = {
@@ -338,6 +338,7 @@
         ai-client-theme = aiClientThemeCheck;
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
+        zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
       };
 
       formatter.${system} = pkgs.nixfmt-rfc-style;
