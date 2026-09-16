@@ -283,18 +283,18 @@
         ]
       },
       "locked": {
-        "lastModified": 1789577081,
-        "narHash": "sha256-rjDR6nnNU6fnyLdNt6TJZsecq9+keeibhaIiKW2XYKA=",
-        "ref": "refs/heads/master",
-        "rev": "a04b5a7c2b7e7eb433396f0b08196cd68ceb7094",
-        "revCount": 1793,
-        "type": "git",
-        "url": "ssh://forgejo@git.starintel.actor/nsaspy/zara.git"
+        "lastModified": 1789587416,
+        "narHash": "sha256-xI9TztJ/Pt2xNdNMMiT375ZEeOprp5d4d+NJgtnVcLM=",
+        "owner": "lost-rob0t",
+        "repo": "zara",
+        "rev": "43d8fa8c98771e02aff5ee1850ad5f2be7c35377",
+        "type": "github"
       },
       "original": {
-        "rev": "a04b5a7c2b7e7eb433396f0b08196cd68ceb7094",
-        "type": "git",
-        "url": "ssh://forgejo@git.starintel.actor/nsaspy/zara.git"
+        "owner": "lost-rob0t",
+        "repo": "zara",
+        "rev": "43d8fa8c98771e02aff5ee1850ad5f2be7c35377",
+        "type": "github"
       }
     },
     "zara-plugins": {
