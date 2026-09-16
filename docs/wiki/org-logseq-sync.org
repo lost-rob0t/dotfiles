@@ -1,0 +1,37 @@
+#+TITLE: Org-roam and Logseq synchronization
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Architecture
+The canonical implementation is [[file:../../nix/home-manager/mods/org-logseq-sync.org][org-logseq-sync.org]].  It tangles the Home Manager module, the =org-logseq-sync= executable, and its regression test.
+
+The bridge keeps Org as the shared storage format and gives Emacs/org-roam and Logseq separate directory conventions:
+
+- =~/Documents/Notes/org/roam/*.org= ↔ =~/Documents/Notes/logseq/pages/*.org=;
+- =~/Documents/Notes/org/roam/daily/*.org= ↔ =~/Documents/Notes/logseq/journals/*.org=.
+
+Only =.org= files cross the bridge.  Logseq configuration, cache, database files, and assets stay owned by Logseq.
+
+* Conflict policy
+Synchronization uses Unison with no globally preferred replica.  Non-conflicting changes flow in either direction.  Concurrent edits to the same note are skipped as conflicts instead of being resolved by timestamps or silently overwritten.  Run =org-logseq-sync --once= manually to surface a non-zero result when a conflict needs attention.
+
+The long-running =org-logseq-sync.service= performs an initial sync, then watches both trees with inotify.  A file lock serializes manual and daemon runs.  After a clean reconciliation the service asks the configured Emacs server (default =doom=) to refresh the org-roam database.
+
+* Home Manager options
+The reusable module is enabled by default when the custom Emacs module is enabled.  Its main options are:
+
+- =orgLogseqSync.enable=;
+- =orgLogseqSync.orgRoamDir=;
+- =orgLogseqSync.orgRoamDailiesDir=;
+- =orgLogseqSync.logseqGraphDir=;
+- =orgLogseqSync.debounceSeconds=;
+- =orgLogseqSync.refreshOrgRoamDb=;
+- =orgLogseqSync.emacsServerName=.
+
+After switching Home Manager, inspect it with:
+
+#+begin_src shell
+  systemctl --user status org-logseq-sync.service
+  journalctl --user -u org-logseq-sync.service -f
+  org-logseq-sync --once
+#+end_src

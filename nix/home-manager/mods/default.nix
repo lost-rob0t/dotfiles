@@ -18,6 +18,7 @@
     ./fonts.nix
     ./emacs.nix
     ./gpt-todos.nix
+    ./org-logseq-sync.nix
     ./hackmode.nix
     ./security.nix
     ./nim.nix

@@ -1,0 +1,383 @@
+#+TITLE: Org-roam ↔ Logseq synchronization
+#+PROPERTY: header-args :mkdirp yes
+#+STARTUP: overview
+
+* Purpose
+
+This module keeps the user's Org knowledge base usable from both Emacs/org-roam
+and Logseq without making either application the transport layer.
+
+The file layout is intentionally asymmetric:
+
+- normal org-roam notes under =~/Documents/Notes/org/roam/= synchronize with the
+  Logseq graph's =pages/= directory;
+- org-roam dailies under =daily/= synchronize with Logseq =journals/=;
+- only =.org= files cross the bridge, so Logseq's own metadata, cache and assets
+  remain owned by Logseq.
+
+Synchronization is bidirectional through Unison.  No replica is globally
+preferred: non-conflicting edits propagate in either direction while concurrent
+edits to the same note remain conflicts for a human to resolve.  A user systemd
+service performs an initial reconciliation and then watches both trees with
+inotify.  After a successful reconciliation it asks a running Emacs server to
+refresh the org-roam database.
+
+* Synchronizer
+
+#+begin_src bash :tangle ../../../scripts/org-logseq-sync :shebang "#!/usr/bin/env bash"
+set -euo pipefail
+
+mode="${1:---watch}"
+
+case "$mode" in
+    --once|--watch)
+        ;;
+    *)
+        printf 'usage: org-logseq-sync [--once|--watch]\n' >&2
+        exit 64
+        ;;
+esac
+
+org_roam_dir="${ORG_ROAM_DIR:-$HOME/Documents/Notes/org/roam}"
+org_roam_dailies_rel="${ORG_ROAM_DAILIES_DIR:-daily}"
+logseq_graph_dir="${LOGSEQ_GRAPH_DIR:-$HOME/Documents/Notes/logseq}"
+debounce_seconds="${ORG_LOGSEQ_SYNC_DEBOUNCE_SECONDS:-1}"
+refresh_roam="${ORG_LOGSEQ_SYNC_REFRESH_ROAM:-1}"
+emacs_server_name="${ORG_LOGSEQ_SYNC_EMACS_SERVER_NAME:-doom}"
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/org-logseq-sync"
+lock_file="$state_dir/sync.lock"
+
+org_roam_dailies_dir="$org_roam_dir/$org_roam_dailies_rel"
+logseq_pages_dir="$logseq_graph_dir/pages"
+logseq_journals_dir="$logseq_graph_dir/journals"
+
+mkdir -p \
+    "$org_roam_dir" \
+    "$org_roam_dailies_dir" \
+    "$logseq_pages_dir" \
+    "$logseq_journals_dir" \
+    "$state_dir"
+
+collect_paths() {
+    local left=$1
+    local right=$2
+    local excluded_left_rel=${3:-}
+
+    {
+        if [[ -n "$excluded_left_rel" ]]; then
+            find "$left" \
+                -type f \
+                -name '*.org' \
+                ! -path "$left/$excluded_left_rel/*" \
+                -printf '%P\0'
+        else
+            find "$left" -type f -name '*.org' -printf '%P\0'
+        fi
+        find "$right" -type f -name '*.org' -printf '%P\0'
+    } | sort -zu
+}
+
+sync_pair() {
+    local left=$1
+    local right=$2
+    local excluded_left_rel=${3:-}
+    local path
+    local -a paths=()
+    local -a args=()
+
+    mapfile -d '' -t paths < <(
+        collect_paths "$left" "$right" "$excluded_left_rel"
+    )
+
+    if ((${#paths[@]} == 0)); then
+        return 0
+    fi
+
+    args=(
+        "$left"
+        "$right"
+        -batch
+        -auto
+        -terse
+    )
+
+    for path in "${paths[@]}"; do
+        args+=(-path "$path")
+    done
+
+    unison "${args[@]}"
+}
+
+refresh_org_roam_db() {
+    if [[ "$refresh_roam" != 1 ]]; then
+        return 0
+    fi
+
+    if ! command -v emacsclient >/dev/null 2>&1; then
+        return 0
+    fi
+
+    emacsclient \
+        --socket-name "$emacs_server_name" \
+        --eval "(when (require 'org-roam nil t) (org-roam-db-sync))" \
+        >/dev/null 2>&1 || true
+}
+
+sync_once() {
+    (
+        if ! flock -n 9; then
+            return 0
+        fi
+
+        local failed=0
+
+        sync_pair \
+            "$org_roam_dir" \
+            "$logseq_pages_dir" \
+            "$org_roam_dailies_rel" || failed=1
+
+        sync_pair \
+            "$org_roam_dailies_dir" \
+            "$logseq_journals_dir" || failed=1
+
+        if ((failed == 0)); then
+            refresh_org_roam_db
+        else
+            printf '%s\n' \
+                'org-logseq-sync: Unison left one or more conflicts/errors unresolved' \
+                >&2
+        fi
+
+        return "$failed"
+    ) 9>"$lock_file"
+}
+
+watch_forever() {
+    sync_once || true
+
+    while true; do
+        if ! inotifywait \
+            -qq \
+            -r \
+            -e close_write,create,delete,move \
+            "$org_roam_dir" \
+            "$logseq_pages_dir" \
+            "$logseq_journals_dir"; then
+            sleep 1
+            continue
+        fi
+
+        sleep "$debounce_seconds"
+        sync_once || true
+    done
+}
+
+case "$mode" in
+    --once)
+        sync_once
+        ;;
+    --watch)
+        watch_forever
+        ;;
+esac
+#+end_src
+
+* Home Manager module
+
+#+begin_src nix :tangle org-logseq-sync.nix
+{ config, lib, pkgs, ... }:
+
+let
+  cfg = config.orgLogseqSync;
+
+  orgLogseqSync = pkgs.writeShellApplication {
+    name = "org-logseq-sync";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.findutils
+      pkgs.inotify-tools
+      pkgs.unison
+      pkgs.util-linux
+      config.emacs.package
+    ];
+    text = builtins.readFile ../../../scripts/org-logseq-sync;
+  };
+in
+{
+  options.orgLogseqSync = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Keep Org/org-roam notes synchronized bidirectionally with a Logseq graph.";
+    };
+
+    orgRoamDir = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/Documents/Notes/org/roam";
+      description = "Org-roam root containing normal notes and the dailies subtree.";
+    };
+
+    orgRoamDailiesDir = lib.mkOption {
+      type = lib.types.str;
+      default = "daily";
+      description = "Path below orgRoamDir mapped to Logseq journals.";
+    };
+
+    logseqGraphDir = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/Documents/Notes/logseq";
+      description = "Logseq graph root whose pages and journals directories are synchronized.";
+    };
+
+    debounceSeconds = lib.mkOption {
+      type = lib.types.str;
+      default = "1";
+      description = "Delay after a filesystem event before reconciliation.";
+    };
+
+    refreshOrgRoamDb = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Ask a running Emacs server to refresh the org-roam database after a clean sync.";
+    };
+
+    emacsServerName = lib.mkOption {
+      type = lib.types.str;
+      default = "doom";
+      description = "Emacs server socket name used for org-roam database refreshes.";
+    };
+  };
+
+  config = lib.mkIf (config.emacs.enable && cfg.enable) {
+    home.packages = [ orgLogseqSync ];
+
+    home.sessionVariables = {
+      ORG_ROAM_DIR = cfg.orgRoamDir;
+      ORG_ROAM_DAILIES_DIR = cfg.orgRoamDailiesDir;
+      LOGSEQ_GRAPH_DIR = cfg.logseqGraphDir;
+      ORG_LOGSEQ_SYNC_DEBOUNCE_SECONDS = cfg.debounceSeconds;
+      ORG_LOGSEQ_SYNC_REFRESH_ROAM = if cfg.refreshOrgRoamDb then "1" else "0";
+      ORG_LOGSEQ_SYNC_EMACS_SERVER_NAME = cfg.emacsServerName;
+    };
+
+    systemd.user.services.org-logseq-sync = {
+      Unit = {
+        Description = "Bidirectional Org-roam and Logseq synchronization";
+        After = [ "default.target" ];
+      };
+
+      Service = {
+        Type = "simple";
+        ExecStart = "${orgLogseqSync}/bin/org-logseq-sync --watch";
+        Restart = "on-failure";
+        RestartSec = "2s";
+        UMask = "0077";
+        Environment = [
+          "ORG_ROAM_DIR=${cfg.orgRoamDir}"
+          "ORG_ROAM_DAILIES_DIR=${cfg.orgRoamDailiesDir}"
+          "LOGSEQ_GRAPH_DIR=${cfg.logseqGraphDir}"
+          "ORG_LOGSEQ_SYNC_DEBOUNCE_SECONDS=${cfg.debounceSeconds}"
+          "ORG_LOGSEQ_SYNC_REFRESH_ROAM=${if cfg.refreshOrgRoamDb then "1" else "0"}"
+          "ORG_LOGSEQ_SYNC_EMACS_SERVER_NAME=${cfg.emacsServerName}"
+        ];
+      };
+
+      Install.WantedBy = [ "default.target" ];
+    };
+  };
+}
+#+end_src
+
+* Regression test
+
+The test stubs Unison and Emacs while exercising the real synchronizer.  It
+proves that normal notes and journals are mapped to separate replicas, that
+non-Org files do not leak into Logseq, and that a clean run requests an
+org-roam database refresh.
+
+#+begin_src bash :tangle ../../../tests/org-logseq-sync.sh :shebang "#!/usr/bin/env bash"
+set -euo pipefail
+
+repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+sync_script="$repo_root/scripts/org-logseq-sync"
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+mkdir -p \
+    "$tmp/bin" \
+    "$tmp/roam/daily" \
+    "$tmp/logseq/pages" \
+    "$tmp/logseq/journals"
+
+printf '* Alpha\n' >"$tmp/roam/alpha.org"
+printf 'not a note\n' >"$tmp/roam/ignore.txt"
+printf '* Today\n' >"$tmp/roam/daily/2026-09-16.org"
+printf '* Beta\n' >"$tmp/logseq/pages/beta.org"
+printf '* Yesterday\n' >"$tmp/logseq/journals/2026-09-15.org"
+
+cat >"$tmp/bin/unison" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\0' "$@" >>"$UNISON_LOG"
+printf '\n' >>"$UNISON_LOG"
+EOF
+
+cat >"$tmp/bin/emacsclient" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"$EMACSCLIENT_LOG"
+EOF
+
+chmod +x "$tmp/bin/unison" "$tmp/bin/emacsclient"
+
+export PATH="$tmp/bin:$PATH"
+export HOME="$tmp/home"
+export XDG_STATE_HOME="$tmp/state"
+export ORG_ROAM_DIR="$tmp/roam"
+export ORG_ROAM_DAILIES_DIR="daily"
+export LOGSEQ_GRAPH_DIR="$tmp/logseq"
+export UNISON_LOG="$tmp/unison.log"
+export EMACSCLIENT_LOG="$tmp/emacsclient.log"
+
+bash "$sync_script" --once
+
+python3 - "$UNISON_LOG" <<'PY'
+import sys
+from pathlib import Path
+
+raw = Path(sys.argv[1]).read_bytes()
+calls = [chunk for chunk in raw.split(b"\n") if chunk]
+
+if len(calls) != 2:
+    raise SystemExit(f"expected two unison calls, got {len(calls)}")
+
+decoded = [
+    [part.decode() for part in call.split(b"\0") if part]
+    for call in calls
+]
+
+notes, journals = decoded
+
+def paths(call):
+    return [call[index + 1] for index, value in enumerate(call[:-1]) if value == "-path"]
+
+if notes[0].endswith("/roam") is False or notes[1].endswith("/logseq/pages") is False:
+    raise SystemExit(f"unexpected notes roots: {notes[:2]}")
+
+if journals[0].endswith("/roam/daily") is False or journals[1].endswith("/logseq/journals") is False:
+    raise SystemExit(f"unexpected journal roots: {journals[:2]}")
+
+if set(paths(notes)) != {"alpha.org", "beta.org"}:
+    raise SystemExit(f"unexpected notes paths: {paths(notes)}")
+
+if set(paths(journals)) != {"2026-09-15.org", "2026-09-16.org"}:
+    raise SystemExit(f"unexpected journal paths: {paths(journals)}")
+
+if any("ignore.txt" in value for value in notes + journals):
+    raise SystemExit("non-Org file leaked into synchronization")
+PY
+
+grep -q "org-roam-db-sync" "$EMACSCLIENT_LOG"
+
+printf 'org-logseq-sync tests: OK\n'
+#+end_src
