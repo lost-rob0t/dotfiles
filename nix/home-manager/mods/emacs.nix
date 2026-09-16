@@ -5,6 +5,33 @@
   inputs,
   ...
 }:
+let
+  doomEmacsWrapper = pkgs.writeShellScript "emacs-doom-default" ''
+    set -euo pipefail
+
+    real_emacs=${config.programs.emacs.finalPackage}/bin/emacs
+
+    # Explicit profile/init-directory requests are intentional overrides.  Keep
+    # those routed to the real Emacs binary unchanged so Chemacs, Android and
+    # debugging profiles remain usable.
+    for arg in "$@"; do
+      case "$arg" in
+        --with-profile|--with-profile=*|--init-directory|--init-directory=*)
+          exec "$real_emacs" "$@"
+          ;;
+      esac
+    done
+
+    # Desktop Emacs is Doom by default.  Point Emacs at the Doom core checkout
+    # directly instead of relying on profile routing for the normal entry point;
+    # ~/.doom.d remains the authoritative user configuration.
+    export DOOMDIR="''${DOOMDIR:-${config.home.homeDirectory}/.doom.d}"
+    export EMACS_SERVER_NAME="''${EMACS_SERVER_NAME:-doom}"
+    exec "$real_emacs" \
+      --init-directory "${config.home.homeDirectory}/.config/emacs" \
+      "$@"
+  '';
+in
 {
   imports = [
     ./gpt-todos.nix
@@ -54,6 +81,18 @@
   config = with lib; mkIf config.emacs.enable {
     home.sessionVariables = {
       STARINTEL_SOCIAL_ROOT = "${config.home.homeDirectory}/starintel/starintel-social-presence";
+      # Existing shell aliases and $EDITOR/$VISUAL invoke emacsclient without an
+      # explicit socket.  Keep them attached to the Doom server by default.
+      EMACS_SOCKET_NAME = "doom";
+    };
+
+    # ~/.local/bin is intentionally first in PATH in bash.org.  Keep the Nix
+    # Emacs package available as the implementation, but make the user-facing
+    # `emacs` command launch Doom unless an explicit alternate profile is given.
+    home.file.".local/bin/emacs" = {
+      source = doomEmacsWrapper;
+      executable = true;
+      force = true;
     };
 
     emacs.diredXDG.pkg = pkgs.makeDesktopItem {
