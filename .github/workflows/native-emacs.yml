@@ -106,7 +106,7 @@ jobs:
           test -x "$emacs_path/bin/emacs"
           echo "emacs_path=$emacs_path" >> "$GITHUB_OUTPUT"
 
-      - name: Smoke-test Doom-equivalent native startup without Doom
+      - name: Gate native desktop on Doom behavior parity
         env:
           EMACS_PATH: ${{ steps.native-emacs-build.outputs.emacs_path }}
         run: |
@@ -122,38 +122,4 @@ jobs:
           "$EMACS_PATH/bin/emacs" --batch -Q \
             -l "$GITHUB_WORKSPACE/emacs/desktop/early-init.el" \
             -l "$GITHUB_WORKSPACE/emacs/desktop/init.el" \
-            --eval '
-              (progn
-                (require (quote org))
-                (require (quote org-agenda))
-                (require (quote doom-ux))
-                (star-doom-ux-init)
-                (when (featurep (quote doom))
-                  (error "Doom runtime leaked into native desktop"))
-                (unless (keymapp star-leader-map)
-                  (error "Native leader map is unavailable"))
-                (unless (bound-and-true-p evil-mode)
-                  (error "Evil is not enabled"))
-                (unless (bound-and-true-p ivy-mode)
-                  (error "Ivy is not enabled"))
-                (unless (bound-and-true-p global-company-mode)
-                  (error "Company is not enabled"))
-                (unless (bound-and-true-p doom-modeline-mode)
-                  (error "Doom modeline is not enabled"))
-                (unless (member (quote doom-outrun-electric) custom-enabled-themes)
-                  (error "Doom Outrun Electric theme is not active"))
-                (unless (eq (lookup-key star-leader-map (kbd "."))
-                            (quote star-doom/find-file))
-                  (error "Doom-style SPC . binding is missing"))
-                (unless (eq (lookup-key star-leader-map (kbd "g g"))
-                            (quote magit-status))
-                  (error "Doom-style SPC g g binding is missing"))
-                (unless (eq (lookup-key star-leader-map (kbd "o t"))
-                            (quote star-doom/vterm-popup))
-                  (error "Doom-style SPC o t binding is missing"))
-                (dolist (library (quote ("gptel" "mcp" "org-roam" "magit" "vterm" "sly"
-                                         "doom-themes" "doom-modeline" "evil-surround"
-                                         "evil-snipe" "evil-goggles" "persp-mode")))
-                  (unless (locate-library library)
-                    (error "Required Doom-parity library is missing: %s" library)))
-                (message "native-doom-parity-smoke-ok"))'
+            -l "$GITHUB_WORKSPACE/emacs/desktop/tools/doom-parity-smoke.el"
