@@ -395,6 +395,7 @@
           which-key-side-window-max-height 0.25)
     (which-key-mode 1)))
 
+;;;###autoload
 (defun star-doom-ux-init ()
   "Apply Doom-equivalent behavior without loading the Doom runtime."
   (interactive)
@@ -412,6 +413,9 @@
   (star-doom--leader)
   (star-doom--which-key)
   (message "Native Doom UX layer active"))
+
+;;;###autoload
+(add-hook 'star-after-init-hook #'star-doom-ux-init)
 
 (provide 'doom-ux)
 ;;; doom-ux.el ends here
