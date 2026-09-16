@@ -8,8 +8,9 @@
   (when (bound-and-true-p pdf-annot-list-buffer)
     (when (buffer-live-p pdf-annot-list-buffer)
       (kill-buffer pdf-annot-list-buffer)))
-  (when-let ((contents (get-buffer "*Contents*")))
-    (kill-buffer contents)))
+  (let ((contents (get-buffer "*Contents*")))
+    (when (buffer-live-p contents)
+      (kill-buffer contents))))
 
 (defun star-native-pdf-view-setup ()
   (display-line-numbers-mode -1)
