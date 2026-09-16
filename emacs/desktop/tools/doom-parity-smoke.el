@@ -20,6 +20,12 @@
      "%s expected %S, got %S"
      keys command actual)))
 
+(defun star-parity-prefix (keys)
+  (star-parity-assert
+   (star-native--prefix-p (lookup-key star-leader-map (kbd keys)))
+   "%s is not a prefix"
+   keys))
+
 (defun star-parity-library (library)
   (star-parity-assert
    (locate-library library)
@@ -82,7 +88,7 @@
   ;; Package availability is necessary but not sufficient. These libraries implement
   ;; behavior from the enabled Doom modules and must stay in the native closure.
   (dolist (library '("adaptive-wrap" "amx" "anzu" "apheleia" "better-jumper"
-                     "counsel-projectile" "diff-hl" "dirvish" "doom-modeline"
+                     "counsel-projectile" "dape" "diff-hl" "dirvish" "doom-modeline"
                      "doom-snippets" "doom-themes" "dtrt-indent" "emojify" "eros"
                      "evil-anzu" "evil-args" "evil-collection" "evil-easymotion"
                      "evil-embrace" "evil-escape" "evil-exchange" "evil-goggles"
@@ -90,13 +96,14 @@
                      "evil-numbers" "evil-org" "evil-quick-diff"
                      "evil-smartparens" "evil-snipe" "evil-surround"
                      "evil-textobj-anyblock" "evil-traces" "evil-vimish-fold"
-                     "evil-visualstar" "forge" "gptel" "helpful" "hl-todo"
-                     "ivy-rich" "ivy-xref" "kkp" "lispy" "lispyville" "lsp-mode"
-                     "magit" "mcp" "org-modern" "org-ql" "org-roam"
-                     "parinfer-rust-mode" "persp-mode" "projectile" "sly"
-                     "smartparens" "solaire-mode" "swiper" "unicode-fonts"
-                     "vi-tilde-fringe" "vimish-fold" "vterm" "which-key"
-                     "yasnippet" "yasnippet-snippets"))
+                     "evil-visualstar" "forge" "git-link" "git-timemachine"
+                     "gptel" "helpful" "hl-todo" "ivy-rich" "ivy-xref" "kkp"
+                     "link-hint" "lispy" "lispyville" "lsp-mode" "magit" "mcp"
+                     "org-modern" "org-ql" "org-roam" "parinfer-rust-mode"
+                     "persp-mode" "projectile" "sly" "smartparens" "solaire-mode"
+                     "ssh-deploy" "swiper" "unicode-fonts" "vi-tilde-fringe"
+                     "vimish-fold" "vterm" "vundo" "which-key" "yasnippet"
+                     "yasnippet-snippets"))
     (star-parity-library library))
 
   ;; Doom core replaced Evil and xref jump history with better-jumper.
@@ -111,23 +118,48 @@
   (star-parity-hook 'prog-mode-hook 'star-native-word-wrap-mode)
   (star-parity-hook 'text-mode-hook 'star-native-word-wrap-mode)
 
-  ;; Doom muscle memory supplied by the compatibility layer.
+  ;; The leader hierarchy itself is part of Doom's UX. A command may not collapse a
+  ;; subtree such as SPC o a or SPC n r.
+  (dolist (prefix '("b" "c" "d" "f" "g" "g f" "g l" "g o" "h" "i"
+                    "n" "n r" "n r d" "o" "o a" "p" "q" "r" "s" "t"
+                    "w" "y" "TAB"))
+    (star-parity-prefix prefix))
+
+  ;; Representative Doom defaults and native equivalents.
   (dolist (binding '(("." . star-doom/find-file)
                      ("," . star-doom/switch-buffer)
                      ("b b" . star-doom/switch-buffer)
+                     ("b i" . ibuffer)
+                     ("c a" . lsp-execute-code-action)
+                     ("c c" . compile)
+                     ("c d" . xref-find-definitions)
+                     ("c f" . star-native/format-buffer)
+                     ("d d" . dape)
+                     ("d b" . dape-breakpoint-toggle)
                      ("f f" . star-doom/find-file)
                      ("f y" . star-doom/yank-file-path)
-                     ("p p" . star-doom/project-switch)
-                     ("p f" . star-doom/project-find-file)
-                     ("p /" . star-doom/project-search)
-                     ("s s" . star-doom/search-buffer)
                      ("g g" . magit-status)
+                     ("g ." . magit-file-dispatch)
+                     ("g f f" . magit-find-file)
+                     ("g l i" . forge-list-issues)
+                     ("g o p" . forge-browse-pullreq)
+                     ("i s" . yas-insert-snippet)
+                     ("n a" . org-agenda)
+                     ("n r f" . org-roam-node-find)
+                     ("n r i" . org-roam-node-insert)
+                     ("o A" . org-agenda)
+                     ("o a a" . org-agenda)
                      ("o t" . star-doom/vterm-popup)
                      ("o e" . star-doom/eshell-popup)
-                     ("o a" . star-doom/org-agenda)
-                     ("o c" . star-doom/org-capture)
-                     ("n r" . star-doom/org-roam-find)
-                     ("TAB TAB" . persp-switch)
+                     ("p p" . star-doom/project-switch)
+                     ("p f" . star-doom/project-find-file)
+                     ("p d" . projectile-remove-known-project)
+                     ("r u" . ssh-deploy-upload-handler)
+                     ("s b" . swiper)
+                     ("s u" . vundo)
+                     ("t w" . star-native-word-wrap-mode)
+                     ("t v" . visible-mode)
+                     ("TAB ." . persp-switch)
                      ("w u" . winner-undo)
                      ("q r" . star-config-sync)))
     (star-parity-binding (car binding) (cdr binding)))
@@ -135,6 +167,9 @@
   ;; Never let compatibility glue erase bindings from the user's literate config.
   (dolist (binding '(("t T" . ivan/cycle-theme)
                      ("o a u" . org-agenda-update-files)
+                     ("o a w" . org-agenda-week-view)
+                     ("o a m" . org-agenda-month-view)
+                     ("o a y" . org-agenda-year-view)
                      ("y y" . gptel)
                      ("o D" . +dslide/start)))
     (star-parity-binding (car binding) (cdr binding)))
