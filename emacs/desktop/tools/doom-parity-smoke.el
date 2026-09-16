@@ -51,8 +51,10 @@
   (require 'org-agenda)
   (require 'doom-ux)
   (require 'native-bootstrap)
+  (require 'native-tools)
   (star-doom-ux-init)
   (star-native-doom-core-compat-init)
+  (star-native-tools-init)
 
   ;; Runtime boundary: native must reproduce Doom behavior, not secretly load Doom.
   (star-parity-assert (not (featurep 'doom)) "Doom runtime leaked into native desktop")
@@ -89,21 +91,21 @@
   ;; behavior from the enabled Doom modules and must stay in the native closure.
   (dolist (library '("adaptive-wrap" "amx" "anzu" "apheleia" "better-jumper"
                      "counsel-projectile" "dape" "diff-hl" "dirvish" "doom-modeline"
-                     "doom-snippets" "doom-themes" "dtrt-indent" "emojify" "eros"
-                     "evil-anzu" "evil-args" "evil-collection" "evil-easymotion"
-                     "evil-embrace" "evil-escape" "evil-exchange" "evil-goggles"
-                     "evil-indent-plus" "evil-lion" "evil-nerd-commenter"
-                     "evil-numbers" "evil-org" "evil-quick-diff"
+                     "doom-snippets" "doom-themes" "dtrt-indent" "dumb-jump"
+                     "emacs-everywhere" "emojify" "eros" "evil-anzu" "evil-args"
+                     "evil-collection" "evil-easymotion" "evil-embrace" "evil-escape"
+                     "evil-exchange" "evil-goggles" "evil-indent-plus" "evil-lion"
+                     "evil-nerd-commenter" "evil-numbers" "evil-org" "evil-quick-diff"
                      "evil-smartparens" "evil-snipe" "evil-surround"
                      "evil-textobj-anyblock" "evil-traces" "evil-vimish-fold"
-                     "evil-visualstar" "forge" "git-link" "git-timemachine"
-                     "gptel" "helpful" "hl-todo" "ivy-rich" "ivy-xref" "kkp"
-                     "link-hint" "lispy" "lispyville" "lsp-mode" "magit" "mcp"
-                     "org-modern" "org-ql" "org-roam" "parinfer-rust-mode"
-                     "persp-mode" "projectile" "sly" "smartparens" "solaire-mode"
-                     "ssh-deploy" "swiper" "unicode-fonts" "vi-tilde-fringe"
-                     "vimish-fold" "vterm" "vundo" "which-key" "yasnippet"
-                     "yasnippet-snippets"))
+                     "evil-visualstar" "forge" "git-link" "git-timemachine" "gptel"
+                     "helpful" "hl-todo" "ivy-rich" "ivy-xref" "kkp" "link-hint"
+                     "lispy" "lispyville" "lsp-mode" "magit" "makefile-executor"
+                     "mcp" "org-modern" "org-ql" "org-roam" "parinfer-rust-mode"
+                     "persp-mode" "projectile" "rainbow-mode" "sly" "smartparens"
+                     "solaire-mode" "ssh-deploy" "swiper" "unicode-fonts"
+                     "vi-tilde-fringe" "vimish-fold" "vterm" "vundo" "which-key"
+                     "yasnippet" "yasnippet-snippets"))
     (star-parity-library library))
 
   ;; Doom core replaced Evil and xref jump history with better-jumper.
@@ -117,6 +119,25 @@
   (star-parity-hook 'emacs-lisp-mode-hook 'eros-mode)
   (star-parity-hook 'prog-mode-hook 'star-native-word-wrap-mode)
   (star-parity-hook 'text-mode-hook 'star-native-word-wrap-mode)
+
+  ;; Enabled tool/app modules retain their runtime glue, not only their packages.
+  (star-parity-assert (fboundp '+make/run) "+make/run compatibility command is missing")
+  (star-parity-assert (fboundp '+make/run-last) "+make/run-last compatibility command is missing")
+  (star-parity-hook 'dockerfile-mode-hook 'star-native-dockerfile-setup)
+  (star-parity-hook 'css-mode-hook 'star-native-web-colors-setup)
+  (star-parity-hook 'sass-mode-hook 'star-native-web-colors-setup)
+  (star-parity-hook 'stylus-mode-hook 'star-native-web-colors-setup)
+  (star-parity-hook 'after-save-hook '+upload-init-after-save-h)
+  (star-parity-hook 'find-file-hook '+upload-init-find-file-h)
+  (star-parity-hook 'xref-backend-functions 'dumb-jump-xref-activate)
+  (star-parity-hook 'emacs-everywhere-mode-hook 'star-native-everywhere-buffer-setup)
+  (star-parity-assert (= ssh-deploy-on-explicit-save 1)
+                      "ssh-deploy explicit-save behavior changed")
+  (star-parity-assert (not ssh-deploy-automatically-detect-remote-changes)
+                      "ssh-deploy remote-change default changed")
+  (star-parity-assert
+   (eq (get 'ssh-deploy-root-remote 'safe-local-variable) 'stringp)
+   "ssh-deploy remote root is not declared safe like Doom's module")
 
   ;; The leader hierarchy itself is part of Doom's UX. A command may not collapse a
   ;; subtree such as SPC o a or SPC n r.
