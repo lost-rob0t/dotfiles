@@ -40,7 +40,7 @@ in
     owner = "doomemacs";
     repo = "snippets";
     rev = "fd4edaaf0c8476a26994db17d084b36733c635e2";
-    hash = lib.fakeHash;
+    hash = "sha256-EdG/gCwj81qq/Zw3t3EIrxUVVMXVW86L0S3s1AwKwdU=";
     packageRequires = [ epkgs.yasnippet ];
     postInstall = ''
       find . -mindepth 1 -maxdepth 1 -type d -exec cp -R -- {} "$LISPDIR/" \;
