@@ -100,7 +100,7 @@ jobs:
         run: |
           set -euo pipefail
           emacs_path="$(
-            nix build --impure --no-link --print-out-paths --expr \
+            nix build --keep-going --impure --no-link --print-out-paths --expr \
               '(builtins.getFlake (toString ./.)).homeConfigurations."unseen@flake".config.programs.emacs.finalPackage'
           )"
           test -x "$emacs_path/bin/emacs"
