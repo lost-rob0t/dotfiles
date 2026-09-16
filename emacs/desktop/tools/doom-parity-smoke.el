@@ -90,7 +90,7 @@
                      "yasnippet-snippets"))
     (star-parity-library library))
 
-  ;; Doom muscle memory. These are representative roots; personal.org adds more.
+  ;; Doom muscle memory supplied by the compatibility layer.
   (dolist (binding '(("." . star-doom/find-file)
                      ("," . star-doom/switch-buffer)
                      ("b b" . star-doom/switch-buffer)
@@ -111,8 +111,23 @@
                      ("q r" . star-config-sync)))
     (star-parity-binding (car binding) (cdr binding)))
 
+  ;; Never let the compatibility layer erase bindings from the user's literate
+  ;; config while creating Doom-style prefix groups.
+  (dolist (binding '(("t T" . ivan/cycle-theme)
+                     ("o a u" . org-agenda-update-files)
+                     ("y y" . gptel)
+                     ("o D" . +dslide/start)))
+    (star-parity-binding (car binding) (cdr binding)))
+  (require 'magit)
+  (dolist (binding '(("g R" . ar/git-clone-clipboard-url)
+                     ("g p P" . magit-push-current-to-pushremote)
+                     ("g p p" . magit-pull-from-pushremote)
+                     ("g c t" . magit-tag-create)))
+    (star-parity-binding (car binding) (cdr binding)))
+
   ;; Mechanical port regressions that previously produced a technically-starting but
   ;; broken editor.
+  (star-parity-assert (fboundp 'track-org-file) "track-org-file alias is missing")
   (star-parity-assert
    (eq (symbol-function 'track-org-file)
        (symbol-function 'nsa/track-org-file))
