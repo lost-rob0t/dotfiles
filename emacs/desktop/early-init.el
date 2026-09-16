@@ -12,4 +12,9 @@
 (push '(tool-bar-lines . 0) default-frame-alist)
 (push '(vertical-scroll-bars) default-frame-alist)
 
+(let ((config-root (file-name-directory (or load-file-name buffer-file-name))))
+  (load (expand-file-name "autoload/native-bootstrap.el" config-root)
+        nil
+        'nomessage))
+
 ;;; early-init.el ends here
