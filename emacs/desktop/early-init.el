@@ -16,7 +16,8 @@
   (dolist (library '("autoload/native-bootstrap.el"
                      "autoload/native-pdf.el"
                      "autoload/native-tools.el"
-                     "autoload/native-session.el"))
+                     "autoload/native-session.el"
+                     "autoload/native-evil.el"))
     (load (expand-file-name library config-root) nil 'nomessage)))
 
 ;;; early-init.el ends here
