@@ -49,7 +49,7 @@ jobs:
           mapfile -t sources < <(
             grep -IlR --include='*.org' ':tangle' emacs/desktop | sort
           )
-          test "${#sources[@]}" -ge 6
+          test "${#sources[@]}" -ge 8
 
           for source in "${sources[@]}"; do
             echo "Tangling $source"
@@ -122,4 +122,5 @@ jobs:
           "$EMACS_PATH/bin/emacs" --batch -Q \
             -l "$GITHUB_WORKSPACE/emacs/desktop/early-init.el" \
             -l "$GITHUB_WORKSPACE/emacs/desktop/init.el" \
-            -l "$GITHUB_WORKSPACE/emacs/desktop/tools/doom-parity-smoke.el"
+            -l "$GITHUB_WORKSPACE/emacs/desktop/tools/doom-parity-smoke.el" \
+            -l "$GITHUB_WORKSPACE/emacs/desktop/tools/pdf-parity-smoke.el"
