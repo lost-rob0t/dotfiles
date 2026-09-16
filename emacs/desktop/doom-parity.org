@@ -2,7 +2,7 @@
 #+STARTUP: overview
 
 This is the acceptance contract for replacing the desktop Doom runtime.
-A package being present is not parity.  A module is done when its user-visible
+A package being present is not parity. A module is done when its user-visible
 behavior is reproduced natively and covered by a smoke test or an explicit
 manual check.
 
@@ -24,7 +24,7 @@ Doom remains the default profile until the pending entries below are closed.
 | ophints | Evil Goggles pulse feedback | TESTED |
 | popup +defaults | =display-buffer-alist= side-window policy | PARTIAL |
 | unicode | =unicode-fonts-setup= on graphical startup | TESTED |
-| vc-gutter +pretty | =diff-hl= + flydiff | TESTED |
+| vc-gutter +pretty | =diff-hl= + flydiff + hunk leader actions | TESTED |
 | vi-tilde-fringe | =vi-tilde-fringe= | TESTED |
 | workspaces | =persp-mode= + =SPC TAB ...= | TESTED |
 
@@ -45,14 +45,14 @@ Doom remains the default profile until the pending entries below are closed.
 | dired | Dired + Dirvish override/config | TESTED |
 | electric | electric-pair-mode + Smartparens | TESTED |
 | ibuffer | native ibuffer, Doom leader entry | TESTED |
-| undo | undo-fu + undo-fu-session | TESTED |
-| vc | built-in VC + Magit/diff-hl integration | PARTIAL |
+| undo | undo-fu + undo-fu-session + Vundo entry | TESTED |
+| vc | built-in VC + Magit + diff-hl hunk actions | TESTED |
 
 * Term
 | Doom module | Native implementation | State |
 |-------------+-----------------------+-------|
-| eshell | native Eshell + migrated aliases + popup entry | TESTED |
-| vterm | vterm + Doom-style bottom popup entry | TESTED |
+| eshell | native Eshell + migrated aliases + popup/here entries | TESTED |
+| vterm | vterm + Doom-style popup/here entries | TESTED |
 
 * Checkers
 | Doom module | Native implementation | State |
@@ -62,18 +62,18 @@ Doom remains the default profile until the pending entries below are closed.
 * Tools
 | Doom module | Native implementation | State |
 |-------------+-----------------------+-------|
-| debugger | Dape/DAP packages are present | PENDING-BEHAVIOR |
+| debugger | Dape command tree at =SPC d ...= | TESTED |
 | direnv | envrc global mode | TESTED |
-| docker | Docker/Dockerfile packages are present | PENDING-BEHAVIOR |
-| editorconfig | global editorconfig-mode | TESTED |
+| docker | Dockerfile docset + dockerfmt integration when available | TESTED-CONFIG |
+| editorconfig | global editorconfig-mode + leader entry | TESTED |
 | eval +overlay | EROS on Emacs Lisp buffers | TESTED |
-| lookup | dumb-jump xref fallback + Ivy xref + LSP | PARTIAL |
-| lsp | lsp-deferred language hooks | TESTED |
-| magit +forge | Magit + Forge + private leader actions | TESTED |
-| make | makefile-executor package present | PENDING-BEHAVIOR |
-| pdf | pdf-tools package present | PENDING-BEHAVIOR |
-| rgb | rainbow-mode package present | PENDING-BEHAVIOR |
-| upload | ssh-deploy/webpaste packages present | PARTIAL |
+| lookup | dumb-jump xref fallback + Ivy xref + LSP | TESTED-CONFIG |
+| lsp | lsp-deferred language hooks + Doom-style code leader actions | TESTED |
+| magit +forge | Magit/Forge leader tree + private overrides | TESTED |
+| make | native =+make/run= and =+make/run-last= wrappers | TESTED |
+| pdf | native pdf-tools setup, fit-page/scaling, cleanup and popup policy | TESTED |
+| rgb | rainbow-mode hooks for CSS/Sass/Stylus | TESTED |
+| upload | Doom ssh-deploy defaults, safe locals, hooks and leader tree | TESTED |
 
 * OS
 | Doom module | Native implementation | State |
@@ -82,27 +82,45 @@ Doom remains the default profile until the pending entries below are closed.
 
 * Languages
 The native closure carries the packages selected by the old Doom modules rather
-than only the packages named in =~/.doom.d/packages.org=.  The current startup
+than only the packages named in =~/.doom.d/packages.org=. The current startup
 also restores the high-use runtime paths for CC, Common Lisp/Sly, Emacs Lisp,
 JavaScript/TypeScript, Nim, Nix, Org/Org-roam, Python, shell, web, JSON,
 Markdown, PHP, and data files.
 
 Language parity is still *PENDING-MANUAL* until each major mode is opened on
 =unseen@flake= and its Evil, completion, syntax, formatting, lookup and LSP
-behavior is exercised.  That manual pass is required before the default profile
+behavior is exercised. That manual pass is required before the default profile
 may switch.
 
 * Apps and private configuration
 | Feature | Native implementation | State |
 |---------+-----------------------+-------|
 | RSS +org | Elfeed + elfeed-org + elfeed-tube | TESTED-CONFIG |
-| everywhere | atomic-chrome / Emacs-everywhere packages retained | PARTIAL |
+| everywhere | Emacs Everywhere snippets + Hyprland/Niri compatibility; stock X11 path retained | TESTED-CONFIG |
 | Org Agenda startup | =initial-buffer-choice= opens Agenda, not Doom dashboard | TESTED |
-| Org capture/roam | migrated literate configuration | TESTED-CONFIG |
+| Org capture/roam | migrated literate configuration + restored leader hierarchy | TESTED-CONFIG |
 | GPTEL/MCP | migrated private config + native autoload layer | TESTED-CONFIG |
 | StarIntel integration | local =starintel= library/config retained | TESTED-CONFIG |
 | Temple/local Lisp | local load path retained | TESTED-CONFIG |
 | Dslide | private functions and leader bindings retained | TESTED-CONFIG |
+
+* Remaining blockers
+** Reproducible Nix sources
+The native closure must contain no placeholder fixed-output hashes. The custom
+recipes for app-launcher, asoc, libvirt, opencl-mode, org-recoll,
+org-timed-alerts, podman.el and sly-stepper still need their real source hashes
+(or must be removed in favor of an already-packaged Nixpkgs Emacs package).
+
+** Popup equivalence
+The high-use popup families are covered, but Doom's popup module has a broader
+rule engine than the native side-window compatibility layer. Keep this PARTIAL
+until the physical comparison on =unseen@flake= exercises help, compilation,
+Magit/Forge, Sly, vterm/eshell, warnings and PDF auxiliary buffers.
+
+** Physical language/UI pass
+CI can prove bindings, packages and hooks. It cannot prove that the GUI actually
+looks right or that every language server works against the binaries installed
+on =unseen@flake=. That pass remains mandatory.
 
 * Merge gate
 PR #232 is mergeable only when all of these are true:
@@ -110,12 +128,12 @@ PR #232 is mergeable only when all of these are true:
 1. Every Nix fixed-output source hash is real; no =lib.fakeHash= remains in the
    native Emacs closure.
 2. Literate tangling produces a clean tree.
-3. =tools/doom-parity-smoke.el= passes against the exact Home Manager Emacs
-   closure without loading the Doom runtime.
-4. Every =PENDING-BEHAVIOR= entry above is implemented or explicitly shown to
-   be intentionally unnecessary for the old configuration.
+3. =tools/doom-parity-smoke.el= and =tools/pdf-parity-smoke.el= pass against the
+   exact Home Manager Emacs closure without loading the Doom runtime.
+4. Every unresolved parity entry above is implemented or explicitly shown to be
+   intentionally unnecessary for the user's effective old Doom configuration.
 5. The native profile is launched on =unseen@flake= and visually/behaviorally
    compared against Doom: theme, modeline, Agenda startup, Evil motions,
    leader menus, completion, project navigation, workspaces, popups, Magit,
-   Org, vterm/eshell, Lisp editing, and LSP.
+   Org, vterm/eshell, Lisp editing, PDF viewing and LSP.
 6. Only after that manual comparison does plain =emacs= switch away from Doom.
