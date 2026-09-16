@@ -177,7 +177,9 @@
         assert !builtins.hasAttr ".codex/config.toml" desktopHome.config.home.file;
         assert !builtins.hasAttr ".codex/config.yaml" desktopHome.config.home.file;
         assert desktopHome.config.programs.opencode.enable;
-        assert desktopHome.config.programs.opencode.package == pkgs.opencode;
+        assert desktopHome.config.programs.opencode.package.version == pkgs.opencode.version;
+        assert desktopHome.config.programs.opencode.package.passthru.pinnedBun.version == "1.3.13";
+        assert desktopHome.config.programs.opencode.package.passthru.pinnedBunReason == "NixOS/nixpkgs#563241";
         assert desktopHome.config.programs.opencode.enableMcpIntegration;
         assert builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/AGENTS.md"
           desktopHome.config.home.file;
