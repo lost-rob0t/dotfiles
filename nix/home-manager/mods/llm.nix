@@ -8,6 +8,44 @@ let
   llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
   llmLogModule = llmLogFlake.homeManagerModules.default;
   proxyBase = "http://127.0.0.1:8787";
+
+  # Temporary OpenCode build workaround for NixOS/nixpkgs#563241.
+  # Nixpkgs commit 0feb034e39726923afd562a04edcb8810b25a2c6 bumped
+  # Bun from 1.3.13 to 1.4.2; OpenCode 1.18.30 built with the newer Bun
+  # can crash in SystemPrompt.environment before a provider request is sent.
+  # Keep the workaround local to OpenCode instead of downgrading Bun globally.
+  opencodeBunVersion = "1.3.13";
+  opencodeBunSource =
+    {
+      "aarch64-darwin" = {
+        asset = "bun-darwin-aarch64.zip";
+        hash = "sha256-VGfj9l26Umuf6pjwzOBO+vwMY+Fpcz7Ce4dqOtMtoZA=";
+      };
+      "aarch64-linux" = {
+        asset = "bun-linux-aarch64.zip";
+        hash = "sha256-cLrkGzkIsKEg4eWMXIrzDnSvrjuNEbDT/djnh937SyI=";
+      };
+      "x86_64-linux" = {
+        asset = "bun-linux-x64-baseline.zip";
+        hash = "sha256-nYokKSpwaAkCBdqsCloiP19pc29Sh+N7+I07QDHtx1A=";
+      };
+    }
+    .${pkgs.stdenv.hostPlatform.system}
+      or (throw "OpenCode Bun ${opencodeBunVersion}: unsupported system ${pkgs.stdenv.hostPlatform.system}");
+  opencodeBun = pkgs.bun.overrideAttrs (_: {
+    version = opencodeBunVersion;
+    src = pkgs.fetchurl {
+      url = "https://github.com/oven-sh/bun/releases/download/bun-v${opencodeBunVersion}/${opencodeBunSource.asset}";
+      inherit (opencodeBunSource) hash;
+    };
+  });
+  opencodePackage = (pkgs.opencode.override { bun = opencodeBun; }).overrideAttrs (oldAttrs: {
+    passthru = (oldAttrs.passthru or { }) // {
+      pinnedBun = opencodeBun;
+      pinnedBunReason = "NixOS/nixpkgs#563241";
+    };
+  });
+
   youtubeContext = pkgs.writeShellApplication {
     name = "youtube-context";
     runtimeInputs = with pkgs; [
@@ -89,6 +127,7 @@ in
     # surfaces, MCP integration, and the shared Outrun theme.
     opencode = {
       enable = true;
+      package = opencodePackage;
       llmLog = {
         enable = true;
         baseUrl = proxyBase;
