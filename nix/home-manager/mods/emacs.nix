@@ -6,6 +6,26 @@
   ...
 }:
 let
+  doomEmacsWrapper = pkgs.writeShellScript "emacs-doom-default" ''
+    set -euo pipefail
+
+    real_emacs=${config.programs.emacs.finalPackage}/bin/emacs
+
+    for arg in "$@"; do
+      case "$arg" in
+        --with-profile|--with-profile=*|--init-directory|--init-directory=*)
+          exec "$real_emacs" "$@"
+          ;;
+      esac
+    done
+
+    export DOOMDIR="''${DOOMDIR:-${config.home.homeDirectory}/.doom.d}"
+    export EMACS_SERVER_NAME="''${EMACS_SERVER_NAME:-doom}"
+    exec "$real_emacs" \
+      --init-directory "${config.home.homeDirectory}/.config/emacs" \
+      "$@"
+  '';
+
   nativePackageManifest =
     builtins.fromJSON (builtins.readFile ../../../emacs/desktop/packages.json);
 
@@ -102,6 +122,13 @@ in
   config = with lib; mkIf config.emacs.enable {
     home.sessionVariables = {
       STARINTEL_SOCIAL_ROOT = "${config.home.homeDirectory}/starintel/starintel-social-presence";
+      EMACS_SOCKET_NAME = "doom";
+    };
+
+    home.file.".local/bin/emacs" = {
+      source = doomEmacsWrapper;
+      executable = true;
+      force = true;
     };
 
     emacs.diredXDG.pkg = pkgs.makeDesktopItem {
@@ -142,6 +169,7 @@ in
           epkgs.w3m
           epkgs.pandoc
           epkgs.xclip
+          epkgs.flycheck-package
           pkgs.aspell
           pkgs.aspellDicts.en
           pkgs.libnotify
