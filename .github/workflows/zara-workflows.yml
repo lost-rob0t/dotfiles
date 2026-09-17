@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/zara-workflows.yml'
       - 'tests/zara-workflows.sh'
+      - 'tests/zara-android-template.sh'
       - 'nix/home-manager/mods/default.nix'
       - 'nix/home-manager/mods/zara.nix'
       - 'nix/home-manager/mods/zara-workflows.nix'
@@ -13,7 +14,9 @@ on:
       - 'flake.lock'
       - 'nix/home-manager/files/zarathushtra/**'
       - 'nix/nixos/systems/flake/networking.nix'
+      - 'zara-template.properties'
       - 'docs/wiki/zara.org'
+      - 'docs/wiki/zara-android-automation.org'
       - 'docs/wiki/index.org'
   push:
     branches:
@@ -21,6 +24,7 @@ on:
     paths:
       - '.github/workflows/zara-workflows.yml'
       - 'tests/zara-workflows.sh'
+      - 'tests/zara-android-template.sh'
       - 'nix/home-manager/mods/default.nix'
       - 'nix/home-manager/mods/zara.nix'
       - 'nix/home-manager/mods/zara-workflows.nix'
@@ -29,7 +33,9 @@ on:
       - 'flake.lock'
       - 'nix/home-manager/files/zarathushtra/**'
       - 'nix/nixos/systems/flake/networking.nix'
+      - 'zara-template.properties'
       - 'docs/wiki/zara.org'
+      - 'docs/wiki/zara-android-automation.org'
       - 'docs/wiki/index.org'
 
 permissions:
@@ -45,9 +51,11 @@ jobs:
       - name: Check shell syntax and policy
         run: |
           set -euo pipefail
-          bash -n tests/zara-workflows.sh nix/home-manager/files/zarathushtra/bin/zara-system-update
-          shellcheck --severity=warning tests/zara-workflows.sh nix/home-manager/files/zarathushtra/bin/zara-system-update
+          bash -n tests/zara-workflows.sh tests/zara-android-template.sh nix/home-manager/files/zarathushtra/bin/zara-system-update
+          shellcheck --severity=warning tests/zara-workflows.sh tests/zara-android-template.sh nix/home-manager/files/zarathushtra/bin/zara-system-update
       - name: Check Zara Prolog base config syntax
         run: swipl -q -t halt -s nix/home-manager/files/zarathushtra/config.pl
       - name: Check Zara workflow contract
         run: bash tests/zara-workflows.sh
+      - name: Check Zara Android config template
+        run: bash tests/zara-android-template.sh
