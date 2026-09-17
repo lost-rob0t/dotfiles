@@ -41,9 +41,9 @@ awk '
 swipl -q -t halt -s "$tmp/android_automation.pl"
 
 grep -q "automation(youtube_psytrance" "$tmp/android_automation.pl" || die "missing YouTube demo"
-grep -q "app_search(youtube, 'psytrance')" "$tmp/android_automation.pl" || die "missing YouTube psytrance search"
+grep -q 'app_search(youtube, "psytrance")' "$tmp/android_automation.pl" || die "missing typed YouTube psytrance search"
 grep -q "automation(revanced_psytrance" "$tmp/android_automation.pl" || die "missing ReVanced demo"
-grep -q "app_search(youtube_revanced, 'psytrance')" "$tmp/android_automation.pl" || die "missing ReVanced psytrance search"
+grep -q 'app_search(youtube_revanced, "psytrance")' "$tmp/android_automation.pl" || die "missing typed ReVanced psytrance search"
 
 if grep -Eq '(com\.google\.android\.youtube|app\.revanced\.android\.youtube|android\.intent|shell\(|process_create)' "$tmp/android_automation.pl"; then
     die "portable template contains platform package/intent/shell authority"
