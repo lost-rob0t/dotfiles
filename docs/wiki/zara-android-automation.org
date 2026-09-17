@@ -47,17 +47,20 @@ Every runnable automation has this shape:
 automation(Name, actions(Actions)).
 #+end_src
 
+Text values are Prolog strings so they survive the Trealla =Result= round-trip
+as text rather than being normalized into bare atoms.
+
 The current closed action vocabulary is:
 
 #+begin_src prolog
 open_app(AppAlias).
-open_uri('https://example.com/path').
-app_search(AppAlias, 'query text').
-ui_click(text('Visible label')).
-ui_click(view_id('com.example:id/button')).
-ui_click(description('Accessibility description')).
-ui_set_text(view_id('com.example:id/query'), 'text to enter').
-ui_scroll_forward(text('Results')).
+open_uri("https://example.com/path").
+app_search(AppAlias, "query text").
+ui_click(text("Visible label")).
+ui_click(view_id("com.example:id/button")).
+ui_click(description("Accessibility description")).
+ui_set_text(view_id("com.example:id/query"), "text to enter").
+ui_scroll_forward(text("Results")).
 global_action(back).
 global_action(home).
 global_action(recents).
@@ -97,18 +100,18 @@ without changing Android package mechanics.
 
 automation(youtube_psytrance,
     actions([
-        app_search(youtube, 'psytrance')
+        app_search(youtube, "psytrance")
     ])).
 
 automation(revanced_psytrance,
     actions([
-        app_search(youtube_revanced, 'psytrance')
+        app_search(youtube_revanced, "psytrance")
     ])).
 
 automation(psytrance_both,
     actions([
-        app_search(youtube, 'psytrance'),
-        app_search(youtube_revanced, 'psytrance')
+        app_search(youtube, "psytrance"),
+        app_search(youtube_revanced, "psytrance")
     ])).
 
 automation(open_youtube,
@@ -125,8 +128,8 @@ automation(open_revanced,
 % Accessibility and is not used by the YouTube search demo.
 automation(accessibility_demo,
     actions([
-        ui_click(text('Search')),
-        ui_set_text(view_id('com.example:id/query'), 'psytrance')
+        ui_click(text("Search")),
+        ui_set_text(view_id("com.example:id/query"), "psytrance")
     ])).
 #+end_src
 
@@ -182,7 +185,7 @@ Open YouTube and search:
 Expected plan:
 
 #+begin_example
-Result = actions([app_search(youtube,'psytrance')])
+Result = actions([app_search(youtube,"psytrance")])
 #+end_example
 
 Use ReVanced instead:
