@@ -1,0 +1,204 @@
+#+TITLE: Zara Android Prolog automation
+#+AUTHOR: nsaspy
+#+STARTUP: overview
+
+* Purpose
+This file is both documentation and an importable Zara Android configuration
+template.  The repository root contains =zara-template.properties= pointing at
+this Org file.  Zara Android clones the repository into its private cache,
+validates the manifest, tangles only explicitly declared Prolog blocks, analyzes
+every generated source, and imports the result into its private Prolog
+workspace transactionally.
+
+No Git hook, shell command, Android Intent, package name, or executable in this
+repository becomes authority merely because the repository was imported.
+
+* Control-plane rule
+Prolog decides *what* deterministic automation is requested.  Android owns the
+physical capability and remains the authority for runtime permissions and
+special access.
+
+#+begin_example
+Android event / user action
+        |
+        v
+Trealla Prolog automation(Name, Result)
+        |
+        v
+closed typed action parser
+        |
+        v
+permission/special-access gate
+        |
+        v
+reviewed Android adapter
+        |
+        v
+Android effect
+#+end_example
+
+Raw package ids, arbitrary Intents, Java reflection, shell strings, and dynamic
+method invocation are deliberately not part of the automation language.
+
+* Prolog API v1
+Every runnable automation has this shape:
+
+#+begin_src prolog
+automation(Name, actions(Actions)).
+#+end_src
+
+The current closed action vocabulary is:
+
+#+begin_src prolog
+open_app(AppAlias).
+open_uri('https://example.com/path').
+app_search(AppAlias, 'query text').
+ui_click(text('Visible label')).
+ui_click(view_id('com.example:id/button')).
+ui_click(description('Accessibility description')).
+ui_set_text(view_id('com.example:id/query'), 'text to enter').
+ui_scroll_forward(text('Results')).
+global_action(back).
+global_action(home).
+global_action(recents).
+global_action(notifications).
+#+end_src
+
+=AppAlias= is a semantic alias resolved by Zara's Android adapter.  It is not a
+package name.  The initial reviewed aliases include =youtube= and
+=youtube_revanced=.
+
+* Permission and special-access behavior
+Normal app launching and the YouTube search demo require no Accessibility
+permission.  UI selectors and global accessibility actions require Zara's
+AccessibilityService.  When a rule reaches such an action without access, Zara
+stops before the side effect, returns a typed =NeedsAccess= outcome, and opens
+Android's Accessibility settings screen.  Run the automation again after the
+user grants it.
+
+The Automation surface also exposes Android-owned request screens/status for:
+
+- Accessibility service
+- Assistant role
+- Usage access
+- Modify system settings
+- Draw over other apps
+
+Zara can request these surfaces; it cannot silently grant them.
+
+* Psytrance demo
+The following block is tangled by Zara's Git-template importer into
+=android_automation.pl=.  Editing this block changes the imported configuration
+without changing Android package mechanics.
+
+#+begin_src prolog :tangle android_automation.pl
+% Zara Android automation API v1.
+% Semantic aliases are resolved by Android.  Do not use raw package ids.
+
+automation(youtube_psytrance,
+    actions([
+        app_search(youtube, 'psytrance')
+    ])).
+
+automation(revanced_psytrance,
+    actions([
+        app_search(youtube_revanced, 'psytrance')
+    ])).
+
+automation(psytrance_both,
+    actions([
+        app_search(youtube, 'psytrance'),
+        app_search(youtube_revanced, 'psytrance')
+    ])).
+
+automation(open_youtube,
+    actions([
+        open_app(youtube)
+    ])).
+
+automation(open_revanced,
+    actions([
+        open_app(youtube_revanced)
+    ])).
+
+% Example that demonstrates permission acquisition.  It intentionally needs
+% Accessibility and is not used by the YouTube search demo.
+automation(accessibility_demo,
+    actions([
+        ui_click(text('Search')),
+        ui_set_text(view_id('com.example:id/query'), 'psytrance')
+    ])).
+#+end_src
+
+* Importing this repository on Android
+Open the =Zara Automation= launcher surface and use *Git config template*.
+Supply the public HTTPS clone URL for this repository and optionally a branch or
+tag.  Zara accepts HTTPS only, refuses embedded credentials, does not clone
+submodules, uses a shallow checkout, rejects symlink/path escapes, bounds source
+counts and bytes, and requires one of:
+
+#+begin_example
+zara-template.properties
+.zara/config-template.properties
+#+end_example
+
+The manifest format is deliberately tiny:
+
+#+begin_example
+version=1
+name=nsaspy-dotfiles-zara-android
+org=docs/wiki/zara-android-automation.org
+#+end_example
+
+A template can alternatively use =directory= to import bounded =.pl= files, or
+set both =directory= and =org=.  Org import accepts only Prolog source blocks
+with a visible basename in =:tangle=:
+
+#+begin_src org
+,#+begin_src prolog :tangle rules.pl
+rule(example).
+,#+end_src
+#+end_src
+
+* Desktop configuration relationship
+Desktop Zara keeps its reproducible base facts in
+=file:../../nix/home-manager/files/zarathushtra/config.pl= and a mutable private
+=config.local.pl= overlay outside Git.  Android follows the same ownership
+principle: Git templates provide non-secret declarative source; the app-private
+Prolog workspace remains the mutable layer.
+
+Desktop-only process mappings such as =app_mapping/2= with Linux executables do
+not become Android executable commands.  Port cross-platform intent meaning to
+=automation/2= and semantic Android aliases.  This preserves the desktop
+configuration model without turning an imported repository into a shell.
+
+* Examples
+Open YouTube and search:
+
+#+begin_src prolog
+?- automation(youtube_psytrance, Result).
+#+end_src
+
+Expected plan:
+
+#+begin_example
+Result = actions([app_search(youtube,'psytrance')])
+#+end_example
+
+Use ReVanced instead:
+
+#+begin_src prolog
+?- automation(revanced_psytrance, Result).
+#+end_src
+
+Run both sequentially:
+
+#+begin_src prolog
+?- automation(psytrance_both, Result).
+#+end_src
+
+* Editing policy
+Keep non-secret, repeatable Android automation in this Org file.  Keep
+credentials, API keys, private endpoints, device-specific secrets, and temporary
+experiments outside the tracked template.  Git import is configuration import,
+not a trust escalation.
