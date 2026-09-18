@@ -151,6 +151,31 @@ private worker launcher.
   refuses; diverged branches are only reported).  Issues and PRs are
   never duplicated across hosts.
 
+* GPT Todos context and clocking
+
+OpenCode receives the =gpt-todos= skill as an out-of-store link from
+=~/Documents/gpt-todos/skills/gpt-todos= and gets a =gpt-todos= command on PATH.
+This keeps the private durable task database out of the public/global skills
+catalog while still making it available to OpenCode.
+
+=/rage= and =/auto-rage= read =gpt-todos context <project-slug>= before choosing
+new slices. This is extra user intent/provenance only; repository code/tests and
+tracker state remain authoritative.
+
+The same helper can manage Org state and the shared Emacs clock:
+#+begin_src shell
+gpt-todos context zara
+gpt-todos clock-in ORG-ID
+gpt-todos clock-out
+gpt-todos state ORG-ID WAIT
+gpt-todos schedule ORG-ID '<2026-09-18 Fri 20:00>'
+#+end_src
+
+Emacs exposes =M-x gpt-todos-clock-in-by-id=,
+=M-x gpt-todos-clock-out=, =M-x gpt-todos-set-state-by-id=, and
+=M-x gpt-todos-schedule-by-id=. Saving these mutations uses the existing
+asynchronous gpt-todos sync path.
+
 * Verification commands
 
 #+begin_src shell
