@@ -54,5 +54,57 @@ When FILE is non-nil, preserve and synchronize that just-saved agenda file."
   (when (gpt-todos--agenda-org-file-p buffer-file-name)
     (gpt-todos-sync buffer-file-name)))
 
+
+(defun gpt-todos--marker-for-id (id)
+  "Return an Org marker for ID in the synced GPT Todos agenda."
+  (require 'org-id)
+  (let ((org-id-extra-files
+         (directory-files-recursively gpt-todos-agenda-directory "\\.org\\'")))
+    (or (org-id-find id 'marker)
+        (user-error "Unknown GPT Todos Org ID: %s" id))))
+
+(defun gpt-todos--with-id (id fn)
+  "Call FN at Org heading ID and save the mutated agenda buffer."
+  (let ((marker (gpt-todos--marker-for-id id)))
+    (with-current-buffer (marker-buffer marker)
+      (goto-char marker)
+      (funcall fn)
+      (save-buffer))))
+
+;;;###autoload
+(defun gpt-todos-clock-in-by-id (id)
+  "Clock into GPT Todos heading ID using the canonical Org clock."
+  (interactive "sOrg ID: ")
+  (gpt-todos--with-id
+   id
+   (lambda ()
+     (when (member (org-get-todo-state) '("TODO" "WAIT" "HOLD"))
+       (org-todo "STRT"))
+     (org-clock-in))))
+
+;;;###autoload
+(defun gpt-todos-clock-out ()
+  "Clock out of the current Org task without marking it complete."
+  (interactive)
+  (unless (org-clocking-p)
+    (user-error "No active Org clock"))
+  (let ((buffer (marker-buffer org-clock-marker)))
+    (org-clock-out)
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (save-buffer)))))
+
+;;;###autoload
+(defun gpt-todos-set-state-by-id (id state)
+  "Set GPT Todos heading ID to TODO STATE."
+  (interactive "sOrg ID: \nsState: ")
+  (gpt-todos--with-id id (lambda () (org-todo state))))
+
+;;;###autoload
+(defun gpt-todos-schedule-by-id (id timestamp)
+  "Schedule GPT Todos heading ID at Org TIMESTAMP."
+  (interactive "sOrg ID: \nsOrg timestamp: ")
+  (gpt-todos--with-id id (lambda () (org-schedule nil timestamp))))
+
 ;;;###autoload
 (add-hook 'after-save-hook #'gpt-todos-sync-after-save)
