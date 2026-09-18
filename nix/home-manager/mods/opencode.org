@@ -160,6 +160,19 @@ shared worker skill, never in command metadata.
 
     skillsPackages = lib.attrByPath [ "packages" pkgs.stdenv.hostPlatform.system ] { } inputs.skills;
     opencodeWorker = skillsPackages.opencode-worker or null;
+    gptTodosCheckout = "${config.home.homeDirectory}/Documents/gpt-todos";
+    gptTodosSkill = config.lib.file.mkOutOfStoreSymlink "${gptTodosCheckout}/skills/gpt-todos";
+    gptTodosCli = pkgs.writeShellApplication {
+      name = "gpt-todos";
+      runtimeInputs = [
+        pkgs.gnugrep
+        pkgs.gnused
+        pkgs.python3
+      ];
+      text = ''
+        exec ${lib.getExe pkgs.bash} "${gptTodosCheckout}/skills/gpt-todos/scripts/gpt-todos" "$@"
+      '';
+    };
 
     commandSpecs = {
       auto = [
@@ -201,6 +214,22 @@ shared worker skill, never in command metadata.
       auto-rage = [
         "Run bounded iterative RAGE"
         "rage"
+      ];
+      todos = [
+        "Read and manage durable GPT todos"
+        "gpt-todos"
+      ];
+      idea = [
+        "Capture or reconcile an IDEA"
+        "gpt-todos"
+      ];
+      clock-in = [
+        "Clock into an Org task by ID"
+        "gpt-todos"
+      ];
+      clock-out = [
+        "Clock out of the active Org task"
+        "gpt-todos"
       ];
       aradr = [
         "Run the repository's actual ADADR or ARADR workflow"
@@ -673,7 +702,10 @@ shared worker skill, never in command metadata.
           opencodeAttach
           opencodeWebOpen
         ];
-      home.sessionVariables.OPENCODE_GLOBAL_SKILLS_CHECKOUT = cfg.globalSkills.sourceCheckout;
+      home.sessionVariables = {
+      OPENCODE_GLOBAL_SKILLS_CHECKOUT = cfg.globalSkills.sourceCheckout;
+      GPT_TODOS_ROOT = gptTodosCheckout;
+    };
 
       home.file."${config.xdg.configHome}/opencode/AGENTS.md" = mkIf (cfg.globalAgentsFile != null) {
         source = cfg.globalAgentsFile;
