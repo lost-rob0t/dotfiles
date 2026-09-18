@@ -565,6 +565,20 @@ in
           $ARGUMENTS
           Do not invent a goal when no arguments were supplied. Resolve local and global origins explicitly; edit global skills only in ${cfg.globalSkills.sourceCheckout}, never ${cfg.globalSkills.installedSource}.
         '';
+        rage.template = ''
+          Load and follow the `rage` and `gpt-todos` skills for `/rage`.
+          Command intent: Run the canonical RAGE workflow using durable user context.
+          User arguments (may be empty):
+          $ARGUMENTS
+          Before selecting or refining the RAGE slice, run `gpt-todos context <current-project-slug>` and read the relevant durable TODO/IDEA context from ${gptTodosCheckout}. Treat that context as user intent and provenance, not as proof of repository implementation state. Do not silently promote IDEA entries into committed work. Repository source, tests, issues, PRs, and exact-head checks remain authoritative for code truth.
+        '';
+        auto-rage.template = ''
+          Load and follow the `rage` and `gpt-todos` skills for `/auto-rage`.
+          Command intent: Run bounded iterative RAGE using durable user context.
+          User arguments (may be empty):
+          $ARGUMENTS
+          Before each new coherent slice, refresh `gpt-todos context <current-project-slug>`. Use changed TODO/IDEA context to steer scope when relevant, without treating Org notes as code-state evidence or automatically promoting IDEA entries.
+        '';
         unfuck.template = ''
           Load and follow the `opencode-worker` and `opencode-orchestrate` skills for `/unfuck`.
           Command intent: Repair a path end-to-end with Astra Medium.
@@ -607,14 +621,20 @@ in
       message = "opencode.commands command name `${name}` is unsafe; use one flat alphanumeric name with only `.`, `_`, or `-` separators";
     }) (builtins.attrNames cfg.commands);
 
-    xdg.configFile = commandFiles;
+    xdg.configFile = commandFiles // {
+      "opencode/skills/gpt-todos".source = gptTodosSkill;
+    };
     home.packages =
-      lib.optional (opencodeWorker != null) opencodeWorker
+      [ gptTodosCli ]
+      ++ lib.optional (opencodeWorker != null) opencodeWorker
       ++ lib.optionals cfg.web.enable [
         opencodeAttach
         opencodeWebOpen
       ];
-    home.sessionVariables.OPENCODE_GLOBAL_SKILLS_CHECKOUT = cfg.globalSkills.sourceCheckout;
+    home.sessionVariables = {
+      OPENCODE_GLOBAL_SKILLS_CHECKOUT = cfg.globalSkills.sourceCheckout;
+      GPT_TODOS_ROOT = gptTodosCheckout;
+    };
 
     home.file."${config.xdg.configHome}/opencode/AGENTS.md" = mkIf (cfg.globalAgentsFile != null) {
       source = cfg.globalAgentsFile;
