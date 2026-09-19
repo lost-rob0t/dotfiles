@@ -27,6 +27,102 @@ let
     '';
   };
 
+  specialistNames = [
+    "worker-implementation"
+    "worker-tests"
+    "worker-prolog-kb"
+    "worker-actors"
+    "worker-plugins"
+    "worker-starlang-spec"
+    "worker-shared-config"
+    "worker-docs-book"
+    "worker-aradr"
+    "worker-release"
+    "worker-ci"
+    "worker-sync-history"
+    "worker-server-api"
+    "worker-biz"
+    "worker-integration-e2e"
+  ];
+
+  specialistProfiles = {
+    worker-implementation = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Implement production code for the assigned StarIntel slice. Add or strengthen tests and update affected docs. Do not stop at analysis or a report.";
+    };
+    worker-tests = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own adversarial, regression, integration, and E2E testing for the assigned slice. Fix product code when tests expose defects; do not only write a test report.";
+    };
+    worker-prolog-kb = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own Prolog experts, reusable Star KB rules, formal verification, provenance, symbolic plans, and Prolog-RLM integration. Produce executable rules/tests/code.";
+    };
+    worker-actors = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own Pro Actors, event sourcing, actor lifecycle, A2A protocol, manifests, refresh, database-service actors, and actor tests. Implement code, not architecture prose only.";
+    };
+    worker-plugins = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own Lisp plugin infrastructure: webhooks, local/remote plugins, capabilities, tenant root overlays, lifecycle and isolation. Implement code plus tests and docs.";
+    };
+    worker-starlang-spec = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Treat StarLang/spec as canonical source. Implement verification/plan grammar and downstream bindings/ports consistently; add parity and migration tests.";
+    };
+    worker-shared-config = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own shared configuration libraries and dotfiles-facing contracts. Keep secrets out of Git, preserve XDG/Nix conventions, and implement validation/tests.";
+    };
+    worker-docs-book = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own StarIntel server wiki/book/tutorial material together with runnable examples, doctests, fixtures, or code improvements. Documentation work must still ship executable evidence.";
+    };
+    worker-aradr = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own ARADR symbolic planning/research integrated with Prolog-RLM and Star KB. Auto-Dig may be used when it supports the slice. Turn accepted research into code/tests rather than report-only output.";
+    };
+    worker-release = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own release automation, release branches, version locks, changelogs, migration gates and reproducible artifacts. Lock a chosen release scope without blocking next-version work.";
+    };
+    worker-ci = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own CI, formal validation, KB statistics, graph/image artifacts, improvement metrics and false-green prevention. Implement gates and generators, not dashboard prose only.";
+    };
+    worker-sync-history = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own /_changes, RSS/Atom projections, /_sync master-to-master replication, tombstones, content-addressed revisions, internal Git history, conflicts and replay tests.";
+    };
+    worker-server-api = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own starintel-server APIs, general DB-service boundaries, CouchDB policy now and PostgreSQL-compatible contracts later. Implement server code and integration tests.";
+    };
+    worker-biz = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own explicitly assigned private StarIntel Biz work end-to-end, including child dependency repos when required. Keep private policy/config private and ship code/tests/evidence.";
+    };
+    worker-integration-e2e = {
+      role = "worker";
+      provider = "prolog-rlm-glm";
+      instructions = "Own cross-repository and monorepo integration, packaging, migrations and full-stack E2E. Reconcile child repos and fix integration defects until the slice is genuinely green.";
+    };
+  };
+
   harnessConfig = {
     schema = "starintel.llm.config.v1";
     proxy = {
@@ -98,13 +194,16 @@ let
         timeout_seconds = cfg.reviewerTimeLimitSeconds;
       };
     };
-    profiles = {
+    profiles = ({
       main = {
         role = "main";
         planner = "codex-plan";
         allowed_providers = [ "prolog-rlm-glm" ];
+        worker_profiles = specialistNames;
         reviewers = [ "review-codex" "review-glm" ];
+        max_plan_steps = 15;
         max_parallel = cfg.maxParallelWorkers;
+        queue_wait_seconds = cfg.queueWaitSeconds;
         review_parallel = 2;
         review_context_bytes = 200000;
         review_policy.min_approvals = 2;
@@ -135,7 +234,7 @@ let
         role = "worker";
         provider = "glm-worker";
       };
-    };
+    } // specialistProfiles);
     rate_limits = {
       gpt = {
         reserve_percent = cfg.gptReservePercent;
@@ -230,8 +329,14 @@ in
 
     maxParallelWorkers = mkOption {
       type = types.int;
-      default = 4;
-      description = "Maximum ready plan steps the main harness executes in parallel.";
+      default = 15;
+      description = "Maximum logical ready plan steps the main harness may queue in parallel; provider rate limits remain authoritative.";
+    };
+
+    queueWaitSeconds = mkOption {
+      type = types.int;
+      default = 7200;
+      description = "Maximum time a main-worker call may wait for subscription/local rate admission.";
     };
 
     maxPromptBytes = mkOption {
