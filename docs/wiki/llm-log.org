@@ -61,8 +61,11 @@ also bounded locally.
 
 The harness config is generated at =~/.config/starintel/llm-harness.json=.
 The default =main= profile uses Codex in a read-only planner sandbox, validates
-the returned plan with SWI-Prolog, executes GLM work through Prolog-RLM and the
-=zai= llm-log prefix, and requires independent Codex plus GLM reviews. The
+the returned plan with SWI-Prolog, can allocate up to 15 named specialist worker
+slices, executes GLM-5.3 work through Prolog-RLM and the =zai= llm-log prefix,
+and requires independent Codex plus GLM reviews. Logical fan-out is separate
+from physical provider concurrency: quota pacing, reserve floors, and launch
+leases remain authoritative. The
 =main-direct-glm= profile keeps the same planner/review gates but executes
 through =opencode-worker=.
 
