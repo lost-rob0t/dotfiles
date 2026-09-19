@@ -269,10 +269,12 @@ The optional argument NEW-WINDOW is not used."
                   :todo ("DONE"))
            )))
 
-(setq initial-buffer-choice
-      (lambda ()
-        (org-agenda nil "a")
-        (get-buffer "*Org Agenda*")))
+(require 'ai-dashboard)
+(setq initial-buffer-choice #'ai/dashboard-buffer)
+
+(map! :leader
+      :desc "AI dashboard" "y d" #'ai/dashboard
+      :desc "Zara chat" "y z" #'zara-chat)
 
 (map! :leader
       :desc "Tangle a file"

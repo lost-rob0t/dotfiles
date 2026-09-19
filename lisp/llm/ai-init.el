@@ -10,6 +10,7 @@
 (require 'ai-prolog-rlm)
 (require 'ai-mcp)
 (require 'chat)
+(require 'ai-dashboard)
 (require 'fren-loader)
 
 (defconst ai/default-openrouter-image-model
@@ -74,6 +75,9 @@
 
 (ai/image-register-gptel-tools)
 (ai/prolog-rlm-register-gptel-tool)
+(ai/dashboard-register-gptel-tools)
+(when (require 'zara nil t)
+  (zara-gptel-register-tool))
 (unless (string-match-p "Image and prompt-template rules:" ai/agent-system-prompt)
   (setq ai/agent-system-prompt
         (concat ai/agent-system-prompt ai/image-agent-instructions)))
