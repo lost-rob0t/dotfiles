@@ -70,6 +70,17 @@ class StarIntelHarnessConfigTests(unittest.TestCase):
         self.assertIn("--credential-env ZAI_API_KEY", source)
         self.assertNotIn("ZAI_API_KEY =", source)
 
+    def test_prolog_rlm_reuses_private_quota_credential_source(self):
+        source = MODULE.read_text(encoding="utf-8")
+        self.assertIn("pkgs.python3", source)
+        self.assertIn("config.llm.quotaTelemetry.environmentFile", source)
+        self.assertIn('mode & 0o077', source)
+        self.assertIn('LLM_LOG_ZAI_KEY_FILE', source)
+        self.assertIn("refusing non-private credential file", source)
+        self.assertIn("z.AI credential unavailable", source)
+        self.assertNotIn('source "$quota_env"', source)
+        self.assertNotIn('. "$quota_env"', source)
+
 
 if __name__ == "__main__":
     unittest.main()
