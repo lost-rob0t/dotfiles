@@ -76,11 +76,11 @@ Do not rely on Bash startup files as the only way to expose `git-sync`. The help
 
 ## GPT TODO sync
 
-`lost-rob0t/gpt-todos` owns durable Org task state. Dotfiles owns the local sync/runtime integration used to move that state into the user's live Org agenda.
+`lost-rob0t/gpt-todos` owns the durable private Org graph: agenda task state plus the user's full non-agenda Org-roam workspace, shared agent memory, inventory notes, dailies, and allowed attachments. Dotfiles owns the local sync/runtime integration that mirrors this state into the user's live Org tree.
 
 Do not put the canonical sync executable or Emacs integration in `gpt-todos`. Keep them in this repository and keep their Org sources synchronized with their generated counterparts.
 
-`gpt-todos-sync` must only synchronize GPT TODO/agenda state. It must never tangle, stage, commit, fetch, rebase, push, or otherwise synchronize the dotfiles repository.
+`gpt-todos-sync` synchronizes only the private `gpt-todos` Org workspace: live `agenda/` maps to repository `agenda/`, while every other allowed live note path maps under repository `notes/`. It must never stage, commit, fetch, rebase, push, or otherwise synchronize the dotfiles repository itself. Org-roam SQLite/Org-ID caches and editor lock files are derived state and must remain outside Git.
 
 Dotfiles synchronization belongs exclusively to `dotfiles-sync`. `dotfiles-sync` may enforce known literate/generated pairs and must target the user's Forgejo service at `git.starintel.actor` by default rather than GitHub.
 
