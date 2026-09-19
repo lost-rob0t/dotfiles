@@ -520,13 +520,13 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (after! alert
     (use-package! org-timed-alerts
       :config
-      (setq org-timed-alerts-alert-function #'alert-libnotify-notify
+      (setq org-timed-alerts-alert-function #'alert
             org-timed-alerts-tag-exclusions nil
             org-timed-alerts-default-alert-props nil
             org-timed-alerts-warning-times '(-10 -5)
             org-timed-alerts-agenda-hook-p t
-            org-timed-alert-final-alert-string "IT IS %alert-time\n\n%todo %headline"
-            org-timed-alert-warning-string (concat "%todo %headline\n at %alert-time\n "
+            org-timed-alerts-final-alert-string "IT IS %alert-time\n\n%todo %headline"
+            org-timed-alerts-warning-string (concat "%todo %headline\n at %alert-time\n "
                                                    "it is now %current-time\n "
                                                    "*THIS IS YOUR %warning-time MINUTE WARNING*")))
     (after! org-timed-alerts
@@ -782,15 +782,35 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (setq alert-default-style 'libnotify)
   (setq alert-libnotify-command "dunstify"))
 
-(defun alert-libnotify-notify (info)
-  "Send INFO using notifications-notify.
-Handles :ICON, :CATEGORY, :SEVERITY, :PERSISTENT, :NEVER-PERSIST, :TITLE
-and :MESSAGE keywords from the INFO plist.  :CATEGORY can be
-passed as a single symbol, a string or a list of symbols or
-strings."
+(defcustom nsa/alert-min-interval 15
+  "Minimum seconds between desktop notifications emitted by Emacs."
+  :type 'number
+  :group 'alert)
+
+(defcustom nsa/alert-max-pending 15
+  "Maximum number of pending desktop notifications."
+  :type 'integer
+  :group 'alert)
+
+(defvar nsa/alert--queue nil)
+(defvar nsa/alert--queued-keys (make-hash-table :test #'equal))
+(defvar nsa/alert--timer nil)
+(defvar nsa/alert--last-sent 0.0)
+(defvar nsa/alert--suppressed 0)
+
+(defun nsa/alert--key (info)
+  "Return a stable dedupe key for alert INFO."
+  (list (plist-get info :title)
+        (plist-get info :message)
+        (plist-get info :category)
+        (plist-get info :severity)))
+
+(defun nsa/alert--send-now (info)
+  "Deliver alert INFO immediately, bypassing the throttle queue."
   (if (fboundp #'notifications-notify)
       (let ((category (plist-get info :category))
-            (urgency (cdr (assq (plist-get info :severity) alert-libnotify-priorities))))
+            (urgency (cdr (assq (plist-get info :severity)
+                                alert-libnotify-priorities))))
         (notifications-notify
          :title (alert-encode-string (plist-get info :title))
          :body (alert-encode-string (plist-get info :message))
@@ -803,13 +823,65 @@ strings."
                                          #'symbol-name
                                        #'identity)
                                      category ",")))
-         :timeout (* 1000 ; notify-send takes msecs
+         :timeout (* 1000
                      (if (and (plist-get info :persistent)
                               (not (plist-get info :never-persist)))
-                         0 ; 0 indicates persistence
+                         0
                        alert-fade-time))
          :urgency (if urgency (symbol-name urgency) "normal")))
     (alert-message-notify info)))
+
+(defun nsa/alert--schedule-drain ()
+  "Schedule the next queued alert while enforcing the global rate limit."
+  (unless (timerp nsa/alert--timer)
+    (let* ((elapsed (- (float-time) nsa/alert--last-sent))
+           (delay (max 0.0 (- nsa/alert-min-interval elapsed))))
+      (setq nsa/alert--timer
+            (run-at-time delay nil #'nsa/alert--drain)))))
+
+(defun nsa/alert--drain ()
+  "Emit one queued alert and schedule the next one."
+  (setq nsa/alert--timer nil)
+  (when-let ((entry (pop nsa/alert--queue)))
+    (let ((key (car entry))
+          (info (cdr entry)))
+      (remhash key nsa/alert--queued-keys)
+      (when (> nsa/alert--suppressed 0)
+        (setq info (copy-sequence info))
+        (setq info
+              (plist-put
+               info :message
+               (format "%s\n\n[%d duplicate/overflow alerts suppressed]"
+                       (or (plist-get info :message) "")
+                       nsa/alert--suppressed)))
+        (setq nsa/alert--suppressed 0))
+      (setq nsa/alert--last-sent (float-time))
+      (condition-case err
+          (nsa/alert--send-now info)
+        (error
+         (message "Emacs alert delivery failed: %S" err))))
+    (when nsa/alert--queue
+      (setq nsa/alert--timer
+            (run-at-time nsa/alert-min-interval nil #'nsa/alert--drain)))))
+
+(defun alert-libnotify-notify (info)
+  "Queue INFO for throttled desktop delivery.
+
+At most `nsa/alert-max-pending' alerts are queued and no more than one
+desktop notification is emitted every `nsa/alert-min-interval' seconds.
+Identical queued alerts and overflow are suppressed and counted."
+  (let ((key (nsa/alert--key info)))
+    (cond
+     ((gethash key nsa/alert--queued-keys)
+      (setq nsa/alert--suppressed (1+ nsa/alert--suppressed)))
+     ((>= (length nsa/alert--queue) nsa/alert-max-pending)
+      (setq nsa/alert--suppressed (1+ nsa/alert--suppressed)))
+     (t
+      (puthash key t nsa/alert--queued-keys)
+      (setq nsa/alert--queue
+            (nconc nsa/alert--queue
+                   (list (cons key (copy-sequence info)))))
+      (nsa/alert--schedule-drain)))))
 
 (use-package! skeletor
   :commands (skeletor-create-project skeletor-define-template)
