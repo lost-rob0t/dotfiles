@@ -154,7 +154,7 @@ ignored_notes_rel() {
     */.git/*|*/.cache/*) return 0 ;;
   esac
   case "$base" in
-    .#*|#*#|*~|org-roam.db|.org-roam.db|org-id-locations|.org-id-locations) return 0 ;;
+    .#*|\#*#|*~|org-roam.db|.org-roam.db|org-id-locations|.org-id-locations) return 0 ;;
   esac
   return 1
 }
