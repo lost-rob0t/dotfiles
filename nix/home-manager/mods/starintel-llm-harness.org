@@ -1,0 +1,324 @@
+#+TITLE: StarIntel LLM Harness Home Manager Module
+#+PROPERTY: header-args:nix :tangle starintel-llm-harness.nix :mkdirp yes
+
+* Purpose
+
+This module owns the live user configuration for the StarIntel LLM harness.
+Star KB owns harness semantics; dotfiles owns provider commands, local paths,
+proxy routing, worker profiles, and quota pacing policy.
+
+All model traffic is routed through the existing loopback llm-log proxy where
+the client supports a configurable endpoint. Subscription admission reads the
+cached =/api/v1/quotas= endpoint and never derives capacity from plan names.
+Unknown/stale quota state fails closed.
+
+The default main profile is:
+
+#+begin_example
+Codex (read-only planner)
+          |
+          v
+  Prolog verified plan
+          |
+          v
+Prolog-RLM -> llm-log -> z.AI Coding Plan
+          |
+          +--> Codex independent reviewer
+          +--> GLM independent reviewer
+#+end_example
+
+No API key is written by this module. Codex keeps managed ChatGPT auth, OpenCode
+keeps its provider auth, and the Prolog-RLM GLM path reads =ZAI_API_KEY= only at
+runtime.
+
+* Module
+
+#+begin_src nix
+{ config, lib, pkgs, ... }:
+
+let
+  inherit (lib) mkEnableOption mkIf mkOption types;
+  cfg = config.llm.starintelHarness;
+
+  prologRlmGlm = pkgs.writeShellApplication {
+    name = "starintel-prolog-rlm-glm";
+    runtimeInputs = [ pkgs.coreutils pkgs.swiProlog ];
+    text = ''
+      set -euo pipefail
+      prompt="$(cat)"
+      bytes="$(printf '%s' "$prompt" | wc -c)"
+      if [ "$bytes" -gt ${toString cfg.maxPromptBytes} ]; then
+        echo "starintel-prolog-rlm-glm: prompt exceeds ${toString cfg.maxPromptBytes} bytes" >&2
+        exit 2
+      fi
+      exec swipl -q \
+        -s ${lib.escapeShellArg "${cfg.prologRlmCheckout}/bin/prolog-rlm.pl"} \
+        -- rlm "$prompt" \
+        --endpoint ${lib.escapeShellArg "${cfg.proxyBaseUrl}/zai/api/coding/paas/v4/chat/completions"} \
+        --model ${lib.escapeShellArg cfg.glmRlmModel} \
+        --credential-env ZAI_API_KEY \
+        --max-tokens ${toString cfg.maxTokens} \
+        --max-cost ${toString cfg.maxCost} \
+        --time-limit ${toString cfg.workerTimeLimitSeconds}
+    '';
+  };
+
+  harnessConfig = {
+    schema = "starintel.llm.config.v1";
+    proxy = {
+      base_url = cfg.proxyBaseUrl;
+      quota_base_url = cfg.proxyBaseUrl;
+      timeout_seconds = 3;
+    };
+    providers = {
+      codex-plan = {
+        argv = [
+          "codex"
+          "exec"
+          "--json"
+          "--sandbox"
+          "read-only"
+          "--ephemeral"
+          "-"
+        ];
+        stdin_prompt = true;
+        parser = "codex_jsonl";
+        quota_provider = "gpt";
+        timeout_seconds = cfg.plannerTimeLimitSeconds;
+      };
+      prolog-rlm-glm = {
+        argv = [ "${prologRlmGlm}/bin/starintel-prolog-rlm-glm" ];
+        stdin_prompt = true;
+        parser = "text";
+        quota_provider = "zai";
+        timeout_seconds = cfg.workerTimeLimitSeconds;
+      };
+      glm-worker = {
+        argv = [
+          "opencode-worker"
+          "--model"
+          cfg.glmOpenCodeModel
+          "--role"
+          "worker"
+          "--format"
+          "text"
+          "--max-retries"
+          "0"
+        ];
+        stdin_prompt = true;
+        parser = "text";
+        quota_provider = "zai";
+        timeout_seconds = cfg.workerTimeLimitSeconds;
+      };
+      glm-reviewer = {
+        argv = [
+          "opencode-worker"
+          "--model"
+          cfg.glmOpenCodeModel
+          "--role"
+          "reviewer"
+          "--format"
+          "text"
+          "--max-retries"
+          "0"
+          "--mode"
+          "readonly"
+        ];
+        stdin_prompt = true;
+        parser = "text";
+        quota_provider = "zai";
+        timeout_seconds = cfg.reviewerTimeLimitSeconds;
+      };
+    };
+    profiles = {
+      main = {
+        role = "main";
+        planner = "codex-plan";
+        allowed_providers = [ "prolog-rlm-glm" ];
+        reviewers = [ "review-codex" "review-glm" ];
+        max_parallel = cfg.maxParallelWorkers;
+        review_parallel = 2;
+        review_context_bytes = 200000;
+        review_policy.min_approvals = 2;
+      };
+      main-direct-glm = {
+        role = "main";
+        planner = "codex-plan";
+        allowed_providers = [ "glm-worker" ];
+        reviewers = [ "review-codex" "review-glm" ];
+        max_parallel = cfg.maxParallelWorkers;
+        review_parallel = 2;
+        review_context_bytes = 200000;
+        review_policy.min_approvals = 2;
+      };
+      review-codex = {
+        role = "reviewer";
+        provider = "codex-plan";
+      };
+      review-glm = {
+        role = "reviewer";
+        provider = "glm-reviewer";
+      };
+      worker-prolog-rlm = {
+        role = "worker";
+        provider = "prolog-rlm-glm";
+      };
+      worker-glm = {
+        role = "worker";
+        provider = "glm-worker";
+      };
+    };
+    rate_limits = {
+      gpt = {
+        reserve_percent = cfg.gptReservePercent;
+        burst_percent = cfg.burstPercent;
+        unknown_policy = "deny";
+        unknown_retry_seconds = 60;
+        max_concurrency = cfg.gptMaxConcurrency;
+        min_interval_seconds = cfg.gptMinIntervalSeconds;
+        lease_seconds = cfg.workerTimeLimitSeconds + 60;
+      };
+      zai = {
+        reserve_percent = cfg.zaiReservePercent;
+        burst_percent = cfg.burstPercent;
+        unknown_policy = "deny";
+        unknown_retry_seconds = 60;
+        max_concurrency = cfg.zaiMaxConcurrency;
+        min_interval_seconds = cfg.zaiMinIntervalSeconds;
+        lease_seconds = cfg.workerTimeLimitSeconds + 60;
+      };
+    };
+  };
+in
+{
+  options.llm.starintelHarness = {
+    enable = mkEnableOption "StarIntel profile-driven LLM worker harness";
+
+    proxyBaseUrl = mkOption {
+      type = types.str;
+      default = "http://127.0.0.1:8787";
+      description = "Loopback llm-log base URL used for model transport and quota telemetry.";
+    };
+
+    prologRlmCheckout = mkOption {
+      type = types.str;
+      default = "${config.home.homeDirectory}/Documents/Projects/prolog-rlm";
+      description = "Checkout containing bin/prolog-rlm.pl.";
+    };
+
+    glmOpenCodeModel = mkOption {
+      type = types.str;
+      default = "zai-coding-plan/glm-4.7";
+      description = "OpenCode model reference for the z.AI Coding Plan worker.";
+    };
+
+    glmRlmModel = mkOption {
+      type = types.str;
+      default = "glm-4.7";
+      description = "Model ID passed to the z.AI Coding Plan OpenAI-compatible endpoint.";
+    };
+
+    gptReservePercent = mkOption {
+      type = types.float;
+      default = 10.0;
+      description = "GPT reported quota held in reserve.";
+    };
+
+    zaiReservePercent = mkOption {
+      type = types.float;
+      default = 10.0;
+      description = "z.AI reported quota held in reserve.";
+    };
+
+    burstPercent = mkOption {
+      type = types.float;
+      default = 5.0;
+      description = "Early-window burst allowed above the time-proportional budget curve.";
+    };
+
+    gptMaxConcurrency = mkOption {
+      type = types.int;
+      default = 2;
+      description = "Cross-process GPT worker concurrency.";
+    };
+
+    zaiMaxConcurrency = mkOption {
+      type = types.int;
+      default = 4;
+      description = "Cross-process z.AI worker concurrency.";
+    };
+
+    gptMinIntervalSeconds = mkOption {
+      type = types.float;
+      default = 1.0;
+      description = "Minimum launch interval for GPT-backed harness calls.";
+    };
+
+    zaiMinIntervalSeconds = mkOption {
+      type = types.float;
+      default = 1.0;
+      description = "Minimum launch interval for z.AI-backed harness calls.";
+    };
+
+    maxParallelWorkers = mkOption {
+      type = types.int;
+      default = 4;
+      description = "Maximum ready plan steps the main harness executes in parallel.";
+    };
+
+    maxPromptBytes = mkOption {
+      type = types.int;
+      default = 120000;
+      description = "Maximum prompt bytes accepted by the Prolog-RLM GLM wrapper.";
+    };
+
+    maxTokens = mkOption {
+      type = types.int;
+      default = 8192;
+      description = "Per-call Prolog-RLM token ceiling.";
+    };
+
+    maxCost = mkOption {
+      type = types.float;
+      default = 10.0;
+      description = "Per-call Prolog-RLM provider-reported cost ceiling.";
+    };
+
+    plannerTimeLimitSeconds = mkOption {
+      type = types.int;
+      default = 900;
+      description = "Codex planning timeout.";
+    };
+
+    workerTimeLimitSeconds = mkOption {
+      type = types.int;
+      default = 1800;
+      description = "Worker timeout and local lease duration basis.";
+    };
+
+    reviewerTimeLimitSeconds = mkOption {
+      type = types.int;
+      default = 900;
+      description = "Reviewer timeout.";
+    };
+  };
+
+  config = mkIf (config.llm.enable && cfg.enable) {
+    services.llm-log.upstreams.zai = "https://api.z.ai";
+
+    programs.opencode.settings.provider."zai-coding-plan".options.baseURL =
+      "${cfg.proxyBaseUrl}/zai/api/coding/paas/v4";
+
+    xdg.configFile."starintel/llm-harness.json".text =
+      builtins.toJSON harnessConfig;
+
+    home.sessionVariables = {
+      STARINTEL_LLM_CONFIG = "${config.xdg.configHome}/starintel/llm-harness.json";
+      STARINTEL_LLM_PROXY = cfg.proxyBaseUrl;
+    };
+
+    home.packages = [ prologRlmGlm ];
+  };
+}
+
+#+end_src
