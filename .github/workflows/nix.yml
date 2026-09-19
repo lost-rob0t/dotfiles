@@ -73,6 +73,12 @@ jobs:
           -L lisp/llm
           -l lisp/llm/youtube-context-test.el
           -f ert-run-tests-batch-and-exit
+      - name: Run programmable dashboard ERT tests
+        run: >-
+          emacs -Q --batch
+          -L lisp/llm
+          -l lisp/llm/ai-dashboard-test.el
+          -f ert-run-tests-batch-and-exit
       - name: Run Brave MCP protocol tests
         run: python3 tests/brave-mcp.py
       - name: Run Termux remote workflow tests
