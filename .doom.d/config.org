@@ -565,13 +565,17 @@ I prefer being able to have different views within org agenda, so i can see what
                   :todo ("DONE"))
            )))
 #+end_src
-**** Open to agenda on startup
-By default doom opens to the =*scratch*= buffer. I want emacs to boot straight into my (super) agenda so the first thing I see is what needs doing today.
+**** Open the programmable AI command center on startup
+The startup surface is a local typed dashboard inspired by agent-built
+workspaces.  It keeps Tool Chat, Zara, agenda, and ideas one key away while
+allowing gptel to add persistent cards through a closed action vocabulary.
 #+begin_src emacs-lisp
-(setq initial-buffer-choice
-      (lambda ()
-        (org-agenda nil "a")
-        (get-buffer "*Org Agenda*")))
+(require 'ai-dashboard)
+(setq initial-buffer-choice #'ai/dashboard-buffer)
+
+(map! :leader
+      :desc "AI dashboard" "y d" #'ai/dashboard
+      :desc "Zara chat" "y z" #'zara-chat)
 #+end_src
 *** Babel
 Tangle a file
