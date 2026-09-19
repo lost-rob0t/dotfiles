@@ -158,7 +158,15 @@ jobs:
       - name: Build Termux companion apps from source
         run: |
           set -euo pipefail
-          for source in             termux-api-src             termux-widget-src             termux-boot-src             termux-float-src             termux-styling-src             termux-tasker-src; do
+          sources=(
+            termux-api-src
+            termux-widget-src
+            termux-boot-src
+            termux-float-src
+            termux-styling-src
+            termux-tasker-src
+          )
+          for source in "${sources[@]}"; do
             (cd "$source" && ./gradlew assembleDebug)
           done
 
