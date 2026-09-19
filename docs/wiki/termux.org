@@ -1,0 +1,168 @@
+#+TITLE: Termux and Android Companion Apps
+#+AUTHOR: nsaspy
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Purpose
+
+This page is the operational map for the custom Termux family shipped from this
+dotfiles repository.  The executable source of truth remains
+[[file:../../android/build.org][android/build.org]] and the paired GitHub workflow.  This page documents how the
+pieces fit together, what each companion app is for, and the install/upgrade
+invariants that are easy to forget on Android.
+
+The family is source-built and re-signed together.  Do not mix an APK from this
+bundle with F-Droid, Google Play, or upstream GitHub APKs from another signing
+identity.
+
+* Family architecture
+
+The release family contains native GNU Emacs plus Termux and six Termux
+companions.  Every APK is verified before publication for:
+
+- the expected Android package identity;
+- =android:sharedUserId=com.termux=;
+- ZIP alignment;
+- exactly one signing certificate shared across the whole family;
+- a SHA-256 artifact digest recorded in =PAIRING.json=.
+
+The build resolves the latest stable upstream release tag for each Termux
+repository at workflow runtime and writes the exact tag and commit SHA to
+=SOURCE-LOCK.txt=.  That keeps the build current without making this wiki a
+second version database.
+
+| App | Android package | Role in this setup |
+|-----+-----------------+--------------------|
+| GNU Emacs | =org.gnu.emacs= | Native Doom-free Org/Vim reader with access to the paired Termux toolchain. |
+| Termux | =com.termux= | Native shell, language toolchains, SSH, tmux, Git, Prolog, Lisp, Nim, Python, and bootstrap runtime. |
+| Termux:API | =com.termux.api= | Android device/API bridge for Termux commands after the user grants Android permissions. |
+| Termux:Widget | =com.termux.widget= | Home-screen foreground shortcuts and background tasks from =~/.shortcuts/=. |
+| Termux:Boot | =com.termux.boot= | Runs explicitly configured scripts from =~/.termux/boot/= after Android boot. |
+| Termux:Float | =com.termux.window= | Floating terminal window for quick shell/admin work over other apps. |
+| Termux:Styling | =com.termux.styling= | Termux font and color selection.  It complements, rather than replaces, dotfiles-owned shell/editor themes. |
+| Termux:Tasker | =com.termux.tasker= | Bridge that lets Tasker/Locale-style automation invoke allowed Termux commands.  Tasker itself is not bundled. |
+
+* Canonical implementation
+
+- [[file:../../android/build.org][android/build.org]] owns =android/build.py= and the package/signing verification gate.
+- [[file:../../.github/workflows/android-emacs-release.yml][android-emacs-release.yml]] resolves upstream release refs, clones sources, builds every APK, signs the family, verifies it, and publishes bundles.
+- [[file:../../android/tests/test_termux_build.py][android/tests/test_termux_build.py]] checks the package family, manifest parser, signing behavior, and literate/generated parity.
+- [[file:../../bootstrap-termux.org][bootstrap-termux.org]] owns the Termux userspace/bootstrap after the APK family is installed.
+- [[file:../../scripts/termux-remote.org][scripts/termux-remote.org]] owns the remote GUI, Agent Zero tunnel, and extra Termux:Widget shortcuts.
+- [[file:../../android/README.org][android/README.org]] owns the broader native-Emacs/Termux install and profile workflow.
+
+* Build and release flow
+
+The workflow performs these steps as one release unit:
+
+1. resolve stable source tags for Termux, API, Widget, Boot, Float, Styling, and Tasker;
+2. source-build GNU Emacs and every Termux application;
+3. record source refs and commit SHAs in =SOURCE-LOCK.txt=;
+4. align and sign every APK with the repository's configured persistent Android key;
+5. inspect every manifest and certificate with Android SDK tools;
+6. write =PAIRING.json= and =SHA256SUMS=;
+7. publish only after the complete family passes verification.
+
+A tagged =android-emacs-v*= release refuses the public TEST-ONLY compatibility
+key.  The public key path exists only for explicit manual CI smoke builds.
+
+* Install and upgrade invariant
+
+Android signing identity and shared-user membership are installation-time
+contracts.  Back up Termux home and important Android app data before switching
+families.
+
+Install APKs from one generated bundle together.  Android will reject an upgrade
+signed with a different key, and uninstalling Termux can delete app data.  The
+build workflow therefore never installs or uninstalls apps automatically.
+
+A practical install order is:
+
+1. Termux;
+2. API, Widget, Boot, Float, Styling, and Tasker;
+3. native GNU Emacs;
+4. launch Termux and Emacs once;
+5. run [[file:../../bootstrap-termux.org][the Termux bootstrap]];
+6. run =android-emacs-stow=;
+7. smoke-test =git --version= in Termux and =M-! git --version= in native Emacs.
+
+The certificate/shared-UID gate is more important than the order: every installed
+member must come from the same bundle.
+
+* Companion workflows
+
+** Termux:Widget
+
+The bootstrap creates the core shortcuts, while
+[[file:../../scripts/termux-remote.org][scripts/termux-remote.org]] adds the remote-workflow layer.  Foreground shortcuts
+live in =~/.shortcuts/= and background tasks in =~/.shortcuts/tasks/= with mode
+=0700=.
+
+Current workflows include Org capture, SSH to =flake=, remote ChatGPT launch,
+Agent Zero tunneling, dotfiles refresh, StarIntel admin, agenda/TODO access, and
+AI entry points.
+
+** Termux:Boot
+
+Boot is intentionally opt-in.  Put only small, idempotent launchers in
+=~/.termux/boot/=.  Long-lived work should immediately hand off to tmux or a
+service supervisor so Android boot does not become a giant shell script.
+
+Good candidates are restoring a local tmux control session, starting =sshd= when
+you explicitly want it, or scheduling local sync/service startup.  Do not put
+secrets in boot scripts and do not start remote tunnels merely because the phone
+rebooted unless that behavior is intentional.
+
+** Termux:Float
+
+Float is the fast shell surface: use it for a short admin command, attaching to
+an existing tmux session, or checking a remote job without switching fully into
+Termux.  Android's overlay permission must be granted by the user.
+
+** Termux:Styling
+
+Styling owns Termux's Android-terminal presentation.  The shell, Doom, Qtile,
+and Zara themes remain dotfiles-owned configuration.  This separation prevents a
+phone font/color picker from becoming another source of truth for editor or
+desktop theme behavior.
+
+** Termux:Tasker
+
+Tasker integration is an external automation bridge, not a replacement for the
+Prolog/Zara automation model.  Keep callable scripts small and explicit, and
+route durable behavior through the same dotfiles commands used interactively.
+That makes a Tasker action a thin trigger instead of a hidden second
+implementation.
+
+** Termux:API
+
+API commands cross from the Termux shell into Android facilities such as
+notifications, intents, sensors, clipboard, and media.  Android permission
+prompts remain user-controlled.  Scripts should fail clearly when a permission
+or API package is unavailable instead of silently degrading.
+
+* Troubleshooting
+
+** Plugin says Termux is incompatible
+
+Check that the plugin APK and Termux APK came from the same generated release.
+The most common cause is mixing signing families.
+
+** Native Emacs cannot execute Termux Git
+
+Verify that the paired family is installed, then follow
+[[file:../../android/README.org][android/README.org]] for the shared-UID bridge and run =android-emacs-stow= again.
+
+** Widget entries are stale
+
+#+begin_src sh
+git -C ~/.dotfiles pull --ff-only
+bash ~/.dotfiles/scripts/install-termux-widgets
+#+end_src
+
+** Build artifact identity
+
+Inspect =PAIRING.json= first.  It is the machine-readable statement of the APK
+set, expected package identities, hashes, shared user, and signing certificate.
+=SOURCE-LOCK.txt= answers the separate provenance question: exactly which
+upstream sources were built.
