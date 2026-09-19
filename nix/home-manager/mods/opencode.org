@@ -391,19 +391,19 @@ shared worker skill, never in command metadata.
         "starintel-document-create"
       ];
       memory = [
-        "Query actual project and global memory"
+        "Query project KB and shared Org-roam memory"
         "prolog-project-kb"
       ];
       remember = [
-        "Persist a reusable verified fact"
+        "Persist a reusable verified fact to the correct project/shared memory scope"
         "prolog-project-kb"
       ];
       forget = [
-        "Deprecate or remove memory safely"
+        "Deprecate project or shared memory safely"
         "prolog-project-kb"
       ];
       learn = [
-        "Promote worthwhile session knowledge"
+        "Promote worthwhile session knowledge to the correct memory scope"
         "prolog-project-kb"
       ];
       handoff = [

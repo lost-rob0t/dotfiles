@@ -66,6 +66,51 @@ At the time this policy was written, the active release/profile is `0.9.1` and t
 next additive release is `0.9.2`. This sentence is historical context only: the
 live lock and canonical scripts always outrank it.
 
+## Shared Org-roam agent memory
+
+The user's cross-project shared memory lives in the Git-backed Org graph at
+`$GPT_TODOS_NOTES_DIR/memory/shared/` (default
+`~/Documents/Notes/org/memory/shared/`).  It is separate from project-local
+`.prolog/` execution memory: project KBs hold repository-specific engineering
+knowledge; shared Org memory holds durable facts, decisions, preferences, and
+cross-project state that multiple authorized agents should reuse.
+
+Before inventing a durable cross-project fact, search the shared Org graph first.
+Prefer Org QL when the configured Emacs environment is available.  Otherwise
+read/search the Org files directly; never substitute an LLM's remembered prose
+for repository state.
+
+Shared assertions are immutable Org heading nodes with at least:
+
+```text
+:ID: <Org ID>
+:KIND: memory
+:MEMORY_SCOPE: shared
+:SUBJECT: <stable subject key>
+:VALUE: <durable value>
+:REV: <positive integer>
+:STATUS: active|retracted
+:AUTHOR: <agent/user id>
+:SOURCE: <issue/pr/run/conversation provenance>
+:SUPERSEDES: <prior Org ID or empty>
+```
+
+When shared state changes:
+- append a new assertion rather than overwriting the previous assertion;
+- set `SUPERSEDES` to the prior assertion when replacing it;
+- preserve concurrent successors as a conflict instead of choosing a winner
+  silently;
+- include source and author provenance;
+- use `gpt-todos-sync` after non-Emacs writes so the private Git-backed graph
+  is published;
+- never place secrets, credentials, private keys, raw chain-of-thought, or
+  transient scratch data in shared memory.
+
+The canonical schema/policy is in `lost-rob0t/gpt-todos`:
+`docs/org-roam-shared-memory.org`, `kb/shared_memory.pl`, and
+`notes/memory/shared/`.  Those files outrank copied prompt text if the contract
+evolves.
+
 ## Durable Prolog project memory
 
 For substantive repository work, use the `prolog-project-kb` skill.
