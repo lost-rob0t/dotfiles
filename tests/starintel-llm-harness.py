@@ -36,6 +36,29 @@ class StarIntelHarnessConfigTests(unittest.TestCase):
         self.assertIn('allowed_providers = [ "prolog-rlm-glm" ];', source)
         self.assertIn('reviewers = [ "review-codex" "review-glm" ];', source)
         self.assertIn('review_policy.min_approvals = 2;', source)
+        self.assertIn('max_plan_steps = 15;', source)
+        self.assertIn('default = 15;', source)
+        self.assertIn('default = 7200;', source)
+        self.assertIn('worker_profiles = specialistNames;', source)
+        self.assertEqual(source.count('role = "worker";'), 17)
+        for name in (
+            "worker-implementation",
+            "worker-tests",
+            "worker-prolog-kb",
+            "worker-actors",
+            "worker-plugins",
+            "worker-starlang-spec",
+            "worker-shared-config",
+            "worker-docs-book",
+            "worker-aradr",
+            "worker-release",
+            "worker-ci",
+            "worker-sync-history",
+            "worker-server-api",
+            "worker-biz",
+            "worker-integration-e2e",
+        ):
+            self.assertIn(f'"{name}"', source)
         self.assertIn('default = "zai-coding-plan/glm-5.3";', source)
         self.assertIn('default = "glm-5.3";', source)
         self.assertGreaterEqual(source.count('"max"'), 2)
