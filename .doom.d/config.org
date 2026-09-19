@@ -471,7 +471,7 @@ Track a org file by adding it to the agenda folder
 (map! :after 'org
       :localleader
       :map org-mode-map
-      :desc "Add file to Org agenda" "w" #'track-org-file)
+      :desc "Add file to Org agenda" "w" #'nsa/track-org-file)
 #+end_src
 
 I prefer being able to have different views within org agenda, so i can see whats coming up ahead of time.
@@ -780,20 +780,18 @@ Configure keybinds. this will be under `SPC m a `
 *** Org Roam
 A Personal wiki
 
-Set roam directory
+Set roam directory once.  The Roam AI section ontology in
+[[file:../../lisp/llm/ai-roam.el][ai-roam.el]] derives everything from the same root.
 #+begin_src emacs-lisp
-(setq org-roam-directory "~/Documents/Notes/org/")
-#+end_src
+(setq org-roam-directory "~/Documents/Notes/org/roam/")
 
-#+begin_src emacs-lisp
 (after! org-roam
-  :init
   (setq org-roam-v2-ack t)
-  (setq org-roam-directory "~/Documents/Notes/org/")
   (setq org-roam-dailies-directory "daily")
   (setq org-roam-complete-everywhere t)
 
-  ;; Main Templates (Temple removed)
+  ;; Main templates.  Targets follow the Roam AI section ontology:
+  ;; yt/ notes are adopted into media/, reading-notes/ into reading/.
   (setq org-roam-capture-templates
         '(
           ("d" "default" plain "%?"
@@ -805,12 +803,24 @@ Set roam directory
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
+          ("o" "osint" plain "* %? %^g"
+           :target (file+head "osint/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("e" "entity" plain "* %? %^g"
+           :target (file+head "entities/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
           ("v" "Video" plain "* %? %^g"
-           :target (file+head "yt/%<%Y%m%d%H%M%S>-${slug}.org"
+           :target (file+head "media/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
           ("h" "hacking" plain "%?"
            :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("S" "scada" plain "%?"
+           :target (file+head "scada/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
           ("a" "ai" plain "* ${title}\n%?"
@@ -818,17 +828,62 @@ Set roam directory
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
           ("r" "Reading notes" plain "%?"
-           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
+           :target (file+head "reading/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-        )))
 
+          ("L" "prolog" plain "%?"
+           :target (file+head "prolog/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
+          ("n" "nix" plain "%?"
+           :target (file+head "nix/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
+          ("A" "android" plain "%?"
+           :target (file+head "android/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
+          ("w" "writing" plain "%?"
+           :target (file+head "writing/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("M" "meta" plain "%?"
+           :target (file+head "meta/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          )))
+#+end_src
+**** Roam AI
+The gptel-backed roam layer.  The module lives in
+[[file:../../lisp/llm/ai-roam.el][lisp/llm/ai-roam.el]] and owns the section ontology (17
+sections), the editor-rights resolver, outline-only drafting, and the
+section adoption helper.
+
+Rights resolve in order: the global =ai/full-editor-rights= toggle,
+then the per-section rights alist (=hacking=, =scada=, =writing= and
+=meta= default to =full=), then =outline=.  Until the toggle or a
+section grants full rights the LLM only generates org outlines for me
+to fill in.
+
+Keybindings stay conservative: nothing existing is rebound.  Roam AI
+commands live under a localleader =y= prefix in org buffers; global
+additions will only ever use free keys under the existing =y= LLM
+prefix.
+#+begin_src emacs-lisp
+(autoload #'ai/roam-draft-outline "ai-roam" nil t)
+(autoload #'ai/roam-toggle-full-editor-rights "ai-roam" nil t)
+(autoload #'ai/roam-adopt-section "ai-roam" nil t)
+
+(after! org-roam
+  (map! :localleader
+        :map org-mode-map
+        :prefix ("y" . "roam AI")
+        :desc "Draft outline" "o" #'ai/roam-draft-outline
+        :desc "Toggle full editor rights" "f" #'ai/roam-toggle-full-editor-rights
+        :desc "Adopt note into section" "a" #'ai/roam-adopt-section))
 #+end_src
 *** Misc org roam
 url2org function for importing info from the web
@@ -933,15 +988,6 @@ Config, mostly defaults since it looks good enough.
   (defun update-timestamps (directory)
     "Update timestamps in all org files in DIRECTORY."
     (interactive "DDirectory: ")
-    (let ((files (directory-files-recursively directory "\\.org$")))
-      (dolist (file files)
-        (with-current-buffer (find-file-noselect file)
-          (save-excursion
-            (goto-char (point-min))
-            (time-stamp))))))
-
-  (defun update-timestamps-in-directory (directory)
-    "Update timestamps in all org files in DIRECTORY."
     (let ((files (directory-files-recursively directory "\\.org$")))
       (dolist (file files)
         (with-current-buffer (find-file-noselect file)

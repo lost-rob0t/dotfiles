@@ -180,7 +180,7 @@ The optional argument NEW-WINDOW is not used."
 (map! :after 'org
       :localleader
       :map org-mode-map
-      :desc "Add file to Org agenda" "w" #'track-org-file)
+      :desc "Add file to Org agenda" "w" #'nsa/track-org-file)
 
 (map! :leader
       :desc "Switch to week view"
@@ -447,16 +447,15 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :desc "Paste image" "a p" #'org-download-clipboard
       :desc "Insert image from URL" "a i" #'org-download-yank)
 
-(setq org-roam-directory "~/Documents/Notes/org/")
+(setq org-roam-directory "~/Documents/Notes/org/roam/")
 
 (after! org-roam
-  :init
   (setq org-roam-v2-ack t)
-  (setq org-roam-directory "~/Documents/Notes/org/")
   (setq org-roam-dailies-directory "daily")
   (setq org-roam-complete-everywhere t)
 
-  ;; Main Templates (Temple removed)
+  ;; Main templates.  Targets follow the Roam AI section ontology:
+  ;; yt/ notes are adopted into media/, reading-notes/ into reading/.
   (setq org-roam-capture-templates
         '(
           ("d" "default" plain "%?"
@@ -468,12 +467,24 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
            :target (file+head "starintel/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
+          ("o" "osint" plain "* %? %^g"
+           :target (file+head "osint/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("e" "entity" plain "* %? %^g"
+           :target (file+head "entities/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
           ("v" "Video" plain "* %? %^g"
-           :target (file+head "yt/%<%Y%m%d%H%M%S>-${slug}.org"
+           :target (file+head "media/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
           ("h" "hacking" plain "%?"
            :target (file+head "hacking/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("S" "scada" plain "%?"
+           :target (file+head "scada/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
           ("a" "ai" plain "* ${title}\n%?"
@@ -481,13 +492,45 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
           ("r" "Reading notes" plain "%?"
-           :target (file+head "reading-notes/%<%Y%m%d%H%M%S>-${slug}.org"
+           :target (file+head "reading/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
 
           ("p" "Programming" plain "%?"
            :target (file+head "programming/%<%Y%m%d%H%M%S>-${slug}.org"
                               "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
-        )))
+
+          ("L" "prolog" plain "%?"
+           :target (file+head "prolog/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("n" "nix" plain "%?"
+           :target (file+head "nix/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("A" "android" plain "%?"
+           :target (file+head "android/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("w" "writing" plain "%?"
+           :target (file+head "writing/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+
+          ("M" "meta" plain "%?"
+           :target (file+head "meta/%<%Y%m%d%H%M%S>-${slug}.org"
+                              "#+TITLE: ${title}\n#+CREATED: %U\n#+LAST_MODIFIED: %U\n\n"))
+          )))
+
+(autoload #'ai/roam-draft-outline "ai-roam" nil t)
+(autoload #'ai/roam-toggle-full-editor-rights "ai-roam" nil t)
+(autoload #'ai/roam-adopt-section "ai-roam" nil t)
+
+(after! org-roam
+  (map! :localleader
+        :map org-mode-map
+        :prefix ("y" . "roam AI")
+        :desc "Draft outline" "o" #'ai/roam-draft-outline
+        :desc "Toggle full editor rights" "f" #'ai/roam-toggle-full-editor-rights
+        :desc "Adopt note into section" "a" #'ai/roam-adopt-section))
 
 (defun url2org (begin end)
   "Download a webpage from selected url and convert to org."
@@ -563,15 +606,6 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (defun update-timestamps (directory)
     "Update timestamps in all org files in DIRECTORY."
     (interactive "DDirectory: ")
-    (let ((files (directory-files-recursively directory "\\.org$")))
-      (dolist (file files)
-        (with-current-buffer (find-file-noselect file)
-          (save-excursion
-            (goto-char (point-min))
-            (time-stamp))))))
-
-  (defun update-timestamps-in-directory (directory)
-    "Update timestamps in all org files in DIRECTORY."
     (let ((files (directory-files-recursively directory "\\.org$")))
       (dolist (file files)
         (with-current-buffer (find-file-noselect file)
@@ -989,6 +1023,12 @@ strings."
 ;;   (setq consult-omni-brave-api-key #'(lambda () (nsa/auth-source-get :host "api.brave.com")))
 
 ;;  )
+
+(use-package! starintel
+    :config
+    (setq starintel-servers
+          '((remote :url "https://ingest.starintel.actor"
+                 :auth-source "starintel"))))
 
 (use-package! f
   :defer t)
