@@ -3,7 +3,8 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 manifest="$repo_root/zara-template.properties"
-org="$repo_root/docs/wiki/zara-android-automation.org"
+config_dir="$repo_root/.config/zarathushtra/android"
+automation="$config_dir/android_automation.pl"
 
 die() {
     printf 'zara android template: %s\n' "$*" >&2
@@ -11,42 +12,28 @@ die() {
 }
 
 [[ -f "$manifest" ]] || die "missing zara-template.properties"
-[[ -f "$org" ]] || die "missing Org template"
+[[ -d "$config_dir" ]] || die "missing canonical Android Zara config directory"
+[[ -f "$automation" ]] || die "missing Android automation Prolog source"
+
 grep -qx 'version=1' "$manifest" || die "template version must be 1"
 grep -qx 'name=nsaspy-dotfiles-zara-android' "$manifest" || die "unexpected template name"
-grep -qx 'org=docs/wiki/zara-android-automation.org' "$manifest" || die "manifest does not point at canonical Org file"
+grep -qx 'directory=.config/zarathushtra/android' "$manifest" || die "manifest does not point at canonical XDG Android config"
 
-tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+find "$config_dir" -mindepth 1 -maxdepth 1 -type f -name '*.pl' -print0 |
+while IFS= read -r -d '' source; do
+    swipl -q -t halt -s "$source"
+done
 
-awk '
-    BEGIN { in_block=0; found=0 }
-    /^#\+begin_src prolog :tangle android_automation\.pl$/ {
-        if (in_block) exit 2
-        in_block=1
-        found++
-        next
-    }
-    /^#\+end_src$/ && in_block {
-        in_block=0
-        next
-    }
-    in_block { print }
-    END {
-        if (in_block || found != 1) exit 3
-    }
-' "$org" > "$tmp/android_automation.pl" || die "invalid android_automation.pl Org tangle"
+grep -q "automation(youtube_psytrance" "$automation" || die "missing YouTube demo"
+grep -q 'app_search(youtube, "psytrance")' "$automation" || die "missing typed YouTube psytrance search"
+grep -q "automation(revanced_psytrance" "$automation" || die "missing ReVanced demo"
+grep -q 'app_search(youtube_revanced, "psytrance")' "$automation" || die "missing typed ReVanced psytrance search"
 
-[[ -s "$tmp/android_automation.pl" ]] || die "tangled Prolog source is empty"
-swipl -q -t halt -s "$tmp/android_automation.pl"
-
-grep -q "automation(youtube_psytrance" "$tmp/android_automation.pl" || die "missing YouTube demo"
-grep -q 'app_search(youtube, "psytrance")' "$tmp/android_automation.pl" || die "missing typed YouTube psytrance search"
-grep -q "automation(revanced_psytrance" "$tmp/android_automation.pl" || die "missing ReVanced demo"
-grep -q 'app_search(youtube_revanced, "psytrance")' "$tmp/android_automation.pl" || die "missing typed ReVanced psytrance search"
-
-if grep -Eq '(com\.google\.android\.youtube|app\.revanced\.android\.youtube|android\.intent|shell\(|process_create)' "$tmp/android_automation.pl"; then
-    die "portable template contains platform package/intent/shell authority"
+if grep -Eq '(com\.google\.android\.youtube|app\.revanced\.android\.youtube|android\.intent|shell\(|process_create)' "$automation"; then
+    die "portable Android config contains platform package/intent/shell authority"
 fi
+
+[[ ! -e "$repo_root/.config/zarathushtra/config.local.pl" ]] ||
+    die "private config.local.pl must not be tracked in the dotfiles repository"
 
 printf 'zara android config template contract: PASS\n'
