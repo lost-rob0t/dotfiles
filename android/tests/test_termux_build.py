@@ -53,6 +53,19 @@ class ManifestTests(unittest.TestCase):
 
 
 class FamilyTests(unittest.TestCase):
+    def test_companion_packages_are_part_of_family(self):
+        expected = {
+            "org.gnu.emacs",
+            "com.termux",
+            "com.termux.api",
+            "com.termux.widget",
+            "com.termux.boot",
+            "com.termux.window",
+            "com.termux.styling",
+            "com.termux.tasker",
+        }
+        self.assertEqual(set(build.FAMILY), expected)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -82,11 +95,11 @@ class FamilyTests(unittest.TestCase):
     def test_valid_family_produces_hashes_and_one_signer(self):
         with patch.object(build, 'run', side_effect=self.fake_run):
             result = build.verify_family(self.root, self.root)
-        self.assertEqual(len(result['apks']), 4)
+        self.assertEqual(len(result['apks']), len(build.FAMILY))
         self.assertEqual(result['shared_user_id'], 'com.termux')
         self.assertEqual(result['certificate_sha256'], 'ab' * 32)
         self.assertTrue(all(len(row['sha256']) == 64 for row in result['apks']))
-        self.assertEqual(sum('-c' in command for command in self.commands), 4)
+        self.assertEqual(sum('-c' in command for command in self.commands), len(build.FAMILY))
 
     def test_wrong_uid_package_and_signer_fail_closed(self):
         for flag in ('bad_uid', 'bad_package', 'bad_signer'):
@@ -134,8 +147,8 @@ class FamilyTests(unittest.TestCase):
         self.assertEqual(before, {p: path.read_bytes() for p, path in self.inputs.items()})
         self.assertTrue((self.root / 'out' / 'PAIRING.json').is_file())
         self.assertFalse(any('not-on-command-line' in arg for command in self.commands for arg in command))
-        self.assertEqual(sum('sign' in command for command in self.commands), 4)
-        self.assertEqual(sum('-f' in command for command in self.commands), 4)
+        self.assertEqual(sum('sign' in command for command in self.commands), len(build.FAMILY))
+        self.assertEqual(sum('-f' in command for command in self.commands), len(build.FAMILY))
 
     def test_failed_verification_does_not_publish(self):
         key = self.root / 'key'; key.touch()
@@ -206,6 +219,49 @@ class BuildTests(unittest.TestCase):
         with patch.object(build.platform, 'system', return_value='Darwin'), \
              self.assertRaises(build.BuildError):
             build.build_emacs(self.args, self.tools)
+
+
+class WorkflowTests(unittest.TestCase):
+    def test_release_workflow_covers_full_companion_family(self):
+        workflow = (ROOT.parent / ".github/workflows/android-emacs-release.yml").read_text()
+        repositories = {
+            "TERMUX_APP_REF": "termux/termux-app",
+            "TERMUX_API_REF": "termux/termux-api",
+            "TERMUX_WIDGET_REF": "termux/termux-widget",
+            "TERMUX_BOOT_REF": "termux/termux-boot",
+            "TERMUX_FLOAT_REF": "termux/termux-float",
+            "TERMUX_STYLING_REF": "termux/termux-styling",
+            "TERMUX_TASKER_REF": "termux/termux-tasker",
+        }
+        for variable, repository in repositories.items():
+            with self.subTest(repository=repository):
+                self.assertIn(repository, workflow)
+                self.assertIn(variable, workflow)
+
+        for flag in (
+            "--emacs-apk",
+            "--termux-apk",
+            "--api-apk",
+            "--widget-apk",
+            "--boot-apk",
+            "--float-apk",
+            "--styling-apk",
+            "--tasker-apk",
+        ):
+            with self.subTest(flag=flag):
+                self.assertIn(flag, workflow)
+
+        for name in (
+            "termux_app_sha",
+            "termux_api_sha",
+            "termux_widget_sha",
+            "termux_boot_sha",
+            "termux_float_sha",
+            "termux_styling_sha",
+            "termux_tasker_sha",
+        ):
+            with self.subTest(source_lock=name):
+                self.assertIn(name, workflow)
 
 
 class LiterateTests(unittest.TestCase):

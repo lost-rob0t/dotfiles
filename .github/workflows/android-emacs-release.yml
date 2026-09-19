@@ -28,7 +28,7 @@ env:
 jobs:
   paired-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - name: Check out dotfiles without submodule traversal
         run: |
@@ -100,10 +100,18 @@ jobs:
           app_ref="$(latest_release_tag termux/termux-app)"
           api_ref="$(latest_release_tag termux/termux-api)"
           widget_ref="$(latest_release_tag termux/termux-widget)"
+          boot_ref="$(latest_release_tag termux/termux-boot)"
+          float_ref="$(latest_release_tag termux/termux-float)"
+          styling_ref="$(latest_release_tag termux/termux-styling)"
+          tasker_ref="$(latest_release_tag termux/termux-tasker)"
           {
             printf 'TERMUX_APP_REF=%s\n' "$app_ref"
             printf 'TERMUX_API_REF=%s\n' "$api_ref"
             printf 'TERMUX_WIDGET_REF=%s\n' "$widget_ref"
+            printf 'TERMUX_BOOT_REF=%s\n' "$boot_ref"
+            printf 'TERMUX_FLOAT_REF=%s\n' "$float_ref"
+            printf 'TERMUX_STYLING_REF=%s\n' "$styling_ref"
+            printf 'TERMUX_TASKER_REF=%s\n' "$tasker_ref"
           } >> "$GITHUB_ENV"
 
       - name: Clone GNU Emacs and Termux sources
@@ -113,6 +121,10 @@ jobs:
           git clone --depth 1 --branch "$TERMUX_APP_REF" https://github.com/termux/termux-app.git termux-app-src
           git clone --depth 1 --branch "$TERMUX_API_REF" https://github.com/termux/termux-api.git termux-api-src
           git clone --depth 1 --branch "$TERMUX_WIDGET_REF" https://github.com/termux/termux-widget.git termux-widget-src
+          git clone --depth 1 --branch "$TERMUX_BOOT_REF" https://github.com/termux/termux-boot.git termux-boot-src
+          git clone --depth 1 --branch "$TERMUX_FLOAT_REF" https://github.com/termux/termux-float.git termux-float-src
+          git clone --depth 1 --branch "$TERMUX_STYLING_REF" https://github.com/termux/termux-styling.git termux-styling-src
+          git clone --depth 1 --branch "$TERMUX_TASKER_REF" https://github.com/termux/termux-tasker.git termux-tasker-src
           mkdir -p dist
           {
             printf 'dotfiles_sha=%s\n' "$GITHUB_SHA"
@@ -120,6 +132,10 @@ jobs:
             printf 'termux_app_ref=%s\ntermux_app_sha=%s\n' "$TERMUX_APP_REF" "$(git -C termux-app-src rev-parse HEAD)"
             printf 'termux_api_ref=%s\ntermux_api_sha=%s\n' "$TERMUX_API_REF" "$(git -C termux-api-src rev-parse HEAD)"
             printf 'termux_widget_ref=%s\ntermux_widget_sha=%s\n' "$TERMUX_WIDGET_REF" "$(git -C termux-widget-src rev-parse HEAD)"
+            printf 'termux_boot_ref=%s\ntermux_boot_sha=%s\n' "$TERMUX_BOOT_REF" "$(git -C termux-boot-src rev-parse HEAD)"
+            printf 'termux_float_ref=%s\ntermux_float_sha=%s\n' "$TERMUX_FLOAT_REF" "$(git -C termux-float-src rev-parse HEAD)"
+            printf 'termux_styling_ref=%s\ntermux_styling_sha=%s\n' "$TERMUX_STYLING_REF" "$(git -C termux-styling-src rev-parse HEAD)"
+            printf 'termux_tasker_ref=%s\ntermux_tasker_sha=%s\n' "$TERMUX_TASKER_REF" "$(git -C termux-tasker-src rev-parse HEAD)"
           } > dist/SOURCE-LOCK.txt
 
       - name: Build GNU Emacs with the local build entry point
@@ -139,11 +155,20 @@ jobs:
           export TERMUX_SPLIT_APKS_FOR_DEBUG_BUILDS=1
           ./gradlew assembleDebug
 
-      - name: Build Termux API and Widget from source
+      - name: Build Termux companion apps from source
         run: |
           set -euo pipefail
-          (cd termux-api-src && ./gradlew assembleDebug)
-          (cd termux-widget-src && ./gradlew assembleDebug)
+          sources=(
+            termux-api-src
+            termux-widget-src
+            termux-boot-src
+            termux-float-src
+            termux-styling-src
+            termux-tasker-src
+          )
+          for source in "${sources[@]}"; do
+            (cd "$source" && ./gradlew assembleDebug)
+          done
 
       - name: Prepare the shared signing identity
         env:
@@ -186,9 +211,14 @@ jobs:
           termux_apk="$(one_apk termux-app-src/app/build/outputs/apk/debug '*arm64-v8a.apk')"
           api_apk="$(one_apk termux-api-src/app/build/outputs/apk/debug '*.apk')"
           widget_apk="$(one_apk termux-widget-src/app/build/outputs/apk/debug '*.apk')"
+          boot_apk="$(one_apk termux-boot-src/app/build/outputs/apk/debug '*.apk')"
+          float_apk="$(one_apk termux-float-src/app/build/outputs/apk/debug '*.apk')"
+          styling_apk="$(one_apk termux-styling-src/app/build/outputs/apk/debug '*.apk')"
+          tasker_apk="$(one_apk termux-tasker-src/app/build/outputs/apk/debug '*.apk')"
           python3 android/build.py sign --sdk "$ANDROID_HOME" --build-tools "$ANDROID_BUILD_TOOLS" \
             --emacs-apk "$emacs_apk" --termux-apk "$termux_apk" \
-            --api-apk "$api_apk" --widget-apk "$widget_apk" \
+            --api-apk "$api_apk" --widget-apk "$widget_apk" --boot-apk "$boot_apk" \
+            --float-apk "$float_apk" --styling-apk "$styling_apk" --tasker-apk "$tasker_apk" \
             --keystore "$ANDROID_SIGNING_KEYSTORE" --password-file "$ANDROID_SIGNING_PASSWORD_FILE" --out dist
           python3 android/build.py verify --sdk "$ANDROID_HOME" --build-tools "$ANDROID_BUILD_TOOLS" --out dist
 
@@ -221,7 +251,7 @@ jobs:
           set -euo pipefail
           grep -q '^signing_mode=private-release-key$' dist/SOURCE-LOCK.txt
           gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" \
-            --notes 'Source-built arm64 GNU Emacs, Termux, Termux:API and Termux:Widget with verified shared UID and signer parity. Back up app data before changing signing families.'
+            --notes 'Source-built arm64 GNU Emacs plus Termux, API, Widget, Boot, Float, Styling, and Tasker with verified shared UID and signer parity. Back up app data before changing signing families.'
 
       - name: Remove temporary signing material
         if: always()

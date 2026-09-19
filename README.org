@@ -14,6 +14,7 @@ In particular, keep literate Org sources and their tangled/generated outputs syn
 + [[./.doom.d/config.org][Desktop Emacs config]]
 + [[./emacs/profiles.org][Emacs profile switcher]]
 + [[./bootstrap-termux.org][Termux bootstrap]]
++ [[./docs/wiki/termux.org][Termux and Android companion apps]]
 + [[./scripts/termux-remote.org][Termux remote desktop workflows]]
 + [[./android/config.org][Native Android Org/Vim config]]
 + [[./android/doom/config.org][Termux Doom config]]
@@ -81,8 +82,8 @@ emacs --with-profile temple
 #+end_src
 
 The paired Android build workflow builds GNU Emacs for the =com.termux= shared
-user and packages current Termux, Termux:API, and Termux:Widget APKs re-signed
-with the same compatibility key.  That lets native Emacs execute the Termux Git
+user and packages current Termux, API, Widget, Boot, Float, Styling, and Tasker
+APKs re-signed with the same compatibility key.  That lets native Emacs execute the Termux Git
 installation via =PATH= without setting =LD_LIBRARY_PATH=.  See
 [[./android/README.org][android/README.org]] for the signature/install caveat and
 release bundle layout.
