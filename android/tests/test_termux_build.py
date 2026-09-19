@@ -221,6 +221,49 @@ class BuildTests(unittest.TestCase):
             build.build_emacs(self.args, self.tools)
 
 
+class WorkflowTests(unittest.TestCase):
+    def test_release_workflow_covers_full_companion_family(self):
+        workflow = (ROOT.parent / ".github/workflows/android-emacs-release.yml").read_text()
+        repositories = {
+            "TERMUX_APP_REF": "termux/termux-app",
+            "TERMUX_API_REF": "termux/termux-api",
+            "TERMUX_WIDGET_REF": "termux/termux-widget",
+            "TERMUX_BOOT_REF": "termux/termux-boot",
+            "TERMUX_FLOAT_REF": "termux/termux-float",
+            "TERMUX_STYLING_REF": "termux/termux-styling",
+            "TERMUX_TASKER_REF": "termux/termux-tasker",
+        }
+        for variable, repository in repositories.items():
+            with self.subTest(repository=repository):
+                self.assertIn(repository, workflow)
+                self.assertIn(variable, workflow)
+
+        for flag in (
+            "--emacs-apk",
+            "--termux-apk",
+            "--api-apk",
+            "--widget-apk",
+            "--boot-apk",
+            "--float-apk",
+            "--styling-apk",
+            "--tasker-apk",
+        ):
+            with self.subTest(flag=flag):
+                self.assertIn(flag, workflow)
+
+        for name in (
+            "termux_app_sha",
+            "termux_api_sha",
+            "termux_widget_sha",
+            "termux_boot_sha",
+            "termux_float_sha",
+            "termux_styling_sha",
+            "termux_tasker_sha",
+        ):
+            with self.subTest(source_lock=name):
+                self.assertIn(name, workflow)
+
+
 class LiterateTests(unittest.TestCase):
     def test_build_source_is_exact(self):
         org = (ROOT / 'build.org').read_text()
