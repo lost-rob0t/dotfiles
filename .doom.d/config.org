@@ -782,14 +782,14 @@ A Personal wiki
 
 Set roam directory
 #+begin_src emacs-lisp
-(setq org-roam-directory "~/Documents/Notes/org/roam")
+(setq org-roam-directory "~/Documents/Notes/org/")
 #+end_src
 
 #+begin_src emacs-lisp
 (after! org-roam
   :init
   (setq org-roam-v2-ack t)
-  (setq org-roam-directory "~/Documents/Notes/org/roam/")
+  (setq org-roam-directory "~/Documents/Notes/org/")
   (setq org-roam-dailies-directory "daily")
   (setq org-roam-complete-everywhere t)
 

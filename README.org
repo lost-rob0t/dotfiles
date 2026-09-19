@@ -112,8 +112,11 @@ The canonical Android sources are [[./android/config.org][android/config.org]],
 [[./android/doom/config.org][android/doom/config.org]].
 
 ** GPT TODO sync
-The durable task-state checkout defaults to =~/Documents/gpt-todos= and only its
-=agenda/*.org= files are mirrored into =~/Documents/Notes/org/agenda=.
+The durable private Org checkout defaults to =~/Documents/gpt-todos=.  Existing
+=agenda/*.org= files remain mirrored into =~/Documents/Notes/org/agenda= for
+Todo Manager compatibility, while the rest of =~/Documents/Notes/org/= is
+mirrored under the repository's =notes/= tree.  This makes the same private Git
+repository the durable Org-roam/dailies/inventory/shared-agent-memory store.
 
 After the dotfiles checkout exists, this one-liner updates dotfiles, performs an
 initial sync, and installs the five-minute cron entry:

@@ -447,12 +447,12 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :desc "Paste image" "a p" #'org-download-clipboard
       :desc "Insert image from URL" "a i" #'org-download-yank)
 
-(setq org-roam-directory "~/Documents/Notes/org/roam")
+(setq org-roam-directory "~/Documents/Notes/org/")
 
 (after! org-roam
   :init
   (setq org-roam-v2-ack t)
-  (setq org-roam-directory "~/Documents/Notes/org/roam/")
+  (setq org-roam-directory "~/Documents/Notes/org/")
   (setq org-roam-dailies-directory "daily")
   (setq org-roam-complete-everywhere t)
 
