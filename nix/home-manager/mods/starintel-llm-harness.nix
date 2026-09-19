@@ -6,7 +6,7 @@ let
 
   prologRlmGlm = pkgs.writeShellApplication {
     name = "starintel-prolog-rlm-glm";
-    runtimeInputs = [ pkgs.coreutils pkgs.swiProlog ];
+    runtimeInputs = [ pkgs.coreutils pkgs.swi-prolog ];
     text = ''
       set -euo pipefail
       prompt="$(cat)"
