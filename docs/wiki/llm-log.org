@@ -72,3 +72,9 @@ through =opencode-worker=.
 These controls pace only harness-originated work. Other clients can still spend
 the account allowance; their usage is reflected by the next authoritative quota
 snapshot.
+The Prolog-RLM GLM wrapper reuses the same private runtime credential source as
+quota telemetry: =llm.quotaTelemetry.environmentFile=. It accepts only
+=ZAI_API_KEY= or =LLM_LOG_ZAI_KEY_FILE= from that file, requires the environment
+file and referenced key file to have no group/other permission bits, and never
+sources the file as shell code. Secret contents are not serialized into the
+generated harness JSON or Nix store configuration.
