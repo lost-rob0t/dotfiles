@@ -12,7 +12,7 @@ on:
       - 'nix/home-manager/systems/desktop/home.nix'
       - 'flake.nix'
       - 'flake.lock'
-      - 'nix/home-manager/files/zarathushtra/**'
+      - 'nix/home-manager/files/zarathushtra/**'\n      - '.config/zarathushtra/**'
       - 'nix/nixos/systems/flake/networking.nix'
       - 'zara-template.properties'
       - 'docs/wiki/zara.org'
@@ -31,7 +31,7 @@ on:
       - 'nix/home-manager/systems/desktop/home.nix'
       - 'flake.nix'
       - 'flake.lock'
-      - 'nix/home-manager/files/zarathushtra/**'
+      - 'nix/home-manager/files/zarathushtra/**'\n      - '.config/zarathushtra/**'
       - 'nix/nixos/systems/flake/networking.nix'
       - 'zara-template.properties'
       - 'docs/wiki/zara.org'
@@ -54,7 +54,7 @@ jobs:
           bash -n tests/zara-workflows.sh tests/zara-android-template.sh nix/home-manager/files/zarathushtra/bin/zara-system-update
           shellcheck --severity=warning tests/zara-workflows.sh tests/zara-android-template.sh nix/home-manager/files/zarathushtra/bin/zara-system-update
       - name: Check Zara Prolog base config syntax
-        run: swipl -q -t halt -s nix/home-manager/files/zarathushtra/config.pl
+        run: swipl -q -t halt -s .config/zarathushtra/config.pl
       - name: Check Zara workflow contract
         run: bash tests/zara-workflows.sh
       - name: Check Zara Android config template
