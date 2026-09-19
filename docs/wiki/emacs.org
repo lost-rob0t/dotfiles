@@ -114,6 +114,50 @@ state directory.
 Home Manager also runs the same helper every five minutes.  Both paths share the
 same lock, so the periodic timer and Emacs save hook cannot race each other.
 
+* Roam AI
+Roam AI is the gptel-backed LLM layer for Org-roam in desktop Doom.  The
+implementation lives in [[file:../../lisp/llm/ai-roam.el][lisp/llm/ai-roam.el]] and the ontology and rights wiring it
+consumes live in the Org Roam section of [[file:../../.doom.d/config.org][.doom.d/config.org]].  Those files are the
+canonical sources; this page records only architecture and invariants.
+
+The roam graph (the =roam/= subtree under the Org root) is organized into fixed
+sections: =starintel=, =osint=, =entities=, =hacking=, =scada=, =ai=, =llm=,
+=programming=, =elisp=, =prolog=, =nix=, =android=, =reading=, =media=,
+=daily=, =writing=, and =meta=.  The section a note lives in drives two
+properties: its editor rights (what the LLM may write there) and its publish
+visibility (=daily= is published, while =hacking=, =scada=, and =meta= are
+private by default; enforcement of that visibility belongs to the planned
+publish pipeline below).
+
+LLM write access resolves through a single gate, in order: the global toggle
+=ai/full-editor-rights=, then the per-section rights alist, then the section
+default.  Full rights let the LLM edit roam nodes and create =roam:id= links;
+=nil= (=outline=) rights restrict it to generating org outlines the user fills
+in.  =hacking=, =scada=, =writing=, and =meta= default to full rights; every
+other section defaults to outline.  No Roam AI feature may write into the graph
+around this gate, and LLM edits land as ordinary buffer edits, so they flow
+through the durable save-sync section above.
+
+The shipped commands are =ai/roam-draft-outline= (outline-only drafting, valid
+under any rights), =ai/roam-adopt-section= (move a note into a section), and
+=ai/roam-toggle-full-editor-rights= (flip the global toggle).  Keybinding
+philosophy: nothing existing is rebound.  Roam-scoped commands go under the Doom
+localleader =SPC m y ...= prefix in org buffers, and global additions only on
+free keys under the existing =y= LLM prefix.
+
+Roadmap items below are planned, not shipped; PR 1 delivers only the section
+ontology, the rights resolver, outline drafting, and the adoption helper.
+
+- =roam:id= link repair;
+- org-vector semantic tools;
+- sidebar chat;
+- layered memory combining roam notes with Prolog;
+- roam-wide rewrite;
+- writing coach;
+- publish pipeline (censor pass, =:private:= exclusion, dailies);
+- Prolog-backed world KB under =roam/kb/=;
+- notes launcher scripts.
+
 * Deciding a project research record
 From a tracked =research/*.org= buffer, invoke
 =M-x nsa/research-approve-and-push= or =M-x nsa/research-reject-and-push=,

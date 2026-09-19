@@ -12,7 +12,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:getting-started.org][Getting started]] - clone, Stow, Home Manager, and the main repository entry points.
 - [[file:literate-config.org][Literate configuration]] - canonical Org sources, generated files, tangling, and consistency rules.
 - [[file:nix.org][Nix and Home Manager]] - flake outputs, hosts, profiles, installers, and module layout.
-- [[file:emacs.org][Emacs and Doom]] - desktop Doom plus the Doom-free Android Org profile and profile switching.
+- [[file:emacs.org][Emacs and Doom]] - desktop Doom plus the Doom-free Android Org profile, profile switching, and the gptel-backed Roam AI layer for Org-roam.
 - [[file:org-logseq-sync.org][Org-roam and Logseq synchronization]] - conflict-safe bidirectional Org notes, pages, journals, and the user systemd watcher.
 - [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, desktop workflows, and desktop integration.
 - [[file:opencode-commands.org][Global OpenCode commands]] - declarative =/= commands, reusable skills, the =opencode-worker= Unix contract, model routing, and hosting workflows.
