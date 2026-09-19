@@ -254,13 +254,13 @@ in
 
     gptMinIntervalSeconds = mkOption {
       type = types.float;
-      default = 30.0;
+      default = 60.0;
       description = "Minimum launch interval for GPT-backed harness calls.";
     };
 
     zaiMinIntervalSeconds = mkOption {
       type = types.float;
-      default = 30.0;
+      default = 60.0;
       description = "Minimum launch interval for z.AI-backed harness calls.";
     };
 
