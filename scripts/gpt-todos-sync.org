@@ -4,11 +4,12 @@
 
 * Sync
 
-This is the canonical literate source for the task-state sync helper.  Every
-=.org= file in the configured recursive Org agenda tree is synchronized
-bidirectionally with =gpt-todos/agenda/=, including newly created local agenda
-files and nested project paths.  This matches the Doom configuration that builds
-=org-agenda-files= recursively from =~/Documents/Notes/org/agenda/=.
+This is the canonical literate source for the private Org workspace sync helper.
+The existing recursive agenda tree remains mapped to =gpt-todos/agenda/= for
+Todo Manager compatibility.  The rest of =~/Documents/Notes/org/= is mirrored
+under =gpt-todos/notes/=, including Org-roam dailies, ordinary notes, inventory,
+shared agent memory, arbitrary subdirectories, and user-owned attachments.
+Derived Org-roam/Org-ID caches and editor lock files are excluded.
 
 The durable checkout's current =HEAD= is the synchronization baseline: the helper
 fetches the upstream ref, compares Git blob identities, and only copies a side
@@ -32,8 +33,8 @@ the fast-forward pull: a strictly ahead checkout is pushed, and a diverged
 checkout replays only its own unpushed commits onto upstream before pushing.
 A replay conflict aborts the rebase and fails closed for manual resolution.
 
-Doom invokes =gpt-todos-sync --file FILE= after saving an Org file below the
-live agenda directory.  File mode first copies the exact saved contents to a
+Emacs invokes =gpt-todos-sync --file FILE= after saving an Org file anywhere
+inside the synchronized Org workspace.  File mode first copies the exact saved contents to a
 private temporary file.  If the live file is a symlink into the durable checkout,
 the helper temporarily restores only that owned durable path to =HEAD= so the
 upstream fast-forward can happen on a clean worktree.  It then uses the temporary
@@ -55,7 +56,9 @@ set -euo pipefail
 
 REPO_DIR="${GPT_TODOS_REPO_DIR:-$HOME/Documents/gpt-todos}"
 TASK_DIR="$REPO_DIR/agenda"
-ORG_DIR="${GPT_TODOS_ORG_DIR:-$HOME/Documents/Notes/org/agenda}"
+NOTES_REPO_DIR="$REPO_DIR/notes"
+NOTES_DIR="${GPT_TODOS_NOTES_DIR:-$HOME/Documents/Notes/org}"
+ORG_DIR="${GPT_TODOS_ORG_DIR:-$NOTES_DIR/agenda}"
 REMOTE="${GPT_TODOS_REMOTE:-git@github.com:lost-rob0t/gpt-todos.git}"
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
 LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
@@ -101,14 +104,14 @@ if [[ "${1:-}" == "--deploy" ]]; then
   GPT_TODOS_SYNC="$DOTFILES_DIR/scripts/gpt-todos-sync" \
     /usr/bin/env bash "$DOTFILES_DIR/scripts/install-gpt-todos-cron" "$minutes"
 
-  printf 'gpt-todos sync deployed: %s -> %s every %s minutes\n' \
-    "$TASK_DIR" "$ORG_DIR" "$minutes"
+  printf 'gpt-todos sync deployed: agenda %s + notes %s <-> %s every %s minutes\n' \
+    "$TASK_DIR" "$NOTES_REPO_DIR" "$NOTES_DIR" "$minutes"
   exit 0
 elif [[ "${1:-}" == "--file" ]]; then
-  [[ $# -eq 2 ]] || { echo "usage: $0 --file AGENDA_FILE" >&2; exit 2; }
+  [[ $# -eq 2 ]] || { echo "usage: $0 --file ORG_FILE" >&2; exit 2; }
   SAVE_FILE="$2"
 elif [[ $# -ne 0 ]]; then
-  echo "usage: $0 [--file AGENDA_FILE | --deploy [minutes>=5]]" >&2
+  echo "usage: $0 [--file ORG_FILE | --deploy [minutes>=5]]" >&2
   exit 2
 fi
 
@@ -139,26 +142,66 @@ on_exit() {
 }
 trap on_exit EXIT
 
-mkdir -p "$(dirname "$REPO_DIR")" "$ORG_DIR"
+mkdir -p "$(dirname "$REPO_DIR")" "$NOTES_DIR" "$ORG_DIR"
 
-if [[ -n "$SAVE_FILE" ]]; then
-  org_root="$(realpath -m -s -- "$ORG_DIR")"
-  save_logical="$(realpath -m -s -- "$SAVE_FILE")"
-  case "$save_logical" in
-    "$org_root"/*.org) ;;
-    *)
-      printf 'gpt-todos-sync: --file must be an .org file below %s: %s\n' \
-        "$ORG_DIR" "$SAVE_FILE" >&2
-      exit 2
+NOTES_ROOT="$(realpath -m -s -- "$NOTES_DIR")"
+AGENDA_ROOT="$(realpath -m -s -- "$ORG_DIR")"
+
+ignored_notes_rel() {
+  local rel="$1" base
+  base="${rel##*/}"
+  case "/$rel/" in
+    */.git/*|*/.cache/*) return 0 ;;
+  esac
+  case "$base" in
+    .#*|#*#|*~|org-roam.db|.org-roam.db|org-id-locations|.org-id-locations) return 0 ;;
+  esac
+  return 1
+}
+
+local_to_repo_rel() {
+  local file="$1" rel
+  case "$file" in
+    "$AGENDA_ROOT"/*.org)
+      printf 'agenda/%s\n' "${file#"$AGENDA_ROOT/"}"
+      return 0
+      ;;
+    "$NOTES_ROOT"/*)
+      rel="${file#"$NOTES_ROOT/"}"
+      [[ "$rel" == agenda/* ]] && return 1
+      ignored_notes_rel "$rel" && return 1
+      printf 'notes/%s\n' "$rel"
+      return 0
       ;;
   esac
+  return 1
+}
+
+repo_rel_to_local() {
+  local rel="$1"
+  case "$rel" in
+    agenda/*.org) printf '%s/%s\n' "$AGENDA_ROOT" "${rel#agenda/}" ;;
+    notes/*) printf '%s/%s\n' "$NOTES_ROOT" "${rel#notes/}" ;;
+    *) return 1 ;;
+  esac
+}
+
+if [[ -n "$SAVE_FILE" ]]; then
+  save_logical="$(realpath -m -s -- "$SAVE_FILE")"
+  [[ "$save_logical" == *.org ]] || {
+    printf 'gpt-todos-sync: --file only accepts Org files: %s\n' "$SAVE_FILE" >&2
+    exit 2
+  }
   [[ -f "$save_logical" ]] || {
-    printf 'gpt-todos-sync: saved agenda file does not exist: %s\n' "$save_logical" >&2
+    printf 'gpt-todos-sync: saved Org file does not exist: %s\n' "$save_logical" >&2
+    exit 2
+  }
+  SAVE_REL="$(local_to_repo_rel "$save_logical")" || {
+    printf 'gpt-todos-sync: --file must be inside the synchronized Org workspace: %s\n' "$SAVE_FILE" >&2
     exit 2
   }
 
   SAVE_FILE="$save_logical"
-  SAVE_REL="agenda/${SAVE_FILE#"$org_root/"}"
   tmp_root="${TMPDIR:-/tmp}"
   [[ -d "$tmp_root" ]] || tmp_root=/tmp
   SAVE_BACKUP="$(mktemp "$tmp_root/gpt-todos-sync-${UID}-XXXXXX.org")"
@@ -171,7 +214,7 @@ flock 9
 if [[ ! -d "$REPO_DIR/.git" ]]; then
   git clone "$REMOTE" "$REPO_DIR"
 fi
-mkdir -p "$TASK_DIR"
+mkdir -p "$TASK_DIR" "$NOTES_REPO_DIR"
 
 prepare_aliased_save() {
   [[ -n "$SAVE_REL" ]] || return 0
@@ -305,20 +348,28 @@ copy_if_distinct() {
   cp -p -- "$src" "$dst"
 }
 
-list_org_paths() {
-  local ref="$1"
-  local rel
+list_repo_paths() {
+  local ref="$1" rel
   while IFS= read -r rel; do
-    [[ "$rel" == agenda/*.org ]] && printf '%s\n' "$rel"
-  done < <(git -C "$REPO_DIR" ls-tree -r --name-only "$ref" -- agenda)
+    case "$rel" in
+      agenda/*.org|notes/*) printf '%s\n' "$rel" ;;
+    esac
+  done < <(git -C "$REPO_DIR" ls-tree -r --name-only "$ref" -- agenda notes)
 }
 
-list_local_org_paths() {
+list_local_paths() {
   local path rel
   while IFS= read -r -d '' path; do
-    rel="${path#"$ORG_DIR/"}"
+    rel="${path#"$AGENDA_ROOT/"}"
     printf 'agenda/%s\n' "$rel"
-  done < <(find "$ORG_DIR" \( -type f -o -type l \) -name '*.org' -print0)
+  done < <(find "$AGENDA_ROOT" \( -type f -o -type l \) -name '*.org' -print0)
+
+  while IFS= read -r -d '' path; do
+    rel="${path#"$NOTES_ROOT/"}"
+    [[ "$rel" == agenda/* ]] && continue
+    ignored_notes_rel "$rel" && continue
+    printf 'notes/%s\n' "$rel"
+  done < <(find "$NOTES_ROOT" \( -type f -o -type l \) -print0)
 }
 
 publish_local_commits() {
@@ -462,9 +513,9 @@ prepare_aliased_save
 sync_dotfiles_literate
 repair_legacy_imports
 
-if [[ -n "$(git -C "$REPO_DIR" status --porcelain --untracked-files=all -- agenda)" ]]; then
-  printf 'gpt-todos-sync: durable agenda checkout is dirty; refusing to guess ownership\n' >&2
-  git -C "$REPO_DIR" status --short -- agenda >&2
+if [[ -n "$(git -C "$REPO_DIR" status --porcelain --untracked-files=all -- agenda notes)" ]]; then
+  printf 'gpt-todos-sync: durable notes checkout is dirty; refusing to guess ownership\n' >&2
+  git -C "$REPO_DIR" status --short -- agenda notes >&2
   exit 6
 fi
 
@@ -481,27 +532,25 @@ REMOTE_HEAD="$(git -C "$REPO_DIR" rev-parse "$UPSTREAM")"
 # unpushed commits first keeps the later fast-forward pull from wedging.
 publish_local_commits
 
-mapfile -t org_paths < <(
+mapfile -t sync_paths < <(
   {
-    list_org_paths "$BASE"
-    list_org_paths "$REMOTE_HEAD"
-    list_local_org_paths
+    list_repo_paths "$BASE"
+    list_repo_paths "$REMOTE_HEAD"
+    list_local_paths
     [[ -z "$SAVE_REL" ]] || printf '%s\n' "$SAVE_REL"
   } | sort -u
 )
 
-if ((${#org_paths[@]} == 0)); then
-  printf 'gpt-todos-sync: no agenda .org files; nothing to sync\n'
+if ((${#sync_paths[@]} == 0)); then
+  printf 'gpt-todos-sync: no synchronized notes; nothing to sync\n'
   exit 0
 fi
 
 local_changes=()
 conflicts=0
 
-for rel in "${org_paths[@]}"; do
-  local_rel="${rel#agenda/}"
-  org_file="$ORG_DIR/$local_rel"
-  local_source="$org_file"
+for rel in "${sync_paths[@]}"; do
+  local_source="$(repo_rel_to_local "$rel")"
   if [[ -n "$SAVE_REL" && "$rel" == "$SAVE_REL" ]]; then
     local_source="$SAVE_BACKUP"
   fi
@@ -551,8 +600,7 @@ done
 git -C "$REPO_DIR" merge --ff-only "$REMOTE_HEAD"
 
 for rel in "${local_changes[@]}"; do
-  local_rel="${rel#agenda/}"
-  local_source="$ORG_DIR/$local_rel"
+  local_source="$(repo_rel_to_local "$rel")"
   if [[ -n "$SAVE_REL" && "$rel" == "$SAVE_REL" ]]; then
     local_source="$SAVE_BACKUP"
   fi
@@ -574,11 +622,11 @@ fi
 git -C "$REPO_DIR" fetch --prune
 git -C "$REPO_DIR" merge --ff-only "$UPSTREAM"
 
-mapfile -t org_paths < <(list_org_paths HEAD | sort -u)
-for rel in "${org_paths[@]}"; do
-  local_rel="${rel#agenda/}"
-  mkdir -p "$(dirname "$ORG_DIR/$local_rel")"
-  copy_if_distinct "$REPO_DIR/$rel" "$ORG_DIR/$local_rel"
+mapfile -t sync_paths < <(list_repo_paths HEAD | sort -u)
+for rel in "${sync_paths[@]}"; do
+  local_target="$(repo_rel_to_local "$rel")"
+  mkdir -p "$(dirname "$local_target")"
+  copy_if_distinct "$REPO_DIR/$rel" "$local_target"
 done
 
 SAVE_REWOUND=0
