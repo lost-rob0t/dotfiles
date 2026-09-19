@@ -250,6 +250,23 @@ Auto Router by default, with the project agent tools, image tools, response
 autosave, inline image rendering, and one-time automatic title generation.
 Chats are stored below =~/Documents/Notes/org/roam/llm/=.
 
+* Programmable startup dashboard
+
+Desktop Emacs now starts in =*AI Dashboard*= instead of immediately replacing
+the first frame with Org Agenda.  The built-in cards open Tool Chat, Zara,
+Agenda, and Ideas; =g= refreshes the surface.
+
+The dashboard is deliberately data-driven.  gptel registers
+=DashboardListCards=, =DashboardUpsertCard=, and =DashboardRemoveCard=.  An LLM
+can therefore reshape the startup surface, but persistent cards are limited to
+the reviewed action types =chat=, =zara=, =agenda=, =ideas=, =project=, and
+=file=.  Mutations require confirmation and cannot persist arbitrary Elisp.
+
+Zara itself is installed from =lost-rob0t/zara= at an exact commit pin.  The
+native package provides =M-x zara-chat= and the confirmation-gated =ZaraAsk=
+gptel tool, while Zara's own runtime remains authoritative for its tools,
+memory, Prolog, plugins, approvals, and remote workers.
+
 * Source files
 
 #+INCLUDE: "ai.el" src emacs-lisp
@@ -262,5 +279,6 @@ Chats are stored below =~/Documents/Notes/org/roam/llm/=.
 #+INCLUDE: "agent.el" src emacs-lisp
 #+INCLUDE: "../../.doom.d/autoload/llm.el" src emacs-lisp
 #+INCLUDE: "chat.el" src emacs-lisp
+#+INCLUDE: "ai-dashboard.el" src emacs-lisp
 #+INCLUDE: "todo-diff.el" src emacs-lisp
 #+INCLUDE: "init.el" src emacs-lisp

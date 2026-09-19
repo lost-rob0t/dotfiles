@@ -58,6 +58,11 @@
   :recipe (:host github :repo "karthink/gptel"
            :files ("*.el")))
 
+(package! zara
+  :recipe (:host github :repo "lost-rob0t/zara"
+           :files ("emacs/zara.el"))
+  :pin "c5f956ee9d41c1a3bb96029a338572e92e147a4c")
+
 (package! mcp :recipe (:type git :host github :repo "lizqwerscott/mcp.el"))
 
 (package! envrc :recipe (:type git :host github :repo "purcell/envrc"))
