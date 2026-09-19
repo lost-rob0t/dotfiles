@@ -42,9 +42,58 @@ let
 
   prologRlmGlm = pkgs.writeShellApplication {
     name = "starintel-prolog-rlm-glm";
-    runtimeInputs = [ pkgs.coreutils pkgs.swi-prolog ];
+    runtimeInputs = [ pkgs.coreutils pkgs.python3 pkgs.swi-prolog ];
     text = ''
       set -euo pipefail
+      quota_env=${lib.escapeShellArg config.llm.quotaTelemetry.environmentFile}
+      if [ -z "''${ZAI_API_KEY:-}" ] && [ -r "$quota_env" ]; then
+        ZAI_API_KEY="$(python3 - "$quota_env" <<'PY'
+import os
+import shlex
+import stat
+import sys
+
+path = sys.argv[1]
+
+def require_private(filename):
+    mode = stat.S_IMODE(os.stat(filename).st_mode)
+    if mode & 0o077:
+        raise SystemExit(f"refusing non-private credential file: {filename}")
+
+require_private(path)
+values = {}
+with open(path, encoding="utf-8") as stream:
+    for raw in stream:
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].lstrip()
+        key, sep, value = line.partition("=")
+        if not sep or key not in {"ZAI_API_KEY", "LLM_LOG_ZAI_KEY_FILE"}:
+            continue
+        parsed = shlex.split(value, comments=False, posix=True)
+        values[key] = parsed[0] if len(parsed) == 1 else value
+
+key = values.get("ZAI_API_KEY", "")
+if key:
+    print(key, end="")
+    raise SystemExit(0)
+
+key_file = values.get("LLM_LOG_ZAI_KEY_FILE", "")
+if key_file:
+    key_file = os.path.expanduser(key_file)
+    require_private(key_file)
+    with open(key_file, encoding="utf-8") as stream:
+        print(stream.read().strip(), end="")
+PY
+        )"
+        export ZAI_API_KEY
+      fi
+      if [ -z "''${ZAI_API_KEY:-}" ]; then
+        echo "starintel-prolog-rlm-glm: z.AI credential unavailable; configure the private llm quota environment file" >&2
+        exit 78
+      fi
       prompt="$(cat)"
       bytes="$(printf '%s' "$prompt" | wc -c)"
       if [ "$bytes" -gt ${toString cfg.maxPromptBytes} ]; then
