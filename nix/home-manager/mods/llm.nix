@@ -8,6 +8,21 @@ let
   llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
   llmLogModule = llmLogFlake.homeManagerModules.default;
   proxyBase = "http://127.0.0.1:8787";
+
+  # Temporary workaround for NixOS/nixpkgs#563241, matching the fix merged
+  # upstream in NixOS/nixpkgs#564101. Bun 1.4.x executable code splitting can
+  # produce an OpenCode binary that crashes in SystemPrompt.environment before
+  # provider dispatch. Keep this local until the pinned nixpkgs includes #564101.
+  opencodePackage = pkgs.opencode.overrideAttrs (oldAttrs: {
+    postPatch = (oldAttrs.postPatch or "") + ''
+      # Bun 1.4.x regression: compiled executable code splitting breaks OpenCode.
+      substituteInPlace packages/opencode/script/build.ts \
+        --replace-fail 'splitting: true,' 'splitting: false,'
+    '';
+    passthru = (oldAttrs.passthru or { }) // {
+      promptSendWorkaround = "NixOS/nixpkgs#564101";
+    };
+  });
   youtubeContext = pkgs.writeShellApplication {
     name = "youtube-context";
     runtimeInputs = with pkgs; [
@@ -89,6 +104,7 @@ in
     # surfaces, MCP integration, and the shared Outrun theme.
     opencode = {
       enable = true;
+      package = opencodePackage;
       llmLog = {
         enable = true;
         baseUrl = proxyBase;
