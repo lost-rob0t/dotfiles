@@ -134,8 +134,8 @@ compatibility boundary for tools that need a normal Linux/glibc userspace.
 The canonical build instructions and implementation are in [[file:build.org][build.org]].
 =../.github/workflows/android-emacs-release.yml= builds native GNU Emacs 30.2
 for arm64, minimum Android API 29, with =--with-shared-user-id=com.termux=.
-It also builds Termux, Termux:API, and Termux:Widget from their current stable
-source releases.  The workflow records each source commit in =SOURCE-LOCK.txt=.
+It also builds Termux, Termux:API, Termux:Widget, Termux:Boot, Termux:Float,
+Termux:Styling, and Termux:Tasker from their current stable source releases.  The workflow records each source commit in =SOURCE-LOCK.txt=.
 Manual builds, the existing weekly schedule, and =android-emacs-v*= tags use
 the same =build.py= cross-build, signing, and verification entry points.
 
@@ -148,7 +148,7 @@ Do not commit a private keystore or its password.
 
 The signing gate checks actual APK package identities, =com.termux= shared-user
 manifests, ZIP alignment, and exactly one identical signing certificate across
-the four applications.  It rejects conditional shared UIDs, wrong/missing
+the eight applications.  It rejects conditional shared UIDs, wrong/missing
 packages, and mixed signers.  Original APKs are preserved; staged outputs are
 verified before publication.  =PAIRING.json= contains hashes and signer metadata.
 
@@ -159,6 +159,10 @@ emacs-android-starintel.apk
 termux-starintel-arm64.apk
 termux-api-starintel.apk
 termux-widget-starintel.apk
+termux-boot-starintel.apk
+termux-float-starintel.apk
+termux-styling-starintel.apk
+termux-tasker-starintel.apk
 bootstrap-termux.sh
 SOURCE-LOCK.txt
 PAIRING.json
@@ -197,16 +201,28 @@ SBCL/Common Lisp, SWI-Prolog, Nim, Python, =ob-http=, Magit, Eshell, and gptel.
 Leader shortcuts include =SPC o A= for StarIntel admin, =SPC o a= for agenda,
 =SPC o t= for TODOs, and =SPC o i= for AI.
 
-* Termux:Widget
+* Termux companion apps
 
-Use the =termux-widget-starintel.apk= from the paired release when the paired
-Termux app is installed.  Termux plugins must use the same signature/shared-user
-family.  The bootstrap creates foreground scripts in =~/.shortcuts/= and
-background jobs in =~/.shortcuts/tasks/=.
+Use the companion APKs from the same paired release as the installed Termux app.
+Termux plugins must use the same signature/shared-user family; do not mix this
+bundle with plugins signed by another distribution.
 
-Foreground entries include StarIntel Admin, Org Agenda, TODOs, AI, platform
-diagnostics, and the Doom-free Org Viewer.  Background tasks update dotfiles
-and run the GPT TODO sync helper.
+- Termux:API bridges shell commands to Android APIs and permissions.
+- Termux:Widget exposes foreground scripts from =~/.shortcuts/= and background
+  jobs from =~/.shortcuts/tasks/=.
+- Termux:Boot runs explicit scripts from =~/.termux/boot/= after Android boot.
+- Termux:Float provides a floating terminal overlay for quick admin work.
+- Termux:Styling provides the Android terminal font/color picker.
+- Termux:Tasker lets Tasker/Locale-style automation invoke allowed Termux
+  commands; Tasker itself is not part of this bundle.
+
+The bootstrap creates the Widget shortcuts and background jobs.  Foreground
+entries include StarIntel Admin, Org Agenda, TODOs, AI, platform diagnostics,
+and the Doom-free Org Viewer.  Background tasks update dotfiles and run the GPT
+TODO sync helper.
+
+See [[file:../docs/wiki/termux.org][the Termux companion-app wiki]] for package identities, source-locking,
+install invariants, plugin-specific behavior, and troubleshooting.
 
 * Storage and Org files
 
