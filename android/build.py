@@ -20,6 +20,10 @@ FAMILY = {
     "com.termux": "termux-starintel-arm64.apk",
     "com.termux.api": "termux-api-starintel.apk",
     "com.termux.widget": "termux-widget-starintel.apk",
+    "com.termux.boot": "termux-boot-starintel.apk",
+    "com.termux.window": "termux-float-starintel.apk",
+    "com.termux.styling": "termux-styling-starintel.apk",
+    "com.termux.tasker": "termux-tasker-starintel.apk",
 }
 
 
@@ -96,7 +100,7 @@ def sign_family(inputs: dict[str, Path], output: Path, tools: Path,
     require_file(keystore)
     require_file(password_file)
     if set(inputs) != set(FAMILY):
-        raise BuildError("Supply exactly Emacs, Termux, Termux:API, and Termux:Widget")
+        raise BuildError("Supply exactly the configured Emacs/Termux companion APK family")
     for package, apk in inputs.items():
         if inspect_apk(apk, tools) != package:
             raise BuildError(f"Wrong input APK for {package}: {apk}")
@@ -177,11 +181,11 @@ def main() -> int:
     emacs.add_argument("--min-api", type=int, default=29)
     emacs.add_argument("--jobs", type=int, default=2)
     emacs.add_argument("--ndk-path", help="Prepared Emacs Android dependency directories (upstream --with-ndk-path)")
-    sign = commands.add_parser("sign", parents=[common], help="Sign the four APKs with one provided key")
-    for flag in ("emacs-apk", "termux-apk", "api-apk", "widget-apk", "keystore", "password-file"):
+    sign = commands.add_parser("sign", parents=[common], help="Sign the shared-UID APK family with one provided key")
+    for flag in ("emacs-apk", "termux-apk", "api-apk", "widget-apk", "boot-apk", "float-apk", "styling-apk", "tasker-apk", "keystore", "password-file"):
         sign.add_argument(f"--{flag}", type=Path, required=True)
     sign.add_argument("--out", type=Path, default=Path("dist"))
-    verify = commands.add_parser("verify", parents=[common], help="Verify an existing four-APK family")
+    verify = commands.add_parser("verify", parents=[common], help="Verify an existing shared-UID APK family")
     verify.add_argument("--out", type=Path, default=Path("dist"))
     args = parser.parse_args()
     try:
@@ -195,7 +199,7 @@ def main() -> int:
         if args.command == "emacs":
             print(build_emacs(args, tools))
         elif args.command == "sign":
-            inputs = dict(zip(FAMILY, (args.emacs_apk, args.termux_apk, args.api_apk, args.widget_apk)))
+            inputs = dict(zip(FAMILY, (args.emacs_apk, args.termux_apk, args.api_apk, args.widget_apk, args.boot_apk, args.float_apk, args.styling_apk, args.tasker_apk)))
             sign_family(inputs, args.out, tools, args.keystore, args.password_file)
             print(f"Verified paired APKs: {args.out / 'PAIRING.json'}")
         else:

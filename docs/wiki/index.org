@@ -13,6 +13,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:literate-config.org][Literate configuration]] - canonical Org sources, generated files, tangling, and consistency rules.
 - [[file:nix.org][Nix and Home Manager]] - flake outputs, hosts, profiles, installers, and module layout.
 - [[file:emacs.org][Emacs and Doom]] - desktop Doom plus the Doom-free Android Org profile and profile switching.
+- [[file:termux.org][Termux and Android companion apps]] - paired source builds, shared signing/UID invariants, Boot, Float, Styling, Tasker, API, and Widget workflows.
 - [[file:org-logseq-sync.org][Org-roam and Logseq synchronization]] - conflict-safe bidirectional Org notes, pages, journals, and the user systemd watcher.
 - [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, desktop workflows, and desktop integration.
 - [[file:opencode-commands.org][Global OpenCode commands]] - declarative =/= commands, reusable skills, the =opencode-worker= Unix contract, model routing, and hosting workflows.
@@ -36,6 +37,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Android early startup | [[file:../../android/early-init.org][android/early-init.org]] | early-init.el and guarded Termux Bash/PATH integration. |
 | Android guide | [[file:../../android/README.org][android/README.org]] | Native reader, paired Emacs/Termux build, install/signature rules, and mobile workflows. |
 | Termux bootstrap | [[file:../../bootstrap-termux.org][bootstrap-termux.org]] | Rolling Termux update, Git/Stow/dev tools, Doom + Org launchers, AI guest, and widgets. |
+| Termux app family | [[file:termux.org][docs/wiki/termux.org]] | Emacs/Termux paired source build plus API, Widget, Boot, Float, Styling, and Tasker signing/install invariants. |
 | Termux remote | [[file:../../scripts/termux-remote.org][scripts/termux-remote.org]] | Remote GUI recovery, mobile SSH keepalives, Agent Zero tunneling, and extra Termux:Widget shortcuts. |
 | Termux Doom | [[file:../../android/doom/config.org][android/doom/config.org]] | Phone-specific full Doom source for StarIntel admin, Org/TODOs, languages, and AI. |
 | Qtile | [[file:../../.config/qtile/qtile-ai.org][.config/qtile/qtile-ai.org]] | Main Qtile literate source; tangles to =config.py=. |

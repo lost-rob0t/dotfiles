@@ -4,12 +4,12 @@
 * Contract
 
 This is the canonical source for =build.py=.  The existing paired-build workflow
-builds all four applications from source; it calls the same host-side Emacs
+builds all eight applications from source; it calls the same host-side Emacs
 builder and signing gate that can be run locally.  This is native Android Emacs,
 not Emacs in a PRoot guest or an X11 session.
 
-Both requirements are mandatory: all four APK manifests must declare the
-=com.termux= shared user, and all four APKs must have exactly one identical
+Both requirements are mandatory: all eight APK manifests must declare the
+=com.termux= shared user, and all eight APKs must have exactly one identical
 signing certificate.  PATH alone cannot grant access across Android app UIDs.
 
 The builder never installs or uninstalls apps.  Signing happens in a temporary
@@ -38,12 +38,14 @@ port does not block producing an APK; supplying the upstream GnuTLS ports throug
 sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'ndk;26.1.10909125'
 git clone --depth 1 --branch emacs-30.2 https://github.com/emacs-mirror/emacs.git emacs-src
 python3 android/build.py emacs --source emacs-src --build-dir emacs-build
-# Build Termux, Termux:API and Termux:Widget as in the paired workflow, or
+# Build Termux plus API, Widget, Boot, Float, Styling, and Tasker as in the paired workflow, or
 # supply reviewed APKs. The signer verifies their actual package/UID metadata.
 python3 android/build.py sign \
   --emacs-apk emacs-build/java/emacs-30.2-29-arm64-v8a.apk \
   --termux-apk /path/to/termux.apk --api-apk /path/to/termux-api.apk \
-  --widget-apk /path/to/termux-widget.apk \
+  --widget-apk /path/to/termux-widget.apk --boot-apk /path/to/termux-boot.apk \
+  --float-apk /path/to/termux-float.apk --styling-apk /path/to/termux-styling.apk \
+  --tasker-apk /path/to/termux-tasker.apk \
   --keystore "$HOME/.config/star-android/release.keystore" \
   --password-file "$HOME/.config/star-android/password" --out dist
 python3 android/build.py verify --out dist
@@ -102,6 +104,10 @@ FAMILY = {
     "com.termux": "termux-starintel-arm64.apk",
     "com.termux.api": "termux-api-starintel.apk",
     "com.termux.widget": "termux-widget-starintel.apk",
+    "com.termux.boot": "termux-boot-starintel.apk",
+    "com.termux.window": "termux-float-starintel.apk",
+    "com.termux.styling": "termux-styling-starintel.apk",
+    "com.termux.tasker": "termux-tasker-starintel.apk",
 }
 
 
@@ -178,7 +184,7 @@ def sign_family(inputs: dict[str, Path], output: Path, tools: Path,
     require_file(keystore)
     require_file(password_file)
     if set(inputs) != set(FAMILY):
-        raise BuildError("Supply exactly Emacs, Termux, Termux:API, and Termux:Widget")
+        raise BuildError("Supply exactly the configured Emacs/Termux companion APK family")
     for package, apk in inputs.items():
         if inspect_apk(apk, tools) != package:
             raise BuildError(f"Wrong input APK for {package}: {apk}")
@@ -259,11 +265,11 @@ def main() -> int:
     emacs.add_argument("--min-api", type=int, default=29)
     emacs.add_argument("--jobs", type=int, default=2)
     emacs.add_argument("--ndk-path", help="Prepared Emacs Android dependency directories (upstream --with-ndk-path)")
-    sign = commands.add_parser("sign", parents=[common], help="Sign the four APKs with one provided key")
-    for flag in ("emacs-apk", "termux-apk", "api-apk", "widget-apk", "keystore", "password-file"):
+    sign = commands.add_parser("sign", parents=[common], help="Sign the shared-UID APK family with one provided key")
+    for flag in ("emacs-apk", "termux-apk", "api-apk", "widget-apk", "boot-apk", "float-apk", "styling-apk", "tasker-apk", "keystore", "password-file"):
         sign.add_argument(f"--{flag}", type=Path, required=True)
     sign.add_argument("--out", type=Path, default=Path("dist"))
-    verify = commands.add_parser("verify", parents=[common], help="Verify an existing four-APK family")
+    verify = commands.add_parser("verify", parents=[common], help="Verify an existing shared-UID APK family")
     verify.add_argument("--out", type=Path, default=Path("dist"))
     args = parser.parse_args()
     try:
@@ -277,7 +283,7 @@ def main() -> int:
         if args.command == "emacs":
             print(build_emacs(args, tools))
         elif args.command == "sign":
-            inputs = dict(zip(FAMILY, (args.emacs_apk, args.termux_apk, args.api_apk, args.widget_apk)))
+            inputs = dict(zip(FAMILY, (args.emacs_apk, args.termux_apk, args.api_apk, args.widget_apk, args.boot_apk, args.float_apk, args.styling_apk, args.tasker_apk)))
             sign_family(inputs, args.out, tools, args.keystore, args.password_file)
             print(f"Verified paired APKs: {args.out / 'PAIRING.json'}")
         else:
