@@ -5,6 +5,7 @@
 - [[file:../../.config/qtile/qtile-llm-log-graph.org][New API grapher]] owns =llm_log_graph.py= and =qtile_llm_log_graph.py=.
 - [[file:../../.config/qtile/qtile-telemetry.org][Runtime installer]] owns =qtile_telemetry.py= and installs old telemetry, then the pair, then the new graph.
 - [[file:../../nix/home-manager/mods/llm.nix][Home Manager consumer]] pins the quota-capable Python llm-log package and owns service enablement.
+- [[file:../../nix/home-manager/mods/starintel-llm-harness.org][StarIntel LLM harness]] owns worker profiles, Prolog-RLM/GLM execution wiring, z.AI proxy routing, and quota-pacing policy.
 
 The horizontal bar order is =z.AI=, =GPT=, =LLM graph=. The old OpenRouter
 widgets and graph remain separate and unchanged. Quota meters use reported
@@ -45,3 +46,35 @@ reload the installed Qtile configuration. These repository changes do not
 activate a live host by themselves. Missing/offline/expired values are not green
 zeros. Local integration used synthetic account metadata and offscreen Cairo;
 actual provider login and the user's live desktop remain a separate smoke test.
+
+
+* StarIntel worker admission
+The StarIntel harness consumes the same provider-reported =/api/v1/quotas=
+snapshot as the desktop meters. It does not infer capacity from the strings
+"Pro", "Max", model names, captured token counts, or local request history.
+
+Each GPT and z.AI window must independently admit a new worker. The default
+policy retains 10% reported headroom and paces the spendable portion across the
+provider's reported window, with a small 5% burst. A stale, missing, unknown, or
+expired meter fails closed. Cross-process concurrency and launch intervals are
+also bounded locally.
+
+The harness config is generated at =~/.config/starintel/llm-harness.json=.
+The default =main= profile uses Codex in a read-only planner sandbox, validates
+the returned plan with SWI-Prolog, can allocate up to 15 named specialist worker
+slices, executes GLM-5.3 work through Prolog-RLM and the =zai= llm-log prefix,
+and requires independent Codex plus GLM reviews. Logical fan-out is separate
+from physical provider concurrency: quota pacing, reserve floors, and launch
+leases remain authoritative. The
+=main-direct-glm= profile keeps the same planner/review gates but executes
+through =opencode-worker=.
+
+These controls pace only harness-originated work. Other clients can still spend
+the account allowance; their usage is reflected by the next authoritative quota
+snapshot.
+The Prolog-RLM GLM wrapper reuses the same private runtime credential source as
+quota telemetry: =llm.quotaTelemetry.environmentFile=. It accepts only
+=ZAI_API_KEY= or =LLM_LOG_ZAI_KEY_FILE= from that file, requires the environment
+file and referenced key file to have no group/other permission bits, and never
+sources the file as shell code. Secret contents are not serialized into the
+generated harness JSON or Nix store configuration.

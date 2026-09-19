@@ -43,6 +43,7 @@ in
     llmLogModule
     ./brave-mcp.nix
     ./llm-log-quant-alerts.nix
+    ./starintel-llm-harness.nix
   ];
 
   options = with lib; {
@@ -99,6 +100,7 @@ in
     };
 
     outrunTheme.enable = true;
+    llm.starintelHarness.enable = true;
 
     # The client modules own packages, complete Home Manager configuration
     # surfaces, MCP integration, and the shared Outrun theme.
