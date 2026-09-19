@@ -39,7 +39,7 @@ class StarIntelHarnessConfigTests(unittest.TestCase):
         self.assertIn('default = "zai-coding-plan/glm-5.3";', source)
         self.assertIn('default = "glm-5.3";', source)
         self.assertGreaterEqual(source.count('"max"'), 2)
-        self.assertIn('default = 30.0;', source)
+        self.assertIn('default = 60.0;', source)
 
     def test_credentials_are_not_embedded(self):
         source = MODULE.read_text(encoding="utf-8")
