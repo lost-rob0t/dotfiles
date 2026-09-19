@@ -9,7 +9,7 @@ builder and signing gate that can be run locally.  This is native Android Emacs,
 not Emacs in a PRoot guest or an X11 session.
 
 Both requirements are mandatory: all eight APK manifests must declare the
-=com.termux= shared user, and all four APKs must have exactly one identical
+=com.termux= shared user, and all eight APKs must have exactly one identical
 signing certificate.  PATH alone cannot grant access across Android app UIDs.
 
 The builder never installs or uninstalls apps.  Signing happens in a temporary
