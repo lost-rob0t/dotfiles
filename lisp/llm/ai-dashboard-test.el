@@ -44,13 +44,14 @@
    (ai/dashboard-remove-card "work")
    (should-not (ai/dashboard--read-cards))))
 
-(ert-deftest ai/dashboard-invokes-only-typed-chat-action ()
-  (let ((called nil))
-    (cl-letf (((symbol-function 'ai/chat)
-               (lambda () (interactive) (setq called t))))
+(ert-deftest ai/dashboard-invokes-only-typed-ideas-action ()
+  (let ((opened nil)
+        (ai/dashboard-ideas-file "/tmp/ideas.org"))
+    (cl-letf (((symbol-function 'find-file)
+               (lambda (path) (setq opened path))))
       (ai/dashboard--invoke-card
-       '((id . "chat") (title . "Chat") (body . "Tools") (action . "chat") (argument)))
-      (should called))))
+       '((id . "ideas") (title . "Ideas") (body . "Capture") (action . "ideas") (argument)))
+      (should (equal opened "/tmp/ideas.org")))))
 
 (ert-deftest ai/dashboard-buffer-renders-custom-card ()
   (ai/dashboard-test--with-state
