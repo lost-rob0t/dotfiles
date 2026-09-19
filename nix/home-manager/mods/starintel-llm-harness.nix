@@ -64,6 +64,8 @@ let
           cfg.glmOpenCodeModel
           "--role"
           "worker"
+          "--variant"
+          "max"
           "--format"
           "text"
           "--max-retries"
@@ -81,6 +83,8 @@ let
           cfg.glmOpenCodeModel
           "--role"
           "reviewer"
+          "--variant"
+          "max"
           "--format"
           "text"
           "--max-retries"
@@ -172,13 +176,13 @@ in
 
     glmOpenCodeModel = mkOption {
       type = types.str;
-      default = "zai-coding-plan/glm-4.7";
+      default = "zai-coding-plan/glm-5.3";
       description = "OpenCode model reference for the z.AI Coding Plan worker.";
     };
 
     glmRlmModel = mkOption {
       type = types.str;
-      default = "glm-4.7";
+      default = "glm-5.3";
       description = "Model ID passed to the z.AI Coding Plan OpenAI-compatible endpoint.";
     };
 
