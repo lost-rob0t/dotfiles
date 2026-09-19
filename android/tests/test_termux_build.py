@@ -53,6 +53,19 @@ class ManifestTests(unittest.TestCase):
 
 
 class FamilyTests(unittest.TestCase):
+    def test_companion_packages_are_part_of_family(self):
+        expected = {
+            "org.gnu.emacs",
+            "com.termux",
+            "com.termux.api",
+            "com.termux.widget",
+            "com.termux.boot",
+            "com.termux.window",
+            "com.termux.styling",
+            "com.termux.tasker",
+        }
+        self.assertEqual(set(build.FAMILY), expected)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -82,11 +95,11 @@ class FamilyTests(unittest.TestCase):
     def test_valid_family_produces_hashes_and_one_signer(self):
         with patch.object(build, 'run', side_effect=self.fake_run):
             result = build.verify_family(self.root, self.root)
-        self.assertEqual(len(result['apks']), 4)
+        self.assertEqual(len(result['apks']), len(build.FAMILY))
         self.assertEqual(result['shared_user_id'], 'com.termux')
         self.assertEqual(result['certificate_sha256'], 'ab' * 32)
         self.assertTrue(all(len(row['sha256']) == 64 for row in result['apks']))
-        self.assertEqual(sum('-c' in command for command in self.commands), 4)
+        self.assertEqual(sum('-c' in command for command in self.commands), len(build.FAMILY))
 
     def test_wrong_uid_package_and_signer_fail_closed(self):
         for flag in ('bad_uid', 'bad_package', 'bad_signer'):
@@ -134,8 +147,8 @@ class FamilyTests(unittest.TestCase):
         self.assertEqual(before, {p: path.read_bytes() for p, path in self.inputs.items()})
         self.assertTrue((self.root / 'out' / 'PAIRING.json').is_file())
         self.assertFalse(any('not-on-command-line' in arg for command in self.commands for arg in command))
-        self.assertEqual(sum('sign' in command for command in self.commands), 4)
-        self.assertEqual(sum('-f' in command for command in self.commands), 4)
+        self.assertEqual(sum('sign' in command for command in self.commands), len(build.FAMILY))
+        self.assertEqual(sum('-f' in command for command in self.commands), len(build.FAMILY))
 
     def test_failed_verification_does_not_publish(self):
         key = self.root / 'key'; key.touch()
