@@ -95,11 +95,13 @@ Android changes are covered by =.github/workflows/android-emacs.yml= for tangle
 parity, Elisp structure, ERT, and shell validation.  The separate
 =android-emacs-release.yml= exercises the actual Android/Termux packaging path.
 
-* Durable agenda save synchronization
+* Durable Org-roam save synchronization
 The canonical integration is [[file:../../.doom.d/autoload/gpt-todos.org][gpt-todos.org]].
-After Emacs saves an =.org= file logically below =~/Documents/Notes/org/agenda/=,
+After Emacs saves an =.org= file anywhere below =~/Documents/Notes/org/=,
 it starts =gpt-todos-sync --file FILE= asynchronously.  Git/network work therefore
-does not block the editor.
+does not block the editor.  The complete Org root is the Org-roam graph; =daily/=
+is the dailies directory, Org QL supplies property-based views, and the derived
+Org-roam SQLite database stays in the user cache rather than Git.
 
 The shell helper snapshots the exact saved contents before it acquires the shared
 sync lock.  This is important when an agenda file is a symlink into the durable
