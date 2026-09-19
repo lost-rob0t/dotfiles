@@ -4,6 +4,8 @@ on:
     paths:
       - '.config/qtile/**'
       - 'nix/home-manager/mods/llm.nix'
+      - 'nix/home-manager/mods/starintel-llm-harness.*'
+      - 'tests/starintel-llm-harness.py'
       - 'tests/llm-log-quota-consumer.*'
       - '.github/workflows/llm-log-qtile.yml'
   push:
@@ -32,6 +34,8 @@ jobs:
         run: python -m unittest discover -s .config/qtile/tests -p 'test_llm_log_*.py' -v
       - name: Verify quota-capable service revision
         run: python tests/llm-log-quota-consumer.py
+      - name: Verify StarIntel harness config and literate parity
+        run: python tests/starintel-llm-harness.py
       - name: Compile changed runtime modules
         run: python -m py_compile .config/qtile/llm_log_client.py .config/qtile/qtile_llm_log.py .config/qtile/qtile_telemetry.py .config/qtile/llm_log_graph.py .config/qtile/qtile_llm_log_graph.py
       - name: Construct actual Qtile widgets and verify adjacent insertion without network
