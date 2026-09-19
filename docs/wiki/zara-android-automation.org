@@ -3,12 +3,12 @@
 #+STARTUP: overview
 
 * Purpose
-This file is both documentation and an importable Zara Android configuration
-template.  The repository root contains =zara-template.properties= pointing at
-this Org file.  Zara Android clones the repository into its private cache,
-validates the manifest, tangles only explicitly declared Prolog blocks, analyzes
-every generated source, and imports the result into its private Prolog
-workspace transactionally.
+This file documents the Android projection of the canonical Zara dotfiles
+layout.  Tracked Zara configuration lives under =.config/zarathushtra/=, matching
+the desktop XDG path.  The repository root =zara-template.properties= points
+Android at =.config/zarathushtra/android=.  Zara Android clones the repository
+into its private cache, validates the manifest, analyzes the declared Prolog
+sources, and imports the result into its private Prolog workspace transactionally.
 
 No Git hook, shell command, Android Intent, package name, or executable in this
 repository becomes authority merely because the repository was imported.
@@ -90,9 +90,10 @@ The Automation surface also exposes Android-owned request screens/status for:
 Zara can request these surfaces; it cannot silently grant them.
 
 * Psytrance demo
-The following block is tangled by Zara's Git-template importer into
-=android_automation.pl=.  Editing this block changes the imported configuration
-without changing Android package mechanics.
+The canonical runnable source is
+=file:../../.config/zarathushtra/android/android_automation.pl=.  The block below
+documents the same typed-action shape; edit the tracked XDG source when changing
+the imported Android configuration.
 
 #+begin_src prolog :tangle android_automation.pl
 % Zara Android automation API v1.
@@ -150,12 +151,13 @@ The manifest format is deliberately tiny:
 #+begin_example
 version=1
 name=nsaspy-dotfiles-zara-android
-org=docs/wiki/zara-android-automation.org
+directory=.config/zarathushtra/android
 #+end_example
 
-A template can alternatively use =directory= to import bounded =.pl= files, or
-set both =directory= and =org=.  Org import accepts only Prolog source blocks
-with a visible basename in =:tangle=:
+The manifest deliberately uses =directory= so Android consumes the same
+repository XDG tree that desktop provisioning uses.  Generic templates may
+still use =org=, or both =directory= and =org=.  Org import accepts only Prolog
+source blocks with a visible basename in =:tangle=:
 
 #+begin_src org
 ,#+begin_src prolog :tangle rules.pl
@@ -164,11 +166,13 @@ rule(example).
 #+end_src
 
 * Desktop configuration relationship
-Desktop Zara keeps its reproducible base facts in
-=file:../../nix/home-manager/files/zarathushtra/config.pl= and a mutable private
-=config.local.pl= overlay outside Git.  Android follows the same ownership
-principle: Git templates provide non-secret declarative source; the app-private
-Prolog workspace remains the mutable layer.
+Desktop Zara's tracked base is
+=file:../../.config/zarathushtra/config.pl=; Home Manager installs that exact
+source at =~/.config/zarathushtra/config.pl=.  The mutable
+=~/.config/zarathushtra/config.local.pl= overlay remains outside Git.  Android
+uses the sibling tracked =.config/zarathushtra/android/= directory through the
+Git-template importer, while its app-private Prolog workspace remains the
+mutable layer.
 
 Desktop-only process mappings such as =app_mapping/2= with Linux executables do
 not become Android executable commands.  Port cross-platform intent meaning to

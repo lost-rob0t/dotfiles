@@ -8,7 +8,7 @@ non-secret operator workflow defaults and the bounded =zara-system-update=
 helper without taking ownership of Zara's mutable private overlay.
 
 * Configuration ownership
-- =nix/home-manager/files/zarathushtra/config.pl= is the declarative base layer
+- =.config/zarathushtra/config.pl= is the canonical tracked declarative base layer
   and Home Manager may replace it on activation.
 - =~/.config/zarathushtra/config.local.pl= is intentionally not managed by Home
   Manager.  Keep secrets, machine-private facts, experiments, and temporary
@@ -117,7 +117,7 @@ Port access from the phone still depends on the host and LAN firewall policy.
 
 * Operator workflows
 The canonical fact definitions live in
-[[file:../../nix/home-manager/files/zarathushtra/config.pl][config.pl]].  They cover
+[[file:../../.config/zarathushtra/config.pl][config.pl]].  They cover
 Brave/search, Emacs scratch, org-roam daily followed by the existing
 =zara-dictate= path, Thunderbird, Tor Browser, Feishin, YouTube Music, GitHub PR
 compatibility, Magit project aliases, and =/pol/=.  The 4chan mapping carries a

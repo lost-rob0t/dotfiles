@@ -28,7 +28,7 @@ in
     # Home Manager owns only the non-secret provisioned/base layer. Zara's
     # config.local.pl remains mutable, private, and deliberately unmanaged.
     home.file.".config/zarathushtra/config.pl" = {
-      source = ../files/zarathushtra/config.pl;
+      source = ../../../.config/zarathushtra/config.pl;
       force = true;
     };
 

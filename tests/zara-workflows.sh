@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-config="$repo_root/nix/home-manager/files/zarathushtra/config.pl"
+config="$repo_root/.config/zarathushtra/config.pl"
 workflow_module="$repo_root/nix/home-manager/mods/zara-workflows.nix"
 default_module="$repo_root/nix/home-manager/mods/default.nix"
 desktop="$repo_root/nix/home-manager/systems/desktop/home.nix"
