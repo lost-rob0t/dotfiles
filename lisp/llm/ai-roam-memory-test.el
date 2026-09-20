@@ -123,7 +123,7 @@
         (insert-file-contents (ai/roam-memory--kb-file))
         (goto-char (point-min))
         (should (= (how-many "^world_fact(") 2))
-        (should (string-suffix-p ")\n" (buffer-string)))))))
+        (should (string-suffix-p ").\n" (buffer-string)))))))
 
 (ert-deftest ai-roam-memory-assert-fact-rejects-newlines ()
   "Values containing newlines are rejected with user-error."
