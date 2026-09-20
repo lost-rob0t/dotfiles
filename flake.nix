@@ -22,7 +22,10 @@
     };
     zara = {
       url = "github:lost-rob0t/zara/89a9ab12461b7c6fa1630b2137ed5a500724e6c7";
-      inputs.nixpkgs.follows = "nixpkgs";
+      # Zara vendors its MCP v2 python stack (httpx2/httpcore2); following this
+      # repo's newer nixpkgs made nixpkgs' own httpx2 collide with the vendored
+      # build inside zara's python env. Build zara against its locked nixpkgs,
+      # which is exactly the configuration zara's CI validates.
     };
     qwen3-tts = {
       url = "github:lost-rob0t/Qwen3-TTS_server";
