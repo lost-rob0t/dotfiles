@@ -111,6 +111,15 @@ The canonical schema/policy is in `lost-rob0t/gpt-todos`:
 `notes/memory/shared/`.  Those files outrank copied prompt text if the contract
 evolves.
 
+## Repo-local Zara expert ownership
+
+When working in this dotfiles repository, all personal/project expert implementation work belongs under `.zara/experts/`.
+
+- Expert Prolog rules, deterministic corpus generators, expert tests, and expert packaging are authored there.
+- `.prolog/kb/` remains durable repository memory and is reused by adapters; do not fork those facts into a second knowledge store.
+- Zara Core and `zara-plugins` may provide generic expert runtime/registry/adapters, but do not author a second canonical copy of this repo's expert knowledge there.
+- Until the canonical `ZARA-EXPERT/1` descriptor is implemented, do not fabricate a local replacement manifest.
+
 ## Durable Prolog project memory
 
 For substantive repository work, use the `prolog-project-kb` skill.
