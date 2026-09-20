@@ -1,0 +1,47 @@
+;;; export-tests.el --- Documentation extractor fixtures -*- lexical-binding: t; -*-
+(require 'ert)
+(require 'cl-lib)
+(load (expand-file-name "../export.el" (file-name-directory load-file-name)) nil t)
+
+(ert-deftest zara-emacs-kb-test-function-metadata ()
+  (let ((row (zara-emacs-kb--row 'forward-char "function")))
+    (should (equal (alist-get 'name row) "forward-char"))
+    (should (eq (alist-get 'interactive row) t))
+    (should (stringp (alist-get 'doc row)))))
+
+(ert-deftest zara-emacs-kb-test-variable-values-never-exported ()
+  (let ((symbol (make-symbol "test-private-value")))
+    (set symbol "PRIVATE-VALUE-MUST-NOT-APPEAR")
+    (put symbol 'variable-documentation "Documentation only.")
+    (let ((row (zara-emacs-kb--row symbol "variable")))
+      (should (equal (alist-get 'doc row) "Documentation only."))
+      (should-not (string-match-p "PRIVATE-VALUE" (json-encode row)))
+      (should (eq (alist-get 'interactive row) :json-false)))))
+
+(ert-deftest zara-emacs-kb-test-raw-doc-preserves-key-markers ()
+  (let ((symbol (make-symbol "test-raw-doc")))
+    (put symbol 'variable-documentation "Use \\[forward-char] here.")
+    (should (equal (alist-get 'doc (zara-emacs-kb--row symbol "variable"))
+                   "Use \\[forward-char] here."))))
+
+(ert-deftest zara-emacs-kb-test-autoload-is-not-executed ()
+  (let ((symbol (make-symbol "test-unloaded-command")))
+    (autoload symbol "/nonexistent/never-load-this" "Unloaded documentation." t)
+    (let ((before (symbol-function symbol)))
+      (should (equal (alist-get 'doc (zara-emacs-kb--row symbol "function"))
+                     "Unloaded documentation."))
+      (should (equal before (symbol-function symbol)))
+      (should (autoloadp (symbol-function symbol))))))
+
+(ert-deftest zara-emacs-kb-test-documentation-errors-are-not-hidden ()
+  (cl-letf (((symbol-function 'documentation) (lambda (&rest _) (error "broken DOC file"))))
+    (should-error (zara-emacs-kb--row 'forward-char "function"))))
+
+(ert-deftest zara-emacs-kb-test-missing-doc-is-json-null ()
+  (let ((symbol (make-symbol "test-undocumented")))
+    (set symbol 1)
+    (should (eq (alist-get 'doc (zara-emacs-kb--row symbol "variable")) :json-null))))
+
+(ert-deftest zara-emacs-kb-test-export-rejects-interactive-session ()
+  (let ((noninteractive nil))
+    (should-error (zara-emacs-kb-export-batch))))
