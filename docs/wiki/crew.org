@@ -1,0 +1,65 @@
+#+TITLE: ARADR crews, roles and Prolog history
+
+* Entry and ownership
+Use =M-x +crew/workspace= (Doom) or =(require 'crew)= and =M-x crew-open=.
+The namespaced buffers are =*crew:chat*=, =*crew:files*=, =*crew:kb*=,
+=*crew:agents-list*= and =*crew:roles*=. Roles and parent/child trees share the
+existing opencode-workspace registry; this is not a second task database.
+
+Canonical source: [[file:../../lisp/llm/crew.org][crew.org]]. Protocol:
+[[file:../../contracts/zara-crew-v1/contract.md][ZARA-CREW/1]]. DotfilesExpert's adapter
+re-exports [[file:../../.prolog/kb/crew_protocol_v1.pl][the existing project KB location]].
+
+* Elisp configuration
+#+begin_src emacs-lisp :tangle no
+(require 'crew)
+(defcrew-role researcher
+  :goal "Research the assigned question and retain evidence/counterevidence."
+  :capabilities '("workspace.read" "crew.spawn" "crew.message")
+  :delegates '(researcher reviewer)
+  :skills '("crew-expert")
+  :phases '(research analysis design))
+(defcrew-role reviewer
+  :goal "Independently challenge an exact artifact; report concrete failures."
+  :capabilities '("workspace.read" "crew.message")
+  :skills '("crew-expert"))
+(defcrew dotfiles
+  :project (expand-file-name "~/Documents/Projects/dotfiles")
+  :model "YOUR-OPENCODE-PROVIDER/MODEL"
+  :roles '(researcher reviewer)
+  :max-agents 128 :parallel 8 :max-depth 4 :max-children 8 :turn-budget 512)
+;; Explicit kickoff invokes providers. Definitions above do not.
+(crew-kickoff 'dotfiles 'researcher '("Inspect source ownership" "Inspect KB drift") 8)
+#+end_src
+
+Use a model ID your installed =opencode models= actually advertises. Credentials
+stay with OpenCode. Role =:experts= references require actual runtime inventory
+through =crew-expert-check-function=; absent specialists block, never fake success.
+Add custom skills under =.opencode/skills/NAME/SKILL.md= in the crew source checkout.
+Their contents and the mandatory contracts are pinned and injected per role.
+
+* Many agents, bounded execution
+There can be many instances of each role. Parents propose children through the
+=crew= custom OpenCode tool; Prolog admits only declared roles and narrowed
+capabilities with an available allocation. Child turns debit the parent; root
+turns debit the crew. Spawn receipts and child result summaries return to the
+parent. Accepted/queued output is not independently verified evidence.
+
+=crew-cancel= cascades down a tree. =crew-stop= fences pending admissions.
+Neither deletes source KB, lineage, or historical role records.
+ARADR phase advancement is a separate trusted =crew-advance= operation. It cannot
+be requested through a peer tool. Run state is local to this Emacs process;
+Consortium #22 / Prolog-RLM #491 own durable distributed/runtime integration.
+
+* Prolog retention and tests
+Every prior tracked Prolog file is preserved; append-only/new-version records
+replace destructive edits. The CI preservation gate compares the actual Git base
+and rejects deletion, rewrite, rename-away, symlink replacement, and uncommitted
+or untracked/ignored KB files. Do not confuse this with an OS sandbox for a process
+that already owns unrestricted same-user filesystem access.
+
+The managed profile denies native shell/edit/task tools in this slice. This is
+read/research/delegation execution, not the completed typed write/test runtime.
+The canonical worker wrapper buffers output until exit; asynchronous execution
+does not imply token streaming. Live OpenCode custom-tool discovery and upstream
+expert conformance remain separately tracked integration gates.

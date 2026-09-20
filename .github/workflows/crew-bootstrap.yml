@@ -1,0 +1,40 @@
+name: Crew source realization
+on:
+  push:
+    branches: ['feat/278-opencode-emacs-workspace']
+permissions:
+  contents: write
+jobs:
+  tangle:
+    if: github.repository == 'lost-rob0t/dotfiles' && github.ref == 'refs/heads/feat/278-opencode-emacs-workspace'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Install real language runtimes
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y emacs-nox swi-prolog-nox
+      - name: Tangle authored Org sources and commit only generated outputs
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          emacs --batch -Q --eval '(require (quote org))' --eval '(progn (org-babel-tangle-file "lisp/llm/crew.org") (org-babel-tangle-file "lisp/llm/crew-support.org"))'
+          git add -- lisp/llm/crew.el .prolog/kb/crew_protocol_v1.pl scripts/crew-policy.pl .zara/experts/dotfiles/kb/crew_protocol_v1.pl scripts/check-prolog-history.py scripts/crew-client.py .opencode/tools/crew.ts .opencode/skills/crew-expert/SKILL.md .doom.d/autoload/crew.el
+          if ! git diff --cached --quiet; then
+            current=$(git ls-remote origin refs/heads/feat/278-opencode-emacs-workspace | cut -f1)
+            test "$current" = "$SOURCE_SHA"
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'build(emacs): tangle authored ARADR crew sources'
+            git push origin HEAD:refs/heads/feat/278-opencode-emacs-workspace
+          fi
+      - name: Python contracts and preservation
+        run: |
+          python3 -m unittest discover -s tests -p 'test_crew*.py' -v
+          python3 scripts/check-prolog-history.py 9b25b8ee7d910e057deeb061a2835fefa91cd3db
+      - name: Real Prolog and Emacs checks
+        run: |
+          swipl -q -s tests/crew-policy-test.pl
+          emacs --batch -Q -L lisp/llm -f batch-byte-compile lisp/llm/crew.el
+          emacs --batch -Q -L lisp/llm -l tests/crew-test.el -f ert-run-tests-batch-and-exit
