@@ -6,10 +6,14 @@
       model_calls/1,
       kb_source/5,
       classify_path/4,
+      nix_path/1,
+      bash_path/1,
       ownership/3,
+      home_manager_owned_path/1,
       specialist_for/4,
       explain_decision/3,
-      style_source/4
+      style_source/4,
+      style_revision/2
     ]).
 
 % DotfilesExpert is project-domain reasoning only. Zara Core owns registry,
@@ -56,10 +60,17 @@ classify_path(Path, bash, 'zara:expert/bash',
     file_base_name(Path, Base),
     memberchk(Base, ['.bashrc', '.bash_profile', '.profile']).
 
+% Unary adapter predicates intentionally expose only fixed, host-registered
+% questions. Invocation payloads cannot select a predicate or manufacture a goal.
+nix_path(Path) :- classify_path(Path, nix, 'zara:expert/nix', _).
+bash_path(Path) :- classify_path(Path, bash, 'zara:expert/bash', _).
+
 ownership(Path, home_manager,
           'kb:.prolog/kb/home_manager_ownership.pl#hm_owns_path/1') :-
     atom(Path),
     hm_owns_path(Path).
+
+home_manager_owned_path(Path) :- ownership(Path, home_manager, _).
 
 specialist_for(Path, Language, ExpertId, Reason) :-
     classify_path(Path, Language, ExpertId, Evidence),
@@ -92,3 +103,7 @@ style_source(project_language, nix,
 style_source(project_language, bash,
              '.zara/style/languages/bash.pl',
              'dotfiles-bash-style-v1').
+
+style_revision(project, 'dotfiles-project-style-v1').
+style_revision(nix, 'dotfiles-nix-style-v1').
+style_revision(bash, 'dotfiles-bash-style-v1').
