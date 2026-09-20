@@ -21,6 +21,7 @@ let
 
       swipl -q -f none -s .zara/experts/git/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/home-manager/tests/expert-tests.pl
+      swipl -q -f none -s .zara/experts/dotfiles/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/zara/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/sysadmin/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/javascript/tests/expert-tests.pl
