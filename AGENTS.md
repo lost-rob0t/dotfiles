@@ -92,6 +92,16 @@ Do not put the canonical sync executable or Emacs integration in `gpt-todos`. Ke
 
 Dotfiles synchronization belongs exclusively to `dotfiles-sync`. `dotfiles-sync` may enforce known literate/generated pairs and must target the user's Forgejo service at `git.starintel.actor` by default rather than GitHub.
 
+## Zara expert ownership
+
+Repo-local/personal expert implementations are owned by `.zara/experts/`.
+
+- Put new expert Prolog rules, deterministic corpus builders, expert tests, and packaging there.
+- Keep `.prolog/kb/` as durable project memory and reference it through explicit expert adapters instead of copying facts.
+- Zara Core and `zara-plugins` own runtime, registry, lifecycle, and adapter mechanics; they are not the canonical home for this repo's expert knowledge.
+- Do not invent a second `ZARA-EXPERT/1` manifest while the canonical contract is still being implemented.
+- Preserve existing tracked Prolog history when reorganizing expert work.
+
 ## Testing
 
 Follow TDD for behavior changes. Add or update regression tests before implementation when practical, then run the real suite. Tests must validate literate/generated parity for files touched by a change rather than merely checking that both files exist.
