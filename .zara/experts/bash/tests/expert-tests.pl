@@ -38,7 +38,9 @@ test(parser_probe_is_read_only) :-
 test(repairs_require_fresh_parse_postcondition) :-
     repair_verification(parse_and_bash_n).
 
-test(zero_model) :-
+test(pure_symbolic_budget_is_closed) :-
+    provider_policy(disabled),
+    max_model_calls(0),
     model_calls(0).
 
 :- end_tests(dotfiles_bash_expert).

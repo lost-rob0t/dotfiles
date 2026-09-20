@@ -25,7 +25,7 @@ test(read_only_inspection_never_builds) :-
     evaluation_policy(explicit_capability),
     build_policy(explicit_capability).
 
-test_parser_probe_is_read_only :-
+test(parser_probe_is_read_only) :-
     parser_probe(nix_instantiate_parse, read_only).
 
 test(project_metadata_is_observation_only) :-
@@ -34,7 +34,9 @@ test(project_metadata_is_observation_only) :-
 test(repairs_require_fresh_parse_or_eval_postcondition) :-
     repair_verification(parse_then_eval_or_check).
 
-test(zero_model) :-
+test(pure_symbolic_budget_is_closed) :-
+    provider_policy(disabled),
+    max_model_calls(0),
     model_calls(0).
 
 :- end_tests(dotfiles_nix_expert).
