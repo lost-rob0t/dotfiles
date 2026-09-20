@@ -29,7 +29,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara-plugins = {
-      url = "github:lost-rob0t/zara-plugins/4f791d83b6d0a969c26f81273d075d5d78acd7db";
+      url = "github:lost-rob0t/zara-plugins/cb00becf54216fc20f9573d389448cbec1b5f30c";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     bixby-studio = {
