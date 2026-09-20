@@ -5,6 +5,8 @@ on:
     paths:
       - "lisp/llm/ai-roam.el"
       - "lisp/llm/ai-roam-test.el"
+      - "lisp/llm/ai-roam-links.el"
+      - "lisp/llm/ai-roam-links-test.el"
       - ".github/workflows/ai-roam.yml"
   push:
     branches:
@@ -13,6 +15,8 @@ on:
     paths:
       - "lisp/llm/ai-roam.el"
       - "lisp/llm/ai-roam-test.el"
+      - "lisp/llm/ai-roam-links.el"
+      - "lisp/llm/ai-roam-links-test.el"
       - ".github/workflows/ai-roam.yml"
 
 permissions:
@@ -33,4 +37,5 @@ jobs:
             emacs -Q --batch \
               -L lisp/llm \
               -l lisp/llm/ai-roam-test.el \
+              -l lisp/llm/ai-roam-links-test.el \
               -f ert-run-tests-batch-and-exit
