@@ -5,8 +5,9 @@ authored Prolog knowledge/rules, deterministic corpus builders, expert-specific
 tests, and packaging.
 
 It is intentionally **not** a second Zara expert registry. `ZARA-EXPERT/1`
-descriptor/activation semantics remain owned by `lost-rob0t/zara#1233`, and
-canonical root/discovery semantics by `lost-rob0t/zara#1249`.
+descriptor/activation semantics remain owned by `lost-rob0t/zara#1233` (current
+Core implementation PR `lost-rob0t/zara#1273`), and canonical root/discovery
+semantics by `lost-rob0t/zara#1249`.
 
 ## Ownership
 
@@ -31,6 +32,19 @@ canonical root/discovery semantics by `lost-rob0t/zara#1249`.
 - `java/` / `kotlin/` — canonical JVM language semantics.
 - `bash/` — shell grammar/startup/quoting semantics with parse-only inspection.
 - `nix/` — Nix/flake/module/Home Manager reasoning with build/eval kept explicit.
+- `prolog/` — module/predicate/DCG diagnostics with parser/xref/compiler evidence,
+  explicit no-`call/1` source execution, generation fences, and fresh re-xref
+  repair verification.
+- `python/` — AST/scope/import/type-hint semantics with optional configured-only
+  lint/type adapters, generation-fenced observations, and read-only generated
+  sources.
+- `nim/` — proc/func/template/macro/type/import reasoning with typed compiler
+  probes, generation-fenced evidence, and fresh `nim check` repair verification.
+
+The Prolog/Python/Nim expert brains are the canonical Dotfiles-owned sources for
+`prolog-rlm#495/#498/#499`; `zara-plugins#872` consumes them through the existing
+registered-predicate host boundary instead of owning duplicate language KBs.
+All three pin providers disabled and `max_model_calls=0` / `model_calls=0`.
 
 The expert-library Nix package runs every tracked Prolog expert test and also
 executes parser-only fixtures for the Bash and Nix packages (`bash -n` and
