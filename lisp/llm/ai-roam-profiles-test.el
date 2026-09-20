@@ -78,8 +78,9 @@ Documented tolerance: the remainder comes back as \"\" or nil."
         (should (eq applied 'roam))
         (should (string= (buffer-string) " remember this"))))
     ;; Without a mention the buffer is untouched and nothing is applied.
+    (setq applied nil)
     (cl-letf (((symbol-function 'ai/roam-profiles-apply)
-               (lambda (_) (setq applied t))))
+               (lambda (_) (setq applied 'applied))))
       (with-temp-buffer
         (insert "plain prompt")
         (goto-char (point-max))
