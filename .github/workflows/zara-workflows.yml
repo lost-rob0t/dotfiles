@@ -69,3 +69,17 @@ jobs:
         run: bash tests/zara-workflows.sh
       - name: Check Zara Android config template
         run: bash tests/zara-android-template.sh
+
+  lock-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Refresh zara-plugins lock candidate
+        run: nix flake lock --update-input zara-plugins
+      - name: Upload lock candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: zara-plugins-flake-lock
+          path: flake.lock
+          retention-days: 1
