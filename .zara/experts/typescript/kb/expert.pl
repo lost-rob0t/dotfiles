@@ -7,6 +7,7 @@
       jsx_variant/1,
       compiler_config_role/1,
       project_metadata_role/1,
+      generation_current/2,
       repair_verification/1,
       model_calls/1
     ]).
@@ -35,6 +36,15 @@ jsx_variant(tsx).
 % tsconfig/project facts refine deterministic compiler semantics, never authority.
 compiler_config_role(observation_only).
 project_metadata_role(observation_only).
+
+% Parsed trees, compiler-config observations and project metadata must match the
+% exact requested generation; stale config must not leak into a later turn.
+generation_current(Expected, Observed) :-
+    integer(Expected),
+    integer(Observed),
+    Expected >= 0,
+    Observed >= 0,
+    Expected =:= Observed.
 
 repair_verification(reparse_and_typecheck).
 model_calls(0).
