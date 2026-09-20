@@ -46,6 +46,16 @@ The Prolog/Python/Nim expert brains are the canonical Dotfiles-owned sources for
 registered-predicate host boundary instead of owning duplicate language KBs.
 All three pin providers disabled and `max_model_calls=0` / `model_calls=0`.
 
+Their adapter-ready operation ABI is also canonical here: `language_applicable/3`,
+`language_evidence/3`, `language_diagnostic/3`, `language_repair_preview/4`,
+`language_repair_verify/4`, `language_style_rules/3`, and
+`language_explanation/3`. Shared deterministic ABI helpers live under
+`language/kb/adapter_contract.pl`; each expert exports language-specific wrappers.
+Inspection is observation-only, repair preview never writes, and repair verification
+returns `verified(false)` until fresh host-owned parser/compiler/xref postcondition
+evidence exists. `zara-plugins` may adapt these predicates, but must not fork their
+brain semantics, registry, permission path, provider runtime, or usage ledger.
+
 The expert-library Nix package runs every tracked Prolog expert test and also
 executes parser-only fixtures for the Bash and Nix packages (`bash -n` and
 `nix-instantiate --parse`). Those checks validate syntax without sourcing shell
