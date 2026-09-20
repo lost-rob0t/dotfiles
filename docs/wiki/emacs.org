@@ -155,11 +155,16 @@ Manager from the pinned vectored-notes flake (=github:lost-rob0t/org-vector=,
 see [[file:../../nix/home-manager/mods/org-vector.nix][org-vector.nix]]).  The =search_notes_semantic= and =index_notes_embeddings=
 gptel tools in [[file:../../lisp/llm/ai-roam-vector.el][lisp/llm/ai-roam-vector.el]] register on demand.
 
+Layered memory ships in [[file:../../lisp/llm/ai-roam-memory.el][lisp/llm/ai-roam-memory.el]]: per-subject memory
+notes live under =roam/llm/memory/= and an append-only =world_fact/9= Prolog log
+grows at =roam/llm/memory/kb-facts.pl=, exposed as the =remember_fact=,
+=recall_memory=, and =assert_world_fact= gptel tools with every write behind the
+rights gate.  =SPC m y m= recalls a subject's memory note interactively.
+
 Roadmap items below are planned, not shipped; PR 1 delivers only the section
 ontology, the rights resolver, outline drafting, and the adoption helper.
 
 - =roam:id= link repair;
-- layered memory combining roam notes with Prolog;
 - roam-wide rewrite;
 - writing coach;
 - publish pipeline (censor pass, =:private:= exclusion, dailies);
