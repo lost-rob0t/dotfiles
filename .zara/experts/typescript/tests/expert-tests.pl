@@ -12,7 +12,7 @@ test(type_semantics_are_explicit) :-
     supports_semantic(type_only_imports),
     supports_semantic(generics).
 test(tsx_variant_is_explicit) :- jsx_variant(tsx).
-test_config_and_project_metadata_are_observation_only) :-
+test(config_and_project_metadata_are_observation_only) :-
     compiler_config_role(observation_only),
     project_metadata_role(observation_only).
 test(repairs_require_parse_and_typecheck_verification) :- repair_verification(reparse_and_typecheck).
