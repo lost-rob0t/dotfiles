@@ -3,6 +3,13 @@
 
 (require 'json)
 
+(defun zara-emacs-kb--callable-function-p (symbol)
+  "Return non-nil when SYMBOL resolves to an actual function object.
+A symbol can be `fboundp' while still being a dangling alias.  Treat those
+entries as non-callable instead of asking `documentation' to follow them into
+a removed target.  `indirect-function' with NOERROR does not execute autoloads."
+  (not (null (indirect-function symbol t))))
+
 (defun zara-emacs-kb--row (symbol kind)
   "Describe SYMBOL's KIND without exporting its value or expanding keys."
   (let* ((doc (cond ((equal kind "function") (documentation symbol t))
@@ -52,7 +59,7 @@ pinned Emacs closure; the build supplies it, not a model request."
      `((type . "corpus") (schema . 1) (emacs_version . ,emacs-version)
        (source_id . ,source) (profile . "core-loaded")))
     (dolist (symbol symbols)
-      (when (fboundp symbol)
+      (when (zara-emacs-kb--callable-function-p symbol)
         (zara-emacs-kb--emit (zara-emacs-kb--row symbol "function")))
       (when (or (boundp symbol) (get symbol 'variable-documentation))
         (zara-emacs-kb--emit (zara-emacs-kb--row symbol "variable")))
