@@ -1,0 +1,40 @@
+name: ARADR crew contracts
+on:
+  pull_request:
+  push:
+    branches: ['feat/278-opencode-emacs-workspace']
+permissions:
+  contents: read
+jobs:
+  crew-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install real language runtimes
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y emacs-nox swi-prolog-nox
+      - name: Python bridge and real Git-history fixtures
+        run: python3 -m unittest discover -s tests -p 'test_crew*.py' -v
+      - name: Prolog policy and existing KB index integration
+        run: |
+          swipl -q -s tests/crew-policy-test.pl
+          swipl -q -s .prolog/kb/index.pl -g "crew_protocol_v1:crew_protocol('ZARA-CREW/1')" -t halt
+          swipl -q -s .zara/experts/dotfiles/kb/crew_protocol_v1.pl -g "dotfiles_crew_protocol_v1:crew_protocol('ZARA-CREW/1')" -t halt
+      - name: Elisp compile and crew ERT including real Prolog bridge
+        run: |
+          emacs --batch -Q -L lisp/llm -f batch-byte-compile lisp/llm/crew.el
+          emacs --batch -Q -L lisp/llm -l tests/crew-test.el -f ert-run-tests-batch-and-exit
+      - name: Actual literate tangle parity
+        run: |
+          emacs --batch -Q --eval '(require (quote org))' --eval '(progn (org-babel-tangle-file "lisp/llm/crew.org") (org-babel-tangle-file "lisp/llm/crew-support.org"))'
+          git diff --exit-code
+      - name: Preserve all prior Prolog and require committed KB
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          test -n "$BASE_SHA"
+          python3 scripts/check-prolog-history.py "$BASE_SHA"

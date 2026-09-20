@@ -10,3 +10,6 @@
 :- consult("forgejo_ci").
 :- consult("opencode_commands").
 :- consult("opencode_worker").
+
+% ZARA-CREW/1: append the versioned contract without replacing prior KB imports.
+:- use_module(crew_protocol_v1).

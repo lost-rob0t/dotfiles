@@ -1,0 +1,50 @@
+#+TITLE: 278 - ARADR roles, crews and preserved Prolog history
+#+STATUS: IMPLEMENTED-SLICE / LIVE-INTEGRATION-PENDING
+
+* Research
+Use the existing OpenCode workspace in PR #280, the canonical opencode-worker
+wrapper and the existing .prolog/kb/index.pl. DotfilesExpert #281/#282 explicitly
+requires reuse of that KB. Do not fabricate its pending manifest/activation codec.
+
+The wrapper accepts --format json, --role, --dir, --session and --max-retries;
+it buffers stdout until exit and readonly is prompt metadata, not a sandbox.
+Managed crew permissions therefore separately deny shell/edit/native Task in this
+slice. Full typed write/test and external expert invocation remain upstream work.
+
+* Adversarial review
+Self-review findings: generic buffer collisions, budget duplication on concurrent
+spawn, stale sender epochs, untracked/ignored KB history, source drift, and prompt
+skills masquerading as runtime-loaded experts. Add deterministic negative tests
+and runtime/identity checks. This record is not an independent reviewer's approval.
+
+* Analysis
+Roles are reusable definitions; multiple instances share a role. Crew size and
+active concurrency are separate. Root allocations debit the crew pool, children
+debit the parent. A typed spawn proposal is not model execution authority.
+All existing Prolog paths and bytes remain; new knowledge is append-only or a
+versioned successor. Raw private transcripts/secrets do not enter Git.
+
+* Design
+ZARA-CREW/1 provides host-derived identities, generation/run/epoch fencing,
+message and spawn requests, bounded mailboxes and idempotent receipts.
+Elisp defcrew-role/defcrew snapshots roles and pinned contracts/skills; the existing
+actor registry executes workers. A closed real SWI-Prolog gate admits delegation
+and ARADR transitions. DotfilesExpert re-exports the canonical crew KB, not a copy.
+
+* Design review / promotion
+Independent code review and live OpenCode/custom-tool/runtime integration are
+pending. The operator authorized this implementation on the issue branch, not a
+production merge or rollout. Existing Consortium ADARD semantics are not silently
+renamed ARADR. Full cross-runtime integration stays in consortium#22/prolog-rlm#491.
+
+* Realization / verification
+Authored sources: lisp/llm/crew.org and crew-support.org. Actual Emacs tangling
+created generated commit 7eaa14a5a8d04bb3375d04a8b051354366fe341d on this branch.
+The source-realization job 106007186309 ran tests on that generated commit:
+16 Python tests passed, 12 Prolog tests passed, 13 ERT tests passed, actual Org
+outputs matched, and the preservation gate passed against 9b25b8e.
+The one-time branch-specific writer workflow is removed after realization.
+Permanent CI is read-only, checks the exact PR head, tests the actual existing KB
+index and DotfilesExpert re-export, and rejects Prolog deletion/rewrite/untracked
+state against the real branch base. Old green evidence does not transfer to a new
+head. No live model call, provider spend, merge, deployment or forced ref update.
