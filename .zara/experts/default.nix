@@ -5,7 +5,7 @@ let
   library = pkgs.runCommand "dotfiles-zara-expert-library"
     {
       src = ../..;
-      nativeBuildInputs = [ pkgs.swi-prolog ];
+      nativeBuildInputs = [ pkgs.swi-prolog pkgs.bash pkgs.nix ];
     }
     ''
       set -eu
@@ -21,6 +21,11 @@ let
       swipl -q -f none -s .zara/experts/typescript/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/java/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/kotlin/tests/expert-tests.pl
+      swipl -q -f none -s .zara/experts/bash/tests/expert-tests.pl
+      swipl -q -f none -s .zara/experts/nix/tests/expert-tests.pl
+
+      bash -n .zara/experts/bash/tests/fixtures/valid.sh
+      nix-instantiate --parse .zara/experts/nix/tests/fixtures/valid.nix >/dev/null
 
       mkdir -p "$out/share/zara/dotfiles/.prolog"
       cp -R .zara "$out/share/zara/dotfiles/.zara"
