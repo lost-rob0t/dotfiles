@@ -19,6 +19,32 @@ helper without taking ownership of Zara's mutable private overlay.
 This split is deliberate: reproducible workflows belong in dotfiles; mutable
 private state does not.
 
+* Doom-native Emacs integration
+The desktop profile installs the registered =zara-emacs= service plugin and
+writes its non-secret plugin configuration to
+=~/.config/zarathushtra/plugins/zara-emacs/config.toml=.  The plugin is bound
+to Emacs server =doom=, matching the Doom/Home Manager server profile, and uses
+=~/Documents/Notes/org= as its Org knowledge root.
+
+Doom itself pins =emacs/zara.el= to the reviewed Zara native-client commit and
+enables =zara-native-mode= globally.  Editor control is not implemented as
+model-constructed Elisp: the plugin sends base64 JSON requests to the
+versioned =ZARA-EMACS/1= semantic bridge loaded inside the running Emacs.
+That running Emacs instance remains authoritative for buffers, active modes and
+keymaps, windows, modification ticks, ordinary undo, and explicit saves.
+
+The Doom leader surface is:
+
+- =SPC y z z= — Zara chat;
+- =SPC y z a= — ask Zara, using the active region when present;
+- =SPC y z s= — native Zara/bridge status;
+- =SPC y z c= — current structured Emacs context.
+
+After =gptel= loads, Doom registers the native Zara delegation and current
+buffer-context tools.  The canonical Zara runtime still owns conversation,
+voice, tools, memory and agent behavior; Emacs does not create a second agent
+loop.
+
 * Qwen3-TTS backend
 The desktop profile imports the =Qwen3-TTS_server= Home Manager flake module,
 installs its =qwen3-tts= command, and enables the Vulkan GPU service on
