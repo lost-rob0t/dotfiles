@@ -1,0 +1,4 @@
+emacsclient = "emacsclient"
+server_name = "doom"
+timeout_seconds = 10.0
+notes_root = "~/Documents/Notes/org"
