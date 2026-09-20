@@ -30,20 +30,28 @@ for explicit manual selection."
   :group 'ai/llm)
 
 (defcustom ai/llm-starintel-host "llm.starintel.actor"
-  "Host name of the StarIntel OpenAI-compatible LLM gateway."
+  "Upstream StarIntel gateway host used for auth-source lookup."
   :type 'string
   :group 'ai/llm)
 
-(defcustom ai/llm-starintel-endpoint "/v1/chat/completions"
-  "Chat-completions endpoint exposed by the StarIntel LLM gateway."
+(defcustom ai/llm-starintel-proxy-host "127.0.0.1:8787"
+  "Local llm-log host used for StarIntel gptel traffic."
+  :type 'string
+  :group 'ai/llm)
+
+(defcustom ai/llm-starintel-endpoint "/starintel/v1/chat/completions"
+  "llm-log path that forwards to the StarIntel chat-completions endpoint."
   :type 'string
   :group 'ai/llm)
 
 (defcustom ai/llm-starintel-models
-  '((qwen38-27b
-     :description "qwen38-27b through llm.starintel.actor"
-     :capabilities (reasoning tool-use json)))
-  "Models advertised by the StarIntel gateway.
+  '((qwen3-8b
+     :description "Fast interactive Qwen3 8B through llm.starintel.actor"
+     :capabilities (reasoning tool-use json))
+    (qwen38-27b
+     :description "Heavy Qwen3.8 27B text + vision through llm.starintel.actor"
+     :capabilities (reasoning media tool-use json)))
+  "Chat models advertised by the StarIntel gateway.
 Keep this list aligned with model IDs intentionally exposed by the gateway."
   :type '(repeat sexp)
   :group 'ai/llm)
@@ -139,8 +147,7 @@ Keep this list aligned with model IDs intentionally exposed by the gateway."
 Environment variables are preferred, then auth-source is consulted."
   (pcase provider
     ('starintel
-     (let ((host (or (getenv "STARINTEL_LLM_HOST")
-                     ai/llm-starintel-host)))
+     (let ((host ai/llm-starintel-host))
        (or (getenv "STARINTEL_LLM_API_KEY")
            (getenv "LLM_STARINTEL_API_KEY")
            (and (fboundp 'nsa/auth-source-get)
@@ -179,10 +186,11 @@ Environment variables are preferred, then auth-source is consulted."
 (cl-defun ai/llm-starintel-backend (&key (stream t) (name "StarIntel"))
   "Return the StarIntel OpenAI-compatible gateway backend."
   (gptel-make-openai name
-    :host (or (getenv "STARINTEL_LLM_HOST") ai/llm-starintel-host)
+    :host (or (getenv "STARINTEL_LLM_PROXY_HOST")
+              ai/llm-starintel-proxy-host)
     :endpoint (or (getenv "STARINTEL_LLM_ENDPOINT")
                   ai/llm-starintel-endpoint)
-    :protocol "https"
+    :protocol "http"
     :stream stream
     :key (lambda () (ai/llm--require-api-key 'starintel))
     :models ai/llm-starintel-models))
@@ -362,7 +370,14 @@ With LOCAL non-nil, only change the current buffer."
 (ai/llm-apply-defaults)
 
 (gptel-make-preset 'starintel
-  :description "StarIntel OpenAI-compatible gateway."
+  :description "Fast StarIntel model through llm-log."
+  :backend (ai/llm-backend 'starintel)
+  :model 'qwen3-8b
+  :stream t
+  :include-reasoning 'ignore)
+
+(gptel-make-preset 'starintel-heavy
+  :description "Heavy StarIntel 27B text + vision model through llm-log."
   :backend (ai/llm-backend 'starintel)
   :model 'qwen38-27b
   :stream t
