@@ -16,8 +16,13 @@ let
   opencodePackage = pkgs.opencode.overrideAttrs (oldAttrs: {
     postPatch = (oldAttrs.postPatch or "") + ''
       # Bun 1.4.x regression: compiled executable code splitting breaks OpenCode.
-      substituteInPlace packages/opencode/script/build.ts \
-        --replace-fail 'splitting: true,' 'splitting: false,'
+      # Upstream NixOS/nixpkgs#564101 fixes this in nixpkgs; once the pinned
+      # nixpkgs carries the fix (or the build script changes shape) the
+      # pattern is absent, so guard instead of failing the build.
+      if grep -qF 'splitting: true,' packages/opencode/script/build.ts 2>/dev/null; then
+        substituteInPlace packages/opencode/script/build.ts \
+          --replace-fail 'splitting: true,' 'splitting: false,'
+      fi
     '';
     passthru = (oldAttrs.passthru or { }) // {
       promptSendWorkaround = "NixOS/nixpkgs#564101";
