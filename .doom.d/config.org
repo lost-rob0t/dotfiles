@@ -878,12 +878,18 @@ prefix.
 Layered memory ([[file:../../lisp/llm/ai-roam-memory.el][lisp/llm/ai-roam-memory.el]]) keeps per-subject
 memory notes under =roam/llm/memory/= plus an append-only =world_fact=
 Prolog log; =SPC m y m= recalls a memory note interactively.
+
+Named gptel profiles ([[file:../../lisp/llm/ai-roam-profiles.el][lisp/llm/ai-roam-profiles.el]]) wire the notes-aware
+assistant into any gptel chat: typing =@roam= at the start of a prompt
+line (or =SPC m y r=) applies the profile's system message and roam
+tools before sending.
 #+begin_src emacs-lisp
 (autoload #'ai/roam-draft-outline "ai-roam" nil t)
 (autoload #'ai/roam-toggle-full-editor-rights "ai-roam" nil t)
 (autoload #'ai/roam-adopt-section "ai-roam" nil t)
 (autoload #'ai/roam-chat "ai-roam-chat" nil t)
 (autoload #'ai/roam-memory-recall "ai-roam-memory" nil t)
+(autoload #'ai/roam-profiles-apply "ai-roam-profiles" nil t)
 
 (after! org-roam
   (map! :localleader
@@ -893,7 +899,8 @@ Prolog log; =SPC m y m= recalls a memory note interactively.
         :desc "Toggle full editor rights" "f" #'ai/roam-toggle-full-editor-rights
         :desc "Adopt note into section" "a" #'ai/roam-adopt-section
         :desc "Roam AI sidebar chat" "c" #'ai/roam-chat
-        :desc "Recall memory" "m" #'ai/roam-memory-recall))
+        :desc "Recall memory" "m" #'ai/roam-memory-recall
+        :desc "Apply roam AI profile" "r" #'ai/roam-profiles-apply))
 #+end_src
 *** Misc org roam
 url2org function for importing info from the web
