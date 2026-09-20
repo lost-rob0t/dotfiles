@@ -11,6 +11,22 @@ roam_section_rights_default(outline, remaining_sections).
 roam_gptel_tool(create_roam_id_link, ai_roam_links, rights_gated(full)).
 roam_gptel_tool(search_notes_semantic, ai_roam_vector, read_only).
 roam_gptel_tool(index_notes_embeddings, ai_roam_vector, read_only).
+roam_gptel_tool(remember_fact, ai_roam_memory, rights_gated(full)).
+roam_gptel_tool(recall_memory, ai_roam_memory, read_only).
+roam_gptel_tool(assert_world_fact, ai_roam_memory, rights_gated(full)).
+
+% Layered memory (ai-roam-memory.el, PR 5).
+memory_layer(1, roam_notes, ai_roam_memory,
+             note_dir("llm/memory/"), relative_to(ai/roam-directory)).
+memory_layer(2, world_facts, ai_roam_memory,
+             kb_file("llm/memory/kb-facts.pl"), append_only).
+world_fact_line_schema([uuid, quoted(subject), quoted(predicate),
+                        quoted(object), source_or_none, agent,
+                        weight(1), active, iso8601_utc]).
+memory_write_guarantees(stable_org_id_across_rewrites,
+                        reads_existing_top_drawer_id_first).
+roam_regex_pitfall(unescaped_plus_after_anchor,
+                   "regex \\'`#+TITLE silently never matches: #+TITLE in a regex needs \\'`#\\+TITLE (the + is a quantifier)").
 
 % Doom-free llm modules must stay batch-safe: no hard gptel/ai/org-roam
 % require at top; guard with (require 'x nil t) and degrade gracefully.
@@ -26,6 +42,7 @@ wired_at_startup(ai/image_register_gptel_tools, hard_module_require).
 wired_at_startup(ai/prolog_rlm_register_gptel_tool, hard_module_require).
 wired_at_startup(ai/roam_links_register_gptel_tools, ignore_errors_call_site).
 wired_at_startup(ai/roam_vector_register_gptel_tools, ignore_errors_call_site).
+wired_at_startup(ai/roam_memory_register_gptel_tools, ignore_errors_call_site).
 wiring_note("roam register functions user-error without gptel, unlike image/prolog whose modules hard-require gptel at load; ai-init call sites are wrapped in ignore-errors").
 
 % Sidebar chat (ai-roam-chat.el).
@@ -41,7 +58,7 @@ llm_overhaul_pr(1, ai_roam_foundation, done).
 llm_overhaul_pr(2, roam_id_repair, done).
 llm_overhaul_pr(3, org_vector_tools, done).
 llm_overhaul_pr(4, roam_sidebar_chat, done).
-llm_overhaul_pr(5, layered_memory, pending).
+llm_overhaul_pr(5, layered_memory, done).
 llm_overhaul_pr(6, roam_rewrite_system, pending).
 llm_overhaul_pr(7, writing_coach, pending).
 llm_overhaul_pr(8, publish_censor_private, pending).
