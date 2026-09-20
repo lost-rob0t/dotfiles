@@ -20,7 +20,7 @@ test(emacs_forms_and_source_features_are_explicit) :-
     source_feature(checkdoc_evidence).
 
 test(structural_reasoning_delegates_to_lisp_expert) :-
-    Source = '(defun zara-demo (x) (list x ?\\())',
+    Source = '(defun zara-demo (x) (list x ?\\()',
     structural_check(
         Source,
         emacs_lisp_structural(structural(error, unmatched_open([0])))
@@ -36,7 +36,7 @@ test(structural_reasoning_delegates_to_lisp_expert) :-
                 expert('zara:expert/lisp'),
                 status(proposed),
                 diagnostic_ref('diagnostic:elisp-1'),
-                edits([edit(insert, 34, ')')]),
+                edits([edit(insert, 33, ')')]),
                 obligation(fresh_dialect_reader_postcondition)
             )),
             required_postcondition(emacs_fresh_reader_evidence)
@@ -45,8 +45,8 @@ test(structural_reasoning_delegates_to_lisp_expert) :-
 
 test(generic_balance_never_false_greens_emacs_lisp) :-
     verify_repair(
+        '(defun zara-demo (x) (list x ?\\()',
         '(defun zara-demo (x) (list x ?\\())',
-        '(defun zara-demo (x) (list x ?\\()))',
         verification(
             expert('zara:expert/emacs-lisp'),
             verified(false),
