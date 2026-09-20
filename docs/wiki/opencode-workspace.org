@@ -1,0 +1,20 @@
+#+TITLE: Emacs OpenCode workspace
+
+* Entry point
+See [[file:../../lisp/llm/opencode-workspace.org][the canonical literate source]] for setup,
+commands, transport, limits, generated-file ownership and verification.
+
+The opt-in Doom entry is =M-x +opencode/workspace=; vanilla Emacs uses
+=require= plus =M-x opencode-workspace=. Open the workspace, register explicit
+workers, select files and send a message. Import/startup does not launch workers.
+
+* Boundaries
+Dotfiles #278 owns Emacs process/mailbox integration. Consortium #22 owns the
+OpenCode worker backend; Prolog-RLM #491 owns expert inventory and admitted tool
+effects. A runtime-report callback is not a completed upstream integration.
+Direct OpenCode worker effects continue to use the operator's OpenCode policy.
+
+The buffers are projections: =*chat*=, =*files*=, =*kb*=, =*agents-list*=.
+Use =g= to refresh panes. Customize their prefix when another package owns one of
+these names. Runtime inventory is unknown until a real runtime reports it.
+Local cancellation does not prove provider-side cancellation or rollback.
