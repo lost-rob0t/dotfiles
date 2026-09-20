@@ -126,6 +126,10 @@ jobs:
           git diff --exit-code -- flake.lock
       - name: Evaluate flake checks without building system closures
         run: nix flake check --no-build --show-trace
+      - name: Build and test Zara expert library
+        run: nix build .#checks.x86_64-linux.zara-expert-library --no-link
+      - name: Build and test Zara Emacs expert
+        run: nix build .#checks.x86_64-linux.zara-emacs-expert --no-link
       - name: Build and test Prolog MCP package
         run: nix build .#checks.x86_64-linux.prolog-mcp --no-link
       - name: Build Brave MCP package

@@ -1,0 +1,37 @@
+# Repo-local Zara experts
+
+This directory is the canonical source tree for project-owned Zara expert work:
+authored Prolog knowledge/rules, deterministic corpus builders, expert-specific
+tests, and packaging.
+
+It is intentionally **not** a second Zara expert registry. `ZARA-EXPERT/1`
+descriptor/activation semantics remain owned by `lost-rob0t/zara#1233`, and
+canonical root/discovery semantics by `lost-rob0t/zara#1249`.
+
+## Ownership
+
+- `.zara/experts/` owns repo-local expert implementations.
+- `.prolog/kb/` remains durable project memory. Experts may import reviewed KB
+  modules from there; do not copy those facts into a second truth store.
+- Zara Core and `zara-plugins` own runtime, discovery, lifecycle, and adapter code.
+  New personal/project expert corpora and rules belong here.
+- Generated corpora are build artifacts unless an explicit provenance policy says
+  otherwise. Builders and tests are tracked; private runtime facts are not.
+- Existing tracked Prolog history must not be deleted or rewritten merely to
+  reorganize expert packages.
+
+## Current experts
+
+- `emacs/` — reproducible Emacs self-documentation corpus plus bounded queries.
+- `git/` — symbolic Git operation/effect/precondition reasoning.
+- `home-manager/` — adapter over the existing durable Home Manager ownership KB.
+- `zara/` — adapter over existing Zara deployment and voice-validation KB facts.
+- `sysadmin/` — symptom → hypothesis → diagnostic → verification rules.
+
+The Emacs corpus implementation was moved here from experimental
+`zara-plugins#858` so the expert knowledge source belongs to dotfiles. The
+service-plugin repository should consume/package this expert instead of owning a
+second copy.
+
+DotfilesExpert remains tracked by `dotfiles#281/#282`; it should reuse these
+packages and `.prolog/kb/` rather than fork their knowledge.

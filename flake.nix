@@ -63,6 +63,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
       prologMcp = pkgs.callPackage ./nix/packages/prolog-mcp.nix { };
       braveMcp = pkgs.callPackage ./nix/packages/brave-mcp { };
+      zaraExperts = import ./.zara/experts { inherit pkgs; };
 
       sharedArgs = {
         inherit self disko;
@@ -315,6 +316,8 @@
         install-logos-gui = installLogosGui;
         prolog-mcp = prologMcp;
         brave-mcp = braveMcp;
+        zara-emacs-expert = zaraExperts.emacs;
+        zara-expert-library = zaraExperts.library;
         inherit flash-logos;
         unseen-home = homeConfigurations."unseen@logos".activationPackage;
       };
@@ -343,6 +346,8 @@
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
         zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
+        zara-emacs-expert = zaraExperts.emacs;
+        zara-expert-library = zaraExperts.library;
       };
 
       hydraJobs.${system} = {
