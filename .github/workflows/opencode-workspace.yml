@@ -1,0 +1,32 @@
+name: OpenCode Emacs workspace
+on:
+  push:
+    branches: ['feat/278-opencode-emacs-workspace']
+  pull_request:
+    paths:
+      - 'lisp/llm/opencode-workspace.*'
+      - '.doom.d/autoload/opencode-workspace.el'
+      - 'scripts/opencode-peer.py'
+      - 'tests/opencode-workspace-test.el'
+      - 'tests/test_opencode_peer.py'
+      - '.github/workflows/opencode-workspace.yml'
+permissions:
+  contents: read
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Emacs
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y emacs-nox
+      - name: Python bridge and byte parity
+        run: python3 -m unittest discover -s tests -p 'test_opencode_peer.py' -v
+      - name: Emacs reader, byte compiler and ERT
+        run: |
+          emacs --batch -Q -L lisp/llm -f batch-byte-compile lisp/llm/opencode-workspace.el
+          emacs --batch -Q -L lisp/llm -l tests/opencode-workspace-test.el -f ert-run-tests-batch-and-exit
+      - name: Actual Org tangling parity
+        run: |
+          emacs --batch -Q --eval '(require (quote org))' --eval '(org-babel-tangle-file "lisp/llm/opencode-workspace.org")'
+          git diff --exit-code -- lisp/llm/opencode-workspace.el scripts/opencode-peer.py .doom.d/autoload/opencode-workspace.el

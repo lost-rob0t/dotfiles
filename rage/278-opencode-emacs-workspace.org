@@ -1,0 +1,32 @@
+#+TITLE: RAGE 278 - Emacs OpenCode workspace
+
+* Analyze
+Existing dotfiles master at 0e9fcd8fd26288e3b55cb1e76de716cd15b6f7bd already
+has the lisp/llm stack and scripts/opencode-tmux.org private-file Emacs bridge.
+Consortium exposes async start/status/cancel/events/artifact operations, but its
+current worker dispatch has no real OpenCode backend. Do not claim otherwise.
+
+* Design
+Choose a bounded opt-in Emacs process/mailbox library with data-only emacsclient
+peer envelopes. Do not rewrite tmux, gptel, the task store or Prolog authority.
+Upstream semantic work is tracked independently in Consortium #22 / RLM #491.
+
+* Adversarial self-review
+Data must never be inserted into executable Lisp/shell. Fence old generations,
+reject mismatched sessions, bound output/inbox/turns/files, distinguish accepted
+from completed, and never infer loaded KB from filenames. Same-user emacsclient
+is not a security boundary. Disable auto-sharing in each worker's local config.
+Independent review remains pending; this section is not another worker's vote.
+
+* Decision
+Implement the bounded Emacs vertical slice on its issue branch. No automatic
+model invocation, merge, deployment or fleet scheduling. Keep a draft until
+required exact-head Emacs and integration evidence is available.
+
+* Realization / verification
+Regression tests are added with the implementation. Python parity first failed
+because the canonical Org file had not yet been generated; that is a parity RED,
+not evidence of a behavioral ERT RED. This editing container has no Emacs or
+OpenCode binary. Python bridge tests can run here; ERT, actual tangling and live
+integration must be reported from their real execution environments separately.
+A source delimiter scan is not an Emacs compiler or ERT pass.

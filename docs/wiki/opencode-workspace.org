@@ -1,0 +1,19 @@
+#+TITLE: Emacs OpenCode workspace
+
+* Role-aware crew entry
+Use [[file:crew.org][ARADR crews and roles]] for the current =M-x +crew/workspace=
+entry, namespaced buffers, Elisp =defcrew-role=/=defcrew=, subagent admission,
+custom skills and Git-preserved Prolog knowledge. This layer reuses the original
+workspace actor registry instead of creating a second one.
+
+* Low-level compatibility entry
+See [[file:../../lisp/llm/opencode-workspace.org][the original literate source]] for
+the low-level process adapter and private-file emacsclient transport.
+=M-x +opencode/workspace= remains a compatibility entry; load =crew= to use the
+namespaced, role-aware system. Import/startup never launches model workers.
+
+* Boundaries
+Dotfiles #278 owns Emacs integration. Consortium #22 owns durable OpenCode worker
+orchestration; Prolog-RLM #491 owns full expert inventory and admitted effects.
+A runtime-report callback is not a completed upstream integration. Source/skill
+hashes are not claims that a runtime expert is loaded.
