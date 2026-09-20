@@ -20,6 +20,8 @@
     enable = true;
   };
 
+  orgVector.enable = true;
+
   opencode.web = {
     enable = true;
     hostname = "127.0.0.1";
