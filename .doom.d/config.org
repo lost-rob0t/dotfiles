@@ -860,7 +860,9 @@ Set roam directory once.  The Roam AI section ontology in
 The gptel-backed roam layer.  The module lives in
 [[file:../../lisp/llm/ai-roam.el][lisp/llm/ai-roam.el]] and owns the section ontology (17
 sections), the editor-rights resolver, outline-only drafting, and the
-section adoption helper.
+section adoption helper.  The rights-aware sidebar chat
+([[file:../../lisp/llm/ai-roam-chat.el][lisp/llm/ai-roam-chat.el]]) opens a gptel side window whose
+system message states the section, the rights, and the roam tools.
 
 Rights resolve in order: the global =ai/full-editor-rights= toggle,
 then the per-section rights alist (=hacking=, =scada=, =writing= and
@@ -876,6 +878,7 @@ prefix.
 (autoload #'ai/roam-draft-outline "ai-roam" nil t)
 (autoload #'ai/roam-toggle-full-editor-rights "ai-roam" nil t)
 (autoload #'ai/roam-adopt-section "ai-roam" nil t)
+(autoload #'ai/roam-chat "ai-roam-chat" nil t)
 
 (after! org-roam
   (map! :localleader
@@ -883,7 +886,8 @@ prefix.
         :prefix ("y" . "roam AI")
         :desc "Draft outline" "o" #'ai/roam-draft-outline
         :desc "Toggle full editor rights" "f" #'ai/roam-toggle-full-editor-rights
-        :desc "Adopt note into section" "a" #'ai/roam-adopt-section))
+        :desc "Adopt note into section" "a" #'ai/roam-adopt-section
+        :desc "Roam AI sidebar chat" "c" #'ai/roam-chat))
 #+end_src
 *** Misc org roam
 url2org function for importing info from the web
