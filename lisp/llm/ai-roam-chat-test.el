@@ -78,6 +78,16 @@
       (should (string-match-p "no specific roam section" message))
       (should (string-match-p "OUTLINE" message)))))
 
+(ert-deftest ai-roam-chat-system-message-mentions-memory-tools ()
+  "The system message names the layered memory tools as rights-gated."
+  (ai-roam-chat-test-with-contract
+    (let ((message (ai/roam-chat--system-message)))
+      (should (string-match-p "remember_fact" message))
+      (should (string-match-p "recall_memory" message))
+      (should (string-match-p "assert_world_fact" message))
+      (should (string-match-p "memory" message))
+      (should (string-match-p "rights" message)))))
+
 (ert-deftest ai-roam-chat-buffer-name ()
   "Explicit names win; otherwise the section names the buffer."
   (ai-roam-chat-test-with-contract
