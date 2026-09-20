@@ -8,6 +8,36 @@ let
   llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
   llmLogModule = llmLogFlake.homeManagerModules.default;
   proxyBase = "http://127.0.0.1:8787";
+  llmLogDataDir = "${config.home.homeDirectory}/Documents/AI/proxy";
+  llmLogCorpus = "${llmLogDataDir}/events.jsonl";
+  llmLogExpertAdmin = "http://127.0.0.1:8788";
+
+  llmLogQuery = pkgs.writeShellApplication {
+    name = "llm-log-query";
+    text = ''
+      exec ${llmLogPackage}/bin/llm-log expert \
+        --admin-url ${lib.escapeShellArg llmLogExpertAdmin} \
+        query "$@"
+    '';
+  };
+
+  llmLogBackfill = pkgs.writeShellApplication {
+    name = "llm-log-backfill";
+    text = ''
+      exec ${llmLogPackage}/bin/llm-log expert \
+        --admin-url ${lib.escapeShellArg llmLogExpertAdmin} \
+        backfill --source ${lib.escapeShellArg llmLogCorpus} "$@"
+    '';
+  };
+
+  llmLogExport = pkgs.writeShellApplication {
+    name = "llm-log-export";
+    text = ''
+      exec ${llmLogPackage}/bin/llm-log expert \
+        --admin-url ${lib.escapeShellArg llmLogExpertAdmin} \
+        export-dataset --source ${lib.escapeShellArg llmLogCorpus} "$@"
+    '';
+  };
 
   # Temporary workaround for NixOS/nixpkgs#563241, matching the fix merged
   # upstream in NixOS/nixpkgs#564101. Bun 1.4.x executable code splitting can
@@ -61,6 +91,18 @@ in
           description = "Optional private runtime environment file; never put API keys in Nix values.";
         };
       };
+      expertBackfill = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Incrementally replay new capture events into the live Tek9 expert plane.";
+        };
+        interval = mkOption {
+          type = types.str;
+          default = "15m";
+          description = "systemd OnUnitActiveSec interval for checkpointed llm-log expert backfill.";
+        };
+      };
     };
   };
 
@@ -71,12 +113,12 @@ in
     services.llm-log = {
       enable = true;
       package = llmLogPackage;
-      dataDir = "${config.home.homeDirectory}/Documents/AI/proxy";
+      dataDir = llmLogDataDir;
       expert = {
         enable = true;
         package = llmLogExpertPackage;
         # Tek9 state lives with the proxy corpus on this machine.
-        dataDir = "${config.home.homeDirectory}/Documents/AI/proxy/expert";
+        dataDir = "${llmLogDataDir}/expert";
         require = false;
       };
       upstreams = {
@@ -99,6 +141,37 @@ in
       EnvironmentFile = lib.mkAfter [ "-${config.llm.quotaTelemetry.environmentFile}" ];
     };
 
+    # Replay only the append-only suffix that has not already crossed the
+    # checkpoint. The llm-log backfill implementation streams JSONL one record
+    # at a time; this unit never materializes the corpus in memory.
+    systemd.user.services.llm-log-expert-backfill = mkIf config.llm.expertBackfill.enable {
+      Unit = {
+        Description = "Incrementally backfill llm-log capture into Tek9";
+        After = [ "llm-log.service" ];
+        Requires = [ "llm-log.service" ];
+        ConditionPathExists = llmLogCorpus;
+      };
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${llmLogBackfill}/bin/llm-log-backfill";
+        TimeoutStartSec = "15m";
+        Nice = 10;
+        IOSchedulingClass = "best-effort";
+        IOSchedulingPriority = 7;
+      };
+    };
+
+    systemd.user.timers.llm-log-expert-backfill = mkIf config.llm.expertBackfill.enable {
+      Unit.Description = "Schedule incremental llm-log expert backfill";
+      Timer = {
+        OnBootSec = "5m";
+        OnUnitActiveSec = config.llm.expertBackfill.interval;
+        Persistent = true;
+        Unit = "llm-log-expert-backfill.service";
+      };
+      Install.WantedBy = [ "timers.target" ];
+    };
+
     outrunTheme.enable = true;
     llm.starintelHarness.enable = true;
 
@@ -110,6 +183,39 @@ in
       llmLog = {
         enable = true;
         baseUrl = proxyBase;
+      };
+      commands = {
+        llm-log-query = {
+          description = "Run a bounded read-only llm-log expert query";
+          template = ''
+            Use the Home Manager-installed `llm-log-query` command to inspect
+            the running llm-log expert plane.
+            User arguments:
+            $ARGUMENTS
+            Never read events.jsonl directly. Keep every query bounded and use
+            the declared expert operations rather than inventing Prolog goals.
+          '';
+        };
+        llm-log-backfill = {
+          description = "Run or inspect checkpointed llm-log expert backfill";
+          template = ''
+            Use the Home Manager-installed `llm-log-backfill` command.
+            User arguments:
+            $ARGUMENTS
+            Preserve checkpointed streaming replay. Never copy or load the full
+            corpus into memory and do not launch a second Tek9 owner.
+          '';
+        };
+        llm-log-export = {
+          description = "Export a bounded provenance-preserving llm-log dataset";
+          template = ''
+            Use the Home Manager-installed `llm-log-export` command.
+            User arguments:
+            $ARGUMENTS
+            Never read events.jsonl directly. Use paginated expert selection and
+            let llm-log join only the selected event IDs back to raw evidence.
+          '';
+        };
       };
     };
     codex = {
@@ -155,6 +261,13 @@ in
       ANTHROPIC_BASE_URL = mkDefault "${proxyBase}/anthropic";
       LLM_LOG_BASE_URL = mkDefault proxyBase;
       LLM_LOG_API_URL = mkDefault proxyBase;
+      LLM_LOG_CORPUS = mkDefault llmLogCorpus;
+      LLM_LOG_EXPERT_ADMIN_URL = mkDefault llmLogExpertAdmin;
+      LLM_LOG_EXPERT_DATA_DIR = mkDefault "${llmLogDataDir}/expert";
+      # Reserved for the bounded KB miner tracked in llm-log#102. The model ID
+      # is deliberately discovered at runtime instead of guessed in Nix.
+      LLM_LOG_LEARN_BASE_URL = mkDefault "https://llm.starintel.actor";
+      LLM_LOG_LEARN_MODEL_SELECTOR = mkDefault "auto:27b";
     };
 
     # Brave Search MCP is part of the default LLM tool plane. Authentication
@@ -186,6 +299,9 @@ in
 
       jq
       curl
+      llmLogQuery
+      llmLogBackfill
+      llmLogExport
       openai-whisper
       youtubeContext
     ];
