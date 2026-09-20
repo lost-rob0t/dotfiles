@@ -12,7 +12,7 @@ test(java_language_features_are_explicit) :-
     supports_semantic(records),
     supports_semantic(modules).
 test(kotlin_coroutines_are_not_java_semantics, [fail]) :- supports_semantic(coroutines).
-test_project_metadata_is_observation_only) :-
+test(project_metadata_is_observation_only) :-
     project_metadata_role(observation_only),
     android_metadata_role(observation_only).
 test(generated_sources_are_excluded) :- generated_source_policy(exclude).
