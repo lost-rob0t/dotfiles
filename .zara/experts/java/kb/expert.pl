@@ -6,6 +6,7 @@
       project_metadata_role/1,
       android_metadata_role/1,
       generated_source_policy/1,
+      generation_current/2,
       repair_verification/1,
       model_calls/1
     ]).
@@ -32,6 +33,15 @@ supports_semantic(repair_verify).
 project_metadata_role(observation_only).
 android_metadata_role(observation_only).
 generated_source_policy(exclude).
+
+% Gradle/JVM/Android observations are generation-fenced. Only exact current
+% metadata may participate in deterministic compile/diagnostic reasoning.
+generation_current(Expected, Observed) :-
+    integer(Expected),
+    integer(Observed),
+    Expected >= 0,
+    Observed >= 0,
+    Expected =:= Observed.
 
 repair_verification(reparse_and_compile).
 model_calls(0).
