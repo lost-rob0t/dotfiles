@@ -27,6 +27,17 @@ canonical root/discovery semantics by `lost-rob0t/zara#1249`.
 - `home-manager/` — adapter over the existing durable Home Manager ownership KB.
 - `zara/` — adapter over existing Zara deployment and voice-validation KB facts.
 - `sysadmin/` — symptom → hypothesis → diagnostic → verification rules.
+- `javascript/` / `typescript/` — canonical JS/TS language semantics.
+- `java/` / `kotlin/` — canonical JVM language semantics.
+- `bash/` — shell grammar/startup/quoting semantics with parse-only inspection.
+- `nix/` — Nix/flake/module/Home Manager reasoning with build/eval kept explicit.
+
+The expert-library Nix package runs every tracked Prolog expert test and also
+executes parser-only fixtures for the Bash and Nix packages (`bash -n` and
+`nix-instantiate --parse`). Those checks validate syntax without sourcing shell
+code or evaluating/building Nix expressions. Evaluation, build, write, and other
+effectful operations remain host-owned capabilities and are not implied by an
+expert source package.
 
 The Emacs corpus implementation was moved here from experimental
 `zara-plugins#858` so the expert knowledge source belongs to dotfiles. The
