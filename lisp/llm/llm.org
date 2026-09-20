@@ -9,8 +9,10 @@ The local gptel stack defaults to OpenRouter's =openrouter/auto= router with
 =cost_quality_tradeoff= pinned to =0=, its pure-quality setting.  OpenRouter
 selects the most capable model for each prompt without optimizing for cost.
 OpenRouter is the authoritative provider for normal chat, agent, and
-image-generation traffic.  Claude Opus 5 Exacto and GPT-5.6 Sol remain
-available as fixed-model agent presets.
+image-generation traffic.  The private StarIntel gateway is also a first-class,
+explicitly selectable gptel provider; selecting it does not replace or reroute
+the OpenRouter, OpenAI OAuth, or z.AI paths.  Claude Opus 5 Exacto and GPT-5.6
+Sol remain available as fixed-model agent presets.
 
 The configuration tracks current upstream gptel instead of Doom's older pin.
 Modern defaults enable streaming, curl transport, tool use, per-tool automatic
@@ -26,9 +28,17 @@ API keys are resolved from environment variables first and then
 - =OPENAI_API_KEY= or host =api.openai.com=
 - =ANTHROPIC_API_KEY= or host =api.anthropic.com=
 - =OPENROUTER_API_KEY= or host =openrouter.ai=
+- =STARINTEL_LLM_API_KEY= (or =LLM_STARINTEL_API_KEY=) or host
+  =llm.starintel.actor=
 
 Normal chat and image generation require only the OpenRouter credential.
 Direct-provider credentials remain available for explicit provider switching.
+
+The StarIntel provider defaults to
+=https://llm.starintel.actor/v1/chat/completions=.  Override the gateway host
+with =STARINTEL_LLM_HOST= and the path with =STARINTEL_LLM_ENDPOINT= when
+testing another deployment.  Its model list is intentionally explicit in
+=ai/llm-starintel-models= so gptel never invents server-side model IDs.
 
 A Coding Plan endpoint can be selected without changing Lisp:
 
@@ -69,7 +79,11 @@ reloading Dirvish alone.
 (ai/llm-use-gpt-luna)
 (ai/llm-use-fable)
 (ai/llm-use-openai-oauth)
+(ai/llm-use-starintel)
 #+end_src
+
+=ai/llm-use-starintel= completes from the configured StarIntel model IDs and
+accepts a prefix argument for a buffer-local selection.
 
 The same switches are exposed as =M-x +llm/use-glm-5.2=,
 =M-x +llm/use-gpt-5.6-sol=, =M-x +llm/use-gpt-luna=,
@@ -78,6 +92,7 @@ makes the selection buffer-local.
 
 Available presets include:
 
+- =@starintel= — =qwen38-27b= through =llm.starintel.actor=
 - =@best= — OpenRouter Auto Router with pure-quality routing
 - =@claude-opus-5= — Claude Opus 5 through OpenRouter Exacto at max reasoning
 - =@glm-5.2=
