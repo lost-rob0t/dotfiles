@@ -8,6 +8,11 @@ default_module="$repo_root/nix/home-manager/mods/default.nix"
 desktop="$repo_root/nix/home-manager/systems/desktop/home.nix"
 nixos_networking="$repo_root/nix/nixos/systems/flake/networking.nix"
 updater="$repo_root/nix/home-manager/files/zarathushtra/bin/zara-system-update"
+emacs_plugin_config="$repo_root/nix/home-manager/files/zarathushtra/plugins/zara-emacs/config.toml"
+doom_config_org="$repo_root/.doom.d/config.org"
+doom_config_el="$repo_root/.doom.d/config.el"
+doom_packages_org="$repo_root/.doom.d/packages.org"
+doom_packages_el="$repo_root/.doom.d/packages.el"
 
 fail() {
   printf 'zara-workflows: %s\n' "$*" >&2
@@ -17,6 +22,7 @@ fail() {
 [[ -f "$config" ]] || fail "missing Home Manager-owned Zara base config"
 [[ -f "$workflow_module" ]] || fail "missing Zara workflow Home Manager module"
 [[ -f "$updater" ]] || fail "missing structured Zara system-update helper"
+[[ -f "$emacs_plugin_config" ]] || fail "missing zara-emacs plugin configuration"
 
 grep -Fq './zara-workflows.nix' "$default_module" || fail "workflow module is not imported"
 grep -Fq 'inputs.qwen3-tts.homeManagerModules.default' "$default_module" || fail "Qwen3-TTS Home Manager module is not imported"
@@ -28,11 +34,25 @@ grep -Fq 'backend = "vulkan";' "$desktop" || fail "desktop profile must use the 
 ! grep -Fq 'rocm' "$desktop" || fail "desktop profile must not reference the retired ROCm backend"
 ! grep -Fq '"qwen3-tts.service"' "$desktop" || fail "Zara must not pull Qwen3-TTS into the login transaction"
 grep -Fq 'nixManaged = false;' "$desktop" || fail "desktop profile must keep mutable Zara config outside Home Manager"
+grep -Fq '"zara-emacs"' "$desktop" || fail "desktop profile does not install zara-emacs"
+grep -Fq '"zara-emacs/config.toml"' "$desktop" || fail "desktop profile does not install zara-emacs config"
+grep -Fq 'server_name = "doom"' "$emacs_plugin_config" || fail "zara-emacs is not bound to the Doom server"
+grep -Fq 'notes_root = "~/Documents/Notes/org"' "$emacs_plugin_config" || fail "zara-emacs notes root drifted"
 grep -Fq '".config/zarathushtra/config.pl"' "$workflow_module" || fail "workflow module does not own base config.pl"
 ! grep -Fq '".config/zarathushtra/config.local.pl"' "$workflow_module" || fail "Home Manager must not own mutable config.local.pl"
 
 grep -Fq 'github:lost-rob0t/Qwen3-TTS_server' "$repo_root/flake.nix" || fail "Qwen3-TTS flake input is missing"
 grep -Fq '"qwen3-tts": "qwen3-tts"' "$repo_root/flake.lock" || fail "Qwen3-TTS flake input is not locked"
+
+native_zara_sha='26a93071840ed8e32cb24e5e0874011ce82f2fa9'
+for file in "$doom_packages_org" "$doom_packages_el"; do
+  grep -Fq "$native_zara_sha" "$file" || fail "Doom Zara package is not pinned to the reviewed native client"
+done
+for file in "$doom_config_org" "$doom_config_el"; do
+  grep -Fq '(zara-native-mode 1)' "$file" || fail "Doom does not enable zara-native-mode"
+  grep -Fq "(zara-gptel-register-tools)" "$file" || fail "Doom does not register Zara gptel tools"
+  grep -Fq ':prefix ("y z" . "Zara")' "$file" || fail "Doom Zara leader map is missing"
+done
 
 ! grep -Fq -- '--endpoint tcp://' "$desktop" || fail "local Zara must use its owner-private IPC default"
 ! grep -Fq -- '--security-dir' "$desktop" || fail "local Zara must not require CURVE setup"
