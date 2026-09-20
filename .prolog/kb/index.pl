@@ -9,4 +9,5 @@
 :- consult("literate_sync").
 :- consult("forgejo_ci").
 :- consult("opencode_commands").
+:- consult("nix_flake_pins").
 :- consult("opencode_worker").
