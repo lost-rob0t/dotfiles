@@ -21,7 +21,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara = {
-      url = "github:lost-rob0t/zara/43d8fa8c98771e02aff5ee1850ad5f2be7c35377";
+      url = "github:lost-rob0t/zara/89a9ab12461b7c6fa1630b2137ed5a500724e6c7";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     qwen3-tts = {
