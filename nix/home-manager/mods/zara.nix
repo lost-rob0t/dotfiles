@@ -46,6 +46,25 @@ let
   allDiscoveryFiles = registryDiscoveryFiles // cfg.plugins.discoveryFiles;
   allConfigFiles = registryConfigFiles // cfg.plugins.configFiles;
 
+  zaraAuthSecurityDir =
+    if cfg.server.securityDir != null then
+      cfg.server.securityDir
+    else
+      "${config.xdg.stateHome}/zarathushtra/security";
+
+  zaraAuth = pkgs.writeShellApplication {
+    name = "zara-auth";
+    runtimeInputs = [
+      cfg.package
+      pkgs.coreutils
+      pkgs.jq
+    ];
+    text = ''
+      export ZARA_AUTH_DEFAULT_SECURITY_DIR=${lib.escapeShellArg zaraAuthSecurityDir}
+      ${builtins.readFile ../files/zara-auth.sh}
+    '';
+  };
+
   discoveryFiles = lib.mapAttrs'
     (name: source:
       lib.nameValuePair ".zarathushtra/plugins/${name}" {
@@ -244,7 +263,7 @@ in
       }
     ];
 
-    home.packages = [ cfg.package ] ++ registryPackages ++ cfg.plugins.packages;
+    home.packages = [ cfg.package zaraAuth ] ++ registryPackages ++ cfg.plugins.packages;
 
     home.file = discoveryFiles // pluginConfigFiles // {
       ".config/zarathushtra/config.toml" = lib.mkIf cfg.nixManaged {
