@@ -42,9 +42,12 @@
     wake.enable = true;
 
     plugins = {
-      registry = [ "zara-discord" "zara-persona" ];
+      registry = [ "zara-discord" "zara-persona" "zara-emacs" ];
       discoveryFiles = {
         "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
+      };
+      configFiles = {
+        "zara-emacs/config.toml" = ../../files/zarathushtra/plugins/zara-emacs/config.toml;
       };
     };
   };
