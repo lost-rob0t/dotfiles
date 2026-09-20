@@ -14,7 +14,7 @@ test(kotlin_language_features_are_explicit) :-
     supports_semantic(data_classes),
     supports_semantic(sealed_types).
 test(java_records_are_not_kotlin_semantics, [fail]) :- supports_semantic(records).
-test_project_metadata_is_observation_only) :-
+test(project_metadata_is_observation_only) :-
     project_metadata_role(observation_only),
     android_metadata_role(observation_only).
 test(generated_sources_are_excluded) :- generated_source_policy(exclude).
