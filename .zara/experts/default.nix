@@ -23,6 +23,9 @@ let
       swipl -q -f none -s .zara/experts/kotlin/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/bash/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/nix/tests/expert-tests.pl
+      swipl -q -f none -s .zara/experts/prolog/tests/expert-tests.pl
+      swipl -q -f none -s .zara/experts/python/tests/expert-tests.pl
+      swipl -q -f none -s .zara/experts/nim/tests/expert-tests.pl
 
       bash -n .zara/experts/bash/tests/fixtures/valid.sh
       export NIX_STATE_DIR="$TMPDIR/nix-state"
