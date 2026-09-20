@@ -25,6 +25,8 @@ let
       swipl -q -f none -s .zara/experts/nix/tests/expert-tests.pl
 
       bash -n .zara/experts/bash/tests/fixtures/valid.sh
+      export NIX_STATE_DIR="$TMPDIR/nix-state"
+      mkdir -p "$NIX_STATE_DIR"
       nix-instantiate --parse .zara/experts/nix/tests/fixtures/valid.nix >/dev/null
 
       mkdir -p "$out/share/zara/dotfiles/.prolog"
