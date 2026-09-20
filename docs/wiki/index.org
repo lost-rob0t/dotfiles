@@ -36,7 +36,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Android Org/Vim | [[file:../../android/config.org][android/config.org]] | Doom-free Evil/org-modern mobile layer, Stow wrapper, toolbar, installer, and tests. |
 | Android APK build | [[file:../../android/build.org][android/build.org]] | Shared local/CI build.py, APK identity/signature gates, signing and installation safety. |
 | Android early startup | [[file:../../android/early-init.org][android/early-init.org]] | early-init.el and guarded Termux Bash/PATH integration. |
-| Android guide | [[file:../../android/README.org][android/README.org]] | Native reader, paired Emacs/Termux build, install/signature rules, and the user systemd watcher. |
+| Android guide | [[file:../../android/README.org][android/README.org]] | Native reader, paired Emacs/Termux build, install/signature rules, and mobile workflows. |
 | Termux bootstrap | [[file:../../bootstrap-termux.org][bootstrap-termux.org]] | Rolling Termux update, Git/Stow/dev tools, Doom + Org launchers, AI guest, and widgets. |
 | Termux app family | [[file:termux.org][docs/wiki/termux.org]] | Emacs/Termux paired source build plus API, Widget, Boot, Float, Styling, and Tasker signing/install invariants. |
 | Termux remote | [[file:../../scripts/termux-remote.org][scripts/termux-remote.org]] | Remote GUI recovery, mobile SSH keepalives, Agent Zero tunneling, and extra Termux:Widget shortcuts. |
