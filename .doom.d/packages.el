@@ -61,7 +61,7 @@
 (package! zara
   :recipe (:host github :repo "lost-rob0t/zara"
            :files ("emacs/zara.el"))
-  :pin "c5f956ee9d41c1a3bb96029a338572e92e147a4c")
+  :pin "26a93071840ed8e32cb24e5e0874011ce82f2fa9")
 
 (package! mcp :recipe (:type git :host github :repo "lizqwerscott/mcp.el"))
 
