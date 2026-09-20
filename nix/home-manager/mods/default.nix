@@ -21,6 +21,7 @@
     ./gpt-todos.nix
     ./org-logseq-sync.nix
     ./hackmode.nix
+    ./node-red.nix
     ./security.nix
     ./nim.nix
     ./lisp.nix
