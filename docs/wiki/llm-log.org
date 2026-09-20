@@ -12,6 +12,15 @@ widgets and graph remain separate and unchanged. Quota meters use reported
 account limits; the graph uses captured completed-request token buckets.
 The two domains must not be converted into each other by guessing a plan cap.
 
+* StarIntel gateway boundary
+The Emacs gptel =starintel= provider talks to
+=https://llm.starintel.actor/v1/chat/completions= as its own OpenAI-compatible
+gateway.  It is separately selectable and does not pass through the local
+llm-log proxy.  llm-log continues to own the existing OpenRouter, OpenAI /
+ChatGPT subscription, Anthropic, and z.AI proxy/telemetry paths where configured.
+Keeping the StarIntel gateway distinct avoids a second proxy hop and preserves
+the gateway as the authority for its own model routing, health, and capacity.
+
 * Home Manager wiring
 The LLM profile pins llm-log to =692d3820f638c011fc248a7694ecabd72a6e2895=,
 whose analytics, quota, Python, Home Manager, and Common Lisp/Tek9/SWI-Prolog
