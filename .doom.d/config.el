@@ -273,8 +273,24 @@ The optional argument NEW-WINDOW is not used."
 (setq initial-buffer-choice #'ai/dashboard-buffer)
 
 (map! :leader
-      :desc "AI dashboard" "y d" #'ai/dashboard
-      :desc "Zara chat" "y z" #'zara-chat)
+      :desc "AI dashboard" "y d" #'ai/dashboard)
+
+(use-package! zara
+  :demand t
+  :init
+  (setq zara-program "zara"
+        zara-connect-endpoint nil)
+  :config
+  (zara-native-mode 1)
+  (after! gptel
+    (zara-gptel-register-tools)))
+
+(map! :leader
+      (:prefix ("y z" . "Zara")
+       :desc "Chat" "z" #'zara-chat
+       :desc "Ask / region" "a" #'zara-ask-dwim
+       :desc "Status" "s" #'zara-status
+       :desc "Current context" "c" #'zara-native-describe-context))
 
 (map! :leader
       :desc "Tangle a file"
