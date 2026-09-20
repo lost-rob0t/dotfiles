@@ -524,6 +524,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (autoload #'ai/roam-toggle-full-editor-rights "ai-roam" nil t)
 (autoload #'ai/roam-adopt-section "ai-roam" nil t)
 (autoload #'ai/roam-chat "ai-roam-chat" nil t)
+(autoload #'ai/roam-memory-recall "ai-roam-memory" nil t)
 
 (after! org-roam
   (map! :localleader
@@ -532,7 +533,8 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
         :desc "Draft outline" "o" #'ai/roam-draft-outline
         :desc "Toggle full editor rights" "f" #'ai/roam-toggle-full-editor-rights
         :desc "Adopt note into section" "a" #'ai/roam-adopt-section
-        :desc "Roam AI sidebar chat" "c" #'ai/roam-chat))
+        :desc "Roam AI sidebar chat" "c" #'ai/roam-chat
+        :desc "Recall memory" "m" #'ai/roam-memory-recall))
 
 (defun url2org (begin end)
   "Download a webpage from selected url and convert to org."

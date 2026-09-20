@@ -874,11 +874,16 @@ Keybindings stay conservative: nothing existing is rebound.  Roam AI
 commands live under a localleader =y= prefix in org buffers; global
 additions will only ever use free keys under the existing =y= LLM
 prefix.
+
+Layered memory ([[file:../../lisp/llm/ai-roam-memory.el][lisp/llm/ai-roam-memory.el]]) keeps per-subject
+memory notes under =roam/llm/memory/= plus an append-only =world_fact=
+Prolog log; =SPC m y m= recalls a memory note interactively.
 #+begin_src emacs-lisp
 (autoload #'ai/roam-draft-outline "ai-roam" nil t)
 (autoload #'ai/roam-toggle-full-editor-rights "ai-roam" nil t)
 (autoload #'ai/roam-adopt-section "ai-roam" nil t)
 (autoload #'ai/roam-chat "ai-roam-chat" nil t)
+(autoload #'ai/roam-memory-recall "ai-roam-memory" nil t)
 
 (after! org-roam
   (map! :localleader
@@ -887,7 +892,8 @@ prefix.
         :desc "Draft outline" "o" #'ai/roam-draft-outline
         :desc "Toggle full editor rights" "f" #'ai/roam-toggle-full-editor-rights
         :desc "Adopt note into section" "a" #'ai/roam-adopt-section
-        :desc "Roam AI sidebar chat" "c" #'ai/roam-chat))
+        :desc "Roam AI sidebar chat" "c" #'ai/roam-chat
+        :desc "Recall memory" "m" #'ai/roam-memory-recall))
 #+end_src
 *** Misc org roam
 url2org function for importing info from the web
