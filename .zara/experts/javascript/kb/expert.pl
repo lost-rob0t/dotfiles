@@ -6,6 +6,7 @@
       module_system/1,
       jsx_variant/1,
       project_metadata_role/1,
+      generation_current/2,
       repair_verification/1,
       model_calls/1
     ]).
@@ -30,6 +31,16 @@ jsx_variant(jsx).
 
 % Project metadata may refine style/module interpretation, never grant authority.
 project_metadata_role(observation_only).
+
+% Syntax trees/project observations are usable only for the exact generation
+% requested by the caller. Stale trees fail closed instead of being treated as
+% approximately current.
+generation_current(Expected, Observed) :-
+    integer(Expected),
+    integer(Observed),
+    Expected >= 0,
+    Observed >= 0,
+    Expected =:= Observed.
 
 repair_verification(reparse).
 model_calls(0).

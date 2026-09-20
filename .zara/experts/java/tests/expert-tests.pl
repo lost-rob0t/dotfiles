@@ -16,6 +16,9 @@ test(project_metadata_is_observation_only) :-
     project_metadata_role(observation_only),
     android_metadata_role(observation_only).
 test(generated_sources_are_excluded) :- generated_source_policy(exclude).
+test(current_project_generation_is_accepted) :- generation_current(23, 23).
+test(stale_gradle_generation_is_rejected, [fail]) :- generation_current(23, 22).
+test(invalid_project_generation_is_rejected, [fail]) :- generation_current(23, stale).
 test(repairs_require_parse_and_compile_verification) :- repair_verification(reparse_and_compile).
 test(zero_model) :- model_calls(0).
 :- end_tests(dotfiles_java_expert).

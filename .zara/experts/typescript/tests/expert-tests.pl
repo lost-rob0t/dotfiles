@@ -15,6 +15,9 @@ test(tsx_variant_is_explicit) :- jsx_variant(tsx).
 test(config_and_project_metadata_are_observation_only) :-
     compiler_config_role(observation_only),
     project_metadata_role(observation_only).
+test(current_generation_is_accepted) :- generation_current(12, 12).
+test(stale_config_generation_is_rejected, [fail]) :- generation_current(12, 11).
+test(invalid_config_generation_is_rejected, [fail]) :- generation_current(12, unknown).
 test(repairs_require_parse_and_typecheck_verification) :- repair_verification(reparse_and_typecheck).
 test(zero_model) :- model_calls(0).
 :- end_tests(dotfiles_typescript_expert).

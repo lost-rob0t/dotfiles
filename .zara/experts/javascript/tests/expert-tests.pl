@@ -10,6 +10,9 @@ test(ts_is_not_silently_accepted, [fail]) :- accepts_extension(ts).
 test(typecheck_is_not_javascript_semantics, [fail]) :- supports_semantic(typecheck).
 test(esm_and_commonjs_are_explicit) :- module_system(esm), module_system(commonjs).
 test(project_metadata_is_observation_only) :- project_metadata_role(observation_only).
+test(current_generation_is_accepted) :- generation_current(7, 7).
+test(stale_generation_is_rejected, [fail]) :- generation_current(7, 6).
+test(invalid_generation_is_rejected, [fail]) :- generation_current(7, stale).
 test(repairs_require_fresh_parse_verification) :- repair_verification(reparse).
 test(zero_model) :- model_calls(0).
 :- end_tests(dotfiles_javascript_expert).
