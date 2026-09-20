@@ -36,6 +36,40 @@ Do not put secret contents in Nix expressions, repository files or widget option
 The leading optional marker in the unit means a missing file does not prevent
 llm-log from starting; z.AI remains unavailable until authentication is supplied.
 
+* Bounded corpus maintenance and operator commands
+The desktop profile installs =llm-log-query=, =llm-log-backfill=, and
+=llm-log-export=.  These are wrappers around the pinned llm-log expert
+maintenance interface at =http://127.0.0.1:8788=; clients should use them
+instead of opening =~/Documents/AI/proxy/events.jsonl= directly.
+
+The pinned llm-log backfill implementation streams one JSONL record at a time,
+persists a contiguous-success checkpoint, and can resume after interruption.
+Home Manager enables =llm-log-expert-backfill.timer= by default with a 15 minute
+=OnUnitActiveSec= interval.  The service runs only when the corpus exists and
+after the main =llm-log.service=.  It uses low CPU/IO priority and a bounded
+service timeout.  Set =llm.expertBackfill.enable = false= to disable the timer or
+change =llm.expertBackfill.interval= to alter its cadence.
+
+The corpus is expected to grow to tens of gigabytes.  Interactive consumers,
+OpenCode commands, Emacs viewers, reports, and future learning jobs must use
+bounded indexed/paginated expert queries.  A full-corpus in-memory load is never
+a supported design.  The remaining raw analytics scanner is tracked for
+replacement by the indexed large-corpus query work in llm-log#99.
+
+OpenCode receives global =/llm-log-query=, =/llm-log-backfill=, and
+=/llm-log-export= commands that explicitly preserve this bounded-query rule.
+Environment discovery is also centralized:
+- =LLM_LOG_CORPUS= points at the append-only corpus;
+- =LLM_LOG_EXPERT_ADMIN_URL= points at the loopback maintenance listener;
+- =LLM_LOG_EXPERT_DATA_DIR= points at the separate Tek9 state directory.
+
+For the bounded KB learner tracked in llm-log#102, Home Manager preconfigures
+=LLM_LOG_LEARN_BASE_URL=https://llm.starintel.actor= and
+=LLM_LOG_LEARN_MODEL_SELECTOR=auto:27b=.  The current pinned llm-log does not yet
+run the learner.  The future implementation must query =/v1/models= at runtime,
+select exactly one provider-reported 27B model, or fail clearly; the Nix
+configuration does not guess a model ID or embed credentials.
+
 * Deployment boundary
 The Python llm-log service must expose =/api/v1/quotas= and
 =/api/v1/stats/timeline?coverage=fields=. The Common Lisp forwarding executable
