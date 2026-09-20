@@ -23,19 +23,25 @@ test(provenance_index_reuses_durable_kb_revision) :-
 test(existing_kb_answers_real_ownership_query) :-
     ownership('/.config/systemd/user/zara-server.service',
               home_manager,
-              'kb:.prolog/kb/home_manager_ownership.pl#hm_owns_path/1').
+              'kb:.prolog/kb/home_manager_ownership.pl#hm_owns_path/1'),
+    home_manager_owned_path('/.config/systemd/user/zara-server.service').
 
 test(nix_path_delegates_to_registered_nix_identity) :-
     specialist_for('flake.nix', nix, 'zara:expert/nix',
-                   delegation(nix, 'zara:expert/nix', 'path-extension:.nix')).
+                   delegation(nix, 'zara:expert/nix', 'path-extension:.nix')),
+    nix_path('flake.nix'),
+    \+ bash_path('flake.nix').
 
 test(bash_path_delegates_to_registered_bash_identity) :-
     specialist_for('bin/deploy.sh', bash, 'zara:expert/bash',
-                   delegation(bash, 'zara:expert/bash', 'path-extension:.sh')).
+                   delegation(bash, 'zara:expert/bash', 'path-extension:.sh')),
+    bash_path('bin/deploy.sh'),
+    \+ nix_path('bin/deploy.sh').
 
 test(shell_startup_file_is_bash) :-
     classify_path('home/.bashrc', bash, 'zara:expert/bash',
-                  'shell-startup-basename').
+                  'shell-startup-basename'),
+    bash_path('home/.bashrc').
 
 test(unknown_path_fails_closed, [fail]) :-
     classify_path('README.md', _, _, _).
@@ -54,6 +60,7 @@ test(project_style_source_is_versioned) :-
     style_source(project, any,
                  '.zara/style/project.pl',
                  'dotfiles-project-style-v1'),
+    style_revision(project, 'dotfiles-project-style-v1'),
     dotfiles_project_style:style_revision('dotfiles-project-style-v1'),
     dotfiles_project_style:style_rule(verification,
                                       success_requires_fresh_postcondition,
@@ -63,6 +70,7 @@ test(nix_style_is_project_language_scoped_and_provenanced) :-
     style_source(project_language, nix,
                  '.zara/style/languages/nix.pl',
                  'dotfiles-nix-style-v1'),
+    style_revision(nix, 'dotfiles-nix-style-v1'),
     dotfiles_nix_style:style_rule(formatting, formatter, 'nixfmt-rfc-style'),
     dotfiles_nix_style:style_provenance(formatting,
                                         '.prolog/kb/literate_sync.pl',
@@ -73,6 +81,7 @@ test(bash_style_keeps_source_inert) :-
     style_source(project_language, bash,
                  '.zara/style/languages/bash.pl',
                  'dotfiles-bash-style-v1'),
+    style_revision(bash, 'dotfiles-bash-style-v1'),
     dotfiles_bash_style:style_rule(inspection, source_is_inert_data, true),
     dotfiles_bash_style:style_rule(inspection, source_before_analysis, false).
 
