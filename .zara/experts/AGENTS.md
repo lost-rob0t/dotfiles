@@ -1,11 +1,10 @@
 # Expert source ownership
 
-All repo-local expert implementation work belongs under this directory.
+All reusable expert definition/KB implementation work across the user's repositories belongs under this directory.
 
 - Put authored expert Prolog, deterministic knowledge generators, expert tests,
   and expert packaging beneath `.zara/experts/<expert>/`.
-- Keep generic Zara lifecycle/registry/transport code in Zara Core or
-  `zara-plugins`; do not move runtime infrastructure here.
+- Keep generic Zara lifecycle/registry/transport code in Zara Core or `zara-plugins`, and generic expert runtime/contracts in Prolog-RLM; do not move runtime infrastructure here. Those repositories consume the expert implementations authored here.
 - Do not create a second expert manifest/registry contract. Consume the canonical
   `ZARA-EXPERT/1` codec once implemented.
 - Reuse durable facts from `.prolog/kb/` through explicit adapters; do not copy
