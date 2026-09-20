@@ -53,12 +53,27 @@ roam_section_wording_marker(nil_section, "no specific roam section").
 roam_rights_wording_marker(full, "FULL editor rights").
 roam_rights_wording_marker(outline, "Rights are OUTLINE-ONLY").
 
+% Named gptel profiles (ai-roam-profiles.el, PR 5b).
+roam_profile(roam, system_fn(ai/roam-chat--system-message), tools_fn(ai/roam-chat--tools)).
+roam_profile(roam_outline, system_fn(nil_outline_message), tools_fn(nil)).
+profile_preset_name(Preset) :- atom_concat('roam:', Profile, Preset), atom(Profile).
+profile_apply_invariants([preset_defined_once_via_hash,
+                          gptel_preset_set_when_boundp,
+                          buffer_local_system_and_tools_always_set,
+                          direct_setq_is_authoritative]).
+profile_send_integration(:before_advice(gptel_send),
+                         scan_scope(line_begin_to_point),
+                         deletes_mention_then_applies,
+                         advice_added_once_global_flag).
+profile_setup(idempotent, silent_noop_without_gptel, wired_ignore_errors(ai_init)).
+
 % Stacked series state (planning run: run-6cf097a-emacs-llm-overhaul.pl).
 llm_overhaul_pr(1, ai_roam_foundation, done).
 llm_overhaul_pr(2, roam_id_repair, done).
 llm_overhaul_pr(3, org_vector_tools, done).
 llm_overhaul_pr(4, roam_sidebar_chat, done).
 llm_overhaul_pr(5, layered_memory, done).
+llm_overhaul_pr('5b', gptel_roam_profiles, done).
 llm_overhaul_pr(6, roam_rewrite_system, pending).
 llm_overhaul_pr(7, writing_coach, pending).
 llm_overhaul_pr(8, publish_censor_private, pending).

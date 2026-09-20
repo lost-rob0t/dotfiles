@@ -161,6 +161,14 @@ grows at =roam/llm/memory/kb-facts.pl=, exposed as the =remember_fact=,
 =recall_memory=, and =assert_world_fact= gptel tools with every write behind the
 rights gate.  =SPC m y m= recalls a subject's memory note interactively.
 
+Named gptel profiles ship in [[file:../../lisp/llm/ai-roam-profiles.el][lisp/llm/ai-roam-profiles.el]]: typing =@roam=
+(or =@roam-outline=) at the start of a prompt line applies that profile before
+the prompt is sent, and =SPC m y r= applies one interactively.  The =roam=
+profile sets the rights-aware roam system message and the roam tool surface;
+=roam-outline= pins outline-only behavior.  Applying a profile also registers a
+matching gptel preset, and setup runs automatically at startup whenever gptel is
+available.
+
 Roadmap items below are planned, not shipped; PR 1 delivers only the section
 ontology, the rights resolver, outline drafting, and the adoption helper.
 

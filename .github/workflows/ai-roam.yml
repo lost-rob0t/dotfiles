@@ -13,6 +13,8 @@ on:
       - "lisp/llm/ai-roam-chat-test.el"
       - "lisp/llm/ai-roam-memory.el"
       - "lisp/llm/ai-roam-memory-test.el"
+      - "lisp/llm/ai-roam-profiles.el"
+      - "lisp/llm/ai-roam-profiles-test.el"
       - ".github/workflows/ai-roam.yml"
   push:
     branches:
@@ -29,6 +31,8 @@ on:
       - "lisp/llm/ai-roam-chat-test.el"
       - "lisp/llm/ai-roam-memory.el"
       - "lisp/llm/ai-roam-memory-test.el"
+      - "lisp/llm/ai-roam-profiles.el"
+      - "lisp/llm/ai-roam-profiles-test.el"
       - ".github/workflows/ai-roam.yml"
 
 permissions:
@@ -53,4 +57,5 @@ jobs:
               -l lisp/llm/ai-roam-vector-test.el \
               -l lisp/llm/ai-roam-chat-test.el \
               -l lisp/llm/ai-roam-memory-test.el \
+              -l lisp/llm/ai-roam-profiles-test.el \
               -f ert-run-tests-batch-and-exit

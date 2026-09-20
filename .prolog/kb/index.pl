@@ -12,3 +12,4 @@
 :- consult("nix_flake_pins").
 :- consult("opencode_worker").
 :- consult("emacs_roam_ai").
+:- consult("prolog_verification").
