@@ -14,7 +14,16 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-          persist-credentials: false
+          # The existing .bin/gamepadPatch gitlink has no .gitmodules URL.
+          # Checkout's recursive auth removal fails before tests with false.
+          # No submodules are initialized; remove root auth explicitly below.
+          persist-credentials: true
+          submodules: false
+      - name: Remove read-only checkout credentials before running repository code
+        run: |
+          if git config --local --get-all http.https://github.com/.extraheader >/dev/null; then
+            git config --local --unset-all http.https://github.com/.extraheader
+          fi
       - name: Install real language runtimes
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y emacs-nox swi-prolog-nox
       - name: Python bridge and real Git-history fixtures
