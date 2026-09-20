@@ -9,6 +9,8 @@
 (require 'ai-image-tools)
 (require 'ai-prolog-rlm)
 (require 'ai-mcp)
+(require 'ai-roam-links)
+(require 'ai-roam-vector)
 (require 'chat)
 (require 'fren-loader)
 
@@ -74,6 +76,12 @@
 
 (ai/image-register-gptel-tools)
 (ai/prolog-rlm-register-gptel-tool)
+;; Unlike ai/image-register-gptel-tools (whose module hard-requires
+;; gptel at load time), the roam tool registrations user-error when
+;; gptel is absent, so their call sites are wrapped to keep startup
+;; resilient in gptel-less contexts.
+(ignore-errors (ai/roam-links-register-gptel-tools))
+(ignore-errors (ai/roam-vector-register-gptel-tools))
 (unless (string-match-p "Image and prompt-template rules:" ai/agent-system-prompt)
   (setq ai/agent-system-prompt
         (concat ai/agent-system-prompt ai/image-agent-instructions)))
