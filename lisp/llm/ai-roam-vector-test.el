@@ -83,7 +83,8 @@ at call time, so rebinding the roam root rebinds the indexed dir."
     (let ((args (ai/roam-vector--embed-args)))
       (should (equal (car args) "embed"))
       (should (equal (member "--dir" args)
-                     (list "--dir" "/tmp/ai-roam-vector-test/org/")))
+                     (list "--dir" "/tmp/ai-roam-vector-test/org/"
+                           "--path" "/tmp/ai-roam-vector-test/db/")))
       (should (equal (member "--path" args)
                      (list "--path" "/tmp/ai-roam-vector-test/db/"))))))
 
