@@ -11,3 +11,4 @@
 :- consult("opencode_commands").
 :- consult("nix_flake_pins").
 :- consult("opencode_worker").
+:- consult("emacs_roam_ai").

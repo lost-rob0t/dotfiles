@@ -140,7 +140,12 @@ through the durable save-sync section above.
 
 The shipped commands are =ai/roam-draft-outline= (outline-only drafting, valid
 under any rights), =ai/roam-adopt-section= (move a note into a section), and
-=ai/roam-toggle-full-editor-rights= (flip the global toggle).  Keybinding
+=ai/roam-toggle-full-editor-rights= (flip the global toggle).
+=ai/roam-chat= is a rights-aware gptel sidebar chat under =SPC m y c=
+([[file:../../lisp/llm/ai-roam-chat.el][lisp/llm/ai-roam-chat.el]]): it opens a dedicated right side window,
+states the note's roam section and resolved rights in plain words in its
+system message, and reuses the roam tool surface (=create_roam_id_link=,
+=search_notes_semantic=, =index_notes_embeddings=).  Keybinding
 philosophy: nothing existing is rebound.  Roam-scoped commands go under the Doom
 localleader =SPC m y ...= prefix in org buffers, and global additions only on
 free keys under the existing =y= LLM prefix.
@@ -154,7 +159,6 @@ Roadmap items below are planned, not shipped; PR 1 delivers only the section
 ontology, the rights resolver, outline drafting, and the adoption helper.
 
 - =roam:id= link repair;
-- sidebar chat;
 - layered memory combining roam notes with Prolog;
 - roam-wide rewrite;
 - writing coach;
