@@ -9,7 +9,8 @@
 ;; editor rights in plain words, and names the roam tools with their
 ;; intended use.  The buffer-local tool list reuses the globally
 ;; active tools plus the registered roam tools (`create_roam_id_link',
-;; `search_notes_semantic', `index_notes_embeddings').
+;; `search_notes_semantic', `index_notes_embeddings',
+;; `remember_fact', `recall_memory', `assert_world_fact').
 ;;
 ;; The pure helpers (`ai/roam-chat--context',
 ;; `ai/roam-chat--system-message', `ai/roam-chat--tools') are
@@ -25,6 +26,7 @@
 (require 'ai-roam)
 (require 'ai-roam-links)
 (require 'ai-roam-vector)
+(require 'ai-roam-memory)
 
 (declare-function gptel-get-tool "gptel" (name))
 (declare-function gptel-mode "gptel" (&optional arg))
@@ -87,7 +89,8 @@ there."
   "Available roam tools:
 - search_notes_semantic: semantic search over my notes; use it to find relevant notes before answering questions about their content.
 - index_notes_embeddings: refresh the embedding index; use it first when recently written notes are missing from search results.
-- create_roam_id_link: prepare a roam:id link target for an existing note; use it only when I ask to link notes and only where the rights statement above allows editing."
+- create_roam_id_link: prepare a roam:id link target for an existing note; use it only when I ask to link notes and only where the rights statement above allows editing.
+Durable memory is available through remember_fact and recall_memory, and assert_world_fact appends structured world facts; both memory writes and structured facts require the editor-rights gate to pass."
   "Tool names and usage rules embedded in the sidebar system message.")
 
 (defun ai/roam-chat--system-message (&optional file)
@@ -121,7 +124,10 @@ unavailable so the helper stays batch-safe."
     (let ((tools (copy-sequence (default-value 'gptel-tools))))
       (dolist (name (list ai/roam-links-gptel-tool
                           ai/roam-vector-gptel-tool-search
-                          ai/roam-vector-gptel-tool-index))
+                          ai/roam-vector-gptel-tool-index
+                          ai/roam-memory-gptel-tool-remember
+                          ai/roam-memory-gptel-tool-recall
+                          ai/roam-memory-gptel-tool-assert-fact))
         (when-let* ((tool (gptel-get-tool name)))
           (cl-pushnew tool tools :test #'eq)))
       tools)))
