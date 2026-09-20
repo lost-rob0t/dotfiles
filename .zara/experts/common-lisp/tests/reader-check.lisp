@@ -10,8 +10,7 @@
   (handler-case
       (with-open-file (stream path :direction :input)
         (loop for form = (read stream nil eof)
-              until (eq form eof)
-              do (declare (ignore form))))
+              until (eq form eof)))
     (condition (condition)
       (fail condition))))
 
