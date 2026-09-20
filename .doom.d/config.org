@@ -574,8 +574,30 @@ allowing gptel to add persistent cards through a closed action vocabulary.
 (setq initial-buffer-choice #'ai/dashboard-buffer)
 
 (map! :leader
-      :desc "AI dashboard" "y d" #'ai/dashboard
-      :desc "Zara chat" "y z" #'zara-chat)
+      :desc "AI dashboard" "y d" #'ai/dashboard)
+#+end_src
+**** Make Zara native to Doom Emacs
+Zara is loaded as a first-class global minor mode. Doom owns editor state and
+the live =doom= server socket; Zara owns the canonical assistant runtime.
+Editor-control traffic uses the versioned =ZARA-EMACS/1= semantic bridge rather
+than model-constructed Elisp.
+#+begin_src emacs-lisp
+(use-package! zara
+  :demand t
+  :init
+  (setq zara-program "zara"
+        zara-connect-endpoint nil)
+  :config
+  (zara-native-mode 1)
+  (after! gptel
+    (zara-gptel-register-tools)))
+
+(map! :leader
+      (:prefix ("y z" . "Zara")
+       :desc "Chat" "z" #'zara-chat
+       :desc "Ask / region" "a" #'zara-ask-dwim
+       :desc "Status" "s" #'zara-status
+       :desc "Current context" "c" #'zara-native-describe-context))
 #+end_src
 *** Babel
 Tangle a file
