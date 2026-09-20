@@ -28,7 +28,7 @@ test(missing_close_is_localized_and_previewed_as_typed_insert) :-
             expert('zara:expert/lisp'),
             status(proposed),
             diagnostic_ref('diagnostic:lisp-missing-close-1'),
-            edits([edit(insert, 27, ')')]),
+            edits([edit(insert, 26, ')')]),
             obligation(fresh_dialect_reader_postcondition)
         )
     ).
