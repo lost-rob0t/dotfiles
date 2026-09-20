@@ -11,6 +11,7 @@
 (require 'ai-mcp)
 (require 'ai-roam-links)
 (require 'ai-roam-vector)
+(require 'ai-roam-memory)
 (require 'chat)
 (require 'fren-loader)
 
@@ -82,6 +83,7 @@
 ;; resilient in gptel-less contexts.
 (ignore-errors (ai/roam-links-register-gptel-tools))
 (ignore-errors (ai/roam-vector-register-gptel-tools))
+(ignore-errors (ai/roam-memory-register-gptel-tools))
 (unless (string-match-p "Image and prompt-template rules:" ai/agent-system-prompt)
   (setq ai/agent-system-prompt
         (concat ai/agent-system-prompt ai/image-agent-instructions)))
