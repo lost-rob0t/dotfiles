@@ -1,0 +1,45 @@
+name: gptel backends
+
+on:
+  pull_request:
+    paths:
+      - "lisp/llm/ai.el"
+      - "lisp/llm/ai-backend-test.el"
+      - ".github/workflows/gptel-backends.yml"
+  push:
+    branches:
+      - master
+      - "agent/**"
+      - "feat/**"
+    paths:
+      - "lisp/llm/ai.el"
+      - "lisp/llm/ai-backend-test.el"
+      - ".github/workflows/gptel-backends.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out tested gptel revision
+        uses: actions/checkout@v4
+        with:
+          repository: karthink/gptel
+          ref: dc0280821c344ec10547e13179ea2095f6165f05
+          path: .ci/gptel
+
+      - uses: cachix/install-nix-action@v31
+
+      - name: Run Emacs 30 backend ERT tests
+        run: |
+          set -euo pipefail
+          nix shell github:NixOS/nixpkgs/nixos-26.05#emacs-nox --command \
+            emacs -Q --batch \
+              -L .ci/gptel \
+              -L lisp/llm \
+              -l lisp/llm/ai-backend-test.el \
+              -f ert-run-tests-batch-and-exit

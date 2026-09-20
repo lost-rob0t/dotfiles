@@ -89,6 +89,7 @@ in
         openrouter = "https://openrouter.ai";
         anthropic = "https://api.anthropic.com";
         chatgpt = "https://chatgpt.com";
+        starintel = "https://llm.starintel.actor";
       };
     };
 
