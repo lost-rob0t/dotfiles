@@ -47,7 +47,8 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Qtile prompt library | [[file:../../.config/qtile/qtile-prompt-lib.org][qtile-prompt-lib.org]] | Preserves the existing Emacs AI binding and adds =Super e y p= for the prompt browser; tangles to =qtile_prompt_lib.py=. |
 | OpenRouter widget | [[file:../../.config/qtile/qtile-openrouter.org][qtile-openrouter.org]] | Telemetry/widget helper; tangles to =qtile_openrouter.py=. |
 | llm-log quotas | [[file:../../.config/qtile/qtile-llm-log.org][qtile-llm-log.org]] | Adjacent z.AI/Codex account quota meters; tangles to =llm_log_client.py= and =qtile_llm_log.py=. |
-| Consortium widgets | [[file:../../.config/qtile/qtile-consortium.org][qtile-consortium.org]] | Read-only primary-screen =CONS=/=ADARD= observers; tangles to =consortium_status.py= and =qtile_consortium.py=. |\n| llm-log API graph | [[file:../../.config/qtile/qtile-llm-log-graph.org][qtile-llm-log-graph.org]] | Exact UTC buckets and per-field coverage; tangles to =llm_log_graph.py= and =qtile_llm_log_graph.py=. |
+| Consortium widgets | [[file:../../.config/qtile/qtile-consortium.org][qtile-consortium.org]] | Read-only primary-screen =CONS=/=ADARD= observers; tangles to =consortium_status.py= and =qtile_consortium.py=. |
+| llm-log API graph | [[file:../../.config/qtile/qtile-llm-log-graph.org][qtile-llm-log-graph.org]] | Exact UTC buckets and per-field coverage; tangles to =llm_log_graph.py= and =qtile_llm_log_graph.py=. |
 | Qtile telemetry installer | [[file:../../.config/qtile/qtile-telemetry.org][qtile-telemetry.org]] | WM/key telemetry and old/new widget integration; tangles to =qtile_telemetry.py=. |
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
 | Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |
