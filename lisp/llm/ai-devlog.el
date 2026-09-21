@@ -235,4 +235,214 @@
                     ((stringp value) value)
                     ((numberp value) (number-to-string value))
                     ((eq value t) "true")
-                    (t (format "%s
+                    (t (format "%s" value)))))
+    (string-trim (replace-regexp-in-string "[\n\r\t]+" " " text))))
+
+(defun ai/devlog--truthy-p (value)
+  "Return non-nil when VALUE represents a true provider boolean."
+  (or (eq value t)
+      (and (stringp value)
+           (member (downcase (string-trim value)) '("true" "yes" "1")))))
+
+(defun ai/devlog--time (text)
+  "Parse provider timestamp TEXT, returning nil when unavailable."
+  (when (and (stringp text) (not (string-empty-p text)))
+    (ignore-errors (date-to-time text))))
+
+(defun ai/devlog--recent-p (event since-time)
+  "Return non-nil when EVENT is at or after SINCE-TIME."
+  (let ((updated (ai/devlog--time (alist-get 'updated_at event))))
+    (or (not updated) (not (time-less-p updated since-time)))))
+
+(defun ai/devlog--event (provider repo kind number title state url updated &rest extra)
+  "Create one normalized devlog event."
+  (append `((provider . ,provider)
+            (repo . ,(or repo ""))
+            (kind . ,kind)
+            (number . ,(ai/devlog--string number))
+            (title . ,(ai/devlog--string title))
+            (state . ,(downcase (ai/devlog--string state)))
+            (url . ,(ai/devlog--string url))
+            (updated_at . ,(ai/devlog--string updated)))
+          extra))
+
+(defun ai/devlog--gh-events (root repo since-time limit)
+  "Collect GitHub pull requests and issues for REPO."
+  (if (not repo)
+      (list nil "no GitHub remote")
+    (let* ((pr (ai/devlog--run
+                "gh"
+                (list "pr" "list" "-R" repo "--state" "all" "--limit" (number-to-string limit)
+                      "--json" "number,title,state,url,updatedAt,headRefName,baseRefName,isDraft,mergedAt")
+                root))
+           (issues (ai/devlog--run
+                    "gh"
+                    (list "issue" "list" "-R" repo "--state" "all" "--limit" (number-to-string limit)
+                          "--json" "number,title,state,url,updatedAt,labels")
+                    root))
+           events errors)
+      (if (plist-get pr :ok)
+          (dolist (item (ai/devlog--json (plist-get pr :stdout)))
+            (let ((event
+                   (ai/devlog--event
+                    "github" repo "pull_request"
+                    (ai/devlog--field item 'number)
+                    (ai/devlog--field item 'title)
+                    (if (ai/devlog--field item 'mergedAt) "merged"
+                      (ai/devlog--field item 'state))
+                    (ai/devlog--field item 'url)
+                    (ai/devlog--field item 'updatedAt)
+                    (cons 'head (ai/devlog--string (ai/devlog--field item 'headRefName)))
+                    (cons 'base (ai/devlog--string (ai/devlog--field item 'baseRefName))))))
+              (when (ai/devlog--recent-p event since-time) (push event events))))
+        (push (format "gh pr: %s" (string-trim (plist-get pr :stderr))) errors))
+      (if (plist-get issues :ok)
+          (dolist (item (ai/devlog--json (plist-get issues :stdout)))
+            (let ((event
+                   (ai/devlog--event
+                    "github" repo "issue"
+                    (ai/devlog--field item 'number)
+                    (ai/devlog--field item 'title)
+                    (ai/devlog--field item 'state)
+                    (ai/devlog--field item 'url)
+                    (ai/devlog--field item 'updatedAt))))
+              (when (ai/devlog--recent-p event since-time) (push event events))))
+        (push (format "gh issue: %s" (string-trim (plist-get issues :stderr))) errors))
+      (list (nreverse events) (string-join (nreverse errors) "; ")))))
+
+(defun ai/devlog--tea-args (entity repo limit)
+  "Return tea list arguments for ENTITY in REPO."
+  (append (list entity "list" "--repo" repo "--state" "all"
+                "--output" "json" "--limit" (number-to-string limit))
+          (when ai/devlog-tea-login (list "--login" ai/devlog-tea-login))))
+
+(defun ai/devlog--tea-run-list (root entity repo limit)
+  "Run tea list for ENTITY with compatibility fallback."
+  (let ((result (ai/devlog--run "tea" (ai/devlog--tea-args entity repo limit) root)))
+    (if (plist-get result :ok)
+        result
+      (let ((fallback
+             (ai/devlog--run
+              "tea"
+              (append (list entity "--repo" repo "--state" "all"
+                            "--output" "json" "--limit" (number-to-string limit))
+                      (when ai/devlog-tea-login (list "--login" ai/devlog-tea-login)))
+              root)))
+        (if (plist-get fallback :ok) fallback result)))))
+
+(defun ai/devlog--tea-events (root repo since-time limit)
+  "Collect Forgejo/Gitea pull requests and issues for REPO through tea."
+  (if (not repo)
+      (list nil "no Forgejo/Gitea remote")
+    (let* ((pulls (ai/devlog--tea-run-list root "pulls" repo limit))
+           (issues (ai/devlog--tea-run-list root "issues" repo limit))
+           events errors)
+      (if (plist-get pulls :ok)
+          (dolist (item (ai/devlog--json (plist-get pulls :stdout)))
+            (let* ((number (ai/devlog--field item 'index 'number 'id))
+                   (event
+                    (ai/devlog--event
+                     "forgejo" repo "pull_request" number
+                     (ai/devlog--field item 'title)
+                     (if (ai/devlog--truthy-p (ai/devlog--field item 'hasMerged 'merged)) "merged"
+                       (ai/devlog--field item 'state))
+                     (ai/devlog--field item 'html_url 'url)
+                     (ai/devlog--field item 'updated_at 'updated 'updatedAt))))
+              (when (ai/devlog--recent-p event since-time) (push event events))))
+        (push (format "tea pulls: %s" (string-trim (plist-get pulls :stderr))) errors))
+      (if (plist-get issues :ok)
+          (dolist (item (ai/devlog--json (plist-get issues :stdout)))
+            (let* ((number (ai/devlog--field item 'index 'number 'id))
+                   (event
+                    (ai/devlog--event
+                     "forgejo" repo "issue" number
+                     (ai/devlog--field item 'title)
+                     (ai/devlog--field item 'state)
+                     (ai/devlog--field item 'html_url 'url)
+                     (ai/devlog--field item 'updated_at 'updated 'updatedAt))))
+              (when (ai/devlog--recent-p event since-time) (push event events))))
+        (push (format "tea issues: %s" (string-trim (plist-get issues :stderr))) errors))
+      (list (nreverse events) (string-join (nreverse errors) "; ")))))
+
+(defun ai/devlog--git-context (root since-hours limit)
+  "Collect local Git commit and working-tree context for ROOT."
+  (let* ((log (ai/devlog--run
+               "git"
+               (list "log" (format "--since=%d hours ago" since-hours)
+                     (format "--max-count=%d" limit)
+                     "--pretty=format:%H%x1f%h%x1f%cI%x1f%an%x1f%s")
+               root))
+         (status (ai/devlog--run "git" '("status" "--short" "--branch") root))
+         (branch (ai/devlog--run "git" '("branch" "--show-current") root))
+         (head (ai/devlog--run "git" '("rev-parse" "HEAD") root))
+         (repo (file-name-nondirectory (directory-file-name root)))
+         events)
+    (when (plist-get log :ok)
+      (dolist (line (split-string (plist-get log :stdout) "\n" t))
+        (pcase (split-string line "\x1f")
+          (`(,sha ,short ,updated ,author ,title)
+           (push (ai/devlog--event
+                  "git" repo "commit" short title "committed" "" updated
+                  (cons 'sha sha) (cons 'author author))
+                 events)))))
+    (list :events (nreverse events)
+          :status (if (plist-get status :ok) (string-trim-right (plist-get status :stdout)) "")
+          :branch (if (plist-get branch :ok) (string-trim (plist-get branch :stdout)) "")
+          :head (if (plist-get head :ok) (string-trim (plist-get head :stdout)) "")
+          :error (string-join
+                  (delq nil
+                        (list (unless (plist-get log :ok) (string-trim (plist-get log :stderr)))
+                              (unless (plist-get status :ok) (string-trim (plist-get status :stderr)))))
+                  "; "))))
+
+(defun ai/devlog--event-id (event)
+  "Return a stable id for EVENT state."
+  (substring
+   (secure-hash
+    'sha256
+    (mapconcat (lambda (key) (ai/devlog--string (alist-get key event)))
+               '(provider repo kind number title state updated_at) "\x1f"))
+   0 24))
+
+(defun ai/devlog--org-link (url label)
+  "Return an Org link using URL and LABEL, or LABEL when URL is empty."
+  (if (string-empty-p url) label (format "[[%s][%s]]" url label)))
+
+(defun ai/devlog--ensure-heading (title)
+  "Move point to top-level heading TITLE, creating it at EOF when absent."
+  (goto-char (point-min))
+  (let ((case-fold-search nil)
+        (regexp (format "^\\* %s[[:space:]]*$" (regexp-quote title))))
+    (if (re-search-forward regexp nil t)
+        (beginning-of-line)
+      (goto-char (point-max))
+      (unless (bolp) (insert "\n"))
+      (unless (or (= (point) (point-min))
+                  (save-excursion (forward-line -1) (looking-at-p "^[[:space:]]*$")))
+        (insert "\n"))
+      (insert "* " title "\n")
+      (forward-line -1))))
+
+(defun ai/devlog--subtree-end ()
+  "Return the end of the current Org subtree."
+  (save-excursion
+    (org-end-of-subtree t t)
+    (point)))
+
+(defun ai/devlog--event-present-p (id)
+  "Return non-nil when current buffer already contains DEVLOG_ID ID."
+  (save-excursion
+    (goto-char (point-min))
+    (re-search-forward
+     (format "^:DEVLOG_ID:[[:space:]]+%s[[:space:]]*$" (regexp-quote id)) nil t)))
+
+(defun ai/devlog--insert-event (event run-id)
+  "Insert EVENT under the current changelog heading unless already present."
+  (let* ((id (ai/devlog--event-id event))
+         (provider (alist-get 'provider event))
+         (repo (alist-get 'repo event))
+         (kind (alist-get 'kind event))
+         (number (alist-get 'number event))
+         (title (alist-get 'title event))
+         (state (alist-get 'state event))
+         (url (alis
