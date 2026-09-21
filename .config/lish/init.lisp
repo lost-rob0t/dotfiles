@@ -28,7 +28,8 @@
               :test #'string=)
   (when (star--quickload :slynk)
     (defun start-slynk (&optional (port 4006))
-      (slynk:create-server :port port :dont-close t)
+      (funcall (intern "CREATE-SERVER" :slynk)
+               :port port :dont-close t)
       (format t "Slynk listening on ~d~%" port))))
 
 (defun print-thread-info ()
