@@ -16,6 +16,7 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `.config/qtile/qtile-prompt-lib.org` is the source of truth for `.config/qtile/qtile_prompt_lib.py`.
 - `.config/qtile/qtile-openrouter.org` is the source of truth for `.config/qtile/qtile_openrouter.py`.
 - `.doom.d/autoload/gpt-todos.org` is the source of truth for `.doom.d/autoload/gpt-todos.el`.
+- `lisp/mara/mara-tools.org` is the source of truth for `lisp/mara/mara-tools.el`.
 - `scripts/gpt-todos-sync.org` is the source of truth for `scripts/gpt-todos-sync` and `scripts/install-gpt-todos-cron`.
 - `scripts/dotfiles-sync.org` is the source of truth for `scripts/dotfiles-sync`.
 - `scripts/termux-remote.org` is the source of truth for `scripts/remote-gui-launch`, `scripts/agent-zero-tunnel`, and `scripts/install-termux-widgets`.
