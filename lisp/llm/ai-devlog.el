@@ -310,32 +310,43 @@
         (push (format "gh issue: %s" (string-trim (plist-get issues :stderr))) errors))
       (list (nreverse events) (string-join (nreverse errors) "; ")))))
 
-(defun ai/devlog--tea-args (entity repo limit)
-  "Return tea list arguments for ENTITY in REPO."
-  (append (list entity "list" "--repo" repo "--state" "all"
-                "--output" "json" "--limit" (number-to-string limit))
+(defun ai/devlog--tea-selector (repo remote)
+  "Return tea arguments selecting REPO through REMOTE when available."
+  (if (and remote (not (string-empty-p remote)))
+      (list "--remote" remote)
+    (list "--repo" repo)))
+
+(defun ai/devlog--tea-args (entity repo remote limit)
+  "Return tea list arguments for ENTITY in REPO using REMOTE context."
+  (append (list entity "list")
+          (ai/devlog--tea-selector repo remote)
+          (list "--state" "all" "--output" "json"
+                "--limit" (number-to-string limit))
           (when ai/devlog-tea-login (list "--login" ai/devlog-tea-login))))
 
-(defun ai/devlog--tea-run-list (root entity repo limit)
+(defun ai/devlog--tea-run-list (root entity repo remote limit)
   "Run tea list for ENTITY with compatibility fallback."
-  (let ((result (ai/devlog--run "tea" (ai/devlog--tea-args entity repo limit) root)))
+  (let ((result (ai/devlog--run
+                 "tea" (ai/devlog--tea-args entity repo remote limit) root)))
     (if (plist-get result :ok)
         result
       (let ((fallback
              (ai/devlog--run
               "tea"
-              (append (list entity "--repo" repo "--state" "all"
-                            "--output" "json" "--limit" (number-to-string limit))
+              (append (list entity)
+                      (ai/devlog--tea-selector repo remote)
+                      (list "--state" "all" "--output" "json"
+                            "--limit" (number-to-string limit))
                       (when ai/devlog-tea-login (list "--login" ai/devlog-tea-login)))
               root)))
         (if (plist-get fallback :ok) fallback result)))))
 
-(defun ai/devlog--tea-events (root repo since-time limit)
+(defun ai/devlog--tea-events (root repo remote since-time limit)
   "Collect Forgejo/Gitea pull requests and issues for REPO through tea."
   (if (not repo)
       (list nil "no Forgejo/Gitea remote")
-    (let* ((pulls (ai/devlog--tea-run-list root "pulls" repo limit))
-           (issues (ai/devlog--tea-run-list root "issues" repo limit))
+    (let* ((pulls (ai/devlog--tea-run-list root "pulls" repo remote limit))
+           (issues (ai/devlog--tea-run-list root "issues" repo remote limit))
            events errors)
       (if (plist-get pulls :ok)
           (dolist (item (ai/devlog--json (plist-get pulls :stdout)))
@@ -647,9 +658,11 @@
          (since-time (time-subtract (current-time) (seconds-to-time (* since-hours 3600))))
          (repositories (ai/devlog--provider-repositories root))
          (github-repo (alist-get 'repo (alist-get 'github repositories)))
-         (tea-repo (alist-get 'repo (alist-get 'tea repositories)))
+         (tea-info (alist-get 'tea repositories))
+         (tea-repo (alist-get 'repo tea-info))
+         (tea-remote (alist-get 'remote tea-info))
          (gh (ai/devlog--gh-events root github-repo since-time limit))
-         (tea (ai/devlog--tea-events root tea-repo since-time limit))
+         (tea (ai/devlog--tea-events root tea-repo tea-remote since-time limit))
          (git-context (ai/devlog--git-context root since-hours limit))
          (events (append (car gh) (car tea) (plist-get git-context :events)))
          (diagnostics
