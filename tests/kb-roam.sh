@@ -15,7 +15,7 @@ export KB_ROAM_ASSET_DIR="$ROOT/lisp/wiki/assets"
 export ROAM_CENSOR_CMD="$ROOT/scripts/roam-censor"
 mkdir -p "$HOME" "$KB_ROAM_ROOT/daily"
 
-note=$("$ROOT/scripts/kb-ingest" \
+note=$(bash "$ROOT/scripts/kb-ingest" \
   --title "Prolog Org-roam ingestion" \
   --tags "prolog,org_roam,opencode" \
   --body "Prolog policy protects Org-roam ingestion from OpenCode." \
@@ -52,8 +52,8 @@ PRIVATE-SENTINEL
 PRIVATE-PROPERTY-SENTINEL
 ORG
 
-"$ROOT/scripts/roam-censor" check
-"$ROOT/scripts/roam-publish"
+bash "$ROOT/scripts/roam-censor" check
+bash "$ROOT/scripts/roam-publish"
 
 grep -R -q 'PUBLIC-SENTINEL' "$KB_ROAM_PUBLISH_ROOT"
 ! grep -R -q 'PRIVATE-SENTINEL' "$KB_ROAM_PUBLISH_ROOT"
@@ -91,7 +91,7 @@ fi
 SH
 chmod +x "$TMP/bin/opencode"
 
-PATH="$TMP/bin:$PATH" "$ROOT/scripts/opencode-session-to-org" ses_test >/dev/null
+PATH="$TMP/bin:$PATH" bash "$ROOT/scripts/opencode-session-to-org" ses_test >/dev/null
 session_file=$(grep -Rl '^#+AI_SESSION_ID: ses_test$' "$KB_ROAM_ROOT/ai/sessions")
 grep -q '^#+ROAM_VISIBILITY: private$' "$session_file"
 grep -q ':opencode:session:' "$session_file"
