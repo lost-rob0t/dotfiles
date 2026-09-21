@@ -11,6 +11,7 @@ The base shell is Yew/Lish running in SBCL.  The dotfiles layer adds:
 - LISA loading in the same Common Lisp image;
 - repo-local Zara/Prolog expert discovery/test/query tooling;
 - a Bash recovery shim (=STAR_BASH_FALLBACK=1=);
+- =lish-default-shell install|restore= for an explicit real login-shell change;
 - matching Home Manager and Termux deployment.
 
 See [[file:../../docs/wiki/lish.org][docs/wiki/lish.org]] for the architecture and commands.
