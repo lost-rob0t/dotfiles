@@ -36,6 +36,9 @@ let
       swipl -q -f none -s .zara/experts/lisp/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/common-lisp/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/emacs-lisp/tests/expert-tests.pl
+      swipl -q -f none -s .zara/experts/mara/tests/router-tests.pl
+      swipl -q -f none -s .zara/experts/todo/tests/expert-tests.pl
+      swipl -q -f none -s .zara/experts/roam/tests/expert-tests.pl
 
       bash -n .zara/experts/bash/tests/fixtures/valid.sh
       export NIX_STATE_DIR="$TMPDIR/nix-state"
@@ -63,6 +66,8 @@ let
       fi
       emacs --batch -Q --eval \
         '(progn (setq byte-compile-error-on-warn t) (byte-compile-file ".zara/experts/emacs-lisp/tests/fixtures/valid.el"))'
+      emacs --batch -Q -l lisp/mara/mara-tools.el --eval \
+        '(unless (equal (mara-tools--prolog-atom "a\\b''c") "''a\\\\b\\''c''") (kill-emacs 1))'
 
       mkdir -p "$out/share/zara/dotfiles/.prolog"
       cp -R .zara "$out/share/zara/dotfiles/.zara"
