@@ -18,7 +18,7 @@ than a fixed package dashboard.
 - =M-x starintel-admin= — main Org dashboard.
 - =M-x starintel-admin-users= — dense table mode for every user.
 - =M-x starintel-admin-documents-by-tenant= — tenant-scoped document browser.
-- =M-x starintel-admin-data-size= — logical JSON size by user, group, or tenant.
+- =M-x starintel-admin-data-size= — logical JSON size by account-accessible tenants, tenant/plan user group, or tenant.
 
 The main mode is friendly to:
 
