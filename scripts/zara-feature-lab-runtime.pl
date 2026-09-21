@@ -25,6 +25,7 @@ run :-
     call(ExpertModule:provider_policy(disabled)),
     call(ExpertModule:max_model_calls(0)),
     call(ExpertModule:model_calls(0)),
+    canonical_reasoning_mode(ReasoningContract, EffectiveMode),
     text_value(Version0, Version),
     text_value(ExpertId0, ExpertId),
     reply(_{
@@ -33,11 +34,38 @@ run :-
         runtime_version:Version,
         runtime_ready:true,
         symbolic_policy:"zero-model-expert-first",
+        reasoning_mode_contract:ReasoningContract,
+        effective_reasoning_mode:EffectiveMode,
         expert:ExpertId,
         provider_policy:"disabled",
         max_model_calls:0,
         model_calls:0
     }).
+
+% Prolog-RLM PR #461 owns the canonical reasoning-mode selector. Never create a
+% Dotfiles-owned substitute. If the public API is present, prove that trusted
+% expert+verification evidence selects symbolic. Until it lands on the runtime
+% checkout, retain the narrower zero-model expert-first admission contract.
+canonical_reasoning_mode("pending-upstream", "zero-model-expert-first") :-
+    \+ current_predicate(rlm:rlm_reasoning_mode_ready/0),
+    !.
+canonical_reasoning_mode("selector-v1", "symbolic") :-
+    rlm:rlm_reasoning_mode_ready,
+    setup_call_cleanup(
+        rlm:reasoning_mode_open(zara_feature_lab_admission, auto, ok(_)),
+        ( rlm:reasoning_mode_select(
+              zara_feature_lab_admission,
+              _{expert_applicable:true, requires_verification:true},
+              [],
+              ok(State)
+          ),
+          State.effective == symbolic
+        ),
+        rlm:reasoning_mode_destroy(zara_feature_lab_admission, _)
+    ),
+    !.
+canonical_reasoning_mode(_, _) :-
+    throw(error(domain_error(canonical_reasoning_mode, symbolic), _)).
 
 readable_directory(Path0, Path) :-
     absolute_file_name(Path0, Path,
