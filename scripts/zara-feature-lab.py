@@ -184,6 +184,7 @@ Goal:
 
 Mandatory architecture:
 - Prolog-RLM admission already passed: {json.dumps(admitted, sort_keys=True)}.
+- Prolog-RLM is the authoritative symbolic/control-plane runtime. OpenCode is only the isolated mutation executor until the downstream AgentProlog headless coding workflow is available.
 - Start symbolic-first. The canonical expert is {spec['expert_file']}; preserve its zero-model/provider-disabled policy.
 - Do not invent a second Zara expert registry, permission system, scheduler, provider runtime, conversation store, or Prolog-RLM reasoning-mode contract.
 - Build the promotable plugin delta under {overlay}/. That directory mirrors paths relative to {spec['promotion_path']} in zara-plugins.
@@ -390,13 +391,50 @@ def cmd_promote(p: Paths, args: argparse.Namespace) -> dict[str, Any]:
     target = promotion_worktree / spec["promotion_path"]
     copied = copy_overlay(overlay, target)
 
+    git(promotion_worktree, "add", "--", spec["promotion_path"])
+    if git(promotion_worktree, "diff", "--cached", "--quiet", check=False).returncode == 0:
+        raise LabError("promotion overlay produces no zara-plugins change")
+    git(
+        promotion_worktree,
+        "commit",
+        "-m",
+        f"feat({spec['target_plugin']}): promote {args.id} feature-lab candidate",
+    )
+    commit_sha = git(promotion_worktree, "rev-parse", "HEAD").stdout.strip()
+
+    facts = promotion_worktree / ".prolog/facts.kb"
+    verify = promotion_worktree / ".prolog/verify.pl"
+    if facts.exists() != verify.exists():
+        raise LabError("downstream verifier workspace is incomplete; refusing to overwrite it")
+    if not facts.exists():
+        run([
+            "prolog-verify", "--work-dir", str(promotion_worktree),
+            "init", "--task", f"zara-lab-{args.id}",
+        ])
+
     validate = promotion_worktree / "scripts/validate-registry.py"
     if validate.is_file():
-        run(["python3", str(validate)], cwd=promotion_worktree)
+        run([
+            "prolog-verify", "--work-dir", str(promotion_worktree),
+            "observe", "--", "python3", "scripts/validate-registry.py",
+        ])
     test_dir = promotion_worktree / spec["test_dir"]
     if test_dir.is_dir():
         relative = str(test_dir.relative_to(promotion_worktree))
-        run(["python3", "-m", "unittest", "discover", "-s", relative, "-t", relative], cwd=promotion_worktree)
+        run([
+            "prolog-verify", "--work-dir", str(promotion_worktree),
+            "observe", "--", "python3", "-m", "unittest", "discover",
+            "-s", relative, "-t", relative,
+        ])
+    run([
+        "prolog-verify", "--work-dir", str(promotion_worktree),
+        "observe", "--", "git", "diff", "--check", "main...HEAD",
+    ])
+    run(["prolog-verify", "--work-dir", str(promotion_worktree), "check"])
+
+    verified_head = git(promotion_worktree, "rev-parse", "HEAD").stdout.strip()
+    if verified_head != commit_sha:
+        raise LabError("promotion HEAD changed after verification")
 
     return {
         "ok": True,
@@ -404,7 +442,10 @@ def cmd_promote(p: Paths, args: argparse.Namespace) -> dict[str, Any]:
         "copied_files": copied,
         "promotion_branch": promotion_branch,
         "promotion_worktree": str(promotion_worktree),
+        "promotion_commit": commit_sha,
+        "verified_head": verified_head,
         "target_plugin": spec["target_plugin"],
+        "verified": True,
         "merged": False,
     }
 
@@ -416,7 +457,7 @@ def parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="show configured and running workers")
     stop = sub.add_parser("stop", help="stop selected workers or all workers")
     stop.add_argument("ids", nargs="*")
-    promote = sub.add_parser("promote", help="copy one verified overlay into an isolated zara-plugins worktree")
+    promote = sub.add_parser("promote", help="commit and verify one overlay on an isolated zara-plugins branch")
     promote.add_argument("id")
     return p
 
