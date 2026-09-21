@@ -40,6 +40,11 @@ def main():
     parser = argparse.ArgumentParser(description="Summarize Qtile JSONL telemetry for LLM analysis.")
     parser.add_argument("paths", nargs="*", type=Path, help="JSONL files; defaults to the Qtile telemetry log and rotations")
     parser.add_argument("--limit", type=int, default=50, help="Maximum entries per ranking")
+    parser.add_argument(
+        "--fail-on-active-corruption",
+        action="store_true",
+        help="Exit 2 after emitting the report if the active telemetry file contains malformed JSON",
+    )
     args = parser.parse_args()
 
     paths = args.paths or log_files(default_log_path())
@@ -59,6 +64,7 @@ def main():
     last_timestamp = None
     records = 0
     keymap = []
+    corruptions = []
 
     for path in paths:
         if not path.exists():
@@ -69,8 +75,23 @@ def main():
                     continue
                 try:
                     record = json.loads(line)
-                except json.JSONDecodeError as error:
-                    raise SystemExit(f"{path}:{line_number}: invalid JSON: {error}") from error
+                except json.JSONDecodeError:
+                    rotated = path.name.startswith(default_log_path().name + ".") and path.name.rsplit(".", 1)[-1].isdigit()
+                    corruptions.append({
+                        "path": str(path),
+                        "line": line_number,
+                        "source": "rotation" if rotated else "active",
+                        "error": "invalid_json",
+                    })
+                    continue
+                if not isinstance(record, dict):
+                    corruptions.append({
+                        "path": str(path),
+                        "line": line_number,
+                        "source": "rotation" if path.name.startswith(default_log_path().name + ".") else "active",
+                        "error": "non_object_record",
+                    })
+                    continue
 
                 records += 1
                 event = record.get("event", "unknown")
@@ -135,8 +156,17 @@ def main():
         "auto_routes": tuples(auto_routes, ("app", "source_group", "target_group")),
         "group_views": top(group_views, args.limit),
         "screen_views": top(screen_views, args.limit),
+        "integrity": {
+            "status": "degraded" if corruptions else "ok",
+            "corrupt_records": len(corruptions),
+            "active_corrupt_records": sum(item["source"] == "active" for item in corruptions),
+            "rotation_corrupt_records": sum(item["source"] == "rotation" for item in corruptions),
+            "corruptions": corruptions[:100],
+        },
     }
     print(json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False))
+    if args.fail_on_active_corruption and report["integrity"]["active_corrupt_records"]:
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":
