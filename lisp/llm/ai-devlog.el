@@ -73,7 +73,9 @@
   "Serialize alternating PAIRS as gptel-safe JSON text."
   (let (object)
     (while pairs
-      (push (cons (pop pairs) (pop pairs)) object))
+      (let ((key (pop pairs))
+            (value (pop pairs)))
+        (push (cons (if (symbolp key) key (intern key)) value) object)))
     (string-to-multibyte
      (decode-coding-string
       (json-serialize (nreverse object)
@@ -584,11 +586,13 @@
     (insert-file-contents file)
     (org-mode)
     (let ((day (file-name-base file)) events)
-      (org-map-entries
-       (lambda ()
+      (org-with-wide-buffer
+       (goto-char (point-min))
+       (while (re-search-forward org-heading-regexp nil t)
+         (goto-char (match-beginning 0))
          (when-let ((event (ai/devlog--event-at-point day)))
-           (push event events)))
-       nil 'file)
+           (push event events))
+         (forward-line 1)))
       (nreverse events))))
 
 (defun ai/devlog-rebuild-kb ()
