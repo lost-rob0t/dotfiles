@@ -36,6 +36,7 @@ let
       swipl -q -f none -s .zara/experts/lisp/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/common-lisp/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/emacs-lisp/tests/expert-tests.pl
+      swipl -q -f none -s .zara/experts/inventory/tests/expert-tests.pl
 
       bash -n .zara/experts/bash/tests/fixtures/valid.sh
       export NIX_STATE_DIR="$TMPDIR/nix-state"
