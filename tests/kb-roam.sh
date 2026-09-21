@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT=$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")/.." && pwd)
+ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 TMP=$(mktemp -d)
 trap 'rm -rf -- "$TMP"' EXIT
 
@@ -71,7 +71,7 @@ cat >"$KB_ROAM_ROOT/bad-ai.org" <<'ORG'
 #+FILETAGS: :prolog:testing:
 ORG
 
-if "$ROOT/scripts/roam-censor" check >/dev/null 2>&1; then
+if bash "$ROOT/scripts/roam-censor" check >/dev/null 2>&1; then
   echo "expected missing AI tag to fail" >&2
   exit 1
 fi
