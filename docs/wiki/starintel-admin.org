@@ -1,0 +1,61 @@
+#+title: StarIntel Admin Emacs UI
+
+* Purpose
+
+=starintel-admin-mode= is a standalone Org-native operator interface backed by
+the portable =starintel-admin= command from =starintel-labs/starintel-admin=.
+
+It does *not* set =initial-buffer-choice= and does not replace the normal AI
+startup dashboard.
+
+The design follows a useful progression seen in DistroTube's Emacs history:
+generic dashboard widgets eventually gave way to a custom start file for greater
+control. Here the same idea becomes a live Org-rendered operator buffer rather
+than a fixed package dashboard.
+
+* Entry points
+
+- =M-x starintel-admin= — main Org dashboard.
+- =M-x starintel-admin-users= — dense table mode for every user.
+- =M-x starintel-admin-documents-by-tenant= — tenant-scoped document browser.
+- =M-x starintel-admin-data-size= — logical JSON size by user, group, or tenant.
+
+The main mode is friendly to:
+
+#+begin_src shell
+emacsclient --eval '(starintel-admin)'
+#+end_src
+
+* Main keys
+
+| Key | Action |
+|-----+--------|
+| =g= | refresh |
+| =u= | all users table |
+| =d= | documents by tenant |
+| =s= | logical data size |
+| =c= | create user |
+| =p= | set plan/tenant |
+| =P= | revoke plan |
+| =r= | revoke user |
+| =k= | revoke API key |
+| =v= | dataset public/private/planned policy |
+| =i= | generate a StarIntel graph image |
+| =q= | quit window |
+
+* UX
+
+The main surface derives from =org-mode= and uses Org headings/tables, normal
+folding/navigation, =org-modern= when installed, inline generated images, visual
+line wrapping, and read-only dashboard rendering.
+
+The all-users surface deliberately uses =tabulated-list-mode= instead of forcing a
+large Org table to act like a database grid. It remains a separate admin view,
+not a second startup dashboard.
+
+* Security
+
+The Emacs layer never reads =~/.config/starintelinfra= itself. It launches the
+portable CLI, which owns runtime secret resolution and never returns API keys in
+normal dashboard JSON. Temporary generated user passwords are shown in a
+dedicated undo-disabled buffer only when the create operation returns one.
