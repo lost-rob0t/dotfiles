@@ -18,7 +18,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, desktop workflows, and desktop integration.
 - [[file:opencode-commands.org][Global OpenCode commands]] - declarative =/= commands, reusable skills, the =opencode-worker= Unix contract, model routing, and hosting workflows.
 - [[file:../../scripts/opencode-tmux.org][OpenCode tmux sessions and EZF]] - named sessions, fzf/Emacs selection, hardened completion transport, installation, and verification.
-- [[file:llm-log.org][llm-log telemetry]] - adjacent z.AI/GPT quota meters and the new accurate API grapher.
+- [[file:llm-log.org][llm-log telemetry]] - adjacent z.AI/Codex quota meters plus primary-screen Consortium status and the new accurate API grapher.
 - [[file:zara.org][Zara workflows]] - declarative Zara base config, private-overlay ownership, Qwen3-TTS voice service, desktop/voice workflows, and bounded system updates.
 - [[file:zara-android-automation.org][Zara Android Prolog automation]] - importable Git config template, typed automation DSL, permission acquisition, and YouTube/ReVanced demo.
 - [[file:screen-capture.org][Screen capture]] - stable screenshot/recording CLI, backends, Qtile bindings, Emacs picker, and Home Manager options.
@@ -46,8 +46,8 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Qtile capture | [[file:../../.config/qtile/qtile-capture.org][qtile-capture.org]] | Capture and auxiliary binding installer; tangles to =qtile_capture.py=. |
 | Qtile prompt library | [[file:../../.config/qtile/qtile-prompt-lib.org][qtile-prompt-lib.org]] | Preserves the existing Emacs AI binding and adds =Super e y p= for the prompt browser; tangles to =qtile_prompt_lib.py=. |
 | OpenRouter widget | [[file:../../.config/qtile/qtile-openrouter.org][qtile-openrouter.org]] | Telemetry/widget helper; tangles to =qtile_openrouter.py=. |
-| llm-log quotas | [[file:../../.config/qtile/qtile-llm-log.org][qtile-llm-log.org]] | Adjacent z.AI/GPT account quota meters; tangles to =llm_log_client.py= and =qtile_llm_log.py=. |
-| llm-log API graph | [[file:../../.config/qtile/qtile-llm-log-graph.org][qtile-llm-log-graph.org]] | Exact UTC buckets and per-field coverage; tangles to =llm_log_graph.py= and =qtile_llm_log_graph.py=. |
+| llm-log quotas | [[file:../../.config/qtile/qtile-llm-log.org][qtile-llm-log.org]] | Adjacent z.AI/Codex account quota meters; tangles to =llm_log_client.py= and =qtile_llm_log.py=. |
+| Consortium widgets | [[file:../../.config/qtile/qtile-consortium.org][qtile-consortium.org]] | Read-only primary-screen =CONS=/=ADARD= observers; tangles to =consortium_status.py= and =qtile_consortium.py=. |\n| llm-log API graph | [[file:../../.config/qtile/qtile-llm-log-graph.org][qtile-llm-log-graph.org]] | Exact UTC buckets and per-field coverage; tangles to =llm_log_graph.py= and =qtile_llm_log_graph.py=. |
 | Qtile telemetry installer | [[file:../../.config/qtile/qtile-telemetry.org][qtile-telemetry.org]] | WM/key telemetry and old/new widget integration; tangles to =qtile_telemetry.py=. |
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
 | Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |
