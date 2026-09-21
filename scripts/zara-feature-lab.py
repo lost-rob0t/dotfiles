@@ -164,6 +164,12 @@ def admission(p: Paths, worktree: Path, spec: dict[str, Any]) -> dict[str, Any]:
         or result.get("provider_policy") != "disabled"
         or result.get("max_model_calls") != 0
         or result.get("model_calls") != 0
+        or result.get("reasoning_mode_contract") not in {"pending-upstream", "selector-v1"}
+        or result.get("effective_reasoning_mode") not in {"zero-model-expert-first", "symbolic"}
+        or (
+            result.get("reasoning_mode_contract") == "selector-v1"
+            and result.get("effective_reasoning_mode") != "symbolic"
+        )
     ):
         raise LabError(f"{spec['id']}: symbolic admission contract mismatch")
     return result
