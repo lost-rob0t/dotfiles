@@ -5,7 +5,7 @@ portable Nix flake. Dotfiles intentionally does not copy its shell source.
 
 When =starintelAdmin.enable= is true, Home Manager installs a small
 =starintel-admin= launcher pinned to the reviewed admin repository commit
-=7a3996e276ef39f145f7326d2c9e736f6cde47ba=.
+=90e3c226dc7013297b4e05781c79da16f321123a=.
 
 This keeps one CLI implementation while making =M-x starintel-admin= work with a
 normal dotfiles/Home Manager deployment. Runtime secrets remain owned by the CLI
