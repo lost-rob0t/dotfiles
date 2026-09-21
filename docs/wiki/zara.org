@@ -188,3 +188,17 @@ nix eval --raw '.#homeConfigurations."unseen@desktop".activationPackage.drvPath'
 
 The dedicated Zara workflow Actions job also runs the contract on relevant
 changes.
+
+
+* Donation campaign totals
+
+Donation campaign truth remains Zara-owned.  The mutable receive-only document is
+=$XDG_CONFIG_HOME/zarathushtra/donations.json= (falling back to
+=~/.config/zarathushtra/donations.json=) and uses the versioned
+=ZARA-DONATIONS/1= contract.
+
+The Qtile widget in [[file:../../.config/qtile/qtile-donations.org][qtile-donations.org]]
+runs =zara --donations-json= through =ThreadPoolText= and displays the aggregate
+raised/goal value without blocking the WM loop.  Left-click shows cached
+per-campaign totals.  Dotfiles does not duplicate donation parsing, wallet
+accounting, or private spend authority.
