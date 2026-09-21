@@ -169,3 +169,19 @@ Do not create a durable research artifact for trivial scratch work unless the us
 - Do not preserve redundant code paths without a concrete current requirement.
 - De-slopify touched code: remove generated-looking clutter, needless comments, repetition, unnecessary abstraction, and defensive complexity that does not serve an identified behavior.
 - Prefer the smallest clear implementation with one canonical path while preserving required behavior and focused diffs.
+
+
+## Org-roam publication provenance
+
+Durable AI-authored Org content must be written through the audited KB Roam path,
+not by ad-hoc file mutation. Use the global `kb-ingest` OpenCode subagent or the
+`kb-ingest` command-line writer. Every AI-authored file must carry
+`AI_GENERATED: t`, one globally unique `AI_TAG` of the form `ai_<id>`, that
+same tag in `FILETAGS`, concrete source provenance, and at least two specific
+topic tags.
+
+Publishing is fail-closed and private by default. A file is public only when its
+metadata explicitly says `ROAM_VISIBILITY: public` (legacy `PUBLISH: t` is
+accepted during migration). A `:private:` headline, `:PRIVATE: t`, or
+`:VISIBILITY: private` makes the entire subtree private; descendants may not
+override a private ancestor. Run the Prolog censor gate before any site export.
