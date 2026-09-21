@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -76,6 +77,34 @@ class ZaraFeatureLabTests(unittest.TestCase):
         encoded = json.dumps(data).lower()
         for forbidden in ("api_key", "token_value", "password", "private_key"):
             self.assertNotIn(forbidden, encoded)
+
+    def test_promotion_dirty_filter_ignores_only_verifier_runtime(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.email", "lab@example.invalid"], check=True)
+            subprocess.run(["git", "-C", str(repo), "config", "user.name", "Feature Lab"], check=True)
+            (repo / "README").write_text("base\\n")
+            subprocess.run(["git", "-C", str(repo), "add", "README"], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-qm", "base"], check=True)
+            (repo / ".prolog").mkdir()
+            (repo / ".prolog/facts.kb").write_text("runtime evidence\\n")
+            (repo / "feature.txt").write_text("uncommitted feature\\n")
+            self.assertEqual(LAB.candidate_dirty_paths(repo), ["feature.txt"])
+
+    def test_runtime_gate_adopts_only_upstream_reasoning_selector(self):
+        gate = (ROOT / "scripts/zara-feature-lab-runtime.pl").read_text()
+        self.assertIn("current_predicate(rlm:rlm_reasoning_mode_ready/0)", gate)
+        self.assertIn("rlm:reasoning_mode_select(", gate)
+        self.assertIn("State.effective == symbolic", gate)
+        self.assertIn('"pending-upstream"', gate)
+
+    def test_home_manager_autostarts_the_five_worker_lab(self):
+        module = (ROOT / "nix/home-manager/mods/zara-feature-lab.nix").read_text()
+        desktop = (ROOT / "nix/home-manager/systems/desktop/home.nix").read_text()
+        self.assertIn("systemd.user.services.zara-feature-lab", module)
+        self.assertIn('ExecStart = "${featureLab}/bin/zara-feature-lab start";', module)
+        self.assertIn("featureLab.autoStart = true;", desktop)
 
 
 if __name__ == "__main__":
