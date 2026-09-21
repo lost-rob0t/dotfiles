@@ -1,0 +1,12 @@
+#+title: StarIntel Admin CLI deployment
+
+The canonical CLI lives in =starintel-labs/starintel-admin= and is itself a
+portable Nix flake. Dotfiles intentionally does not copy its shell source.
+
+When =starintelAdmin.enable= is true, Home Manager installs a small
+=starintel-admin= launcher pinned to the reviewed admin repository commit
+=7a3996e276ef39f145f7326d2c9e736f6cde47ba=.
+
+This keeps one CLI implementation while making =M-x starintel-admin= work with a
+normal dotfiles/Home Manager deployment. Runtime secrets remain owned by the CLI
+and =~/.config/starintelinfra=; Home Manager does not copy them into the store.
