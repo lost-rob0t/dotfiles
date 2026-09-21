@@ -79,8 +79,11 @@
 
 (defun kb-roam--file-visibility ()
   (let ((explicit (downcase (or (kb-roam--keyword "ROAM_VISIBILITY") "")))
-        (legacy (downcase (or (kb-roam--keyword "PUBLISH") ""))))
+        (legacy (downcase (or (kb-roam--keyword "PUBLISH") "")))
+        (private-keyword (kb-roam--bool-keyword "PRIVATE"))
+        (private-tag (member "private" (kb-roam--filetags))))
     (cond
+     ((or private-keyword private-tag) "private")
      ((member explicit '("public" "private" "unlisted")) explicit)
      ((member legacy '("t" "true" "yes" "public")) "public")
      (t "private"))))
