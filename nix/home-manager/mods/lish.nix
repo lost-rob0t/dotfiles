@@ -30,6 +30,12 @@ let
     '';
   };
 
+  lishDefaultShell = pkgs.writeShellApplication {
+    name = "lish-default-shell";
+    runtimeInputs = [ pkgs.bash pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.util-linux ];
+    text = builtins.readFile ../../../scripts/lish-default-shell;
+  };
+
   lishShell = pkgs.writeShellApplication {
     name = "lish";
     runtimeInputs = [
@@ -79,7 +85,15 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ lishShell lishBootstrap lishExpert lishRlm pkgs.sbcl pkgs."swi-prolog" ];
+    home.packages = [
+      lishShell
+      lishBootstrap
+      lishDefaultShell
+      lishExpert
+      lishRlm
+      pkgs.sbcl
+      pkgs."swi-prolog"
+    ];
 
     home.sessionVariables = {
       STAR_DOTFILES_ROOT = cfg.dotfilesRoot;
