@@ -3,14 +3,16 @@
 * Source map
 - [[file:../../.config/qtile/qtile-llm-log.org][Quota pair]] owns =llm_log_client.py= and =qtile_llm_log.py=.
 - [[file:../../.config/qtile/qtile-llm-log-graph.org][New API grapher]] owns =llm_log_graph.py= and =qtile_llm_log_graph.py=.
-- [[file:../../.config/qtile/qtile-telemetry.org][Runtime installer]] owns =qtile_telemetry.py= and installs old telemetry, then the pair, then the new graph.
+- [[file:../../.config/qtile/qtile-telemetry.org][Runtime installer]] owns =qtile_telemetry.py= and installs old telemetry, the quota pair, the primary-screen Consortium observer pair, then the new graph.
 - [[file:../../nix/home-manager/mods/llm.nix][Home Manager consumer]] pins the quota-capable Python llm-log package and owns service enablement.
 - [[file:../../nix/home-manager/mods/starintel-llm-harness.org][StarIntel LLM harness]] owns worker profiles, Prolog-RLM/GLM execution wiring, z.AI proxy routing, and quota-pacing policy.
 
-The horizontal bar order is =z.AI=, =GPT=, =LLM graph=. The old OpenRouter
+The primary horizontal bar order is =CONS=, =ADARD=, =z.AI=, =Codex=, =LLM graph=. The old OpenRouter
 widgets and graph remain separate and unchanged. Quota meters use reported
 account limits; the graph uses captured completed-request token buckets.
 The two domains must not be converted into each other by guessing a plan cap.
+
+- [[file:../../.config/qtile/qtile-consortium.org][Consortium observer widgets]] own =consortium_status.py= and =qtile_consortium.py= and read only the atomic local projection emitted by Consortium.
 
 * Home Manager wiring
 The LLM profile pins llm-log to =692d3820f638c011fc248a7694ecabd72a6e2895=,
@@ -24,7 +26,7 @@ The service uses the underlying =config.codex.package=, not the capture wrapper,
 and sets =CODEX_HOME= consistently with the Codex module's XDG preference.
 Managed ChatGPT authentication must already exist there. Nothing initiates a
 new login, buys a plan, or invokes inference. Reported plan metadata is dynamic.
-The GPT widget preserves Codex/account meter scope rather than claiming all
+The Codex widget preserves Codex/account meter scope rather than claiming all
 ChatGPT web, voice or model allowances are visible.
 
 For z.AI, the optional private runtime environment file defaults to
