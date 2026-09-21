@@ -1,0 +1,313 @@
+#+TITLE: Mara Zara/Emacs tools
+#+AUTHOR: nsaspy
+#+PROPERTY: header-args:emacs-lisp :tangle mara-tools.el :results none
+#+STARTUP: overview
+
+* Contract
+Org is canonical mutable task/roam state. Zara reaches only fixed
+=ZARA-EMACS/1= command adapters; caller text is data and never executable
+Elisp. The Prolog TODO file is a generated read-only projection used by
+symbolic experts and is regenerated after task mutations.
+
+* Implementation
+#+begin_src emacs-lisp
+;;; mara-tools.el --- Org/TODO and roam adapters for Zara -*- lexical-binding: t; -*-
+
+(require 'cl-lib)
+(require 'org)
+(require 'org-id)
+(require 'seq)
+(require 'subr-x)
+
+(defgroup mara-tools nil
+  "Trusted Emacs adapters used by Zara/Mara."
+  :group 'zara)
+
+(defcustom mara-tools-notes-root
+  (or (getenv "GPT_TODOS_NOTES_DIR")
+      (expand-file-name "~/Documents/Notes/org"))
+  "Canonical live Org/Org-roam tree."
+  :type 'directory
+  :group 'mara-tools)
+
+(defcustom mara-tools-inbox-file
+  (or (getenv "MARA_TODO_INBOX")
+      (expand-file-name "agenda/inbox.org" mara-tools-notes-root))
+  "Canonical Org inbox mutated by Mara TODO capture."
+  :type 'file
+  :group 'mara-tools)
+
+(defcustom mara-tools-prolog-snapshot
+  (or (getenv "MARA_TODO_PROLOG_KB")
+      (expand-file-name "~/.cache/zara/mara/todo-kb.pl"))
+  "Derived read-only Prolog projection of canonical Org TODO state."
+  :type 'file
+  :group 'mara-tools)
+
+(defcustom mara-tools-max-org-files 5000
+  "Maximum Org files scanned by one adapter call."
+  :type 'integer
+  :group 'mara-tools)
+
+(defconst mara-tools--todo-states
+  '("TODO" "NEXT" "WAIT" "STRT" "LOOP" "PROJ" "IDEA" "DONE" "CANCELLED" "NO"))
+
+(defun mara-tools--args-string (args key &optional required maximum)
+  (let ((value (gethash key args)))
+    (when (and required
+               (or (not (stringp value))
+                   (string-empty-p (string-trim value))))
+      (error "%s is required" key))
+    (when (and value (not (stringp value)))
+      (error "%s must be a string" key))
+    (when (and value maximum (> (length value) maximum))
+      (error "%s exceeds maximum length %d" key maximum))
+    (when (and value
+               (or (string-match-p "\0" value)
+                   (string-match-p "[\n\r]" value)))
+      (error "%s must be one line" key))
+    (and value (string-trim value))))
+
+(defun mara-tools--args-integer (args key default maximum)
+  (let ((value (or (gethash key args) default)))
+    (unless (and (integerp value) (<= 1 value maximum))
+      (error "%s must be an integer from 1 to %d" key maximum))
+    value))
+
+(defun mara-tools--org-files ()
+  (if (file-directory-p mara-tools-notes-root)
+      (seq-take
+       (directory-files-recursively mara-tools-notes-root "\\.org\\'")
+       mara-tools-max-org-files)
+    nil))
+
+(defun mara-tools--todo-row ()
+  (let ((state (org-get-todo-state)))
+    `((id . ,(or (org-entry-get nil "ID") ""))
+      (title . ,(org-get-heading t t t t))
+      (state . ,(or state ""))
+      (done . ,(if (org-entry-is-done-p) t :false))
+      (priority . ,(or (org-entry-get nil "PRIORITY") ""))
+      (scheduled . ,(or (org-entry-get nil "SCHEDULED") ""))
+      (deadline . ,(or (org-entry-get nil "DEADLINE") ""))
+      (tags . ,(org-get-tags nil t))
+      (file . ,(or (buffer-file-name) ""))
+      (position . ,(point)))))
+
+(defun mara-tools--todo-rows (scope limit)
+  (unless (require 'org-ql nil t)
+    (error "org-ql unavailable"))
+  (let* ((files (mara-tools--org-files))
+         (rows (if files
+                   (org-ql-select files '(todo) :action #'mara-tools--todo-row)
+                 nil))
+         (filtered
+          (seq-filter
+           (lambda (row)
+             (let ((state (alist-get 'state row))
+                   (done (eq (alist-get 'done row) t)))
+               (pcase scope
+                 ("all" t)
+                 ("done" done)
+                 ("open" (not done))
+                 ("active"
+                  (member state '("TODO" "NEXT" "STRT" "LOOP" "PROJ")))
+                 (_ (error "unknown TODO scope")))))
+           rows)))
+    (seq-take filtered limit)))
+
+(defun mara-tools--prolog-atom (value)
+  (let ((text (format "%s" (or value ""))))
+    (concat
+     "'"
+     (apply
+      #'concat
+      (mapcar
+       (lambda (char)
+         (pcase char
+           (?\\ "\\\\")
+           (?' "\\'")
+           (?\n "\\n")
+           (?\r "\\r")
+           (?\t "\\t")
+           (_ (char-to-string char))))
+       (string-to-list text)))
+     "'")))
+
+(defun mara-tools--write-prolog-snapshot (rows)
+  (let* ((target (expand-file-name mara-tools-prolog-snapshot))
+         (directory (file-name-directory target))
+         (temporary nil)
+         (generation (format-time-string "%Y-%m-%dT%H:%M:%S%z")))
+    (make-directory directory t)
+    (setq temporary (make-temp-file (expand-file-name ".todo-kb-" directory)))
+    (unwind-protect
+        (with-temp-file temporary
+          (set-buffer-file-coding-system 'utf-8-unix)
+          (insert "% GENERATED FROM ORG. DO NOT EDIT.\n")
+          (insert "todo_generation(" (mara-tools--prolog-atom generation) ").\n")
+          (dolist (row rows)
+            (insert
+             "todo("
+             (mapconcat
+              #'identity
+              (mapcar
+               #'mara-tools--prolog-atom
+               (list
+                (alist-get 'id row)
+                (alist-get 'state row)
+                (alist-get 'title row)
+                (alist-get 'file row)
+                (alist-get 'scheduled row)
+                (alist-get 'deadline row)
+                (alist-get 'priority row)
+                (string-join (alist-get 'tags row) ",")))
+              ",")
+             ").\n")))
+      (when (and temporary (file-exists-p temporary))
+        (rename-file temporary target t)))
+    `((path . ,target) (generation . ,generation) (count . ,(length rows)))))
+
+(defun mara-tools--todo-snapshot ()
+  (mara-tools--write-prolog-snapshot (mara-tools--todo-rows "all" 5000)))
+
+(defun mara-tools--sync-file (file)
+  (if (fboundp 'gpt-todos-sync)
+      (condition-case error-data
+          (progn (gpt-todos-sync file) "ok")
+        (error (format "error:%s" (error-message-string error-data))))
+    "deferred"))
+
+(defun mara-tools--scheduled-timestamp (scheduled)
+  (when (and scheduled (not (string-empty-p scheduled)))
+    (unless (string-match-p
+             "\\`[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\}\\(?:[ T][0-9]\\{2\\}:[0-9]\\{2\\}\\)?\\'"
+             scheduled)
+      (error "scheduled must be YYYY-MM-DD or YYYY-MM-DD HH:MM"))
+    (let* ((with-time (> (length scheduled) 10))
+           (time (date-to-time
+                  (if with-time
+                      (replace-regexp-in-string "T" " " scheduled)
+                    (concat scheduled " 00:00")))))
+      (format-time-string
+       (if with-time "<%Y-%m-%d %a %H:%M>" "<%Y-%m-%d %a>")
+       time))))
+
+(defun mara-tools--todo-capture (title scheduled)
+  (let* ((file (expand-file-name mara-tools-inbox-file))
+         (id (org-id-new))
+         (timestamp (mara-tools--scheduled-timestamp scheduled)))
+    (make-directory (file-name-directory file) t)
+    (with-current-buffer (find-file-noselect file)
+      (goto-char (point-max))
+      (unless (bolp) (insert "\n"))
+      (insert "* TODO " title "\n")
+      (when timestamp
+        (insert "SCHEDULED: " timestamp "\n"))
+      (insert ":PROPERTIES:\n:ID:       " id
+              "\n:SOURCE:   mara\n:CREATED:  "
+              (format-time-string "[%Y-%m-%d %a %H:%M]")
+              "\n:END:\n")
+      (save-buffer))
+    (org-id-add-location id file)
+    (let ((sync (mara-tools--sync-file file))
+          (snapshot (mara-tools--todo-snapshot)))
+      `((id . ,id)
+        (state . "TODO")
+        (file . ,file)
+        (scheduled . ,(or timestamp ""))
+        (sync . ,sync)
+        (snapshot . ,snapshot)))))
+
+(defun mara-tools--todo-marker (id)
+  (or (org-id-find id 'marker)
+      (progn
+        (org-id-update-id-locations (mara-tools--org-files))
+        (org-id-find id 'marker))
+      (error "unknown Org ID")))
+
+(defun mara-tools--todo-state (id state)
+  (unless (member state mara-tools--todo-states)
+    (error "unsupported TODO state"))
+  (let* ((marker (mara-tools--todo-marker id))
+         (file (buffer-file-name (marker-buffer marker))))
+    (with-current-buffer (marker-buffer marker)
+      (goto-char marker)
+      (org-todo state)
+      (save-buffer))
+    (let ((sync (mara-tools--sync-file file))
+          (snapshot (mara-tools--todo-snapshot)))
+      `((id . ,id)
+        (state . ,state)
+        (file . ,file)
+        (sync . ,sync)
+        (snapshot . ,snapshot)))))
+
+(defun mara-tools--roam-search (query limit)
+  (unless (require 'org-roam nil t)
+    (error "org-roam unavailable"))
+  (let ((needle (downcase query))
+        rows)
+    (dolist (node (org-roam-node-list))
+      (when (< (length rows) limit)
+        (let* ((title (or (org-roam-node-title node) ""))
+               (aliases (org-roam-node-aliases node))
+               (tags (org-roam-node-tags node))
+               (haystack
+                (downcase
+                 (string-join
+                  (append (list title) aliases tags)
+                  " "))))
+          (when (string-match-p (regexp-quote needle) haystack)
+            (push
+             `((id . ,(org-roam-node-id node))
+               (title . ,title)
+               (file . ,(org-roam-node-file node))
+               (aliases . ,aliases)
+               (tags . ,tags))
+             rows)))))
+    (nreverse rows)))
+
+(defun mara-tools--adapter-todo-list (args)
+  (let* ((state (or (mara-tools--args-string args "state" nil 16) "active"))
+         (limit (mara-tools--args-integer args "limit" 100 500))
+         (rows (mara-tools--todo-rows state limit)))
+    `((rows . ,rows) (count . ,(length rows)) (source . "org"))))
+
+(defun mara-tools--adapter-todo-capture (args)
+  (mara-tools--todo-capture
+   (mara-tools--args-string args "title" t 512)
+   (or (mara-tools--args-string args "scheduled" nil 32) "")))
+
+(defun mara-tools--adapter-todo-state (args)
+  (mara-tools--todo-state
+   (mara-tools--args-string args "id" t 128)
+   (mara-tools--args-string args "state" t 16)))
+
+(defun mara-tools--adapter-todo-snapshot (_args)
+  (mara-tools--todo-snapshot))
+
+(defun mara-tools--adapter-roam-search (args)
+  (let* ((query (mara-tools--args-string args "query" t 256))
+         (limit (mara-tools--args-integer args "limit" 50 200))
+         (rows (mara-tools--roam-search query limit)))
+    `((rows . ,rows) (count . ,(length rows)) (source . "org-roam"))))
+
+(defun mara-tools-register-zara-adapters ()
+  (when (fboundp 'zara-register-command-adapter)
+    (zara-register-command-adapter "org.todo.list" #'mara-tools--adapter-todo-list)
+    (zara-register-command-adapter "org.todo.capture" #'mara-tools--adapter-todo-capture)
+    (zara-register-command-adapter "org.todo.state" #'mara-tools--adapter-todo-state)
+    (zara-register-command-adapter "org.todo.snapshot" #'mara-tools--adapter-todo-snapshot)
+    (zara-register-command-adapter "org.roam.search" #'mara-tools--adapter-roam-search)))
+
+(with-eval-after-load 'zara
+  (mara-tools-register-zara-adapters))
+
+(when (featurep 'zara)
+  (mara-tools-register-zara-adapters))
+
+(provide 'mara-tools)
+;;; mara-tools.el ends here
+
+#+end_src
