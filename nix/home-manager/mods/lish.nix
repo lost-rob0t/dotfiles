@@ -101,9 +101,7 @@ in
       STAR_LISH_RLM_MODE = cfg.agentic.mode;
     };
 
-    programs.bash.enable = true;
-    programs.bash.initExtra = lib.mkIf cfg.defaultInteractiveShell (lib.mkAfter ''
-      source ${../../../scripts/lish-bash-enter}
-    '');
+    home.sessionVariables.STAR_LISH_DEFAULT_INTERACTIVE =
+      if cfg.defaultInteractiveShell then "1" else "0";
   };
 }
