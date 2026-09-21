@@ -34,7 +34,7 @@ class ModelTests(unittest.TestCase):
     def test_labels_and_percentage_used_threshold_boundaries(self):
         for percent, expected in ((0, 'green'), (69.9, 'green'), (70, 'yellow'), (89.9, 'yellow'), (90, 'red'), (100, 'red')):
             snap = decode_quotas(payload(percent), NOW)
-            for key, label in (('zai', 'z.AI'), ('gpt', 'GPT')):
+            for key, label in (('zai', 'z.AI'), ('gpt', 'Codex')):
                 rendered, level = render_quota(snap, key, 0, NOW)
                 self.assertTrue(rendered.startswith(label + ' '))
                 self.assertIn(f'{percent:g}%', rendered)
@@ -67,7 +67,7 @@ class ModelTests(unittest.TestCase):
     def test_missing_snapshot_or_provider_not_zero(self):
         self.assertEqual(render_quota(None, 'zai', 0, NOW), ('z.AI unavailable', 'neutral'))
         raw = payload(); raw['providers'] = []
-        self.assertEqual(render_quota(decode_quotas(raw, NOW), 'gpt', 0, NOW), ('GPT unavailable', 'neutral'))
+        self.assertEqual(render_quota(decode_quotas(raw, NOW), 'gpt', 0, NOW), ('Codex unavailable', 'neutral'))
 
     def test_plan_metadata_and_meter_scope_in_details(self):
         raw = payload(); raw['providers'][1]['plan'] = 'future-plan'
@@ -76,7 +76,7 @@ class ModelTests(unittest.TestCase):
         self.assertIn('codex', result)
         self.assertIn('5h', result)
         self.assertIn('week', result)
-        self.assertIn('not all ChatGPT', result)
+        self.assertIn('not all ChatGPT', result)\n        self.assertIn('provider age:', result)\n        self.assertIn('snapshot age:', result)
 
     def test_malformed_and_oversized_shapes_rejected(self):
         for bad in ([], {}, {'schema_version': True}, {**payload(), 'providers': [{}] * 65}):
