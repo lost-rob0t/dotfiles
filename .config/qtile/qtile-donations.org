@@ -1,0 +1,173 @@
+#+title: Qtile Zara Donation Totals
+#+property: header-args:python :tangle ./qtile_donations.py :mkdirp yes :results none
+
+* Runtime widget
+
+The widget delegates validation and USD aggregation to the installed Zara CLI.
+Polling runs through Qtile's =ThreadPoolText= worker so the WM event loop never
+waits on the CLI.  Left-click shows per-campaign totals.
+
+The mutable donation document remains Zara-owned at
+=$XDG_CONFIG_HOME/zarathushtra/donations.json= (or
+=~/.config/zarathushtra/donations.json=).  Dotfiles does not store wallet
+secrets or a second campaign database.
+
+#+begin_src python
+"""Qtile donation totals backed by Zara's canonical donation CLI."""
+
+from __future__ import annotations
+
+from decimal import Decimal, InvalidOperation
+import json
+import subprocess
+
+from libqtile.widget import base
+from notify import notify
+
+DOCUMENT_VERSION = "ZARA-DONATIONS/1"
+MAX_OUTPUT_BYTES = 256 * 1024
+
+
+def _money(value):
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        raise ValueError("invalid USD total")
+    if not amount.is_finite() or amount < 0:
+        raise ValueError("invalid USD total")
+    return amount.quantize(Decimal("0.01"))
+
+
+def _compact_money(value):
+    amount = _money(value)
+    absolute = abs(amount)
+    for suffix, divisor in (
+        ("B", Decimal("1000000000")),
+        ("M", Decimal("1000000")),
+        ("k", Decimal("1000")),
+    ):
+        if absolute >= divisor:
+            rendered = format(amount / divisor, ".1f").rstrip("0").rstrip(".")
+            return f"${rendered}{suffix}"
+    if amount == amount.to_integral():
+        return f"${amount:.0f}"
+    return f"${amount:.2f}"
+
+
+def _load_snapshot():
+    try:
+        completed = subprocess.run(
+            ["zara", "--donations-json"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        raise RuntimeError(f"zara unavailable: {error}") from error
+
+    if completed.returncode != 0:
+        detail = (completed.stderr or "zara donation query failed").strip()
+        raise RuntimeError(detail[-300:])
+    encoded = completed.stdout.encode("utf-8")
+    if len(encoded) > MAX_OUTPUT_BYTES:
+        raise RuntimeError("donation snapshot exceeds UI limit")
+
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError("zara returned invalid donation JSON") from error
+    if not isinstance(payload, dict) or payload.get("version") != DOCUMENT_VERSION:
+        raise RuntimeError("unsupported donation snapshot")
+    summary = payload.get("summary")
+    campaigns = payload.get("campaigns")
+    if not isinstance(summary, dict) or not isinstance(campaigns, list):
+        raise RuntimeError("incomplete donation snapshot")
+
+    raised = _money(summary.get("raised_usd"))
+    goal = _money(summary.get("goal_usd"))
+    remaining = _money(summary.get("remaining_usd"))
+    campaign_lines = []
+    for item in campaigns[:32]:
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title") or item.get("id") or "campaign")[:80]
+        item_raised = _money(item.get("raised_usd", "0"))
+        item_goal = _money(item.get("goal_usd", "0"))
+        campaign_lines.append(
+            f"{title}: ${item_raised:.2f} / ${item_goal:.2f}"
+        )
+    return {
+        "raised": raised,
+        "goal": goal,
+        "remaining": remaining,
+        "campaign_count": len(campaigns),
+        "details": campaign_lines,
+    }
+
+
+class DonationTotals(base.ThreadPoolText):
+    orientations = base.ORIENTATION_HORIZONTAL
+
+    def __init__(self, **config):
+        defaults = {
+            "update_interval": 15,
+            "fontsize": 12,
+            "padding": 5,
+            "name": "zara_donations",
+        }
+        super().__init__("♥ …", **{**defaults, **config})
+        self._detail_text = "Donation totals are loading."
+        self.add_callbacks({"Button1": self.show_details})
+
+    def poll(self):
+        try:
+            snapshot = _load_snapshot()
+        except (RuntimeError, ValueError) as error:
+            self._detail_text = f"Unavailable: {error}"
+            return "♥ —"
+
+        self._detail_text = "\n".join(
+            [
+                f"Raised: ${snapshot['raised']:.2f}",
+                f"Goal: ${snapshot['goal']:.2f}",
+                f"Remaining: ${snapshot['remaining']:.2f}",
+                f"Campaigns: {snapshot['campaign_count']}",
+                *snapshot["details"],
+            ]
+        )
+        return (
+            f"♥ {_compact_money(snapshot['raised'])}"
+            f"/{_compact_money(snapshot['goal'])}"
+        )
+
+    def show_details(self):
+        notify("Zara donation totals", self._detail_text)
+
+
+def install_donation_widget(config_globals):
+    """Insert one donation totals widget per horizontal bar, before clock."""
+    options = config_globals.get("donation_widget_options", {})
+    visited = set()
+    for screen in config_globals.get("screens", ()):
+        for position in ("top", "bottom"):
+            target = getattr(screen, position, None)
+            if target is None or id(target) in visited:
+                continue
+            visited.add(id(target))
+            widgets = getattr(target, "widgets", None)
+            if widgets is None or any(
+                getattr(widget, "name", "") == "zara_donations"
+                for widget in widgets
+            ):
+                continue
+            index = next(
+                (
+                    i
+                    for i, widget in enumerate(widgets)
+                    if getattr(widget, "name", "") == "clock"
+                ),
+                len(widgets),
+            )
+            widgets.insert(index, DonationTotals(**options))
+#+end_src
