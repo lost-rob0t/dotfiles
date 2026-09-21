@@ -500,6 +500,15 @@ let
       syntaxPunctuation = "foreground";
     };
   };
+
+  starintelProviderModels = lib.mapAttrs (_: model: {
+    inherit (model) name attachment;
+    tool_call = model.toolCall;
+    limit = {
+      context = model.context;
+      output = model.output;
+    };
+  }) cfg.starintelLlm.models;
 in
 {
   options.opencode = {
@@ -584,6 +593,55 @@ in
       };
     };
 
+    starintelLlm = {
+      enable = mkEnableOption "StarIntel local inference models through llm-log";
+
+      providerId = mkOption {
+        type = types.str;
+        default = "starintel-llm";
+        description = "OpenCode provider id for the StarIntel local inference service.";
+      };
+
+      apiKeyFile = mkOption {
+        type = types.str;
+        default = "~/.config/llm-log/starintel-llm.key";
+        description = "Private bearer-key file referenced through OpenCode's {file:} placeholder; never a Nix value.";
+      };
+
+      models = mkOption {
+        type = types.attrsOf (types.submodule {
+          options = {
+            name = mkOption {
+              type = types.str;
+              description = "Display name shown in OpenCode model lists.";
+            };
+            context = mkOption {
+              type = types.int;
+              default = 4096;
+              description = "Served context window.";
+            };
+            output = mkOption {
+              type = types.int;
+              default = 4096;
+              description = "Per-request output token limit.";
+            };
+            attachment = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Whether the model accepts image attachments.";
+            };
+            toolCall = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Whether the model reliably emits OpenAI tool calls.";
+            };
+          };
+        });
+        description = "StarIntel models published to OpenCode; each entry becomes <providerId>/<name>.";
+        default = { };
+      };
+    };
+
     web = {
       enable = mkEnableOption "persistent OpenCode web service and desktop launcher";
 
@@ -602,10 +660,17 @@ in
   };
 
   config = mkIf cfg.enable {
-    assertions = map (name: {
-      assertion = validCommandName name;
-      message = "opencode.commands command name `${name}` is unsafe; use one flat alphanumeric name with only `.`, `_`, or `-` separators";
-    }) (builtins.attrNames cfg.commands);
+    assertions =
+      map (name: {
+        assertion = validCommandName name;
+        message = "opencode.commands command name `${name}` is unsafe; use one flat alphanumeric name with only `.`, `_`, or `-` separators";
+      }) (builtins.attrNames cfg.commands)
+      ++ [
+        {
+          assertion = !cfg.starintelLlm.enable || cfg.llmLog.enable;
+          message = "opencode.starintelLlm requires opencode.llmLog: the StarIntel provider routes through the llm-log capture plane";
+        }
+      ];
 
     xdg.configFile = commandFiles;
     home.packages =
@@ -635,10 +700,19 @@ in
       package = cfg.package;
       enableMcpIntegration = true;
       settings = {
-        provider = mkIf cfg.llmLog.enable {
-          openai.options.baseURL = "${cfg.llmLog.baseUrl}/openai/v1";
-          openrouter.options.baseURL = "${cfg.llmLog.baseUrl}/openrouter/api/v1";
-          anthropic.options.baseURL = "${cfg.llmLog.baseUrl}/anthropic";
+        provider = {
+          openai.options.baseURL = mkIf cfg.llmLog.enable "${cfg.llmLog.baseUrl}/openai/v1";
+          openrouter.options.baseURL = mkIf cfg.llmLog.enable "${cfg.llmLog.baseUrl}/openrouter/api/v1";
+          anthropic.options.baseURL = mkIf cfg.llmLog.enable "${cfg.llmLog.baseUrl}/anthropic";
+          ${cfg.starintelLlm.providerId} = mkIf cfg.starintelLlm.enable {
+            npm = "@ai-sdk/openai-compatible";
+            name = "StarIntel LLM (local)";
+            options = {
+              baseURL = "${cfg.llmLog.baseUrl}/starintel/v1";
+              apiKey = "{file:${cfg.starintelLlm.apiKeyFile}}";
+            };
+            models = starintelProviderModels;
+          };
         };
         server = mkIf cfg.web.enable {
           hostname = cfg.web.hostname;

@@ -89,6 +89,9 @@ in
         openrouter = "https://openrouter.ai";
         anthropic = "https://api.anthropic.com";
         chatgpt = "https://chatgpt.com";
+        # StarIntel local inference (llama-swap); consumed by the OpenCode
+        # starintel-llm provider at <proxy>/starintel/v1.
+        starintel = mkIf config.opencode.starintelLlm.enable "https://llm.starintel.actor";
       };
     };
 
@@ -115,6 +118,28 @@ in
       llmLog = {
         enable = true;
         baseUrl = proxyBase;
+      };
+      # StarIntel local inference (llama-swap behind llm.starintel.actor):
+      # qwen3-8b is the chat tier (-c 4096), qwen38-27b the heavy vision tier
+      # (mmproj, -c 8192), and bge-m3 the embeddings tier. Limits mirror the
+      # deployed llama-swap per-model server flags.
+      starintelLlm = {
+        enable = true;
+        models = {
+          qwen3-8b = {
+            name = "Qwen3 8B Q4_K_M (StarIntel)";
+            context = 4096;
+          };
+          qwen38-27b = {
+            name = "Qwen3.8 27B Q4_K_M vision (StarIntel)";
+            context = 8192;
+            attachment = true;
+          };
+          bge-m3 = {
+            name = "bge-m3 embeddings (StarIntel)";
+            context = 8192;
+          };
+        };
       };
     };
     codex = {
