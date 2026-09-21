@@ -615,36 +615,34 @@ in
       };
 
       models = mkOption {
-        type = types.attrsOf (
-          types.submodule {
-            options = {
-              name = mkOption {
-                type = types.str;
-                description = "Display name shown in OpenCode model lists.";
-              };
-              context = mkOption {
-                type = types.int;
-                default = 4096;
-                description = "Served context window.";
-              };
-              output = mkOption {
-                type = types.int;
-                default = 4096;
-                description = "Per-request output token limit.";
-              };
-              attachment = mkOption {
-                type = types.bool;
-                default = false;
-                description = "Whether the model accepts image attachments.";
-              };
-              toolCall = mkOption {
-                type = types.bool;
-                default = false;
-                description = "Whether the model reliably emits OpenAI tool calls.";
-              };
+        type = types.attrsOf (types.submodule {
+          options = {
+            name = mkOption {
+              type = types.str;
+              description = "Display name shown in OpenCode model lists.";
             };
-          }
-        );
+            context = mkOption {
+              type = types.int;
+              default = 4096;
+              description = "Served context window.";
+            };
+            output = mkOption {
+              type = types.int;
+              default = 4096;
+              description = "Per-request output token limit.";
+            };
+            attachment = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Whether the model accepts image attachments.";
+            };
+            toolCall = mkOption {
+              type = types.bool;
+              default = false;
+              description = "Whether the model reliably emits OpenAI tool calls.";
+            };
+          };
+        });
         description = "StarIntel models published to OpenCode; each entry becomes <providerId>/<name>.";
         default = { };
       };
@@ -703,7 +701,8 @@ in
       categories = [ "Development" ];
     };
 
-    services.llm-log.upstreams.starintel = mkIf cfg.starintelLlm.enable cfg.starintelLlm.upstreamUrl;
+    services.llm-log.upstreams.starintel =
+      mkIf cfg.starintelLlm.enable cfg.starintelLlm.upstreamUrl;
 
     programs.opencode = {
       enable = true;

@@ -571,14 +571,14 @@ shared worker skill, never in command metadata.
       };
     };
 
-  starintelProviderModels = lib.mapAttrs (_: model: {
-    inherit (model) name attachment;
-    tool_call = model.toolCall;
-    limit = {
-      context = model.context;
-      output = model.output;
-    };
-  }) cfg.starintelLlm.models;
+    starintelProviderModels = lib.mapAttrs (_: model: {
+      inherit (model) name attachment;
+      tool_call = model.toolCall;
+      limit = {
+        context = model.context;
+        output = model.output;
+      };
+    }) cfg.starintelLlm.models;
   in
   {
     options.opencode = {
