@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,6 +13,7 @@ SCRIPT = ROOT / "scripts/zara-feature-lab.py"
 SPEC = importlib.util.spec_from_file_location("zara_feature_lab", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 LAB = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = LAB
 SPEC.loader.exec_module(LAB)
 
 
