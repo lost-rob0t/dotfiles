@@ -43,7 +43,9 @@ in
       progress
       starship
       curl
+      gh # GitHub CLI for gptel devlog
       tea # Forgejo CLI for git.starintel.actor
+      swi-prolog # symbolic devlog/KB queries
       forgejo-cli
 
     ]) ++ [ gitSync dotfilesSync ];
