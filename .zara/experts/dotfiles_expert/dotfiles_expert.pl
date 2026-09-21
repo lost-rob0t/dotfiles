@@ -10,15 +10,11 @@ dotfiles_handler(dotfiles(Query, Result), _Context, Value) :-
     (   outcome:with_attempt(dotfiles_expert,
                              zara_expert_dotfiles:dotfiles_eval(Query, Result),
                              Report)
-    ->  (   Report.outcome == success
+    ->  Report = outcome_report(_Attempt, Outcome, Error, Warnings, Solutions),
+        (   Outcome == success
         ->  upstream_info(Up),
             Value = dotfiles_answer(Query, Result, success, Up, [], [])
-        ;   Value = dotfiles_answer{query: Query,
-                                    result: none,
-                                    outcome: failure,
-                                    error: Report.error,
-                                    warnings: Report.warnings,
-                                    suggested_solutions: Report.solutions}
+        ;   Value = dotfiles_answer(Query, none, failure, Error, Warnings, Solutions)
         )
     ;   Value = dotfiles_answer(Query, none, failure, attempt_failed, [], [])
     ).
