@@ -45,6 +45,7 @@
       registry = [ "zara-discord" "zara-persona" ];
       discoveryFiles = {
         "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
+        "lyria.py" = ../../files/zarathushtra/plugins/lyria.py;
       };
     };
   };
