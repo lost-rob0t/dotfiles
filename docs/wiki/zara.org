@@ -15,6 +15,9 @@ helper without taking ownership of Zara's mutable private overlay.
   overrides there.  Zara loads it after =config.pl= so local facts win.
 - =~/.config/zarathushtra/secrets.env= remains outside Git/Nix and is consumed
   by the existing =zara-server= EnvironmentFile integration.
+- =~/.config/zarathushtra/secrets-daemon-clients.env= is generated exclusively
+  by =zara-pair= from the platform keyring and consumed by the desktop
+  copilot; never hand-edit or track it.
 
 This split is deliberate: reproducible workflows belong in dotfiles; mutable
 private state does not.
@@ -88,6 +91,28 @@ KV-cache allocation, synthesis, and realtime streaming all pass with zero
 kernel GPU faults.  On hosts without a usable Vulkan driver use
 =backend = "cpu";= as the explicit emergency mode.
 
+* Localhost pairing autosync
+=zara-pair= gives same-host clients (desktop copilot, CLI) authenticated CURVE
+credentials without manual key copying. One run performs the whole loop:
+
+1. probe the platform keyring through the dotfiles keyring expert
+   (=.zara/experts/keyring/=), which owns backend enumeration and selection
+   and fails closed with no plaintext fallback;
+2. reuse (or generate and store) the device CURVE keypair as keyring items
+   under =service=zara-daemon=, =account=desktop-<host>=, one item per field;
+3. enroll the public key with the running daemon's live security admin
+   (=$XDG_RUNTIME_DIR/zarathushtra/zara-control.sock=), no daemon restart;
+4. materialize =~/.config/zarathushtra/secrets-daemon-clients.env= (0600,
+   shell- and systemd-sourceable) from =remote_listener.ensure=, so endpoint
+   rotations are picked up on the next run.
+
+The =zara-pair.service= oneshot re-syncs after =zara-server= starts, and
+=zara-desktop.service= wants it and loads the env file (optional, so the
+copilot still starts over IPC before pairing). Diagnostics:
+=zara-pair --status= (read-only health report); =zara-pair --revoke= removes
+the device enrollment. Secrets live only in the keyring and the 0600 env
+file; neither Git nor Nix sees them.
+
 * Authenticated Android listener on flake
 The =unseen@flake= Home Manager profile starts Zara with its owner-private IPC
 endpoint for local clients and an authenticated TCP listener on all IPv4
@@ -120,7 +145,19 @@ The canonical fact definitions live in
 [[file:../../.config/zarathushtra/config.pl][config.pl]].  They cover
 Brave/search, Emacs scratch, org-roam daily followed by the existing
 =zara-dictate= path, Thunderbird, Tor Browser, Feishin, YouTube Music, GitHub PR
-compatibility, Magit project aliases, and =/pol/=.  The 4chan mapping carries a
+compatibility, Magit project aliases, and =/pol/=.
+
+The Doom Emacs agenda intents render and maintain the same durable agenda
+the editor uses:
+
+- =open agenda= opens the org-agenda day view through emacsclient;
+- =clear backlog= runs =nsa/org-agenda-clear-backlog=: every overdue
+  entry is marked DONE, and repeating =LOOP= entries advance with Org's
+  repeat semantics to their next future occurrence while keeping their
+  keyword;
+- =open capture= opens the Org capture template menu in a new frame.
+
+The 4chan mapping carries a
 small explicit alias set for common text/ASR forms; general edit-distance/fuzzy
 resolution belongs in Zara Core rather than being simulated by an unbounded
 alias list here.

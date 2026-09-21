@@ -272,12 +272,18 @@ in
     systemd.user.services.zara-desktop = lib.mkIf cfg.desktop.enable {
       Unit = {
         Description = "Zara desktop copilot";
-        After = [ "graphical-session.target" "zara-server.service" ];
-        Wants = lib.optional cfg.server.enable "zara-server.service";
-        PartOf = [ "graphical-session.target" ];
+        After = [ "graphical-session.target" "zara-server.service" ]
+          ++ lib.optionals config.zara.workflows.enable [ "zara-pair.service" ];
+        Wants = lib.optional cfg.server.enable "zara-server.service"
+          ++ lib.optionals config.zara.workflows.enable [ "zara-pair.service" ];
+        PartOf = [ "graphical-session.target" ]
+          ++ lib.optionals config.zara.workflows.enable [ "zara-pair.service" ];
       };
       Service = {
         ExecStart = "${cfg.package}/bin/zara-desktop";
+        # Materialized by zara-pair from the platform keyring; optional so the
+        # copilot still starts (unauthenticated IPC fallback) before pairing.
+        EnvironmentFile = "-%h/.config/zarathushtra/secrets-daemon-clients.env";
         Restart = "on-failure";
         RestartSec = 3;
         UMask = "0077";

@@ -2,6 +2,8 @@
 {
   imports = [ ../desktop/home.nix ];
 
+  node-red.enable = true;
+
   homeManagerUpdater = {
     enable = true;
     hostName = "flake";

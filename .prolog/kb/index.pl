@@ -10,3 +10,9 @@
 :- consult("forgejo_ci").
 :- consult("opencode_commands").
 :- consult("opencode_worker").
+:- consult("emacs_entrypoint").
+:- consult("emacs_org_agenda").
+:- consult("qtile_widget_api").
+:- consult("zara_deployment").
+:- consult("zara_voice_validation").
+:- consult("zara_pairing").
