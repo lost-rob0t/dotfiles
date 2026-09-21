@@ -25,7 +25,9 @@ Only otherwise-unknown/free-form lines are intercepted and sent to Prolog-RLM.
 - =.config/lish/agentic.lisp= owns the Lish command UX and free-form evaluator.
 - =scripts/lish-rlm= is the Prolog-RLM boundary.
 - =scripts/lish-expert= exposes repo-local expert discovery/tests/explicit queries.
-- =nix/home-manager/mods/lish.nix= packages the commands for desktop Home Manager.
+- =nix/home-manager/mods/lish.nix= packages the commands and shell policy
+  variables for desktop Home Manager; it deliberately does not take ownership
+  of the literate/Stow-managed =~/.bashrc=.
 - =bootstrap-termux.org= installs the same command/config surface on Termux.
 
 LISA remains a Common Lisp Rete expert system inside the same Lisp image.
