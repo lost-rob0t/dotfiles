@@ -21,7 +21,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara = {
-      url = "github:lost-rob0t/zara/9ff68d63b76c1db39689867f848d47c83c49cbcc";
+      url = "github:lost-rob0t/zara/af7185ee48def384783002332262412e9674343e";
       # Zara vendors its MCP v2 python stack (httpx2/httpcore2); following this
       # repo's newer nixpkgs made nixpkgs' own httpx2 collide with the vendored
       # build inside zara's python env. Build zara against its locked nixpkgs,
