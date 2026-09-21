@@ -116,7 +116,7 @@ class DonationWidgetTests(unittest.TestCase):
     def test_literate_source_matches_generated_module(self):
         org = (ROOT / "qtile-donations.org").read_text()
         match = re.search(
-            r"^#\\+begin_src python\\n(.*?)^#\\+end_src",
+            r"^#\\+begin_src python(?: [^\\n]*)?\\n(.*?)^#\\+end_src",
             org,
             re.M | re.S,
         )
