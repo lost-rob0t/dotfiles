@@ -557,16 +557,15 @@ This is intentionally separate from the normal Emacs startup dashboard."
          (pop-to-buffer buffer))))
    "documents" "tenant" tenant query (number-to-string limit)))
 
-(defun starintel-admin-data-size (kind id &optional tenant)
+(defun starintel-admin-data-size (kind id)
   (interactive
    (let* ((kind (completing-read "Aggregate: " '("user" "group" "tenant") nil t))
-          (id (read-string (format "%s: " (capitalize kind))))
-          (tenant (when (string= kind "group")
-                    (let ((value (read-string "Tenant scope (optional): ")))
-                      (unless (string-empty-p value) value)))))
-     (list kind id tenant)))
-  (apply
-   #'starintel-admin--call-json
+          (prompt (if (string= kind "group")
+                      "Tenant / plan user group: "
+                    (format "%s: " (capitalize kind))))
+          (id (read-string prompt)))
+     (list kind id)))
+  (starintel-admin--call-json
    (lambda (ok result)
      (if (not ok)
          (user-error "%s" result)
@@ -574,13 +573,15 @@ This is intentionally separate from the normal Emacs startup dashboard."
                       (format "*StarIntel Data Size · %s:%s*" kind id))))
          (with-current-buffer buffer
            (starintel-admin-mode)
-           (let ((inhibit-read-only t))
+           (let ((inhibit-read-only t)
+                 (semantics (starintel-admin--get "semantics" result)))
              (erase-buffer)
              (insert (format "* Logical data size · %s:%s\n\n" kind id))
              (insert (propertize
-                      "Logical JSON bytes of returned documents; not physical CouchDB/S3 disk usage.\n\n"
+                      (or semantics
+                          "Logical JSON bytes of returned documents; not physical CouchDB/S3 disk usage.")
                       'face 'starintel-admin-muted-face))
-             (insert "| Metric | Value |\n|---+---|\n")
+             (insert "\n\n| Metric | Value |\n|---+---|\n")
              (insert (format "| Documents | %s |\n"
                              (or (starintel-admin--get "document_count" result) 0)))
              (insert (format "| Logical bytes | %s |\n"
@@ -590,8 +591,7 @@ This is intentionally separate from the normal Emacs startup dashboard."
              (org-table-align)
              (goto-char (point-min))))
          (pop-to-buffer buffer))))
-   (append (list "stats" kind id)
-           (when tenant (list tenant)))))
+   "stats" kind id))
 
 (defun starintel-admin-graph-image (&optional tenant)
   (interactive
