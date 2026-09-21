@@ -93,7 +93,7 @@ fi
 
 note "Installing Lish agentic shell"
 export STAR_DOTFILES_ROOT="$DOTFILES_DIR"
-for tool in lish lish-bootstrap lish-rlm lish-expert; do
+for tool in lish lish-bootstrap lish-default-shell lish-rlm lish-expert; do
   install -m 0755 "$DOTFILES_DIR/scripts/$tool" "$PREFIX/bin/$tool"
 done
 
