@@ -121,4 +121,118 @@
     (list :ok nil :missing t :stdout "" :stderr (format "%s not found" program)
           :command (cons program arguments))))
 
-(defun ai/devlog--project-root (&optional direc
+(defun ai/devlog--project-root (&optional directory)
+  "Resolve DIRECTORY to a Git/project root."
+  (let* ((default-directory (file-name-as-directory
+                             (expand-file-name (or directory default-directory))))
+         (project (project-current nil default-directory)))
+    (or (and project (expand-file-name (project-root project)))
+        (locate-dominating-file default-directory ".git")
+        (user-error "Not inside a project: %s" default-directory))))
+
+(defun ai/devlog--roam-root ()
+  "Return the active Org-roam root without requiring org-roam."
+  (file-name-as-directory
+   (expand-file-name
+    (or (and (boundp 'org-roam-directory) org-roam-directory)
+        (getenv "KB_ROAM_ROOT")
+        (getenv "GPT_TODOS_NOTES_DIR")
+        "~/Documents/Notes/org"))))
+
+(defun ai/devlog--dailies-directory ()
+  "Return the dailies directory relative to the roam root."
+  (or (and (boundp 'org-roam-dailies-directory) org-roam-dailies-directory)
+      "daily"))
+
+(defun ai/devlog--daily-file (&optional time)
+  "Return the Org-roam daily path for TIME."
+  (expand-file-name
+   (format "%s/%s.org"
+           (directory-file-name (ai/devlog--dailies-directory))
+           (format-time-string "%Y-%m-%d" (or time (current-time))))
+   (ai/devlog--roam-root)))
+
+(defun ai/devlog--ensure-daily-file (file)
+  "Create FILE with private Org-roam metadata when it does not exist."
+  (make-directory (file-name-directory file) t)
+  (unless (file-exists-p file)
+    (with-temp-file file
+      (insert ":PROPERTIES:\n:ID: " (if (fboundp 'org-id-new)
+                                      (org-id-new)
+                                    (secure-hash 'sha1 (format "%s%s" file (float-time))))
+              "\n:END:\n")
+      (insert "#+TITLE: " (file-name-base file) "\n")
+      (insert "#+ROAM_SCHEMA: org-roam-meta/v1\n")
+      (insert "#+ROAM_KIND: daily\n#+ROAM_VISIBILITY: private\n")
+      (insert "#+CENSOR_PROFILE: strict\n")
+      (insert "#+FILETAGS: :development:devlog:git:\n\n")))
+  file)
+
+(defun ai/devlog--parse-remote-url (remote-name url)
+  "Return normalized remote metadata for REMOTE-NAME and URL."
+  (condition-case nil
+      (let (host path)
+        (cond
+         ((string-match "\\`[^/@:]+@\\([^:]+\\):\\(.+\\)\\'" url)
+          (setq host (match-string 1 url)
+                path (match-string 2 url)))
+         ((string-match-p "\\`[[:alpha:]][[:alnum:]+.-]*://" url)
+          (let ((parsed (url-generic-parse-url url)))
+            (setq host (url-host parsed)
+                  path (string-remove-prefix "/" (url-filename parsed)))))
+         (t nil))
+        (when (and host path)
+          (setq path (replace-regexp-in-string "\\.git\\'" "" path))
+          (setq path (replace-regexp-in-string "\\`/+\\|/+\\'" "" path))
+          (when (string-match "\\`\\([^/]+/[^/]+\\)" path)
+            `((remote . ,remote-name)
+              (host . ,(downcase host))
+              (repo . ,(match-string 1 path))
+              (url . ,url)))))
+    (error nil)))
+
+(defun ai/devlog--git-remotes (root)
+  "Return normalized fetch remotes for ROOT."
+  (let ((result (ai/devlog--run "git" '("remote" "-v") root))
+        remotes)
+    (when (plist-get result :ok)
+      (dolist (line (split-string (plist-get result :stdout) "\n" t))
+        (when (string-match "\\`\\([^[:space:]]+\\)[[:space:]]+\\([^[:space:]]+\\)[[:space:]]+(fetch)\\'" line)
+          (when-let ((parsed (ai/devlog--parse-remote-url
+                              (match-string 1 line) (match-string 2 line))))
+            (push parsed remotes)))))
+    (nreverse (delete-dups remotes))))
+
+(defun ai/devlog--provider-repositories (root)
+  "Return GitHub and tea repository metadata discovered from ROOT remotes."
+  (let ((remotes (ai/devlog--git-remotes root)) github tea)
+    (dolist (remote remotes)
+      (let ((host (alist-get 'host remote)))
+        (cond
+         ((and (not github) (string= host "github.com")) (setq github remote))
+         ((and (not tea) (string-match-p ai/devlog-tea-host-regexp host))
+          (setq tea remote)))))
+    `((github . ,github) (tea . ,tea) (all . ,remotes))))
+
+(defun ai/devlog--json (text)
+  "Parse JSON TEXT into alists/lists, returning nil on invalid input."
+  (condition-case nil
+      (json-parse-string text :object-type 'alist :array-type 'list
+                         :null-object nil :false-object nil)
+    (error nil)))
+
+(defun ai/devlog--field (object &rest keys)
+  "Return the first non-nil value from OBJECT matching KEYS."
+  (cl-loop for key in keys
+           for symbol = (if (symbolp key) key (intern key))
+           for value = (or (alist-get symbol object)
+                           (alist-get (symbol-name symbol) object nil nil #'equal))
+           when value return value))
+
+(defun ai/devlog--string (value)
+  "Normalize VALUE to a single-line string."
+  (let ((text (cond ((null value) "")
+                    ((stringp value) value)
+                    ((numberp value) (number-to-string value))
+                    ((eq value t) "true")
+                    (t (format "%s
