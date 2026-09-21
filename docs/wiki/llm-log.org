@@ -6,6 +6,7 @@
 - [[file:../../.config/qtile/qtile-telemetry.org][Runtime installer]] owns =qtile_telemetry.py= and installs old telemetry, then the pair, then the new graph.
 - [[file:../../nix/home-manager/mods/llm.nix][Home Manager consumer]] pins the quota-capable Python llm-log package and owns service enablement.
 - [[file:../../nix/home-manager/mods/starintel-llm-harness.org][StarIntel LLM harness]] owns worker profiles, Prolog-RLM/GLM execution wiring, z.AI proxy routing, and quota-pacing policy.
+- [[file:../../nix/home-manager/mods/opencode.org][OpenCode module]] owns the =starintel= upstream consumption: the =starintel-llm= provider, its model catalog, and the ={file:}= bearer-key reference.
 
 The horizontal bar order is =z.AI=, =GPT=, =LLM graph=. The old OpenRouter
 widgets and graph remain separate and unchanged. Quota meters use reported
@@ -78,3 +79,18 @@ quota telemetry: =llm.quotaTelemetry.environmentFile=. It accepts only
 file and referenced key file to have no group/other permission bits, and never
 sources the file as shell code. Secret contents are not serialized into the
 generated harness JSON or Nix store configuration.
+
+* StarIntel local inference upstream
+The capture plane also fronts the StarIntel llama-swap service: the =starintel=
+upstream maps =<proxy>/starintel/*= to =https://llm.starintel.actor/*=, which is
+bearer-key-only on every endpoint. OpenCode consumes it through the
+=starintel-llm= provider (=starintel-llm/<model>= references); the served model
+catalog is declared in [[file:../../nix/home-manager/mods/llm.nix][llm.nix]]
+and mirrors the deployed llama-swap per-model server flags:
+=qwen3-8b= (chat, 4096 context), =qwen38-27b= (heavy, vision attachments, 8192
+context), and =bge-m3= (embeddings only; registered but not conversational).
+
+The bearer key lives in =~/.config/llm-log/starintel-llm.key= (owner-only,
+0600) and is referenced through OpenCode's ={file:}= placeholder so it never
+enters Nix store paths or Git. The key is deploy-time material installed
+out-of-band on the =llm= host; copy it to the client privately.
