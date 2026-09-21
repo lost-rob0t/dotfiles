@@ -30,3 +30,20 @@
   (should-not (bound-and-true-p initial-buffer-choice)))
 
 (provide 'starintel-admin-test)
+
+
+(ert-deftest starintel-admin-dataset-policy-drift-is-detected ()
+  (let ((payload
+         '(("dataset_policies"
+            . (("public-a" . (("mode" . "public") ("tenant_id" . nil)))
+               ("planned-a" . (("mode" . "planned") ("tenant_id" . "pro")))))
+           ("live_dataset_policy"
+            . (("status" . "ok")
+               ("generation" . 3)
+               ("public_datasets" . ("public-a"))
+               ("planned_datasets" . (("planned-a" . "pro"))))))))
+    (should-not (starintel-admin--dataset-policy-drift-p payload))
+    (setcdr (assoc "public_datasets"
+                    (cdr (assoc "live_dataset_policy" payload)))
+            '("other"))
+    (should (starintel-admin--dataset-policy-drift-p payload))))
