@@ -95,6 +95,26 @@ in
       '';
     };
 
+    llm = {
+      provider = lib.mkOption {
+        type = lib.types.str;
+        default = "openai";
+        description = "Zara LLM provider. The default targets the OpenAI-compatible StarIntel service.";
+      };
+
+      model = lib.mkOption {
+        type = lib.types.str;
+        default = "27b";
+        description = "Default Zara model id. The StarIntel service exposes the preferred 27B model as 27b.";
+      };
+
+      endpoint = lib.mkOption {
+        type = lib.types.str;
+        default = "https://llm.starintel.actor/v1/chat/completions";
+        description = "Credential-free Zara chat-completions endpoint.";
+      };
+    };
+
     server = {
       enable = lib.mkOption {
         type = lib.types.bool;
@@ -258,6 +278,11 @@ in
         After = [ "pipewire.service" "pipewire-pulse.service" ];
       };
       Service = {
+        Environment = [
+          "ZARA_LLM_PROVIDER=${cfg.llm.provider}"
+          "ZARA_LLM_MODEL=${cfg.llm.model}"
+          "ZARA_LLM_ENDPOINT=${cfg.llm.endpoint}"
+        ];
         ExecStart = "${cfg.package}/bin/zara-server --shutdown-timeout ${toString cfg.server.shutdownTimeout}"
           + lib.optionalString (cfg.server.remoteEndpoint != null && cfg.server.securityDir != null)
             " --remote-endpoint ${cfg.server.remoteEndpoint} --security-dir ${cfg.server.securityDir}";
