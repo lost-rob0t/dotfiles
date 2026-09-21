@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dotfiles_root="${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}"
+data_root="${XDG_DATA_HOME:-$HOME/.local/share}/lish"
+vendor_root="$data_root/vendor"
+setup="${QUICKLISP_HOME:-$HOME/quicklisp}/setup.lisp"
+prolog_rlm_root="${PROLOG_RLM_ROOT:-$vendor_root/prolog-rlm}"
+init_file="$dotfiles_root/.config/lish/init.lisp"
+
+if [[ ! -f "$setup" || ! -d "$vendor_root/yew/lish" || ! -d "$vendor_root/lisa" ]]; then
+  bootstrap="${LISH_BOOTSTRAP:-lish-bootstrap}"
+  command -v "$bootstrap" >/dev/null 2>&1 || {
+    printf 'lish: runtime missing and lish-bootstrap is unavailable\n' >&2
+    exec env STAR_BASH_FALLBACK=1 bash
+  }
+  "$bootstrap" --quiet || {
+    printf 'lish: bootstrap failed; opening recovery Bash\n' >&2
+    exec env STAR_BASH_FALLBACK=1 bash
+  }
+fi
+
+[[ -f "$init_file" ]] || {
+  printf 'lish: missing dotfiles init: %s\n' "$init_file" >&2
+  exec env STAR_BASH_FALLBACK=1 bash
+}
+
+export STAR_LISH_ACTIVE=1
+export CL_SOURCE_REGISTRY="(:source-registry (:tree \"$vendor_root/yew/\") (:tree \"$vendor_root/lisa/\") (:tree \"$prolog_rlm_root/\") :inherit-configuration)"
+
+escape_lisp_string() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+}
+
+init_escaped="$(escape_lisp_string "$init_file")"
+
+case "${1:-}" in
+  -c)
+    shift
+    command_text="${1:-}"
+    command_escaped="$(escape_lisp_string "$command_text")"
+    exec sbcl --noinform \
+      --load "$setup" \
+      --eval '(ql:quickload :lish :silent t)' \
+      --eval "(load \"$init_escaped\")" \
+      --eval "(lish:!lish :command \"$command_escaped\" :no-init-file t :greeting nil :terminal-type :crunch)" \
+      --quit
+    ;;
+  --help)
+    exec sbcl --noinform \
+      --load "$setup" \
+      --eval '(ql:quickload :lish :silent t)' \
+      --eval '(lish:!lish :help t :no-init-file t :greeting nil :terminal-type :crunch)' \
+      --quit
+    ;;
+  --version)
+    exec sbcl --noinform \
+      --load "$setup" \
+      --eval '(ql:quickload :lish :silent t)' \
+      --eval '(lish:!lish :version t :no-init-file t :greeting nil :terminal-type :crunch)' \
+      --quit
+    ;;
+  "")
+    exec sbcl --noinform \
+      --load "$setup" \
+      --eval '(ql:quickload :lish :silent t)' \
+      --eval "(load \"$init_escaped\")" \
+      --eval '(lish:!lish :no-init-file t :greeting t :terminal-type :crunch)' \
+      --quit
+    ;;
+  *)
+    printf 'Usage: lish [-c COMMAND|--help|--version]\n' >&2
+    exit 2
+    ;;
+esac
