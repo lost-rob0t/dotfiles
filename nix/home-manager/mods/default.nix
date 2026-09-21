@@ -14,6 +14,7 @@
     ./base.nix
     ./starintel-tunnel.nix
     ./starintel-agent-flow.nix
+    ./starintel-admin.nix
     ./desktop.nix
     ./gnome.nix
     ./fonts.nix
