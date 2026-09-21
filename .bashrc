@@ -8,6 +8,10 @@ then
 fi
 export PATH
 
+if [[ -f "${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}/scripts/lish-bash-enter" ]]; then
+    source "${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}/scripts/lish-bash-enter"
+fi
+
 if [ ! -d ~/.bashrc.d ]; then
 	for rc in ~/.bashrc.d/*; do
 		if [ -f "$rc" ]; then
