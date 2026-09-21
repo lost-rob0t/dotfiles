@@ -309,5 +309,4 @@ symbolic experts and is regenerated after task mutations.
 
 (provide 'mara-tools)
 ;;; mara-tools.el ends here
-
 #+end_src
