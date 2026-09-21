@@ -187,6 +187,7 @@ Mandatory architecture:
 - Use typed tools and fresh postcondition evidence for effects. No raw shell-string execution paths.
 - Secrets/API keys/tokens may come only from environment variables, OS wallet/keyring, or Emacs auth-source. Never write secret values to Git, Nix store paths, generated configs, logs, or prompts.
 - Use the repository's prolog-verification workflow for every file-changing task. Record exact tests and finish only with prolog-verify check passing.
+- Commit the intended candidate on this worker branch before the final verification pass. Leave feature code and overlay files clean; verifier runtime state may remain local.
 - Preserve existing Org/literate source ownership; edit the canonical source and generated file together when required.
 - Do not merge, force-push, reset, clean, or modify master.
 
@@ -266,12 +267,13 @@ def cmd_start(p: Paths, _: argparse.Namespace) -> dict[str, Any]:
     for spec in specs:
         state["workers"][spec["id"]] = start_worker(p, spec, state)
         save_state(p, state)
+    selected = [state["workers"][spec["id"]] for spec in specs]
     return {
         "ok": True,
         "worker_count": 5,
         "workers": [
             {"id": item["id"], "pid": item["pid"], "branch": item["branch"], "worktree": item["worktree"]}
-            for item in state["workers"].values()
+            for item in selected
         ],
     }
 
@@ -289,11 +291,13 @@ def worker_rows(p: Paths) -> list[dict[str, Any]]:
 
 def cmd_status(p: Paths, _: argparse.Namespace) -> dict[str, Any]:
     specs = load_specs(p.dotfiles)
+    configured = [item["id"] for item in specs]
+    rows = [row for row in worker_rows(p) if row["id"] in configured]
     return {
         "ok": True,
-        "configured_workers": [item["id"] for item in specs],
+        "configured_workers": configured,
         "worker_count": 5,
-        "workers": worker_rows(p),
+        "workers": rows,
     }
 
 
@@ -329,6 +333,22 @@ def copy_overlay(source: Path, destination: Path) -> int:
     return count
 
 
+def verifier_runtime_path(path: str) -> bool:
+    exact = {
+        ".prolog/facts.kb",
+        ".prolog/verify.pl",
+        ".prolog/result.json",
+        ".prolog/.facts.lock",
+    }
+    return path in exact or path.startswith(".prolog/sessions/") or path.startswith(".prolog/runs/")
+
+
+def candidate_dirty_paths(worktree: Path) -> list[str]:
+    tracked = git(worktree, "diff", "--name-only", "HEAD", "--").stdout.splitlines()
+    untracked = git(worktree, "ls-files", "--others", "--exclude-standard").stdout.splitlines()
+    return sorted({path for path in [*tracked, *untracked] if not verifier_runtime_path(path)})
+
+
 def cmd_promote(p: Paths, args: argparse.Namespace) -> dict[str, Any]:
     require_executable("git")
     require_executable("python3")
@@ -347,9 +367,11 @@ def cmd_promote(p: Paths, args: argparse.Namespace) -> dict[str, Any]:
         raise LabError(f"worker is still running: {args.id}")
 
     worktree = expand(worker["worktree"])
-    dirty = git(worktree, "status", "--porcelain").stdout.strip()
+    dirty = candidate_dirty_paths(worktree)
     if dirty:
-        raise LabError("worker worktree is dirty; commit or discard the exact candidate before promotion")
+        raise LabError(
+            "worker candidate has uncommitted feature changes: " + ", ".join(dirty[:20])
+        )
     run(["prolog-verify", "--work-dir", str(worktree), "check"])
 
     overlay = worktree / ".zara/labs/zara-feature-lab/features" / args.id / "overlay"
