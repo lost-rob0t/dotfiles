@@ -22,6 +22,51 @@ helper without taking ownership of Zara's mutable private overlay.
 This split is deliberate: reproducible workflows belong in dotfiles; mutable
 private state does not.
 
+* Private OpenRouter Lyria music plugin
+The desktop profile installs
+=nix/home-manager/files/zarathushtra/plugins/lyria.py= as a repo-local Zara
+discovery plugin. It is intentionally not selected from or published to the
+=zara-plugins= registry. The source still follows the visibility of this
+dotfiles repository; "private" here means local/private deployment and
+credentials/state outside Git, not hidden source code.
+
+It exposes two Zara tools:
+
+- =lyria_generate_clip= uses =google/lyria-3-clip-preview= for short previews;
+- =lyria_generate_song= uses =google/lyria-3-pro-preview= for full songs.
+
+Both tools accept a music prompt plus optional title, lyrics, instrumental mode,
+target duration, and one local JPEG/PNG/WebP reference image. Generated MP3
+files default to =~/Music/Zara= with mode =0600=. Override the destination with
+=LYRIA_OUTPUT_DIR=. Reference images are embedded into the request as data URLs;
+the plugin never fetches an arbitrary image URL itself.
+
+The only required credential is the existing OpenRouter key. Keep it in Zara's
+owner-private environment file, never in Nix or Git:
+
+#+begin_src shell
+# ~/.config/zarathushtra/secrets.env
+OPENROUTER_API_KEY=...
+#+end_src
+
+Requests set OpenRouter provider =data_collection= to =deny=. Set
+=LYRIA_REQUIRE_ZDR=1= in the same private environment file to additionally
+require a zero-data-retention route; this may reduce provider availability.
+=LYRIA_TIMEOUT_SECONDS= and =LYRIA_MAX_AUDIO_BYTES= bound request time and
+generated media size.
+
+Apply and restart after changing the tracked plugin:
+
+#+begin_src shell
+home-manager switch --flake ~/.dotfiles#unseen@desktop
+systemctl --user restart zara-server
+#+end_src
+
+The plugin streams OpenRouter SSE audio, validates and bounds the base64 payload,
+and only writes the completed file after a successful =[DONE]= event. Its unit
+test uses a fake provider stream, including base64 chunks split at arbitrary
+boundaries, so CI never spends OpenRouter credits.
+
 * Qwen3-TTS backend
 The desktop profile imports the =Qwen3-TTS_server= Home Manager flake module,
 installs its =qwen3-tts= command, and enables the Vulkan GPU service on
