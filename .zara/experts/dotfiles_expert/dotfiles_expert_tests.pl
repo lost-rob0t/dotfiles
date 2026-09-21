@@ -1,0 +1,79 @@
+:- module(dotfiles_expert_tests, []).
+:- use_module(library(plunit)).
+:- use_module(library(lists)).
+:- use_module(upstream).
+:- use_module(dotfiles_expert).
+
+fixture_file('/tmp/zara_dotfiles_fixture/config.nix').
+
+ensure_fixture :-
+    fixture_file(F),
+    (   exists_file(F)
+    ->  true
+    ;   file_directory_name(F, D),
+        (   exists_directory(D) -> true ; make_directory(D) ),
+        open(F, write, S),
+        write(S, "{ programs.emacs.enable = true; }\n"),
+        close(S)
+    ),
+    source_code:file_in_repo(F, dotfiles, 'config.nix'),
+    !.
+ensure_fixture :-
+    fixture_file(F),
+    assertz(source_code:defines_i(F, programs_emacs_enable, option, h1)),
+    assertz(source_code:file_in_repo_i(F, dotfiles, 'config.nix')).
+
+:- begin_tests(dotfiles_expert).
+
+test(upstream_loaded_and_stamped) :-
+    upstream_load,
+    upstream_ready,
+    upstream_info(upstream{home: _, origin: 'github.com/lost-rob0t/symbolic'}).
+
+test(expert_registered_in_moe) :-
+    symbolic_rlm:current_registry(R),
+    symbolic_rlm:expert_catalog(R, Es),
+    member(E, Es),
+    E.id == dotfiles_expert.
+
+test(configures_finds_fixture, [setup(ensure_fixture)]) :-
+    ensure_fixture,
+    (   source_code:defines_i(_F, programs_emacs_enable, _K, _)
+    ->  true
+    ;   throw(inspect_no_define_fact)
+    ),
+    (   source_code:file_in_repo_i(_F2, dotfiles, _P2)
+    ->  true
+    ;   throw(inspect_no_fir_fact)
+    ),
+    zara_expert_dotfiles:dotfiles_handler(dotfiles(configures(programs_emacs_enable), Res), ctx, V),
+    (   V.outcome == success
+    ->  true
+    ;   throw(inspect_v(V))
+    ),
+    Res \= [],
+    member(file(_F, option), Res).
+
+test(unknown_query_tracked_as_failure, [setup(ensure_fixture)]) :-
+    zara_expert_dotfiles:dotfiles_handler(dotfiles(configures(zzz_no_such_option_zz), _), ctx, V),
+    V.outcome == failure,
+    findall(A, (outcome:attempt(A), outcome:attempt_expert(A, dotfiles_expert)), As),
+    length(As, N),
+    N >= 2.
+
+test(failure_solutions_surface_on_repeat, [setup(ensure_fixture)]) :-
+    catch(zara_expert_dotfiles:dotfiles_handler(dotfiles(configures(yyy_missing_opt), _), _, _), _, true),
+    outcome:record_solution('yyy_missing_opt',
+                            'mine the dotfiles repository into the symbolic KB',
+                            'dotfiles_expert', _S),
+    catch(zara_expert_dotfiles:dotfiles_handler(dotfiles(configures(yyy_missing_opt), _), _, V2), _, true),
+    is_dict(V2),
+    V2.outcome == failure,
+    V2.suggested_solutions \= [],
+    member(sol(_Sol, Steps, 'dotfiles_expert'), V2.suggested_solutions),
+    atom(Steps).
+
+:- end_tests(dotfiles_expert).
+
+:- run_tests(dotfiles_expert),
+   halt(0).
