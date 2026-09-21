@@ -12,20 +12,39 @@
   :group 'applications
   :prefix "ai/llm-")
 
-(defcustom ai/llm-provider 'openrouter
+(defcustom ai/llm-provider 'starintel
   "Default LLM provider.
-OpenRouter is authoritative.  Direct provider backends remain available only
-for explicit manual selection."
-  :type '(choice (const :tag "OpenRouter" openrouter)
+The StarIntel LLM service is the normal interactive path. Other providers
+remain available for explicit selection."
+  :type '(choice (const :tag "StarIntel LLM" starintel)
+                 (const :tag "OpenRouter" openrouter)
                  (const :tag "OpenAI subscription OAuth" openai-oauth)
                  (const :tag "Z.AI API" zai)
                  (const :tag "OpenAI API" openai)
                  (const :tag "Anthropic API" anthropic))
   :group 'ai/llm)
 
-(defcustom ai/llm-model 'z-ai/glm-5.2
-  "Default OpenRouter model used by gptel and custom workflows."
+(defcustom ai/llm-model '|27b|
+  "Default StarIntel model used by gptel and custom workflows."
   :type 'symbol
+  :group 'ai/llm)
+
+(defcustom ai/llm-starintel-host "llm.starintel.actor"
+  "StarIntel OpenAI-compatible LLM host."
+  :type 'string
+  :group 'ai/llm)
+
+(defcustom ai/llm-starintel-endpoint "/v1/chat/completions"
+  "StarIntel chat-completions endpoint."
+  :type 'string
+  :group 'ai/llm)
+
+(defcustom ai/llm-starintel-models
+  '((|27b|
+     :description "StarIntel default 27B model"
+     :capabilities (reasoning tool-use json)))
+  "Models advertised by the StarIntel LLM backend."
+  :type '(repeat sexp)
   :group 'ai/llm)
 
 (defcustom ai/llm-zai-host "api.z.ai"
@@ -118,6 +137,12 @@ for explicit manual selection."
   "Return the API key for PROVIDER.
 Environment variables are preferred, then auth-source is consulted."
   (pcase provider
+    ('starintel
+     (or (getenv "STARINTEL_LLM_API_KEY")
+         (and (fboundp 'nsa/auth-source-get)
+              (ignore-errors
+                (nsa/auth-source-get :host ai/llm-starintel-host)))
+         (ai/llm--auth-source-secret ai/llm-starintel-host)))
     ('zai
      (or (getenv "ZAI_API_KEY")
          (getenv "ZHIPUAI_API_KEY")
@@ -147,6 +172,15 @@ Environment variables are preferred, then auth-source is consulted."
       (user-error
        "No API key for %s; configure auth-source or its environment variable"
        provider)))
+
+(cl-defun ai/llm-starintel-backend (&key (stream t) (name "StarIntel LLM"))
+  "Return the StarIntel OpenAI-compatible backend."
+  (gptel-make-openai name
+    :host ai/llm-starintel-host
+    :endpoint ai/llm-starintel-endpoint
+    :stream stream
+    :key (lambda () (ai/llm--require-api-key 'starintel))
+    :models ai/llm-starintel-models))
 
 (cl-defun ai/llm-zai-backend (&key (stream t) (name "Z.AI"))
   "Return the optional direct Z.AI backend."
@@ -193,6 +227,7 @@ PROVIDER defaults to `ai/llm-provider'.  When REFRESH is non-nil, rebuild it."
     (or (gethash provider ai/llm--backends)
         (puthash provider
                  (pcase provider
+                   ('starintel (ai/llm-starintel-backend))
                    ('openrouter (ai/llm-openrouter-backend))
                    ('openai-oauth (ai/llm-openai-oauth-backend))
                    ('zai (ai/llm-zai-backend))
@@ -212,6 +247,7 @@ PROVIDER defaults to `ai/llm-provider'.  When REFRESH is non-nil, rebuild it."
 (defun ai/llm-models-for-provider (&optional provider)
   "Return configured model symbols for PROVIDER."
   (pcase (or provider ai/llm-provider)
+    ('starintel (mapcar #'ai/llm--model-name ai/llm-starintel-models))
     ('openrouter (mapcar #'ai/llm--model-name ai/llm-openrouter-models))
     ('zai (mapcar #'ai/llm--model-name ai/llm-zai-models))
     ((or 'openai 'openai-oauth) ai/llm-openai-models)
@@ -226,7 +262,7 @@ With LOCAL non-nil, only change the current buffer."
            (intern
             (completing-read
              "Provider: "
-             '("openrouter" "openai-oauth" "zai" "openai" "anthropic")
+             '("starintel" "openrouter" "openai-oauth" "zai" "openai" "anthropic")
              nil t nil nil (symbol-name ai/llm-provider))))
           (available (ai/llm-models-for-provider provider))
           (default (if (memq ai/llm-model available)
@@ -248,6 +284,11 @@ With LOCAL non-nil, only change the current buffer."
             gptel-model model)))
   (message "gptel: %s / %s%s"
            provider model (if local " (buffer-local)" "")))
+
+(defun ai/llm-use-starintel-27b (&optional local)
+  "Use the default 27B model through the StarIntel LLM service."
+  (interactive "P")
+  (ai/llm-use 'starintel '|27b| local))
 
 (defun ai/llm-use-glm-5.2 (&optional local)
   "Use GLM-5.2 through OpenRouter."
@@ -302,6 +343,13 @@ With LOCAL non-nil, only change the current buffer."
         gptel-use-header-line t))
 
 (ai/llm-apply-defaults)
+
+(gptel-make-preset 'starintel-27b
+  :description "StarIntel default 27B model."
+  :backend (ai/llm-backend 'starintel)
+  :model '|27b|
+  :stream t
+  :include-reasoning 'ignore)
 
 (gptel-make-preset 'glm-5.2
   :description "GLM-5.2 through OpenRouter with tool use."
