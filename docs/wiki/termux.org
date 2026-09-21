@@ -89,6 +89,15 @@ A practical install order is:
 The certificate/shared-UID gate is more important than the order: every installed
 member must come from the same bundle.
 
+** Lish default shell
+
+The Termux bootstrap installs the same =lish=, =lish-bootstrap=, =lish-rlm=,
+and =lish-expert= commands used on desktop.  It pins Yew/Lish, LISA, and
+Prolog-RLM revisions, warms their Common Lisp runtime, and links the canonical
+dotfiles =.bashrc=.  Interactive Bash therefore hands off to Lish by default;
+=STAR_BASH_FALLBACK=1 bash= remains the recovery path.  Lish itself runs
+natively in Termux; only glibc/Nix-specific tools cross =platform-enter=.
+
 * Companion workflows
 
 ** Termux:Widget
