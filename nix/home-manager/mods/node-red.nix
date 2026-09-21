@@ -40,6 +40,7 @@ in
 
       Service = {
         ExecStart = "${lib.getExe' cfg.package "node-red"} --userDir ${lib.escapeShellArg cfg.userDir} --port ${toString cfg.port}";
+        EnvironmentFile = "-${config.home.homeDirectory}/.config/node-red/env";
         Restart = "on-failure";
       };
 
