@@ -22,6 +22,7 @@
     ./org-logseq-sync.nix
     ./kb-roam.nix
     ./hackmode.nix
+    ./node-red.nix
     ./security.nix
     ./nim.nix
     ./lisp.nix
