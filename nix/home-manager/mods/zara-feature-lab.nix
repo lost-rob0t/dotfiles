@@ -98,7 +98,6 @@ in
     systemd.user.services.zara-feature-lab = lib.mkIf cfg.autoStart {
       Unit = {
         Description = "Five-worker Zara symbolic feature lab";
-        After = [ "default.target" ];
       };
       Service = {
         Type = "oneshot";
