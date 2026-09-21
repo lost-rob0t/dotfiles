@@ -445,4 +445,209 @@
          (number (alist-get 'number event))
          (title (alist-get 'title event))
          (state (alist-get 'state event))
-         (url (alis
+         (url (alist-get 'url event))
+         (updated (alist-get 'updated_at event))
+         (label (pcase kind
+                  ("pull_request" (format "PR #%s" number))
+                  ("issue" (format "issue #%s" number))
+                  ("commit" (format "commit %s" number))
+                  (_ (format "%s %s" kind number)))))
+    (unless (ai/devlog--event-present-p id)
+      (goto-char (ai/devlog--subtree-end))
+      (unless (bolp) (insert "\n"))
+      (insert (format "** [%s] %s · %s · %s\n" provider repo label title))
+      (insert ":PROPERTIES:\n")
+      (insert ":DEVLOG_ID: " id "\n")
+      (insert ":DEVLOG_SCHEMA: " ai/devlog-event-schema "\n")
+      (insert ":DEVLOG_RUN_ID: " run-id "\n")
+      (insert ":PROVIDER: " provider "\n:REPOSITORY: " repo "\n:KIND: " kind "\n")
+      (insert ":NUMBER: " number "\n:EVENT_TITLE: " title "\n:STATE: " state "\n:UPDATED_AT: " updated "\n")
+      (unless (string-empty-p url) (insert ":URL: " url "\n"))
+      (when-let ((head (alist-get 'head event)))
+        (unless (string-empty-p head) (insert ":HEAD_BRANCH: " head "\n")))
+      (when-let ((base (alist-get 'base event)))
+        (unless (string-empty-p base) (insert ":BASE_BRANCH: " base "\n")))
+      (when-let ((sha (alist-get 'sha event)))
+        (insert ":SHA: " sha "\n"))
+      (insert ":END:\n")
+      (insert "- " (ai/devlog--org-link url label)
+              " — " title " :: " (if (string-empty-p state) "unknown" state))
+      (unless (string-empty-p updated) (insert " · " updated))
+      (insert "\n")
+      t)))
+
+(defun ai/devlog--count-provider (provider events)
+  "Count EVENTS from PROVIDER."
+  (cl-count provider events :key (lambda (event) (alist-get 'provider event)) :test #'equal))
+
+(defun ai/devlog--event-line (event)
+  "Return one compact Org bullet for EVENT."
+  (let* ((kind (alist-get 'kind event))
+         (number (alist-get 'number event))
+         (label (pcase kind
+                  ("pull_request" (format "PR #%s" number))
+                  ("issue" (format "issue #%s" number))
+                  ("commit" (format "commit %s" number))
+                  (_ (format "%s %s" kind number)))))
+    (format "- %s — %s :: %s%s"
+            (ai/devlog--org-link (alist-get 'url event) label)
+            (alist-get 'title event)
+            (or (alist-get 'state event) "")
+            (if (string-empty-p (alist-get 'updated_at event)) ""
+              (concat " · " (alist-get 'updated_at event))))))
+
+(defun ai/devlog--insert-event-list (title events)
+  "Insert a detailed TITLE section for EVENTS."
+  (insert "*** " title "\n")
+  (if events
+      (dolist (event events) (insert (ai/devlog--event-line event) "\n"))
+    (insert "- No matching events in the lookback window.\n")))
+
+(defun ai/devlog--insert-run (root git-context events diagnostics note run-id since-hours)
+  "Insert detailed devlog run data into the current buffer."
+  (let* ((project (file-name-nondirectory (directory-file-name root)))
+         (github (seq-filter (lambda (event) (equal (alist-get 'provider event) "github")) events))
+         (forgejo (seq-filter (lambda (event) (equal (alist-get 'provider event) "forgejo")) events))
+         (git (seq-filter (lambda (event) (equal (alist-get 'provider event) "git")) events)))
+    (goto-char (ai/devlog--subtree-end))
+    (unless (bolp) (insert "\n"))
+    (insert (format "** %s · %s\n" (format-time-string "%H:%M") project))
+    (insert ":PROPERTIES:\n:DEVLOG_RUN_ID: " run-id "\n")
+    (insert ":DEVLOG_SCHEMA: " ai/devlog-event-schema "\n")
+    (insert ":PROJECT_ROOT: " root "\n")
+    (insert ":BRANCH: " (plist-get git-context :branch) "\n")
+    (insert ":HEAD: " (plist-get git-context :head) "\n")
+    (insert ":LOOKBACK_HOURS: " (number-to-string since-hours) "\n:END:\n")
+    (insert "*** Summary\n")
+    (insert (format "- GitHub events: %d\n" (length github)))
+    (insert (format "- Forgejo events: %d\n" (length forgejo)))
+    (insert (format "- Local commits: %d\n" (length git)))
+    (when (and note (not (string-empty-p (string-trim note))))
+      (insert "- Session note: " (string-trim note) "\n"))
+    (insert "*** Working tree\n#+begin_src text\n")
+    (insert (let ((status (plist-get git-context :status)))
+              (if (string-empty-p status) "clean" status)))
+    (insert "\n#+end_src\n")
+    (ai/devlog--insert-event-list "GitHub" github)
+    (ai/devlog--insert-event-list "Forgejo" forgejo)
+    (ai/devlog--insert-event-list "Local commits" git)
+    (when diagnostics
+      (insert "*** Provider diagnostics\n")
+      (dolist (diagnostic diagnostics)
+        (unless (string-empty-p diagnostic)
+          (insert "- " diagnostic "\n"))))))
+
+(defun ai/devlog--prolog-atom (value)
+  "Return VALUE safely quoted as a Prolog atom."
+  (let ((text (ai/devlog--string value)))
+    (setq text (replace-regexp-in-string "\\\\" "\\\\\\\\" text t t))
+    (setq text (replace-regexp-in-string "'" "\\\\'" text t t))
+    (concat "'" text "'")))
+
+(defun ai/devlog--daily-files ()
+  "Return all Org files from the configured dailies directory."
+  (let ((directory (expand-file-name (ai/devlog--dailies-directory) (ai/devlog--roam-root))))
+    (if (file-directory-p directory)
+        (directory-files-recursively directory "\\.org\\'")
+      nil)))
+
+(defun ai/devlog--event-at-point (day)
+  "Return a normalized event from Org properties at point for DAY."
+  (let ((id (org-entry-get nil "DEVLOG_ID")))
+    (when id
+      `((id . ,id)
+        (day . ,day)
+        (provider . ,(or (org-entry-get nil "PROVIDER") ""))
+        (repo . ,(or (org-entry-get nil "REPOSITORY") ""))
+        (kind . ,(or (org-entry-get nil "KIND") ""))
+        (number . ,(or (org-entry-get nil "NUMBER") ""))
+        (title . ,(or (org-entry-get nil "EVENT_TITLE") (org-get-heading t t t t)))
+        (state . ,(or (org-entry-get nil "STATE") ""))
+        (url . ,(or (org-entry-get nil "URL") ""))
+        (updated_at . ,(or (org-entry-get nil "UPDATED_AT") ""))
+        (run_id . ,(or (org-entry-get nil "DEVLOG_RUN_ID") ""))))))
+
+(defun ai/devlog--extract-events-from-file (file)
+  "Extract machine-readable devlog events from Org FILE."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (org-mode)
+    (let ((day (file-name-base file)) events)
+      (org-map-entries
+       (lambda ()
+         (when-let ((event (ai/devlog--event-at-point day)))
+           (push event events)))
+       nil 'file)
+      (nreverse events))))
+
+(defun ai/devlog-rebuild-kb ()
+  "Rebuild `ai/devlog-kb-file' from Org-roam daily DEVLOG_ID headings."
+  (interactive)
+  (let ((events (mapcan #'ai/devlog--extract-events-from-file (ai/devlog--daily-files)))
+        (directory (file-name-directory ai/devlog-kb-file)))
+    (make-directory directory t)
+    (let ((temporary (make-temp-file (expand-file-name ".devlog-facts-" directory) nil ".pl")))
+      (unwind-protect
+          (progn
+            (with-temp-file temporary
+              (insert "% Generated from Org-roam dailies. Do not edit.\n")
+              (insert "% schema: " ai/devlog-kb-schema "\n\n")
+              (dolist (event events)
+                (insert "devlog_event("
+                        (mapconcat
+                         #'identity
+                         (mapcar (lambda (key) (ai/devlog--prolog-atom (alist-get key event)))
+                                 '(id day provider repo kind number title state url updated_at run_id))
+                         ",")
+                        ").\n")))
+            (rename-file temporary ai/devlog-kb-file t))
+        (when (file-exists-p temporary) (delete-file temporary))))
+    (when (called-interactively-p 'interactive)
+      (message "Devlog KB: %d events -> %s" (length events) ai/devlog-kb-file))
+    (list :events (length events) :file ai/devlog-kb-file)))
+
+(defun ai/devlog--rules-file ()
+  "Return the Prolog query rules shipped beside this library."
+  (expand-file-name "devlog-kb.pl"
+                    (file-name-directory (or load-file-name
+                                             (locate-library "ai-devlog")
+                                             buffer-file-name))))
+
+(defun ai/devlog-query (mode &optional value limit)
+  "Query the symbolic devlog KB by MODE and optional VALUE."
+  (let* ((mode (downcase (ai/devlog--string mode)))
+         (value (ai/devlog--string value))
+         (limit (max 1 (min 200 (or limit 30))))
+         (_rebuild (ai/devlog-rebuild-kb))
+         (rules (ai/devlog--rules-file)))
+    (unless (member mode '("recent" "day" "run" "repo" "provider" "kind" "state" "open" "completed" "search" "summary"))
+      (user-error "Unsupported devlog query mode: %s" mode))
+    (unless (file-readable-p rules)
+      (user-error "Missing devlog Prolog rules: %s" rules))
+    (let ((result
+           (ai/devlog--run
+            "swipl"
+            (list "-q" "-f" "none" "-s" rules "-g" "main" "-t" "halt" "--"
+                  ai/devlog-kb-file mode value (number-to-string limit))
+            (ai/devlog--roam-root)
+            ai/devlog-command-timeout)))
+      (if (plist-get result :ok)
+          (string-trim (plist-get result :stdout))
+        (ai/devlog--result
+         "ok" :json-false
+         "error" (string-trim (plist-get result :stderr))
+         "kb" ai/devlog-kb-file)))))
+
+(defun ai/devlog-sync (&optional project since-hours note limit)
+  "Sync gh, tea, and local Git activity into today's Org-roam daily."
+  (interactive)
+  (let* ((root (ai/devlog--project-root project))
+         (since-hours (max 1 (or since-hours ai/devlog-default-since-hours)))
+         (limit (max 1 (min 200 (or limit ai/devlog-max-items))))
+         (since-time (time-subtract (current-time) (seconds-to-time (* since-hours 3600))))
+         (repositories (ai/devlog--provider-repositories root))
+         (github-repo (alist-get 'repo (alist-get 'github repositories)))
+         (tea-repo (alist-get 'repo (alist-get 'tea repositories)))
+         (gh (ai/devlog--gh-events root github-repo since-time limit))
+         (tea (ai/devlog--tea-events root tea-repo since-time limit))
+         (gi
