@@ -230,8 +230,9 @@ def start_worker(p: Paths, spec: dict[str, Any], state: dict[str, Any]) -> dict[
         "--dir", str(worktree),
     ]
     model = os.environ.get("ZARA_LAB_WORKER_MODEL", "").strip()
-    if model:
-        argv[1:1] = ["--model", model]
+    if not model:
+        raise LabError("ZARA_LAB_WORKER_MODEL is required")
+    argv[1:1] = ["--model", model]
 
     prompt = task_prompt(p, worktree, spec, admitted)
     with stdout_path.open("w") as out, stderr_path.open("w") as err:
