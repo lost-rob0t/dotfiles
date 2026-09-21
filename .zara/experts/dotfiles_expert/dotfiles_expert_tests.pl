@@ -34,23 +34,12 @@ test(expert_registered_in_moe) :-
     symbolic_rlm:current_registry(R),
     symbolic_rlm:expert_catalog(R, Es),
     member(E, Es),
-    contract_id(E, dotfiles_expert).
+    symbolic_rlm:contract_id(E, dotfiles_expert).
 
 test(configures_finds_fixture, [setup(ensure_fixture)]) :-
     ensure_fixture,
-    (   source_code:defines_i(_F, programs_emacs_enable, _K, _)
-    ->  true
-    ;   throw(inspect_no_define_fact)
-    ),
-    (   source_code:file_in_repo_i(_F2, dotfiles, _P2)
-    ->  true
-    ;   throw(inspect_no_fir_fact)
-    ),
     zara_expert_dotfiles:dotfiles_handler(dotfiles(configures(programs_emacs_enable), Res), ctx, V),
-    (   V.outcome == success
-    ->  true
-    ;   throw(inspect_v(V))
-    ),
+    V = dotfiles_answer(configures(programs_emacs_enable), Res, success, _Up, _W, _S),
     Res \= [],
     member(file(_F, option), Res).
 
