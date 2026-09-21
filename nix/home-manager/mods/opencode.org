@@ -567,9 +567,9 @@ shared worker skill, never in command metadata.
         syntaxNumber = "orange";
         syntaxType = "violet";
         syntaxOperator = "pink";
-      syntaxPunctuation = "foreground";
+        syntaxPunctuation = "foreground";
+      };
     };
-  };
 
   starintelProviderModels = lib.mapAttrs (_: model: {
     inherit (model) name attachment;
@@ -579,7 +579,7 @@ shared worker skill, never in command metadata.
       output = model.output;
     };
   }) cfg.starintelLlm.models;
-in
+  in
   {
     options.opencode = {
       enable = mkEnableOption "OpenCode with dotfiles policy and integrations";
