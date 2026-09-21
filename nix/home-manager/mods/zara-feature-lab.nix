@@ -32,9 +32,7 @@ let
       export ZARA_LAB_DOTFILES_ROOT=${lib.escapeShellArg cfg.dotfilesRoot}
       export ZARA_LAB_PROLOG_RLM_ROOT=${lib.escapeShellArg cfg.prologRlmRoot}
       export ZARA_LAB_ZARA_PLUGINS_ROOT=${lib.escapeShellArg cfg.zaraPluginsRoot}
-      ${lib.optionalString (cfg.workerModel != null) ''
-        export ZARA_LAB_WORKER_MODEL=${lib.escapeShellArg cfg.workerModel}
-      ''}
+      export ZARA_LAB_WORKER_MODEL=${lib.escapeShellArg cfg.workerModel}
       exec ${pkgs.python3}/bin/python3 ${../../../scripts/zara-feature-lab.py} "$@"
     '';
   };
@@ -72,10 +70,10 @@ in
     };
 
     workerModel = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
+      type = lib.types.str;
+      default = "astra-medium";
       example = "astra-medium";
-      description = "Optional logical opencode-worker model name. Credentials remain in runtime auth, never Nix.";
+      description = "Required logical opencode-worker model name. Credentials remain in runtime auth, never Nix.";
     };
   };
 
