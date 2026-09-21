@@ -76,7 +76,9 @@ class ModelTests(unittest.TestCase):
         self.assertIn('codex', result)
         self.assertIn('5h', result)
         self.assertIn('week', result)
-        self.assertIn('not all ChatGPT', result)\n        self.assertIn('provider age:', result)\n        self.assertIn('snapshot age:', result)
+        self.assertIn('not all ChatGPT', result)
+        self.assertIn('provider age:', result)
+        self.assertIn('snapshot age:', result)
 
     def test_malformed_and_oversized_shapes_rejected(self):
         for bad in ([], {}, {'schema_version': True}, {**payload(), 'providers': [{}] * 65}):
