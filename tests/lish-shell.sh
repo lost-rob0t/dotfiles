@@ -19,6 +19,7 @@ grep -Fq '4715b5ee53d0e7a26c55705ea85c0d16c3916504' scripts/lish-bootstrap
 
 grep -Fq 'STAR_BASH_FALLBACK' scripts/lish-bash-enter
 grep -Fq 'STAR_LISH_ACTIVE' scripts/lish-bash-enter
+grep -Fq 'STAR_LISH_DEFAULT_INTERACTIVE' scripts/lish-bash-enter
 grep -Fq 'lish-default-shell <status|install|restore>' scripts/lish-default-shell
 grep -Fq -- '-l|--login' scripts/lish
 grep -Fq 'star-enable-agentic-evaluator' .config/lish/agentic.lisp
