@@ -35,10 +35,13 @@ the desktop wiki page for the deployed workspace.
 The optional =opencode.starintelLlm= provider publishes the StarIntel local
 inference service (llama-swap behind =llm.starintel.actor=) as a first-class
 OpenCode provider.  Requests follow the same llm-log capture plane as every
-other provider: llm-log gains a =starintel= upstream and OpenCode points at
-=<proxy>/starintel/v1=, so the bearer key stays in a private key file read
-through OpenCode's ={file:}= placeholder and never enters the Nix store or
-Git.  Model entries are declarative metadata (display name, context and output
+other provider: the transport is a =starintel= llm-log upstream declared where
+the proxy module is imported (=llm.nix=), and OpenCode points at
+=<proxy>/starintel/v1=.  This module never touches =services.llm-log= itself
+because configurations that enable OpenCode do not necessarily import the
+proxy module.  The bearer key stays in a private key file read through
+OpenCode's ={file:}= placeholder and never enters the Nix store or Git.
+Model entries are declarative metadata (display name, context and output
 limits, vision attachment); each one becomes a selectable
 =starintel-llm/<model>= reference.  Embeddings-only models are registered for
 completeness but cannot hold conversations.
@@ -672,12 +675,6 @@ shared worker skill, never in command metadata.
           description = "OpenCode provider id for the StarIntel local inference service.";
         };
 
-        upstreamUrl = mkOption {
-          type = types.str;
-          default = "https://llm.starintel.actor";
-          description = "Public OpenAI-compatible endpoint of the StarIntel llama-swap service.";
-        };
-
         apiKeyFile = mkOption {
           type = types.str;
           default = "~/.config/llm-log/starintel-llm.key";
@@ -770,9 +767,6 @@ shared worker skill, never in command metadata.
         terminal = false;
         categories = [ "Development" ];
       };
-
-      services.llm-log.upstreams.starintel =
-        mkIf cfg.starintelLlm.enable cfg.starintelLlm.upstreamUrl;
 
       programs.opencode = {
         enable = true;

@@ -89,6 +89,9 @@ in
         openrouter = "https://openrouter.ai";
         anthropic = "https://api.anthropic.com";
         chatgpt = "https://chatgpt.com";
+        # StarIntel local inference (llama-swap); consumed by the OpenCode
+        # starintel-llm provider at <proxy>/starintel/v1.
+        starintel = mkIf config.opencode.starintelLlm.enable "https://llm.starintel.actor";
       };
     };
 

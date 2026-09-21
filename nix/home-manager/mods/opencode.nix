@@ -602,12 +602,6 @@ in
         description = "OpenCode provider id for the StarIntel local inference service.";
       };
 
-      upstreamUrl = mkOption {
-        type = types.str;
-        default = "https://llm.starintel.actor";
-        description = "Public OpenAI-compatible endpoint of the StarIntel llama-swap service.";
-      };
-
       apiKeyFile = mkOption {
         type = types.str;
         default = "~/.config/llm-log/starintel-llm.key";
@@ -700,9 +694,6 @@ in
       terminal = false;
       categories = [ "Development" ];
     };
-
-    services.llm-log.upstreams.starintel =
-      mkIf cfg.starintelLlm.enable cfg.starintelLlm.upstreamUrl;
 
     programs.opencode = {
       enable = true;
