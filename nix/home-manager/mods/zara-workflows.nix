@@ -29,6 +29,17 @@ let
       exec ${pairPython}/bin/python3 ${../files/zarathushtra/bin/zara-pair} "$@"
     '';
   };
+  adbPair = pkgs.writeShellApplication {
+    name = "zara-adb-pair";
+    runtimeInputs = [
+      pairPython
+      pkgs.android-tools
+      pkgs.iproute2
+    ];
+    text = ''
+      exec ${pairPython}/bin/python3 ${../files/zarathushtra/bin/zara-adb-pair} "$@"
+    '';
+  };
 in
 {
   options.zara.workflows = {
@@ -71,6 +82,6 @@ in
       Install.WantedBy = [ "graphical-session.target" ];
     };
 
-    home.packages = [ systemUpdate zaraPair ];
+    home.packages = [ systemUpdate zaraPair adbPair ];
   };
 }
