@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly YEW_REPO="https://github.com/lisp-mirror/yew.git"
+readonly YEW_REV="7463781d04c8e35db22bb88796dd78c1a8f752bd"
+readonly LISA_REPO="https://github.com/youngde811/Lisa.git"
+readonly LISA_REV="ae3715d74548e451bb08b432c5d25ec93e2a02c1"
+readonly PROLOG_RLM_REPO="https://github.com/lost-rob0t/prolog-rlm.git"
+readonly PROLOG_RLM_REV="4715b5ee53d0e7a26c55705ea85c0d16c3916504"
+
+data_root="${XDG_DATA_HOME:-$HOME/.local/share}/lish"
+vendor_root="$data_root/vendor"
+quicklisp_root="${QUICKLISP_HOME:-$HOME/quicklisp}"
+quiet=0
+
+if [[ "${1:-}" == "--quiet" ]]; then
+  quiet=1
+fi
+
+log() {
+  (( quiet )) || printf 'lish-bootstrap: %s\n' "$*"
+}
+
+die() {
+  printf 'lish-bootstrap: %s\n' "$*" >&2
+  exit 1
+}
+
+for tool in git sbcl curl; do
+  command -v "$tool" >/dev/null 2>&1 || die "missing required tool: $tool"
+done
+
+mkdir -p "$vendor_root" "${XDG_CACHE_HOME:-$HOME/.cache}/lish"
+
+sync_checkout() {
+  local repo_url="$1"
+  local rev="$2"
+  local target="$3"
+
+  if [[ -d "$target/.git" ]]; then
+    git -C "$target" fetch --quiet origin "$rev"
+  elif [[ -e "$target" ]]; then
+    die "$target exists but is not a Git checkout"
+  else
+    git clone --quiet --no-checkout "$repo_url" "$target"
+    git -C "$target" fetch --quiet origin "$rev"
+  fi
+
+  git -C "$target" checkout --quiet --detach "$rev"
+}
+
+log "syncing pinned Lish/Yew"
+sync_checkout "$YEW_REPO" "$YEW_REV" "$vendor_root/yew"
+
+log "syncing pinned LISA expert system"
+sync_checkout "$LISA_REPO" "$LISA_REV" "$vendor_root/lisa"
+
+if [[ -n "${PROLOG_RLM_ROOT:-}" && -d "${PROLOG_RLM_ROOT:-}" ]]; then
+  prolog_rlm_root="${PROLOG_RLM_ROOT}"
+else
+  prolog_rlm_root="$vendor_root/prolog-rlm"
+  log "syncing pinned Prolog-RLM"
+  sync_checkout "$PROLOG_RLM_REPO" "$PROLOG_RLM_REV" "$prolog_rlm_root"
+fi
+
+setup="$quicklisp_root/setup.lisp"
+if [[ ! -f "$setup" ]]; then
+  log "installing Quicklisp"
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' EXIT
+  curl -fsSL https://beta.quicklisp.org/quicklisp.lisp -o "$tmp"
+  sbcl --noinform --non-interactive \
+    --load "$tmp" \
+    --eval "(quicklisp-quickstart:install :path \"$quicklisp_root/\")"
+fi
+
+export CL_SOURCE_REGISTRY="(:source-registry (:tree \"$vendor_root/yew/\") (:tree \"$vendor_root/lisa/\") (:tree \"$prolog_rlm_root/\") :inherit-configuration)"
+
+log "precompiling Lish, LISA, and the Prolog-RLM Common Lisp bridge"
+sbcl --noinform --non-interactive \
+  --load "$setup" \
+  --eval '(ql:quickload :lish :silent t)' \
+  --eval '(ql:quickload :lisa :silent t)' \
+  --eval '(ql:quickload :prolog-rlm-cl :silent t)'
+
+log "ready"
+printf 'YEW=%s\nLISA=%s\nPROLOG_RLM=%s\n' \
+  "$vendor_root/yew" "$vendor_root/lisa" "$prolog_rlm_root"

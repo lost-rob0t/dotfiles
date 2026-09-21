@@ -26,6 +26,7 @@
     ./security.nix
     ./nim.nix
     ./lisp.nix
+    ./lish.nix
     #./python.nix
     ./syncthing.nix
     ./media.nix

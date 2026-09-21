@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+action="${1:-status}"
+lish_path="$(command -v lish || true)"
+fallback_shell="${STAR_LISH_FALLBACK_SHELL:-$(command -v bash || true)}"
+
+is_termux() {
+  [[ -n "${PREFIX:-}" && "${PREFIX}" == /data/data/com.termux/files/usr* ]]
+}
+
+status() {
+  printf 'configured_shell=%s\n' "${SHELL:-unknown}"
+  printf 'lish=%s\n' "${lish_path:-missing}"
+  if command -v getent >/dev/null 2>&1; then
+    printf 'passwd_shell=%s\n' "$(getent passwd "${USER:-}" 2>/dev/null | awk -F: '{print $7}' || true)"
+  elif command -v dscl >/dev/null 2>&1; then
+    printf 'passwd_shell=%s\n' "$(dscl . -read "/Users/${USER:-}" UserShell 2>/dev/null | awk '{print $2}' || true)"
+  fi
+  if is_termux; then
+    printf 'termux_handoff=%s\n' "${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}/scripts/lish-bash-enter"
+  fi
+}
+
+ensure_shell_registered() {
+  local shell="$1"
+  [[ -r /etc/shells ]] || return 0
+  grep -Fxq "$shell" /etc/shells && return 0
+  command -v sudo >/dev/null 2>&1 || {
+    printf 'lish-default-shell: %s is not in /etc/shells and sudo is unavailable\n' "$shell" >&2
+    exit 1
+  }
+  printf '%s\n' "$shell" | sudo tee -a /etc/shells >/dev/null
+}
+
+install_shell() {
+  [[ -n "$lish_path" ]] || {
+    printf 'lish-default-shell: lish is not on PATH\n' >&2
+    exit 127
+  }
+
+  if is_termux; then
+    printf 'lish-default-shell: Termux uses the dotfiles Bash handoff; Lish is already the default interactive shell.\n'
+    status
+    return 0
+  fi
+
+  command -v chsh >/dev/null 2>&1 || {
+    printf 'lish-default-shell: chsh is unavailable\n' >&2
+    exit 127
+  }
+
+  if command -v lish-bootstrap >/dev/null 2>&1; then
+    lish-bootstrap --quiet
+  fi
+
+  ensure_shell_registered "$lish_path"
+  chsh -s "$lish_path"
+  printf 'lish-default-shell: login shell changed to %s; new login sessions will use it.\n' "$lish_path"
+}
+
+restore_shell() {
+  [[ -n "$fallback_shell" ]] || {
+    printf 'lish-default-shell: fallback Bash is not on PATH\n' >&2
+    exit 127
+  }
+
+  if is_termux; then
+    printf 'lish-default-shell: use STAR_BASH_FALLBACK=1 bash for a Termux recovery shell.\n'
+    return 0
+  fi
+
+  command -v chsh >/dev/null 2>&1 || {
+    printf 'lish-default-shell: chsh is unavailable\n' >&2
+    exit 127
+  }
+
+  ensure_shell_registered "$fallback_shell"
+  chsh -s "$fallback_shell"
+  printf 'lish-default-shell: login shell restored to %s.\n' "$fallback_shell"
+}
+
+case "$action" in
+  status) status ;;
+  install) install_shell ;;
+  restore) restore_shell ;;
+  *)
+    printf 'Usage: lish-default-shell <status|install|restore>\n' >&2
+    exit 2
+    ;;
+esac

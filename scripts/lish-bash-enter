@@ -1,0 +1,11 @@
+# shellcheck shell=bash
+# Shared interactive-shell handoff. Source this from Bash.
+# STAR_BASH_FALLBACK=1 is the explicit recovery path.
+if [[ $- == *i* ]] \
+   && [[ "${STAR_LISH_DEFAULT_INTERACTIVE:-1}" != 0 ]] \
+   && [[ "${STAR_LISH_ACTIVE:-0}" != 1 ]] \
+   && [[ "${STAR_BASH_FALLBACK:-0}" != 1 ]] \
+   && [[ "${TERM:-}" != dumb ]] \
+   && command -v lish >/dev/null 2>&1; then
+  exec lish
+fi
