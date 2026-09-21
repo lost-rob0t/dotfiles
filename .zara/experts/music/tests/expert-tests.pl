@@ -10,7 +10,7 @@ test(identity_and_zero_model_policy) :-
     model_calls(0).
 
 test(playback_actions_are_closed) :-
-    forall(member(Action, [play, pause, play_pause, next, previous, stop, seek, volume]),
+    forall(member(Action, [play, pause, skip_next, skip_previous, stop, seek, volume, mute]),
            playback_action(Action)).
 
 test(arbitrary_playback_action_is_rejected, [fail]) :-
@@ -29,7 +29,7 @@ test(now_playing_routes_to_media_context) :-
         )).
 
 test(playback_routes_to_canonical_media_tool) :-
-    music_decision(playback(next),
+    music_decision(playback(skip_next),
         music_decision(
             expert('zara:expert/music'),
             request(playback(next)),
