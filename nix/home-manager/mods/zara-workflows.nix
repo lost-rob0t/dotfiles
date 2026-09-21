@@ -32,6 +32,11 @@ in
       force = true;
     };
 
+    home.file.".config/zarathushtra/emacs/mara-tools.el" = {
+      source = ../../../lisp/mara/mara-tools.el;
+      force = true;
+    };
+
     home.packages = [ systemUpdate ];
   };
 }
