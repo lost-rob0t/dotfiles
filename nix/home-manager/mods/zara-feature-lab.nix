@@ -47,6 +47,12 @@ in
   options.zara.featureLab = {
     enable = lib.mkEnableOption "five-worker Dotfiles Zara plugin feature lab";
 
+    autoStart = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Automatically admit and launch the five isolated workers as a Home Manager user service.";
+    };
+
     dotfilesRoot = lib.mkOption {
       type = lib.types.str;
       default = "${config.home.homeDirectory}/.dotfiles";
@@ -88,5 +94,23 @@ in
     home.packages = [ featureLab ];
 
     zara.plugins.discoveryFiles."zara_feature_lab.py" = plugin;
+
+    systemd.user.services.zara-feature-lab = lib.mkIf cfg.autoStart {
+      Unit = {
+        Description = "Five-worker Zara symbolic feature lab";
+        After = [ "default.target" ];
+      };
+      Service = {
+        Type = "oneshot";
+        ExecStart = "${featureLab}/bin/zara-feature-lab start";
+        ExecStop = "${featureLab}/bin/zara-feature-lab stop";
+        RemainAfterExit = true;
+        KillMode = "control-group";
+        TimeoutStartSec = 180;
+        TimeoutStopSec = 30;
+        UMask = "0077";
+      };
+      Install.WantedBy = [ "default.target" ];
+    };
   };
 }
