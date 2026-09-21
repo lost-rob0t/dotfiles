@@ -12,10 +12,7 @@ dotfiles_handler(dotfiles(Query, Result), _Context, Value) :-
                              Report)
     ->  (   Report.outcome == success
         ->  upstream_info(Up),
-            Value = dotfiles_answer{query: Query,
-                                    result: Result,
-                                    outcome: success,
-                                    upstream: Up}
+            Value = dotfiles_answer(Query, Result, success, Up, [], [])
         ;   Value = dotfiles_answer{query: Query,
                                     result: none,
                                     outcome: failure,
@@ -23,12 +20,7 @@ dotfiles_handler(dotfiles(Query, Result), _Context, Value) :-
                                     warnings: Report.warnings,
                                     suggested_solutions: Report.solutions}
         )
-    ;   Value = dotfiles_answer{query: Query,
-                                result: none,
-                                outcome: failure,
-                                error: attempt_failed,
-                                warnings: [],
-                                suggested_solutions: []}
+    ;   Value = dotfiles_answer(Query, none, failure, attempt_failed, [], [])
     ).
 
 dotfiles_eval(configures(Key), Files) :-
@@ -107,12 +99,8 @@ include_dotfiles([_|Rest], Out) :-
 register_dotfiles_expert :-
     upstream_load,
     symbolic_rlm:current_registry(Registry),
-    Contract = expert_contract{id: dotfiles_expert,
-                               version: '0.1.0',
-                               goal: dotfiles/2,
-                               priority: 46,
-                               requires: [],
-                               handler: zara_expert_dotfiles:dotfiles_handler},
+    Contract = expert_contract(dotfiles_expert, '0.1.0', dotfiles/2, 46,
+                               zara_expert_dotfiles:dotfiles_handler),
     symbolic_rlm:expert_register(Registry, Contract, _),
     catch(symbolic_moe:moe_register(Registry, Contract,
                                     [dotfiles, config, emacs, doom, qtile,
