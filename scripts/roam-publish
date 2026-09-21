@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+: "${KB_ROAM_ELISP:=$HOME/.config/kb-roam/kb-roam.el}"
+: "${ROAM_CENSOR_CMD:=roam-censor}"
+
+"$ROAM_CENSOR_CMD" check
+
+form='(progn (load-file (getenv "KB_ROAM_ELISP")) (princ (kb-roam-cli-publish)))'
+if emacsclient --eval t >/dev/null 2>&1; then
+  emacsclient --eval "$form" | sed -e 's/^"//' -e 's/"$//' -e 's/\\n/\n/g'
+else
+  emacs -Q --batch --eval "$form"
+fi
