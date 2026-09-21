@@ -21,8 +21,15 @@ reset_kb :-
     retractall(roam_heading(_,_,_,_,_)),
     retractall(roam_link(_,_)).
 
+value_atom(Value, Atom) :-
+    ( atom(Value) -> Atom = Value
+    ; string(Value) -> atom_string(Atom, Value)
+    ; number(Value) -> atom_number(Atom, Value)
+    ; term_to_atom(Value, Atom)
+    ).
+
 dict_atom(Dict, Key, Atom) :-
-    ( get_dict(Key, Dict, Value) -> term_string(Value, S), atom_string(Atom, S)
+    ( get_dict(Key, Dict, Value) -> value_atom(Value, Atom)
     ; Atom = ''
     ).
 
@@ -103,7 +110,7 @@ run('self-test', _, _) :-
 
 main :-
     current_prolog_flag(argv, Argv),
-    ( Argv = [Mode0, Manifest, KbOut|_] -> atom_string(Mode, Mode0), run(Mode, Manifest, KbOut)
+    ( Argv = [Mode0, Manifest, KbOut|_] -> value_atom(Mode0, Mode), run(Mode, Manifest, KbOut)
     ; format(user_error, 'usage: roam-censor.pl check|build MANIFEST KBOUT~n', []), halt(2) ).
 
 :- initialization(main, main).
