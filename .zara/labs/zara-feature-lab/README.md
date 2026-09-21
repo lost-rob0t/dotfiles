@@ -24,8 +24,10 @@ direct/symbolic/symbolic-recursive selector while the canonical Prolog-RLM mode
 contract is still upstream work.
 
 The coding worker itself may use its configured model after symbolic admission;
-the expert brain does not. Each worker runs via `opencode-worker --mode
-isolated-mutate` in its own linked Git worktree.
+the expert brain does not. Prolog-RLM is the authoritative symbolic/control-plane
+runtime; OpenCode is only the isolated mutation executor until AgentProlog's
+headless coding workflow is available. Each worker runs via
+`opencode-worker --mode isolated-mutate` in its own linked Git worktree.
 
 ## Prototype layout
 
@@ -41,9 +43,10 @@ into plugin adapters.
 ## Promotion
 
 `zara-feature-lab promote <id>` verifies the Dotfiles worker worktree, creates
-an isolated `zara-plugins` worktree/branch, copies only that feature's overlay
-into its declared target plugin, and runs the target plugin's focused tests plus
-registry validation. It does **not** merge, force-push, or write master.
+an isolated `zara-plugins` worktree/branch, copies only that feature's overlay,
+commits the candidate, then records registry/focused-test/diff evidence through
+`prolog-verify observe` and requires `prolog-verify check` at that exact commit.
+It does **not** push, merge, force-push, or write master.
 
 Credentials and tokens never belong in this tree. Proxmox and other runtime
 secrets must come from environment variables, wallet/keyring, or Emacs
