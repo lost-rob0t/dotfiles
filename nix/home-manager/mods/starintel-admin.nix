@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config.starintelAdmin;
-  adminRef = "github:starintel-labs/starintel-admin/7a3996e276ef39f145f7326d2c9e736f6cde47ba";
+  adminRef = "github:starintel-labs/starintel-admin/90e3c226dc7013297b4e05781c79da16f321123a";
   launcher = pkgs.writeShellApplication {
     name = "starintel-admin";
     runtimeInputs = [ pkgs.nix ];
