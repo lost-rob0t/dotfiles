@@ -139,8 +139,49 @@ CALLBACK receives (OK OUTPUT)."
   (insert " ")
   (starintel-admin--button " Dataset policy " #'starintel-admin-dataset-policy)
   (insert " ")
+  (starintel-admin--button " Replay policy " #'starintel-admin-dataset-apply)
+  (insert " ")
   (starintel-admin--button " Graph image " #'starintel-admin-graph-image)
   (insert "\n\n"))
+
+(defun starintel-admin--desired-public-datasets (payload)
+  (sort
+   (cl-loop for (dataset . policy) in (starintel-admin--get "dataset_policies" payload)
+            when (string= "public" (or (starintel-admin--get "mode" policy) ""))
+            collect dataset)
+   #'string<))
+
+(defun starintel-admin--desired-planned-datasets (payload)
+  (sort
+   (cl-loop for (dataset . policy) in (starintel-admin--get "dataset_policies" payload)
+            when (string= "planned" (or (starintel-admin--get "mode" policy) ""))
+            collect
+            (cons dataset (starintel-admin--get "tenant_id" policy)))
+   (lambda (left right) (string< (car left) (car right)))))
+
+(defun starintel-admin--live-planned-datasets (payload)
+  (sort
+   (copy-tree
+    (or (starintel-admin--get
+         "planned_datasets"
+         (starintel-admin--get "live_dataset_policy" payload))
+        nil))
+   (lambda (left right) (string< (car left) (car right)))))
+
+(defun starintel-admin--dataset-policy-drift-p (payload)
+  (let* ((live (starintel-admin--get "live_dataset_policy" payload))
+         (status (and live (starintel-admin--get "status" live)))
+         (live-public
+           (sort
+            (copy-sequence
+             (or (and live (starintel-admin--get "public_datasets" live)) nil))
+            #'string<)))
+    (or (null live)
+        (string= status "unavailable")
+        (not (equal (starintel-admin--desired-public-datasets payload)
+                    live-public))
+        (not (equal (starintel-admin--desired-planned-datasets payload)
+                    (starintel-admin--live-planned-datasets payload))))))
 
 (defun starintel-admin--status-face (status)
   (if (member (downcase (or status "")) '("active" "ok" "healthy"))
@@ -150,6 +191,10 @@ CALLBACK receives (OK OUTPUT)."
 (defun starintel-admin--insert-summary (payload)
   (let* ((counts (starintel-admin--get "counts" payload))
          (health (starintel-admin--get "health" payload))
+         (live-policy (starintel-admin--get "live_dataset_policy" payload))
+         (policy-generation
+           (or (and live-policy (starintel-admin--get "generation" live-policy)) 0))
+         (policy-drift (starintel-admin--dataset-policy-drift-p payload))
          (status (or (starintel-admin--get "status" health) "unknown")))
     (insert "* ")
     (insert (propertize "StarIntel Admin" 'face 'starintel-admin-title-face))
@@ -168,6 +213,14 @@ CALLBACK receives (OK OUTPUT)."
                     (or (starintel-admin--get "active_credentials" counts) 0)))
     (insert (format "| Dataset policies | %s |\n"
                     (or (starintel-admin--get "datasets" counts) 0)))
+    (insert (format "| Policy generation | %s |\n" policy-generation))
+    (insert
+     (format "| Policy sync | %s |\n"
+             (propertize
+              (if policy-drift "DRIFT — replay required" "synced")
+              'face (if policy-drift
+                        'starintel-admin-danger-face
+                      'starintel-admin-success-face))))
     (org-table-align)))
 
 (defun starintel-admin--tenant-scopes (user)
@@ -223,7 +276,7 @@ CALLBACK receives (OK OUTPUT)."
     (starintel-admin--insert-dataset-preview payload)
     (insert "\n** Keys\n\n")
     (insert (propertize
-             "g refresh · u users · d tenant docs · s data size · p set plan · P revoke plan · r revoke user · k revoke key · v dataset policy · i graph\n"
+             "g refresh · u users · d tenant docs · s data size · p set plan · P revoke plan · r revoke user · k revoke key · v dataset policy · a replay policy · i graph\n"
              'face 'starintel-admin-muted-face))
     (goto-char (point-min))
     (org-cycle-hide-drawers 'all)
@@ -272,6 +325,7 @@ CALLBACK receives (OK OUTPUT)."
     (define-key map (kbd "r") #'starintel-admin-revoke-user)
     (define-key map (kbd "k") #'starintel-admin-revoke-key)
     (define-key map (kbd "v") #'starintel-admin-dataset-policy)
+    (define-key map (kbd "a") #'starintel-admin-dataset-apply)
     (define-key map (kbd "i") #'starintel-admin-graph-image)
     (define-key map (kbd "q") #'quit-window)
     map))
@@ -501,6 +555,11 @@ This is intentionally separate from the normal Emacs startup dashboard."
   (starintel-admin--mutation
    (append (list "dataset" mode dataset)
            (when plan (list plan)))))
+
+(defun starintel-admin-dataset-apply ()
+  "Replay durable dataset policy into the live StarIntel server."
+  (interactive)
+  (starintel-admin--mutation (list "dataset" "apply")))
 
 (defun starintel-admin--documents (payload)
   (or (starintel-admin--get "hits" payload)
