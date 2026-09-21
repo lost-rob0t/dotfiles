@@ -84,7 +84,8 @@ A practical install order is:
 4. launch Termux and Emacs once;
 5. run [[file:../../bootstrap-termux.org][the Termux bootstrap]];
 6. run =android-emacs-stow=;
-7. smoke-test =git --version= in Termux and =M-! git --version= in native Emacs.
+7. run =android-emacs-doctor= in Termux;
+8. smoke-test =git --version= in Termux and =M-! git --version= in native Emacs.
 
 The certificate/shared-UID gate is more important than the order: every installed
 member must come from the same bundle.
@@ -150,7 +151,9 @@ The most common cause is mixing signing families.
 
 ** Native Emacs cannot execute Termux Git
 
-Verify that the paired family is installed, then follow
+Run =android-emacs-doctor= first.  It reports missing family members, a mismatched
+Android UID, an inaccessible native Emacs home, missing Stow links, and missing
+Termux toolchain commands.  Then follow
 [[file:../../android/README.org][android/README.org]] for the shared-UID bridge and run =android-emacs-stow= again.
 
 ** Widget entries are stale
