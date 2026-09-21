@@ -23,6 +23,7 @@ semantics by `lost-rob0t/zara#1249`.
 
 ## Current experts
 
+- `inventory/` — zero-model Org-roam inventory/food/recipe rules: event replay, reorder decisions, recipe stock coverage, table schemas, and AI provenance requirements.
 - `emacs/` — reproducible Emacs self-documentation corpus plus bounded queries.
 - `git/` — symbolic Git operation/effect/precondition reasoning.
 - `home-manager/` — adapter over the existing durable Home Manager ownership KB.
