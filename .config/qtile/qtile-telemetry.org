@@ -6,8 +6,7 @@ This is the canonical source for =qtile_telemetry.py=. Existing WM/key telemetry
 and OpenRouter installation are unchanged. The adjacent z.AI/GPT pair is added
 after the old telemetry installer so desktop-control bar setup runs first.
 See [[file:qtile-llm-log.org][llm-log quota widgets]] for their behavior and settings.
-The [[file:qtile-llm-log-graph.org][new llm-log API grapher]] is installed directly after GPT.
-
+The [[file:qtile-consortium.org][Consortium observer pair]] is installed on the primary screen before subscription telemetry.\nThe [[file:qtile-llm-log-graph.org][new llm-log API grapher]] is installed directly after Codex.\n
 #+begin_src python :tangle qtile_telemetry.py
 import json
 import os
@@ -181,6 +180,10 @@ def install_telemetry(config_globals):
     from qtile_llm_log import install_llm_log_widgets
 
     install_llm_log_widgets(config_globals)
+
+    from qtile_consortium import install_consortium_widgets
+
+    install_consortium_widgets(config_globals)
 
     from qtile_llm_log_graph import install_llm_log_graph
 
