@@ -24,6 +24,9 @@ semantics by `lost-rob0t/zara#1249`.
 ## Current experts
 
 - `emacs/` — reproducible Emacs self-documentation corpus plus bounded queries.
+- `mara/` — deterministic MoE intent routing to installed Zara tool families.
+- `todo/` — read-only Prolog reasoning over the generated Org TODO projection; Org remains canonical.
+- `roam/` — symbolic Org-roam operation selection without mirroring the roam graph.
 - `git/` — symbolic Git operation/effect/precondition reasoning.
 - `home-manager/` — adapter over the existing durable Home Manager ownership KB.
 - `zara/` — adapter over existing Zara deployment and voice-validation KB facts.
