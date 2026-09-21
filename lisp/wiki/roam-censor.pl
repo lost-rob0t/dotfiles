@@ -70,11 +70,11 @@ violation(Path, missing_kind) :-
 violation(Path, too_few_topical_tags(Count)) :-
     roam_file(Id, Path, _, _, public, _, _, _, _), topical_count(Id, Count), Count < 2.
 violation(Path, missing_ai_tag) :-
-    roam_file(_, Path, _, _, public, _, true, AiTag, _), \+ valid_ai_tag(AiTag).
+    roam_file(_, Path, _, _, _, _, true, AiTag, _), \+ valid_ai_tag(AiTag).
 violation(Path, ai_tag_not_in_filetags(AiTag)) :-
-    roam_file(Id, Path, _, _, public, _, true, AiTag, _), valid_ai_tag(AiTag), \+ roam_tag(Id, AiTag).
+    roam_file(Id, Path, _, _, _, _, true, AiTag, _), valid_ai_tag(AiTag), \+ roam_tag(Id, AiTag).
 violation(Path, duplicate_ai_tag(AiTag)) :-
-    roam_file(_, Path, _, _, public, _, true, AiTag, _), valid_ai_tag(AiTag),
+    roam_file(_, Path, _, _, _, _, true, AiTag, _), valid_ai_tag(AiTag),
     aggregate_all(count, roam_file(_, _, _, _, _, _, true, AiTag, _), N), N > 1.
 violation(Path, sensitive_public_tag(Tag)) :-
     roam_file(Id, Path, _, _, public, _, _, _, strict), roam_tag(Id, Tag), sensitive_tag(Tag).
