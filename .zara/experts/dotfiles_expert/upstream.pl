@@ -42,6 +42,5 @@ upstream_ready_check(Home) :-
 upstream_ready :-
     upstream_loaded(_).
 
-upstream_info(upstream{home: Home,
-                       origin: 'github.com/lost-rob0t/symbolic'}) :-
+upstream_info(upstream(Home, 'github.com/lost-rob0t/symbolic')) :-
     upstream_loaded(Home).

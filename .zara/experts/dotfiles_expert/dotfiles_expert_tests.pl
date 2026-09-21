@@ -28,13 +28,13 @@ ensure_fixture :-
 test(upstream_loaded_and_stamped) :-
     upstream_load,
     upstream_ready,
-    upstream_info(upstream{home: _, origin: 'github.com/lost-rob0t/symbolic'}).
+    upstream_info(upstream(_, 'github.com/lost-rob0t/symbolic')).
 
 test(expert_registered_in_moe) :-
     symbolic_rlm:current_registry(R),
     symbolic_rlm:expert_catalog(R, Es),
     member(E, Es),
-    E.id == dotfiles_expert.
+    contract_id(E, dotfiles_expert).
 
 test(configures_finds_fixture, [setup(ensure_fixture)]) :-
     ensure_fixture,
@@ -56,7 +56,7 @@ test(configures_finds_fixture, [setup(ensure_fixture)]) :-
 
 test(unknown_query_tracked_as_failure, [setup(ensure_fixture)]) :-
     zara_expert_dotfiles:dotfiles_handler(dotfiles(configures(zzz_no_such_option_zz), _), ctx, V),
-    V.outcome == failure,
+    V = dotfiles_answer(_, _, failure, _, _, _),
     findall(A, (outcome:attempt(A), outcome:attempt_expert(A, dotfiles_expert)), As),
     length(As, N),
     N >= 2.
@@ -67,10 +67,9 @@ test(failure_solutions_surface_on_repeat, [setup(ensure_fixture)]) :-
                             'mine the dotfiles repository into the symbolic KB',
                             'dotfiles_expert', _S),
     catch(zara_expert_dotfiles:dotfiles_handler(dotfiles(configures(yyy_missing_opt), _), _, V2), _, true),
-    is_dict(V2),
-    V2.outcome == failure,
-    V2.suggested_solutions \= [],
-    member(sol(_Sol, Steps, 'dotfiles_expert'), V2.suggested_solutions),
+    V2 = dotfiles_answer(_, _, failure, _, _, Sugg),
+    Sugg \= [],
+    member(sol(_Sol, Steps, 'dotfiles_expert'), Sugg),
     atom(Steps).
 
 :- end_tests(dotfiles_expert).
