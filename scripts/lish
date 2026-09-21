@@ -35,6 +35,19 @@ escape_lisp_string() {
 init_escaped="$(escape_lisp_string "$init_file")"
 
 case "${1:-}" in
+  -l|--login)
+    shift
+    if (( $# )); then
+      printf 'lish: login mode does not accept extra arguments\n' >&2
+      exit 2
+    fi
+    exec sbcl --noinform \
+      --load "$setup" \
+      --eval '(ql:quickload :lish :silent t)' \
+      --eval "(load \"$init_escaped\")" \
+      --eval '(lish:!lish :no-init-file t :greeting t :terminal-type :crunch)' \
+      --quit
+    ;;
   -c)
     shift
     command_text="${1:-}"
@@ -69,7 +82,7 @@ case "${1:-}" in
       --quit
     ;;
   *)
-    printf 'Usage: lish [-c COMMAND|--help|--version]\n' >&2
+    printf 'Usage: lish [-l|--login|-c COMMAND|--help|--version]\n' >&2
     exit 2
     ;;
 esac
