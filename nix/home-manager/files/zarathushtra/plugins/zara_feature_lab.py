@@ -81,7 +81,7 @@ class ZaraFeatureLabPlugin(ServicePlugin):
             StructuredTool.from_function(
                 func=self.promote,
                 name="feature_lab.promote",
-                description="Promote one verified Dotfiles feature overlay into a new isolated zara-plugins worktree/branch and run focused validation. Never merges master.",
+                description="Promote one verified Dotfiles feature overlay into a committed, exact-head-verified zara-plugins candidate branch. Never pushes or merges master.",
                 metadata=APPROVAL_METADATA,
             ),
         )
