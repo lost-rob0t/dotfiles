@@ -6,13 +6,17 @@ let
     name = "starintel-admin";
     runtimeInputs = [ pkgs.nix ];
     text = ''
-      exec nix run ${lib.escapeShellArg adminRef} -- "$@"
+      exec nix --extra-experimental-features "nix-command flakes" run ${lib.escapeShellArg adminRef} -- "$@"
     '';
   };
 in
 {
   options.starintelAdmin = {
-    enable = lib.mkEnableOption "portable StarIntel administrator CLI";
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Install the pinned portable StarIntel administrator CLI launcher.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
