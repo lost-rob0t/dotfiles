@@ -18,7 +18,7 @@ permissions:
     resource: "bash tests/kb-roam.sh*"
     effect: allow
   - action: shell
-    resource: "scripts/check-roam-publish*"
+    resource: "bash scripts/check-roam-publish*"
     effect: allow
   - action: shell
     resource: "nix flake check --no-build*"
@@ -40,6 +40,6 @@ Required checks:
 - A private ancestor dominates public-looking descendants.
 - The Prolog censor gate passes before publishing and the generated roam mega-KB is queryable.
 - Session exports are sanitized and private by default.
-- Run `bash tests/kb-roam.sh`, `scripts/check-roam-publish`, and when repository-wide verification is appropriate, `nix flake check --no-build`.
+- Run `bash tests/kb-roam.sh`, `bash scripts/check-roam-publish`, and when repository-wide verification is appropriate, `nix flake check --no-build`.
 
 Report findings in severity order with exact files and evidence. Do not declare success when any required command was skipped or failed.
