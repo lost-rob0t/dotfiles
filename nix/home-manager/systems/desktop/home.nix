@@ -32,6 +32,7 @@
     enable = true;
     nixManaged = false;
     workflows.enable = true;
+    featureLab.enable = true;
 
     server = {
       enable = true;
@@ -118,13 +119,11 @@
     stateVersion = "23.11";
   };
   # This value determines the Home Manager release that your
-  # configuration is compatible with. This helps avoid breakage
-  # when a new Home Manager release introduces backwards
+  # configuration is compatible with. This helps avoid breakage when a new
   # incompatible changes.
   #
   # You can update this value in your configuration without breakage.
-  # See the Home Manager release notes for a list of state version
-  # changes.
+  # See the Home Manager release notes for a list of state version changes.
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
