@@ -8,6 +8,11 @@ for script in scripts/lish scripts/lish-bootstrap scripts/lish-rlm scripts/lish-
   bash -n "$script"
 done
 
+if command -v shellcheck >/dev/null 2>&1; then
+  shellcheck --severity=warning \
+    scripts/lish scripts/lish-bootstrap scripts/lish-rlm scripts/lish-expert scripts/lish-bash-enter
+fi
+
 grep -Fq '7463781d04c8e35db22bb88796dd78c1a8f752bd' scripts/lish-bootstrap
 grep -Fq 'ae3715d74548e451bb08b432c5d25ec93e2a02c1' scripts/lish-bootstrap
 grep -Fq '4715b5ee53d0e7a26c55705ea85c0d16c3916504' scripts/lish-bootstrap
