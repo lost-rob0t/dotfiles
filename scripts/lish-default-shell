@@ -50,6 +50,10 @@ install_shell() {
     exit 127
   }
 
+  if command -v lish-bootstrap >/dev/null 2>&1; then
+    lish-bootstrap --quiet
+  fi
+
   ensure_shell_registered "$lish_path"
   chsh -s "$lish_path"
   printf 'lish-default-shell: login shell changed to %s; new login sessions will use it.\n' "$lish_path"
