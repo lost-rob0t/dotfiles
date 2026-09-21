@@ -42,4 +42,4 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y emacs-nox swi-prolog jq shellcheck
       - name: Run KB Roam gate
-        run: scripts/check-roam-publish
+        run: bash scripts/check-roam-publish
