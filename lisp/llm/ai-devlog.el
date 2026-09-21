@@ -650,4 +650,80 @@
          (tea-repo (alist-get 'repo (alist-get 'tea repositories)))
          (gh (ai/devlog--gh-events root github-repo since-time limit))
          (tea (ai/devlog--tea-events root tea-repo since-time limit))
-         (gi
+         (git-context (ai/devlog--git-context root since-hours limit))
+         (events (append (car gh) (car tea) (plist-get git-context :events)))
+         (diagnostics
+          (seq-remove #'string-empty-p
+                      (delq nil (list (cadr gh) (cadr tea) (plist-get git-context :error)))))
+         (run-id (substring (secure-hash 'sha256
+                                         (format "%s\x1f%s\x1f%s"
+                                                 root (float-time) (random)))
+                            0 24))
+         (daily (ai/devlog--ensure-daily-file (ai/devlog--daily-file)))
+         (inserted 0))
+    (with-current-buffer (find-file-noselect daily)
+      (unless (derived-mode-p 'org-mode) (org-mode))
+      (org-with-wide-buffer
+       (ai/devlog--ensure-heading ai/devlog-changelog-heading)
+       (dolist (event events)
+         (when (ai/devlog--insert-event event run-id)
+           (setq inserted (1+ inserted))))
+       (ai/devlog--ensure-heading ai/devlog-devlog-heading)
+       (ai/devlog--insert-run root git-context events diagnostics note run-id since-hours)
+       (save-buffer)))
+    (when (fboundp 'org-roam-db-sync) (ignore-errors (org-roam-db-sync)))
+    (let ((kb (ai/devlog-rebuild-kb)))
+      (ai/devlog--result
+       "ok" t
+       "daily" daily
+       "run_id" run-id
+       "events_seen" (length events)
+       "events_inserted" inserted
+       "github_events" (ai/devlog--count-provider "github" events)
+       "forgejo_events" (ai/devlog--count-provider "forgejo" events)
+       "git_commits" (ai/devlog--count-provider "git" events)
+       "kb_file" (plist-get kb :file)
+       "kb_events" (plist-get kb :events)
+       "diagnostics" (vconcat diagnostics)))))
+
+(defun ai/devlog-register-gptel-tools ()
+  "Register devlog synchronization and symbolic query tools with gptel."
+  (interactive)
+  (unless (require 'gptel nil t)
+    (user-error "gptel is unavailable"))
+  (dolist (name '("DevlogSync" "DevlogQuery"))
+    (when (fboundp 'gptel-get-tool)
+      (ignore-errors (setf (gptel-get-tool name) nil))))
+  (apply #'gptel-make-tool
+         (append
+          (list
+           :name "DevlogSync"
+           :category "knowledge"
+           :description
+           "Collect recent gh/tea/local Git activity for a project, append normalized changlog events and a detailed devlog run to today's Org-roam daily, then rebuild the Prolog KB."
+           :function #'ai/devlog-sync
+           :args
+           '((:name "project" :type string :optional t :description "Project directory; defaults to current project")
+             (:name "since_hours" :type integer :optional t :description "Lookback window in hours")
+             (:name "note" :type string :optional t :description "Factual development-session note to store in the detailed devlog")
+             (:name "limit" :type integer :optional t :description "Per-provider item cap, max 200")))
+          (when ai/devlog-confirm-tool-call (list :confirm t))))
+  (gptel-make-tool
+   :name "DevlogQuery"
+   :category "knowledge"
+   :description
+   "Query the Prolog devlog KB derived from Org-roam dailies. Modes: recent, day, run, repo, provider, kind, state, open, completed, search, summary."
+   :function #'ai/devlog-query
+   :args
+   '((:name "mode" :type string
+            :enum ["recent" "day" "run" "repo" "provider" "kind" "state" "open" "completed" "search" "summary"]
+            :description "Typed symbolic query")
+     (:name "value" :type string :optional t :description "Filter/search value for non-summary modes")
+     (:name "limit" :type integer :optional t :description "Maximum returned events, max 200")))
+  (when (boundp 'ai/agent-tools)
+    (dolist (name '("DevlogSync" "DevlogQuery"))
+      (cl-pushnew name ai/agent-tools :test #'equal)))
+  t)
+
+(provide 'ai-devlog)
+;;; ai-devlog.el ends here
