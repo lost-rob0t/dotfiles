@@ -156,7 +156,7 @@ in
         pkgs.xwininfo
         pkgs.xdotool
         pkgs.fd
-      ];
+      ] ++ config.emacs.extraPackages;
     };
 
     xdg = mkIf config.emacs.diredXDG.enable {
