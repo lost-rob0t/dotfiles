@@ -6,7 +6,9 @@
 
 Lish is the default interactive shell surface. Bash remains the portable
 login/recovery shim and immediately =exec=s Lish for ordinary interactive
-terminals. Set =STAR_BASH_FALLBACK=1= to stay in Bash.
+terminals. Set =STAR_BASH_FALLBACK=1= to stay in Bash.  To also change the account's actual
+login shell, run =lish-default-shell install=; =lish-default-shell restore=
+returns it to Bash.
 
 The shell keeps normal shell and Common Lisp execution native. Existing commands,
 aliases, directories, ASDF commands, and Lisp forms stay on Lish's normal path.
@@ -14,7 +16,9 @@ Only otherwise-unknown/free-form lines are intercepted and sent to Prolog-RLM.
 
 * Runtime
 
-- =scripts/lish= launches Lish inside SBCL.
+- =scripts/lish= launches Lish inside SBCL and accepts =-l/--login=.
+- =scripts/lish-default-shell= explicitly installs/restores Lish as the account
+  login shell on ordinary Unix hosts. It is never run implicitly by Home Manager.
 - =scripts/lish-bootstrap= installs Quicklisp when needed and synchronizes pinned
   Yew/Lish, LISA, and Prolog-RLM source revisions.
 - =.config/lish/init.lisp= loads optional expert runtimes and the agentic layer.
@@ -45,6 +49,7 @@ an unrestricted Lisp or Prolog evaluator merely because the shell is agentic.
 | =expert ...= | Invoke the expert CLI. |
 | =expert-status= | Inspect expert runtime wiring. |
 | =lisa-status= | Confirm the LISA package is loaded. |
+| =lish-default-shell status|install|restore= | Inspect or explicitly change the account login shell. |
 
 Unknown natural-language input behaves like =ai=. Known commands still execute
 normally, so =git status=, =cd=, pipelines, Lisp functions, and ordinary Lish
