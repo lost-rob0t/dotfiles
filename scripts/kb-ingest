@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+usage() {
+  cat <<'EOF'
+usage: kb-ingest --title TITLE --tags TAG1,TAG2 [--body TEXT|--body-file FILE]
+                 [--kind KIND] [--source SOURCE] [--public] [--ai]
+EOF
+}
+
+title=
+tags=
+body=
+body_file=
+kind=note
+source=
+visibility=private
+ai=false
+
+while (($#)); do
+  case "$1" in
+    --title) title=$2; shift 2 ;;
+    --tags) tags=$2; shift 2 ;;
+    --body) body=$2; shift 2 ;;
+    --body-file) body_file=$2; shift 2 ;;
+    --kind) kind=$2; shift 2 ;;
+    --source) source=$2; shift 2 ;;
+    --public) visibility=public; shift ;;
+    --private) visibility=private; shift ;;
+    --ai) ai=true; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) printf 'kb-ingest: unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+[[ -n "$title" ]] || { printf 'kb-ingest: --title is required\n' >&2; exit 2; }
+[[ -n "$tags" ]] || { printf 'kb-ingest: --tags is required\n' >&2; exit 2; }
+[[ -z "$body_file" || -z "$body" ]] || { printf 'kb-ingest: choose --body or --body-file\n' >&2; exit 2; }
+
+tmp=
+cleanup() {
+  [[ -z "$tmp" ]] || rm -f -- "$tmp"
+}
+trap cleanup EXIT
+
+if [[ -n "$body_file" ]]; then
+  [[ -r "$body_file" ]] || { printf 'kb-ingest: unreadable body file: %s\n' "$body_file" >&2; exit 2; }
+else
+  tmp=$(mktemp)
+  printf '%s' "$body" >"$tmp"
+  body_file=$tmp
+fi
+
+: "${KB_ROAM_ELISP:=$HOME/.config/kb-roam/kb-roam.el}"
+[[ -r "$KB_ROAM_ELISP" ]] || { printf 'kb-ingest: missing %s\n' "$KB_ROAM_ELISP" >&2; exit 3; }
+
+export KB_ROAM_TITLE="$title"
+export KB_ROAM_TAGS="$tags"
+export KB_ROAM_BODY_FILE="$body_file"
+export KB_ROAM_KIND="$kind"
+export KB_ROAM_SOURCE="$source"
+export KB_ROAM_VISIBILITY="$visibility"
+export KB_ROAM_AI="$ai"
+
+form='(progn (load-file (getenv "KB_ROAM_ELISP")) (princ (kb-roam-cli-ingest)))'
+if emacsclient --eval t >/dev/null 2>&1; then
+  emacsclient --eval "$form" | sed -e 's/^"//' -e 's/"$//' -e 's/\\n/\n/g'
+else
+  emacs -Q --batch --eval "$form"
+fi

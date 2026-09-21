@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$root"
+
+for f in scripts/kb-ingest scripts/opencode-session-to-org scripts/roam-censor scripts/roam-publish scripts/check-roam-publish tests/kb-roam.sh; do
+  bash -n "$f"
+done
+
+if command -v shellcheck >/dev/null 2>&1; then
+  shellcheck --severity=warning     scripts/kb-ingest scripts/opencode-session-to-org scripts/roam-censor     scripts/roam-publish scripts/check-roam-publish tests/kb-roam.sh
+fi
+
+emacs -Q --batch   -l lisp/wiki/kb-roam.el   --eval '(progn (unless (equal kb-roam-metadata-schema "org-roam-meta/v1") (kill-emacs 2)) (message "kb-roam elisp: OK"))'
+
+swipl -q -s lisp/wiki/roam-censor.pl -- self-test /dev/null /tmp/unused-kb.pl
+bash tests/kb-roam.sh
+
+printf 'check-roam-publish: OK\n'
