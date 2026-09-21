@@ -118,6 +118,7 @@ emacs-org
 emacs-termux
 doom-termux sync
 android-emacs-stow
+android-emacs-doctor
 git --version
 swipl
 sbcl
@@ -183,8 +184,12 @@ to =PATH= and =exec-path= and selects Termux Bash for =M-x shell= and subprocess
 It sets =SHELL= and =PREFIX= but retains native Emacs HOME and does not change
 =LD_LIBRARY_PATH=, =LD_PRELOAD=, or Emacs's Android executable-loader setting.
 Repeated initialization is idempotent.  Desktop and inaccessible Termux installs
-are unchanged.  Test =M-x shell= and =M-! git --version= in native Emacs after
-installation; build verification does not replace a physical-device smoke test.
+are unchanged.  Run =android-emacs-doctor= from Termux after =android-emacs-stow=.  It checks
+the complete eight-app family, confirms Termux and native Emacs resolve to the
+same Android UID, verifies the native profile links, and checks the Termux
+toolchain exposed to Emacs.  Then test =M-x shell= and =M-! git --version= in
+native Emacs; host-side build verification does not replace a physical-device
+smoke test.
 
 Git comes from the paired Termux userspace, not a separately maintained binary
 in the Emacs APK.  Optional Emacs libraries and NixOS build-host requirements
