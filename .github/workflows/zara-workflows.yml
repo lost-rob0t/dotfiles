@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/zara-workflows.yml'
       - 'tests/zara-workflows.sh'
+      - 'tests/zara-lyria.py'
       - 'tests/zara-android-template.sh'
       - 'nix/home-manager/mods/default.nix'
       - 'nix/home-manager/mods/zara.nix'
@@ -25,6 +26,7 @@ on:
     paths:
       - '.github/workflows/zara-workflows.yml'
       - 'tests/zara-workflows.sh'
+      - 'tests/zara-lyria.py'
       - 'tests/zara-android-template.sh'
       - 'nix/home-manager/mods/default.nix'
       - 'nix/home-manager/mods/zara.nix'
@@ -59,5 +61,7 @@ jobs:
         run: swipl -q -t halt -s .config/zarathushtra/config.pl
       - name: Check Zara workflow contract
         run: bash tests/zara-workflows.sh
+      - name: Check private OpenRouter Lyria plugin
+        run: python3 tests/zara-lyria.py
       - name: Check Zara Android config template
         run: bash tests/zara-android-template.sh

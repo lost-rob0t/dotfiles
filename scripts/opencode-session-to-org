@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+session_id="${1:-}"
+: "${KB_ROAM_ELISP:=$HOME/.config/kb-roam/kb-roam.el}"
+
+command -v opencode >/dev/null || { printf 'opencode-session-to-org: opencode not found\n' >&2; exit 3; }
+command -v jq >/dev/null || { printf 'opencode-session-to-org: jq not found\n' >&2; exit 3; }
+[[ -r "$KB_ROAM_ELISP" ]] || { printf 'opencode-session-to-org: missing %s\n' "$KB_ROAM_ELISP" >&2; exit 3; }
+
+if [[ -z "$session_id" ]]; then
+  listing=$(opencode session list --max-count 1 --format json)
+  session_id=$(jq -r '
+    if type == "array" then .[0].id
+    elif .sessions then .sessions[0].id
+    else .id end // empty
+  ' <<<"$listing")
+fi
+[[ -n "$session_id" ]] || { printf 'opencode-session-to-org: no session found\n' >&2; exit 4; }
+
+tmp=$(mktemp)
+trap 'rm -f -- "$tmp"' EXIT
+
+if opencode session export "$session_id" --sanitize >"$tmp" 2>/dev/null; then
+  :
+elif opencode export "$session_id" --sanitize >"$tmp"; then
+  :
+else
+  printf 'opencode-session-to-org: sanitized export failed for %s\n' "$session_id" >&2
+  exit 5
+fi
+
+export KB_ROAM_SESSION_ID="$session_id"
+export KB_ROAM_SESSION_JSON="$tmp"
+form='(progn (load-file (getenv "KB_ROAM_ELISP")) (princ (kb-roam-cli-session-export)))'
+if emacsclient --eval t >/dev/null 2>&1; then
+  emacsclient --eval "$form" | sed -e 's/^"//' -e 's/"$//' -e 's/\\n/\n/g'
+else
+  emacs -Q --batch --eval "$form"
+fi

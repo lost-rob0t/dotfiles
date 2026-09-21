@@ -8,6 +8,7 @@ default_module="$repo_root/nix/home-manager/mods/default.nix"
 desktop="$repo_root/nix/home-manager/systems/desktop/home.nix"
 nixos_networking="$repo_root/nix/nixos/systems/flake/networking.nix"
 updater="$repo_root/nix/home-manager/files/zarathushtra/bin/zara-system-update"
+lyria_plugin="$repo_root/nix/home-manager/files/zarathushtra/plugins/lyria.py"
 
 fail() {
   printf 'zara-workflows: %s\n' "$*" >&2
@@ -17,6 +18,7 @@ fail() {
 [[ -f "$config" ]] || fail "missing Home Manager-owned Zara base config"
 [[ -f "$workflow_module" ]] || fail "missing Zara workflow Home Manager module"
 [[ -f "$updater" ]] || fail "missing structured Zara system-update helper"
+[[ -f "$lyria_plugin" ]] || fail "missing private OpenRouter Lyria plugin"
 
 grep -Fq './zara-workflows.nix' "$default_module" || fail "workflow module is not imported"
 grep -Fq 'inputs.qwen3-tts.homeManagerModules.default' "$default_module" || fail "Qwen3-TTS Home Manager module is not imported"
@@ -28,6 +30,9 @@ grep -Fq 'backend = "vulkan";' "$desktop" || fail "desktop profile must use the 
 ! grep -Fq 'rocm' "$desktop" || fail "desktop profile must not reference the retired ROCm backend"
 ! grep -Fq '"qwen3-tts.service"' "$desktop" || fail "Zara must not pull Qwen3-TTS into the login transaction"
 grep -Fq 'nixManaged = false;' "$desktop" || fail "desktop profile must keep mutable Zara config outside Home Manager"
+grep -Fq '"lyria.py" = ../../files/zarathushtra/plugins/lyria.py;' "$desktop" || fail "desktop profile does not install the private Lyria plugin"
+grep -Fq 'OPENROUTER_API_KEY' "$lyria_plugin" || fail "Lyria plugin does not use the shared OpenRouter credential"
+! grep -Eq 'OPENROUTER_API_KEY *= *["'\''"][^"'\'']+["'\'']' "$lyria_plugin" || fail "Lyria plugin must not embed an OpenRouter credential"
 grep -Fq '".config/zarathushtra/config.pl"' "$workflow_module" || fail "workflow module does not own base config.pl"
 ! grep -Fq '".config/zarathushtra/config.local.pl"' "$workflow_module" || fail "Home Manager must not own mutable config.local.pl"
 

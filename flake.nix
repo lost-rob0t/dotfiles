@@ -134,6 +134,10 @@
         modules = [ ./nix/nixos/installer/logos-iso.nix ];
       };
 
+      homeManagerModules = {
+        nodeRed = import ./nix/home-manager/mods/node-red.nix;
+      };
+
       homeConfigurations = {
         "unseen@logos" = home-manager.lib.homeManagerConfiguration {
           inherit pkgs;
@@ -309,7 +313,7 @@
         logos-iso = logosIso;
       };
 
-      inherit homeConfigurations;
+      inherit homeConfigurations homeManagerModules;
 
       packages.${system} = {
         default = logos.config.system.build.toplevel;

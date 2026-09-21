@@ -1,0 +1,468 @@
+#!/usr/bin/env python3
+"""Zara localhost pairing: autosync client CURVE credentials.
+
+Discovers the running zara-server's live security admin, generates (or
+reuses) a device CURVE keypair held in the platform keyring, enrolls the
+public key with the daemon, and materializes the daemon-client environment
+file clients consume. Keyring backend selection is deferred entirely to the
+dotfiles keyring expert (Prolog); this tool performs no platform-specific
+keyring enumeration itself and fails closed when no backend is available.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import re
+import shutil
+import socket
+import stat
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+Z85_ALPHABET = frozenset(
+    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    ".-:+=^!/*?&<>()[]{}@%$#"
+)
+FIELDS = ("curve_public_key", "curve_secret_key")
+ENV_PATH = Path("~/.config/zarathushtra/secrets-daemon-clients.env").expanduser()
+DEFAULT_EXPERT_KB = (
+    Path("~/.dotfiles/.zara/experts/keyring/kb/expert.pl").expanduser()
+)
+
+
+class PairError(RuntimeError):
+    pass
+
+
+def platform_name() -> str:
+    if sys.platform.startswith("linux"):
+        return "linux"
+    if sys.platform == "darwin":
+        return "darwin"
+    if sys.platform.startswith("win"):
+        return "windows"
+    raise PairError(f"unsupported host platform for pairing: {sys.platform}")
+
+
+def default_account() -> str:
+    node = (os.environ.get("HOSTNAME") or socket.gethostname() or "host")
+    node = node.split(".")[0].lower()
+    node = re.sub(r"[^a-z0-9-]", "-", node).strip("-") or "host"
+    return f"desktop-{node}"
+
+
+def control_socket_path() -> Path:
+    runtime = os.environ.get("XDG_RUNTIME_DIR", "").strip()
+    if not runtime:
+        raise PairError("XDG_RUNTIME_DIR is not set; cannot locate zara runtime dir")
+    return Path(runtime) / "zarathushtra" / "zara-control.sock"
+
+
+def swipl_query(expert_kb: Path, goal: str) -> str:
+    if not expert_kb.is_file():
+        raise PairError(f"keyring expert KB not found: {expert_kb}")
+    result = subprocess.run(
+        ["swipl", "-q", "-f", "none", "-s", str(expert_kb), "-g", goal, "-t", "halt"],
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+    if result.returncode != 0:
+        raise PairError(
+            f"keyring expert query failed: {result.stderr.strip() or result.returncode}"
+        )
+    return result.stdout
+
+
+def quote_atom(value: str) -> str:
+    if not re.fullmatch(r"[a-z][a-zA-Z0-9_]*", value):
+        return "'" + value.replace("'", "") + "'"
+    return value
+
+
+def bus_owner_probe(bus: str) -> bool:
+    try:
+        result = subprocess.run(
+            [
+                "busctl",
+                "--user",
+                "call",
+                "org.freedesktop.DBus",
+                "/org/freedesktop/DBus",
+                "org.freedesktop.DBus",
+                "NameHasOwner",
+                "s",
+                bus,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0 and "true" in result.stdout
+
+
+def measure_probes(expert_kb: Path, platform: str) -> str:
+    requests = swipl_query(expert_kb, f"emit_probes({platform})")
+    results = []
+    for line in requests.splitlines():
+        parts = line.split()
+        if len(parts) != 3 or parts[0] != "PROBE":
+            continue
+        kind, target = parts[1], parts[2]
+        if kind == "bus_owner":
+            results.append(f"bus_owner({quote_atom(target)},{str(bus_owner_probe(target)).lower()})")
+        elif kind == "cli":
+            present = "present" if shutil.which(target) else "absent"
+            results.append(f"cli({quote_atom(target)},{present})")
+    return "[" + ",".join(results) + "]"
+
+
+class PairingPlan:
+    def __init__(self, lines: list[str]) -> None:
+        self.backend: str | None = None
+        self.value_channel: str | None = None
+        self.lookup_argv: list[str] = []
+        self.store_argv: list[str] = []
+        tag = None
+        for line in lines:
+            parts = line.split(" ", 1)
+            key = parts[0]
+            value = parts[1] if len(parts) == 2 else ""
+            if key == "error":
+                raise PairError(f"keyring expert rejected the plan: {value or 'error'}")
+            if key == "backend":
+                self.backend = value
+            elif key == "value_channel":
+                self.value_channel = value
+            elif key == "lookup_arg":
+                self.lookup_argv.append(value)
+            elif key == "store_arg":
+                self.store_argv.append(value)
+        if self.backend == "none" or not self.backend:
+            raise PairError(
+                "no platform keyring backend is available (expert selection "
+                "failed closed); unlock/enable a keyring service and retry"
+            )
+        if not self.lookup_argv or not self.store_argv or not self.value_channel:
+            raise PairError("keyring expert produced an incomplete plan")
+
+    def lookup(self) -> str | None:
+        result = subprocess.run(self.lookup_argv, capture_output=True, text=True, timeout=10)
+        if result.returncode != 0:
+            return None
+        value = result.stdout.strip()
+        return value or None
+
+    def store(self, value: str) -> None:
+        argv = self.store_argv
+        if self.value_channel == "argv":
+            if not argv or argv[-1] != "-":
+                raise PairError("keyring expert store argv lacks the value placeholder")
+            argv = argv[:-1] + [value]
+            result = subprocess.run(argv, capture_output=True, text=True, timeout=10)
+        else:
+            result = subprocess.run(
+                argv, input=value + "\n", capture_output=True, text=True, timeout=10
+            )
+        if result.returncode != 0:
+            raise PairError(
+                f"keyring store failed: {result.stderr.strip() or result.returncode}"
+            )
+
+
+def plan_for_field(
+    expert_kb: Path, platform: str, results: str, service: str, account: str, field: str
+) -> PairingPlan:
+    goal = (
+        f"emit_pairing_plan({platform},{results},"
+        f"{quote_atom(service)},{quote_atom(account)},{quote_atom(field)},"
+        f"{quote_atom('zara-daemon-' + account + '-' + field)},{quote_atom('-')})"
+    )
+    return PairingPlan(swipl_query(expert_kb, goal).splitlines())
+
+
+def valid_z85(value: str | None) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 40
+        and all(char in Z85_ALPHABET for char in value)
+    )
+
+
+def keyring_credentials(
+    expert_kb: Path, platform: str, service: str, account: str, generate: bool
+) -> tuple[str, str, str]:
+    """Return (public, secret, backend) with the keypair ensured in the keyring.
+
+    The keyring is the source of truth: an existing complete pair is reused,
+    a partial pair fails closed, and only total absence generates fresh keys.
+    """
+    results = measure_probes(expert_kb, platform)
+    plans = {
+        field: plan_for_field(expert_kb, platform, results, service, account, field)
+        for field in FIELDS
+    }
+    values: dict[str, str] = {}
+    for field, plan in plans.items():
+        value = plan.lookup()
+        if valid_z85(value):
+            values[field] = value
+    if len(values) == len(FIELDS):
+        return values["curve_public_key"], values["curve_secret_key"], plans[FIELDS[0]].backend
+
+    if not generate:
+        missing = [f for f in FIELDS if f not in values]
+        raise PairError(f"keyring is missing zara client fields: {', '.join(missing)}")
+    if values:
+        raise PairError(
+            "keyring holds a partial keypair; clear the zara-daemon items "
+            f"for account {account} before regenerating"
+        )
+
+    import zmq
+
+    pair = zmq.curve_keypair()
+    pair = tuple(
+        value.decode("ascii") if isinstance(value, bytes) else value for value in pair
+    )
+    public, secret = pair
+    for field, value in zip(FIELDS, (public, secret)):
+        plans[field].store(value)
+    return public, secret, plans[FIELDS[0]].backend
+
+
+class SecurityAdmin:
+    def __init__(self, path: Path) -> None:
+        self._path = path
+
+    def request(self, action: str, **fields: object) -> object:
+        try:
+            info = os.lstat(self._path)
+        except FileNotFoundError as error:
+            raise PairError(
+                f"zara-server live security admin is not running at {self._path}; "
+                "start zara-server first"
+            ) from error
+        if stat.S_ISLNK(info.st_mode) or not stat.S_ISSOCK(info.st_mode):
+            raise PairError("zara control path is not a plain owner-owned socket")
+        if info.st_uid != os.getuid():
+            raise PairError("zara control socket is not owner-owned")
+        if stat.S_IMODE(info.st_mode) != 0o600:
+            raise PairError("zara control socket permissions are not owner-only")
+        payload = json.dumps({"version": 1, "action": action, **fields}) + "\n"
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+            connection.settimeout(5.0)
+            try:
+                connection.connect(str(self._path))
+                connection.sendall(payload.encode("utf-8"))
+                chunks = bytearray()
+                while b"\n" not in chunks and len(chunks) < 65536:
+                    block = connection.recv(4096)
+                    if not block:
+                        break
+                    chunks.extend(block)
+            except OSError as error:
+                raise PairError(f"zara control socket is unreachable: {error}") from error
+        raw = bytes(chunks).split(b"\n", 1)[0]
+        try:
+            response = json.loads(raw.decode("utf-8"))
+        except (UnicodeError, ValueError) as error:
+            raise PairError("zara control socket response is malformed") from error
+        if response.get("ok") is not True:
+            raise PairError(response.get("error") or "zara security admin request failed")
+        return response.get("result")
+
+
+def enrolled_state(admin: SecurityAdmin, account: str) -> dict | None:
+    clients = admin.request("list")
+    if not isinstance(clients, list):
+        raise PairError("zara security admin returned a malformed client list")
+    for client in clients:
+        if isinstance(client, dict) and client.get("device_id") == account:
+            return client
+    return None
+
+
+def ensure_enrolled(admin: SecurityAdmin, account: str, public: str) -> str:
+    current = enrolled_state(admin, account)
+    if current is not None:
+        if current.get("active") and current.get("public_key") == public:
+            return "already-enrolled"
+        admin.request("revoke", device_id=account)
+    try:
+        admin.request("enroll", public_key=public, device_id=account)
+    except PairError as error:
+        if "already enrolled" not in str(error):
+            raise
+        after = enrolled_state(admin, account)
+        if after is None or after.get("public_key") != public or not after.get("active"):
+            raise
+        return "reconciled"
+    return "enrolled"
+
+
+def write_env_file(path: Path, endpoint: str, public: str, secret: str, server_public: str) -> None:
+    def value(item: str) -> str:
+        return f"'{item}'"
+
+    body = (
+        f"ZARA_DAEMON_ENDPOINT={value(endpoint)}\n"
+        f"ZARA_DAEMON_CURVE_PUBLIC_KEY={value(public)}\n"
+        f"ZARA_DAEMON_CURVE_SECRET_KEY={value(secret)}\n"
+        f"ZARA_DAEMON_CURVE_SERVER_PUBLIC_KEY={value(server_public)}\n"
+    )
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    fd, temp = tempfile.mkstemp(dir=str(path.parent), prefix=".zara-pair-")
+    try:
+        os.fchmod(fd, 0o600)
+        with os.fdopen(fd, "w") as handle:
+            handle.write(body)
+        os.replace(temp, path)
+    except BaseException:
+        try:
+            os.unlink(temp)
+        except OSError:
+            pass
+        raise
+
+
+def env_file_matches(path: Path, endpoint: str, public: str, server_public: str) -> bool:
+    try:
+        data = {
+            line.split("=", 1)[0]: line.split("=", 1)[1].strip("'")
+            for line in path.read_text().splitlines()
+            if "=" in line
+        }
+    except OSError:
+        return False
+    return (
+        data.get("ZARA_DAEMON_ENDPOINT") == endpoint
+        and data.get("ZARA_DAEMON_CURVE_PUBLIC_KEY") == public
+        and data.get("ZARA_DAEMON_CURVE_SERVER_PUBLIC_KEY") == server_public
+    )
+
+
+def cmd_pair(args: argparse.Namespace) -> int:
+    admin = SecurityAdmin(Path(args.control_socket))
+    listener = admin.request("remote_listener.ensure")
+    if not isinstance(listener, dict) or not listener.get("active"):
+        raise PairError("zara-server remote listener did not become active")
+    endpoint = listener["endpoint"]
+    server_public = listener["server_public_key"]
+    if not valid_z85(server_public):
+        raise PairError("zara-server published a malformed CURVE public key")
+
+    public, secret, backend = keyring_credentials(
+        Path(args.expert_kb), platform_name(), args.service, args.account, generate=True
+    )
+    state = ensure_enrolled(admin, args.account, public)
+    write_env_file(Path(args.env_file), endpoint, public, secret, server_public)
+    print(f"keyring backend : {backend}")
+    print(f"device          : {args.account} [{state}]")
+    print(f"daemon endpoint : {endpoint}")
+    print(f"client public   : {public[:8]}... (z85, 40 chars)")
+    print(f"env file        : {args.env_file}")
+    print("next: systemctl --user restart zara-desktop.service")
+    return 0
+
+
+def cmd_status(args: argparse.Namespace) -> int:
+    admin = SecurityAdmin(Path(args.control_socket))
+    listener = admin.request("remote_listener.status")
+    active = bool(isinstance(listener, dict) and listener.get("active"))
+    print(f"daemon listener : {'active' if active else 'inactive'}")
+    if active:
+        print(f"daemon endpoint : {listener['endpoint']}")
+
+    platform = platform_name()
+    results = measure_probes(Path(args.expert_kb), platform)
+    print(f"probe results   : {results}")
+    public = None
+    try:
+        plan = plan_for_field(
+            Path(args.expert_kb), platform, results, args.service, args.account, FIELDS[0]
+        )
+        print(f"keyring backend : {plan.backend}")
+        public = plan.lookup()
+        secret = plan_for_field(
+            Path(args.expert_kb), platform, results, args.service, args.account, FIELDS[1]
+        ).lookup()
+        print(f"keyring keys    : {'present' if valid_z85(public) and valid_z85(secret) else 'missing/incomplete'}")
+    except PairError as error:
+        print(f"keyring backend : unavailable ({error})")
+
+    if isinstance(enrolled_state(admin, args.account), dict):
+        entry = enrolled_state(admin, args.account)
+        key_ok = bool(entry and entry.get("active") and public and entry.get("public_key") == public)
+        print(f"enrollment      : {args.account} "
+              f"{'active, matches keyring' if key_ok else 'ACTIVE BUT KEY MISMATCH — rerun zara-pair'}")
+    else:
+        print(f"enrollment      : {args.account} not enrolled")
+
+    if active and public:
+        matches = env_file_matches(
+            Path(args.env_file),
+            listener["endpoint"],
+            public,
+            listener["server_public_key"],
+        )
+        print(f"env file        : {'in sync' if matches else 'STALE — rerun zara-pair'}")
+        return 0 if matches else 1
+    return 1
+
+
+def cmd_revoke(args: argparse.Namespace) -> int:
+    admin = SecurityAdmin(Path(args.control_socket))
+    current = enrolled_state(admin, args.account)
+    if current is None:
+        print(f"device {args.account} is not enrolled")
+        return 0
+    admin.request("revoke", device_id=args.account)
+    print(f"device {args.account} revoked; keyring items and env file left in place")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--status", action="store_true", help="read-only pairing health report")
+    parser.add_argument("--revoke", action="store_true", help="revoke this device's enrollment")
+    parser.add_argument("--account", default=default_account(), help="device id (default: %(default)s)")
+    parser.add_argument("--service", default="zara-daemon", help="keyring service attribute")
+    parser.add_argument(
+        "--expert-kb",
+        default=os.environ.get("ZARA_KEYRING_EXPERT_KB") or str(DEFAULT_EXPERT_KB),
+        help="keyring expert Prolog KB path",
+    )
+    parser.add_argument(
+        "--control-socket",
+        default=os.environ.get("ZARA_CONTROL_SOCKET") or str(control_socket_path()),
+        help="zara-server live security admin socket",
+    )
+    parser.add_argument(
+        "--env-file",
+        default=str(ENV_PATH),
+        help="daemon-client environment file to materialize",
+    )
+    args = parser.parse_args(argv)
+    try:
+        if args.status:
+            return cmd_status(args)
+        if args.revoke:
+            return cmd_revoke(args)
+        return cmd_pair(args)
+    except PairError as error:
+        print(f"zara-pair: {error}", file=sys.stderr)
+        return 1
+    except subprocess.TimeoutExpired:
+        print("zara-pair: a keyring or control subprocess timed out", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

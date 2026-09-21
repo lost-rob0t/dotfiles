@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+mode="${1:-check}"
+case "$mode" in
+  check|build) ;;
+  *) printf 'usage: roam-censor [check|build]\n' >&2; exit 2 ;;
+esac
+
+: "${KB_ROAM_ELISP:=$HOME/.config/kb-roam/kb-roam.el}"
+: "${KB_ROAM_CENSOR_PL:=$HOME/.config/kb-roam/roam-censor.pl}"
+: "${XDG_CACHE_HOME:=$HOME/.cache}"
+cache="$XDG_CACHE_HOME/kb-roam"
+mkdir -p -- "$cache"
+manifest=$(mktemp "$cache/manifest.XXXXXX.json")
+trap 'rm -f -- "$manifest"' EXIT
+
+export KB_ROAM_MANIFEST="$manifest"
+form='(progn (load-file (getenv "KB_ROAM_ELISP")) (kb-roam-cli-manifest))'
+if emacsclient --eval t >/dev/null 2>&1; then
+  emacsclient --eval "$form" >/dev/null
+else
+  emacs -Q --batch --eval "$form" >/dev/null
+fi
+
+exec swipl -q -s "$KB_ROAM_CENSOR_PL" -- "$mode" "$manifest" "$cache/roam-mega-kb.pl"
