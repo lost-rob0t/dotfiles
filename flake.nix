@@ -21,7 +21,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara = {
-      url = "github:lost-rob0t/zara/89a9ab12461b7c6fa1630b2137ed5a500724e6c7";
+      url = "github:lost-rob0t/zara/9ff68d63b76c1db39689867f848d47c83c49cbcc";
       # Zara vendors its MCP v2 python stack (httpx2/httpcore2); following this
       # repo's newer nixpkgs made nixpkgs' own httpx2 collide with the vendored
       # build inside zara's python env. Build zara against its locked nixpkgs,
@@ -32,7 +32,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara-plugins = {
-      url = "github:lost-rob0t/zara-plugins/4f791d83b6d0a969c26f81273d075d5d78acd7db";
+      url = "github:lost-rob0t/zara-plugins/b3c9aea01be1d42953f48c50175e2518d226f6ee";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     bixby-studio = {
