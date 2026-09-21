@@ -264,6 +264,34 @@ class WorkflowTests(unittest.TestCase):
                 self.assertIn(name, workflow)
 
 
+class BootstrapTests(unittest.TestCase):
+    def test_bootstrap_source_is_exact(self):
+        org = (ROOT.parent / "bootstrap-termux.org").read_text()
+        code = org.split("#+begin_src sh :tangle bootstrap-termux.sh\n", 1)[1].split("#+end_src", 1)[0]
+        self.assertEqual(code, (ROOT.parent / "bootstrap-termux.sh").read_text())
+
+    def test_bootstrap_installs_native_emacs_doctor(self):
+        script = (ROOT.parent / "bootstrap-termux.sh").read_text()
+        for package in (
+            "org.gnu.emacs",
+            "com.termux",
+            "com.termux.api",
+            "com.termux.widget",
+            "com.termux.boot",
+            "com.termux.window",
+            "com.termux.styling",
+            "com.termux.tasker",
+        ):
+            with self.subTest(package=package):
+                self.assertIn(package, script)
+        self.assertIn('TERMUX_HOME="/data/data/com.termux/files"', script)
+        self.assertIn('NATIVE_HOME="/data/data/org.gnu.emacs/files"', script)
+        self.assertIn("stat -c '%u'", script)
+        self.assertIn('android-emacs-stow', script)
+        self.assertIn('08-Emacs-Doctor', script)
+
+
+
 class LiterateTests(unittest.TestCase):
     def test_build_source_is_exact(self):
         org = (ROOT / 'build.org').read_text()
