@@ -51,6 +51,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Qtile telemetry installer | [[file:../../.config/qtile/qtile-telemetry.org][qtile-telemetry.org]] | WM/key telemetry and old/new widget integration; tangles to =qtile_telemetry.py=. |
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
 | Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |
+| Lish agentic shell | [[file:lish.org][lish.org]] | Default Common Lisp shell, Prolog-RLM free-form/agentic routing, LISA, expert tools, Home Manager, and Termux deployment. |
 | Org ↔ Logseq sync | [[file:../../nix/home-manager/mods/org-logseq-sync.org][org-logseq-sync.org]] | Literate source for the Unison/inotify bridge, Home Manager module, and regression test. |
 | OpenCode | [[file:../../nix/home-manager/mods/opencode.org][opencode.org]] | Literate Home Manager source for global policy, commands, theme, routing, and the optional web workspace; tangles to =opencode.nix=. |
 | OpenCode tmux / EZF | [[file:../../scripts/opencode-tmux.org][scripts/opencode-tmux.org]] | Standalone session commands, private-file Emacs bridge, and optional Home Manager packaging. |
