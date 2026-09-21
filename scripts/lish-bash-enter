@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared interactive-shell handoff. Source this from Bash.
 # STAR_BASH_FALLBACK=1 is the explicit recovery path.
 if [[ $- == *i* ]] \
