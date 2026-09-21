@@ -270,6 +270,10 @@ The optional argument NEW-WINDOW is not used."
            )))
 
 (require 'ai-dashboard)
+(let ((mara-tools
+       (expand-file-name "~/.config/zarathushtra/emacs/mara-tools.el")))
+  (when (file-readable-p mara-tools)
+    (load mara-tools nil 'nomessage)))
 (setq initial-buffer-choice #'ai/dashboard-buffer)
 
 (map! :leader
