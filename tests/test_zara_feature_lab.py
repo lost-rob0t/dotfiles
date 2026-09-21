@@ -105,6 +105,8 @@ class ZaraFeatureLabTests(unittest.TestCase):
         self.assertIn("systemd.user.services.zara-feature-lab", module)
         self.assertIn('ExecStart = "${featureLab}/bin/zara-feature-lab start";', module)
         self.assertIn("featureLab.autoStart = true;", desktop)
+        self.assertIn('default = "astra-medium";', module)
+        self.assertIn("ZARA_LAB_WORKER_MODEL is required", (ROOT / "scripts/zara-feature-lab.py").read_text())
 
 
 if __name__ == "__main__":
