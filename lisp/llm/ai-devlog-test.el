@@ -90,5 +90,11 @@
       (should (equal '("github") (alist-get 'providers summary))))
     (delete-directory tmp t)))
 
+(ert-deftest ai/devlog-tea-prefers-git-remote-context ()
+  (should (equal '("--remote" "forgejo")
+                 (ai/devlog--tea-selector "nsaspy/dotfiles" "forgejo")))
+  (should (equal '("--repo" "nsaspy/dotfiles")
+                 (ai/devlog--tea-selector "nsaspy/dotfiles" nil))))
+
 (provide 'ai-devlog-test)
 ;;; ai-devlog-test.el ends here
