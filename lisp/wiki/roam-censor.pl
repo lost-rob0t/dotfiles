@@ -44,9 +44,9 @@ assert_file(D) :-
     dict_atom(D, schema, Schema), (D.ai_generated == true -> Ai = true ; Ai = false),
     dict_atom(D, ai_tag, AiTag), dict_atom(D, censor_profile, Censor),
     assertz(roam_file(Id, Path, Title, Kind, Visibility, Schema, Ai, AiTag, Censor)),
-    forall(member(Tag0, D.tags), (term_string(Tag0, TS), atom_string(Tag, TS), assertz(roam_tag(Id, Tag)))),
+    forall(member(Tag0, D.tags), (value_atom(Tag0, Tag), assertz(roam_tag(Id, Tag)))),
     forall(member(H, D.headings), assert_heading(Id, H)),
-    forall(member(L0, D.links), (term_string(L0, LS), atom_string(Link, LS), assertz(roam_link(Id, Link)))).
+    forall(member(L0, D.links), (value_atom(L0, Link), assertz(roam_link(Id, Link)))).
 
 assert_heading(FileId, H) :-
     dict_atom(H, id, HeadingId), dict_atom(H, title, Title),
