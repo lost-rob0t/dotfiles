@@ -133,6 +133,15 @@ interactive Emacs path and the standalone skill share one output implementation.
 | [[file:../../nix/home-manager/mods/chatgpt-desktop.nix][chatgpt-desktop.nix]] | =programs.chatgpt-desktop=: package plus dark/light appearance, code-theme, font-size, smoothing, cursor, and diff-marker settings | The desktop application's native =[desktop]= configuration |
 | [[file:../../nix/home-manager/mods/starintel-llm-harness.org][starintel-llm-harness.org]] | =llm.starintelHarness=: main/reviewer profiles, llm-log proxy routing, Prolog-RLM GLM wrapper, and subscription pacing | =~/.config/starintel/llm-harness.json= plus the =starintel-prolog-rlm-glm= runtime wrapper |
 
+** Lish agentic shell
+
+[[file:../../nix/home-manager/mods/lish.nix][lish.nix]] packages the =lish=,
+=lish-bootstrap=, =lish-rlm=, and =lish-expert= commands and enables the shared
+interactive-Bash handoff.  The runtime sources themselves remain pinned and
+bootstrapped outside the Nix store so the same deployment works on Termux.
+The desktop profile enables =lish.enable = true=; Bash remains the
+recovery/login shim.
+
 ** Global Prolog verification
 [[file:../../nix/home-manager/mods/agent-verification.nix][agent-verification.nix]] installs the pinned =prolog-verification= skill's =prolog-verify= executable with Python, Git, SWI-Prolog, and Brave Search CLI in its runtime.  When enabled it gives both client modules the same global policy: Codex writes =~/.codex/AGENTS.md= and OpenCode writes =~/.config/opencode/AGENTS.md=.  This is explicit module behavior through =codex.globalAgentsFile= and =opencode.globalAgentsFile=, not a generated copy hidden in mutable client configuration.
 
