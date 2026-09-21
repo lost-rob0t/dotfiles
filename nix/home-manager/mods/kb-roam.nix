@@ -5,11 +5,11 @@ let
   mkCli = name: script: runtimeInputs: extra: pkgs.writeShellApplication {
     inherit name runtimeInputs;
     text = ''
-      export KB_ROAM_ELISP='\${../../../lisp/wiki/kb-roam.el}'
-      export KB_ROAM_CENSOR_PL='\${../../../lisp/wiki/roam-censor.pl}'
-      export KB_ROAM_ASSET_DIR='\${../../../lisp/wiki/assets}'
-      \${extra}
-      exec '\${pkgs.bash}/bin/bash' '\${script}' "$@"
+      export KB_ROAM_ELISP='${../../../lisp/wiki/kb-roam.el}'
+      export KB_ROAM_CENSOR_PL='${../../../lisp/wiki/roam-censor.pl}'
+      export KB_ROAM_ASSET_DIR='${../../../lisp/wiki/assets}'
+      ${extra}
+      exec '${pkgs.bash}/bin/bash' '${script}' "$@"
     '';
   };
 
@@ -22,15 +22,15 @@ let
     "";
 
   roamCensor = mkCli "roam-censor" ../../../scripts/roam-censor
-    [ pkgs.coreutils pkgs.emacs pkgs.swiProlog ]
+    [ pkgs.coreutils pkgs.emacs pkgs."swi-prolog" ]
     "";
 
   roamPublish = mkCli "roam-publish" ../../../scripts/roam-publish
-    [ pkgs.coreutils pkgs.emacs pkgs.swiProlog ]
-    "export ROAM_CENSOR_CMD='\${roamCensor}/bin/roam-censor'";
+    [ pkgs.coreutils pkgs.emacs pkgs."swi-prolog" ]
+    "export ROAM_CENSOR_CMD='${roamCensor}/bin/roam-censor'";
 
   roamCheck = mkCli "check-roam-publish" ../../../scripts/check-roam-publish
-    [ pkgs.coreutils pkgs.emacs pkgs.swiProlog pkgs.shellcheck ]
+    [ pkgs.coreutils pkgs.emacs pkgs."swi-prolog" pkgs.shellcheck ]
     "";
 in
 {
@@ -43,13 +43,13 @@ in
 
     notesRoot = lib.mkOption {
       type = lib.types.str;
-      default = "\${config.home.homeDirectory}/Documents/Notes/org";
+      default = "${config.home.homeDirectory}/Documents/Notes/org";
       description = "Canonical Org-roam root.";
     };
 
     publishRoot = lib.mkOption {
       type = lib.types.str;
-      default = "\${config.xdg.stateHome}/kb-roam/site";
+      default = "${config.xdg.stateHome}/kb-roam/site";
       description = "Generated public site output.";
     };
 
