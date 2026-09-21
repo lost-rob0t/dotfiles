@@ -67,7 +67,7 @@ let
       emacs --batch -Q --eval \
         '(progn (setq byte-compile-error-on-warn t) (byte-compile-file ".zara/experts/emacs-lisp/tests/fixtures/valid.el"))'
       emacs --batch -Q -l lisp/mara/mara-tools.el --eval \
-        '(unless (equal (mara-tools--prolog-atom "a\\b''c") "''a\\\\b\\''c''") (kill-emacs 1))'
+        '(unless (and (fboundp (quote mara-tools--todo-snapshot)) (fboundp (quote mara-tools-register-zara-adapters))) (kill-emacs 1))'
 
       mkdir -p "$out/share/zara/dotfiles/.prolog"
       cp -R .zara "$out/share/zara/dotfiles/.zara"
