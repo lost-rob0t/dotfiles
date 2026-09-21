@@ -55,8 +55,8 @@ sync_checkout "$YEW_REPO" "$YEW_REV" "$vendor_root/yew"
 log "syncing pinned LISA expert system"
 sync_checkout "$LISA_REPO" "$LISA_REV" "$vendor_root/lisa"
 
-if [[ -n "${PROLOG_RLM_ROOT:-}" && -d "$PROLOG_RLM_ROOT" ]]; then
-  prolog_rlm_root="$PROLOG_RLM_ROOT"
+if [[ -n "${PROLOG_RLM_ROOT:-}" && -d "${PROLOG_RLM_ROOT:-}" ]]; then
+  prolog_rlm_root="${PROLOG_RLM_ROOT}"
 else
   prolog_rlm_root="$vendor_root/prolog-rlm"
   log "syncing pinned Prolog-RLM"
