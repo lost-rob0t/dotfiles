@@ -276,6 +276,29 @@ The optional argument NEW-WINDOW is not used."
       :desc "AI dashboard" "y d" #'ai/dashboard
       :desc "Zara chat" "y z" #'zara-chat)
 
+(add-hook 'org-finalize-agenda-hook #'nsa/agenda-ui-fontify)
+
+(setq! org-agenda-skip-scheduled-if-done t
+       org-agenda-skip-deadline-if-done t
+       org-agenda-skip-timestamp-if-done t)
+
+(defface nsa/agenda-deadline-imminent
+  '((t :inherit org-warning :weight bold :underline t))
+  "Face for deadlines due within the first day of their window.")
+
+(setq! org-agenda-deadline-faces
+       '((1.0 . nsa/agenda-deadline-imminent)
+         (0.5 . org-warning)
+         (0.25 . org-upcoming-deadline)
+         (0.0 . org-upcoming-distant-deadline)))
+
+(map! :map org-agenda-mode-map
+      "C-c b" #'nsa/org-agenda-clear-backlog)
+
+(map! :leader
+      :desc "Clear overdue backlog"
+      "o a b" #'nsa/org-agenda-clear-backlog)
+
 (map! :leader
       :desc "Tangle a file"
       "b t" #'org-babel-tangle)
@@ -449,12 +472,12 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
       :desc "Paste image" "a p" #'org-download-clipboard
       :desc "Insert image from URL" "a i" #'org-download-yank)
 
-(setq org-roam-directory "~/Documents/Notes/org/")
+(setq org-roam-directory "~/Documents/Notes/org/roam")
 
 (after! org-roam
   :init
   (setq org-roam-v2-ack t)
-  (setq org-roam-directory "~/Documents/Notes/org/")
+  (setq org-roam-directory "~/Documents/Notes/org/roam/")
   (setq org-roam-dailies-directory "daily")
   (setq org-roam-complete-everywhere t)
 
@@ -1063,6 +1086,12 @@ Identical queued alerts and overflow are suppressed and counted."
 ;;   (setq consult-omni-brave-api-key #'(lambda () (nsa/auth-source-get :host "api.brave.com")))
 
 ;;  )
+
+(use-package! starintel
+    :config
+    (setq starintel-servers
+          '((remote :url "https://ingest.starintel.actor"
+                 :auth-source "starintel"))))
 
 (use-package! f
   :defer t)

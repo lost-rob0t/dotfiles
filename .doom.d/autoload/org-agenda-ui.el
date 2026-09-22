@@ -1,0 +1,169 @@
+;;; org-agenda-ui.el -*- lexical-binding: t; -*-
+;;; Commentary:
+;; Agenda overlays plus backlog clearing.  See org-agenda-ui.org for the
+;; rationale; the agenda buffer uses text properties, not font-lock.
+
+(require 'org)
+(require 'org-agenda)
+(require 'cl-lib)
+
+(defgroup nsa/agenda-ui nil
+  "Agenda overlay styling and overdue backlog clearing."
+  :group 'org)
+
+(defcustom nsa/agenda-ui-keyword-faces
+  '(("TODO" . font-lock-keyword-face)
+    ("LOOP" . font-lock-type-face)
+    ("WAIT" . warning)
+    ("STRT" . success)
+    ("IDEA" . font-lock-doc-face)
+    ("NO" . shadow)
+    ("DONE" . shadow))
+  "Base faces for TODO keyword pills in agenda buffers.
+Keywords missing from this list keep their default agenda face."
+  :type '(alist :key-type string :value-type face))
+
+(defconst nsa/agenda-ui--strike-keywords '("NO" "DONE")
+  "Keywords rendered with strike-through instead of a pill box.")
+
+(defun nsa/agenda-ui--keyword-regexp ()
+  "Regexp matching a standalone TODO keyword with pill-worthy boundaries."
+  (concat "\\(?:\\`\\|[ \t]\\{2,\\}\\)\\("
+          (mapconcat #'regexp-quote
+                     (mapcar #'car nsa/agenda-ui-keyword-faces)
+                     "\\|")
+          "\\)\\(?:[ \t]\\{2,\\}\\|\\'\\)"))
+
+(defun nsa/agenda-ui--state-spec (keyword)
+  "Return the overlay face spec for agenda KEYWORD."
+  (let* ((base (or (alist-get keyword nsa/agenda-ui-keyword-faces
+                              nil nil #'string-equal)
+                   'font-lock-keyword-face))
+         (color (or (face-foreground base nil 'default)
+                    (face-foreground 'default nil 'default))))
+    (if (member keyword nsa/agenda-ui--strike-keywords)
+        (list :inherit (list base) :strike-through t)
+      (list :inherit (list base)
+            :box (list :line-width 1
+                       :color color
+                       :style 'flat-button)))))
+
+(defun nsa/agenda-ui--faces-at (position)
+  "Return the list form of the `face' text property at POSITION."
+  (let ((face (get-text-property position 'face)))
+    (if (consp face) face (list face))))
+
+(defun nsa/agenda-ui--overlay (start end spec)
+  "Create one agenda UI overlay over START..END with face SPEC."
+  (let ((overlay (make-overlay start end nil t nil)))
+    (overlay-put overlay 'nsa-agenda-ui t)
+    (overlay-put overlay 'evaporate t)
+    (overlay-put overlay 'face spec)
+    overlay))
+
+(defun nsa/agenda-ui-fontify ()
+  "Apply theme-adaptive overlays to the agenda buffer.
+The agenda assigns faces with text properties and keeps font-lock
+disabled, so styling is layered on after the buffer is built.
+Safe to run repeatedly: earlier UI overlays are removed first."
+  (when (derived-mode-p 'org-agenda-mode)
+    (let ((regexp (nsa/agenda-ui--keyword-regexp))
+          (inhibit-read-only t))
+      (save-excursion
+        (remove-overlays (point-min) (point-max) 'nsa-agenda-ui t)
+        (goto-char (point-min))
+        (while (not (eobp))
+          (let* ((bol (line-beginning-position))
+                 (eol (line-end-position))
+                 (faces (nsa/agenda-ui--faces-at bol))
+                 (itemp (or (text-property-not-all bol eol 'org-marker nil)
+                            (text-property-not-all bol eol 'org-hd-marker nil))))
+            (cond
+             ((or (memq 'org-super-agenda-header-face faces)
+                  (memq 'org-agenda-structure faces))
+              (nsa/agenda-ui--overlay bol eol '(:overline t :weight bold)))
+             (itemp
+              (save-restriction
+                (narrow-to-region bol eol)
+                (let ((case-fold-search nil))
+                  (goto-char (point-min))
+                  (while (re-search-forward regexp nil t)
+                    (nsa/agenda-ui--overlay
+                     (match-beginning 1) (match-end 1)
+                     (nsa/agenda-ui--state-spec (match-string 1))))))))
+            (goto-char eol)
+            (or (eobp) (forward-char 1))))))))
+
+(defun nsa/agenda-ui--done-keyword ()
+  "Return the DONE-type keyword of the current Org buffer."
+  (or (and (boundp 'org-done-keywords)
+           org-done-keywords
+           (or (car (member "DONE" org-done-keywords))
+               (car org-done-keywords)))
+      "DONE"))
+
+(defun nsa/org-entry-backlog-p ()
+  "Return non-nil when the entry at point is overdue backlog.
+Backlog means an active (not done) TODO keyword whose SCHEDULED or
+DEADLINE timestamp is strictly before today."
+  (let ((todo (org-entry-get (point) "TODO")))
+    (and todo
+         (not (and (boundp 'org-done-keywords)
+                   (member todo org-done-keywords)))
+         (let ((stamp (or (org-get-scheduled-time (point))
+                          (org-get-deadline-time (point)))))
+           (and stamp
+                (< (time-to-days stamp)
+                   (time-to-days (current-time))))))))
+
+(defun nsa/org-clear-backlog ()
+  "Mark every overdue entry in `org-agenda-files' as DONE.
+Repeating entries are advanced with Org's repeat semantics until
+the next occurrence is in the future.  Return the number of
+entries cleared."
+  (interactive)
+  (let ((count 0)
+        (done (nsa/agenda-ui--done-keyword)))
+    (org-map-entries
+     (lambda ()
+       (let ((original (org-entry-get (point) "TODO"))
+             (attempts 0))
+         (while (and (nsa/org-entry-backlog-p) (< attempts 366))
+           (cl-incf attempts)
+           (org-todo done))
+         (when (> attempts 0)
+           (cl-incf count)
+           ;; Org's repeat machinery returns repeating entries to the
+           ;; first active keyword of their sequence; preserve the
+           ;; keyword the entry actually used before it was cleared.
+           (let ((current (org-entry-get (point) "TODO")))
+             (when (and original current
+                        (not (equal original current))
+                        (not (and (boundp 'org-done-keywords)
+                                  (member current org-done-keywords))))
+               (org-todo original))))))
+     nil 'agenda)
+    (org-save-all-org-buffers)
+    count))
+
+;;;###autoload
+(defun nsa/org-agenda-clear-backlog ()
+  "Clear the overdue backlog and mark it DONE.
+Builds the agenda first when called outside agenda view, then
+rebuilds it so cleared entries drop out of sight.  Return the
+number of entries cleared."
+  (interactive)
+  (let ((count 0))
+    (if (derived-mode-p 'org-agenda-mode)
+        (setq count (nsa/org-clear-backlog))
+      (condition-case nil
+          (org-agenda nil "a")
+        (error (org-agenda-list)))
+      (setq count (nsa/org-clear-backlog))
+      (org-agenda-redo t))
+    (message "Backlog cleared: %d entr%s marked DONE"
+             count (if (= count 1) "y" "ies"))
+    count))
+
+(provide 'org-agenda-ui)
+;;; org-agenda-ui.el ends here
