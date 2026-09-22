@@ -865,9 +865,11 @@ def init_widgets_list():
     - CPUGraph: CPU usage graph
     - Memory: RAM usage
     - Clock: Date and time
-    - Volume: Audio level
+    - Audio: Active output volume (left click opens the output
+      dropdown; the picked output becomes the pinned default)
     """
     prompt = "{0}@{1}: ".format(os.environ["USER"], socket.gethostname())
+    from qtile_audio import Audio
 
     widgets_list = [
         # --- WORKSPACE INDICATOR ---
@@ -1055,12 +1057,13 @@ def init_widgets_list():
             background=colors[1]
         ),
 
-        # --- VOLUME ---
-        widget.Volume(
+        # --- AUDIO: active output volume + output dropdown ---
+        # Left click opens the output picker, scroll adjusts volume,
+        # middle click mutes.  Source: qtile-audio.org -> qtile_audio.py
+        Audio(
             foreground=colors[2],
             background=colors[1],
-            volume_up_command="amixer set Master 10%+",
-            volume_down_command="amixer set Master 10%-",
+            mouse_cursor="hand2",
         )
     ]
 
