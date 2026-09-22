@@ -420,13 +420,15 @@ def _owned_group_box(config_globals: dict[str, Any]):
     colors = config_globals["colors"]
     palette = outrun_palette(colors)
     group_names = config_globals["group_names"]
+    all_names = config_globals.get("all_group_names")
 
     class OwnedGroupBox(widget.GroupBox):
         @property
         def groups(self):
             groups = visible_window_groups(self.qtile.groups)
-            if self.visible_groups:
-                groups = [group for group in groups if group.name in self.visible_groups]
+            names = all_names() if callable(all_names) else self.visible_groups
+            if names:
+                groups = [group for group in groups if group.name in names]
             return groups
 
         def next_group(self):
@@ -512,6 +514,9 @@ def _base_widgets(config_globals: dict[str, Any]):
     auto_group = config_globals.get("auto_group_button")
     if callable(auto_group):
         items.append(auto_group())
+    streamer = config_globals.get("streamer_button")
+    if callable(streamer):
+        items.append(streamer(config_globals))
     items.extend(
         [
             _owned_group_box(config_globals),

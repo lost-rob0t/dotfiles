@@ -30,6 +30,11 @@ from qtile_ai_windows import (
 # === WINDOW SWALLOWING (requires psutil) ===
 import psutil  # For advanced window management features
 
+# === TOPICS & STREAMER RUNTIME ===
+# Local runtime modules (no libqtile imports at load time).
+import qtile_streamer
+import qtile_topics
+
 # === GLOBAL CONFIGURATION ===
 mod = "mod4"      # Super/Windows key - primary modifier
 mod1 = "mod1"     # Alt key - secondary modifier
@@ -199,6 +204,43 @@ for i in range(len(group_names)):
             label=group_labels[i],
         )
     )
+
+# === TOPIC REGISTRY ===
+DEFAULT_TOPICS = [
+    ("zara", "Zara", "monadtall"),
+    ("dotfiles", "Dotfiles", "monadtall"),
+    ("prolog-rlm", "Prolog RLM", "monadtall"),
+    ("symbolic-memory", "Symbolic Memory", "monadtall"),
+    ("quasar", "Quasar", "monadtall"),
+    ("tek9", "Tek9", "monadtall"),
+    ("zara-plugins", "Zara Plugins", "monadtall"),
+    ("starintel", "StarIntel", "monadtall"),
+    ("comms", "Comms", "monadtall"),
+    ("media", "Media", "max"),
+    ("web", "Web", "max"),
+    ("scratch", "Scratch", "monadtall"),
+]
+
+HOLDING_GROUP_NAME = qtile_streamer.HOLDING_GROUP
+
+
+def all_group_names():
+    """Static workspaces plus generated topic groups and the holding group."""
+    return [
+        *group_names,
+        *qtile_topics.registered_topic_names(),
+        HOLDING_GROUP_NAME,
+    ]
+
+
+# === GENERATED TOPIC GROUP POOL ===
+topic_groups = qtile_topics.build_topic_groups(DEFAULT_TOPICS)
+groups.extend(topic_groups)
+
+# === STREAMER HOLDING GROUP ===
+# Destination for windows that may not appear on the center screen while
+# streamer mode is armed (see Topics & Streamer Mode).
+groups.append(Group(name=HOLDING_GROUP_NAME, layout="max", label="hold"))
 
 # === CORE KEYBINDINGS ===
 keys = [
@@ -384,9 +426,11 @@ keys.append(
         desc="Application menu")
 )
 
-# Dynamically generate keybindings for all workspaces
+# Dynamically generate keybindings for the static workspaces only.
+# Topic groups ("t:<name>") and the holding group have no valid keysym, so
+# they are reached through the bar, Mod+g, or Mod+Shift+g instead.
 for i in groups:
-    if isinstance(i, Group):  # Skip ScratchPad groups
+    if isinstance(i, Group) and i.name in group_names:
         keys.extend([
             # Go to workspace
             Key([mod], i.name, lazy.group[i.name].toscreen(),
@@ -641,16 +685,22 @@ def routed_group(window):
 
 
 def update_group_layout(group):
-    if group.name not in group_names:
+    if group.name not in all_group_names():
         return
-    desired = "max" if len(group.windows) > 3 else ("max" if group.name == "1" else "monadtall")
+    desired = qtile_topics.topic_layout(group.name)
+    if desired is None and group.name == HOLDING_GROUP_NAME:
+        desired = "max"
+    if desired is None:
+        desired = "max" if len(group.windows) > 3 else ("max" if group.name == "1" else "monadtall")
     if group.layout.name != desired:
         group.setlayout(desired)
 
 
 def update_auto_layouts(qtile):
-    for group_name in group_names:
-        update_group_layout(qtile.groups_map[group_name])
+    for group_name in all_group_names():
+        group = qtile.groups_map.get(group_name)
+        if group is not None:
+            update_group_layout(group)
 
 
 def apply_auto_grouping(window):
@@ -761,6 +811,55 @@ floating_layout = layout.Floating(
 )
 
 main = None  # Required for Qtile
+
+# === TOPIC IPC COMMANDS ===
+qtile_topics.expose_topic_commands()
+
+# === TOPIC KEYBINDINGS ===
+keys.extend([
+    KeyChord([mod], "g", [
+        Key([], "g", lazy.function(qtile_topics.jump_to_topic),
+            desc="Jump to topic (Emacs picker)"),
+        Key([], "n", lazy.function(qtile_topics.next_topic),
+            desc="Next topic group"),
+        Key([], "p", lazy.function(qtile_topics.previous_topic),
+            desc="Previous topic group"),
+        Key([], "t", lazy.function(qtile_topics.toggle_topics_dashboard),
+            desc="Toggle the Emacs topics dashboard"),
+    ], name="Topics"),
+
+    Key([mod, "shift"], "g", lazy.function(qtile_topics.move_window_to_topic),
+        desc="Move focused window to a topic"),
+])
+
+# === STREAMER MODE HOOKS ===
+@hook.subscribe.client_managed
+def streamer_new_window(window):
+    if qtile_streamer.is_enabled():
+        window.qtile.call_soon(qtile_streamer.enforce_streamer, window.qtile, window)
+
+
+@hook.subscribe.group_window_add
+def streamer_enforce_group_add(group, window):
+    if qtile_streamer.is_enabled():
+        group.qtile.call_soon(qtile_streamer.enforce_streamer, group.qtile, window)
+
+
+# === STREAMER MODE WIRING ===
+# Picked up by qtile_control._base_widgets next to the AUTO button; the
+# armed state paints the accent color for an unambiguous center indicator.
+streamer_button = qtile_streamer.streamer_button
+
+keys.extend([
+    Key([mod], "s", lazy.function(qtile_streamer.toggle_streamer_mode),
+        desc="Toggle streamer privacy mode"),
+
+    Key([mod, "shift"], "s", lazy.function(qtile_streamer.toggle_streamer_mode, record=True),
+        desc="Toggle streamer mode and screen recording"),
+
+    Key([mod], "u", lazy.spawn(home + "/.config/qtile/scripts/stream-emacs"),
+        desc="Launch the sandboxed stream Emacs"),
+])
 
 # === WINDOW TO SCREEN FUNCTIONS ===
 
