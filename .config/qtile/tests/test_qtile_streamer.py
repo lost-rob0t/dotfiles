@@ -340,6 +340,10 @@ class StreamerBarWiringTests(unittest.TestCase):
         }
         for name in list(self._saved_modules):
             sys.modules.pop(name, None)
+        # The bar wiring under test only needs `from libqtile import
+        # widget` to resolve, so CI pythons without libqtile get a mock;
+        # leftover stub modules from other suites are always replaced.
+        sys.modules["libqtile"] = mock.MagicMock(name="libqtile-stub")
 
     def tearDown(self):
         for name in list(sys.modules):
@@ -347,7 +351,6 @@ class StreamerBarWiringTests(unittest.TestCase):
                 sys.modules.pop(name, None)
         sys.modules.update(self._saved_modules)
 
-    @unittest.skipUnless(_libqtile_available(), "libqtile required for bar wiring")
     def test_base_widgets_invokes_streamer_button_with_config_globals(self):
         control = _load_qtile_control()
 

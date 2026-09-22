@@ -20,6 +20,21 @@ ORG = HERE.parent / "qtile-audio.org"
 # /usr/bin/python carries the system libqtile that the live bar uses.
 SYSTEM_PYTHON = Path("/usr/bin/python")
 
+def _system_python_has_libqtile() -> bool:
+    """True when SYSTEM_PYTHON can import libqtile (the live bar's env)."""
+    if not SYSTEM_PYTHON.exists():
+        return False
+    probe = subprocess.run(
+        [str(SYSTEM_PYTHON), "-c", "import libqtile"],
+        capture_output=True,
+        timeout=30,
+    )
+    return probe.returncode == 0
+
+
+HAS_LIBQTILE = _system_python_has_libqtile()
+
+
 RUNNER = r"""
 import json, sys
 sys.path.insert(0, {source_dir!r})
@@ -130,7 +145,7 @@ class QtileAudioStructureTests(unittest.TestCase):
 
 
 @unittest.skipUnless(
-    SYSTEM_PYTHON.exists(),
+    HAS_LIBQTILE,
     "system python with libqtile not available",
 )
 class QtileAudioBehaviorTests(unittest.TestCase):
