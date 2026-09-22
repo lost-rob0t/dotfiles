@@ -35,6 +35,27 @@ app_mapping(roam,
 app_mapping(emacs, ["emacsclient", "-c", "-a", ""]).
 direct_app(emacsclient).
 
+% "open agenda" shows the Doom org-agenda day view. The agenda buffer is
+% where the durable gpt-todos agenda files render, so voice gets the same
+% view the desktop editor opens at startup.
+app_mapping(agenda,
+    ["emacsclient", "-c", "-a", "", "--eval",
+     "(org-agenda nil \"a\")"]).
+
+% "clear backlog" marks every overdue agenda entry DONE. Repeating
+% entries (LOOP work shifts) advance with Org's repeat semantics until
+% the next occurrence is in the future and keep their keyword. The
+% command lives in the Doom autoload org-agenda-ui.el.
+verb_intent(clear, open, 1).
+app_mapping(backlog,
+    ["emacsclient", "-c", "-a", "", "--eval",
+     "(progn (require 'org-agenda-ui) (nsa/org-agenda-clear-backlog))"]).
+
+% "open capture" opens the Org capture template menu in a new frame.
+app_mapping(capture,
+    ["emacsclient", "-c", "-a", "", "--eval",
+     "(org-capture)"]).
+
 % ----------------------------------------------------------------------
 % Desktop apps / media
 % ----------------------------------------------------------------------
