@@ -60,6 +60,7 @@ overridden for testing with =SCREEN_CAPTURE_SESSION=x11|wayland=.
 | =Super+Print= | Region screenshot. |
 | =Shift+Print= | Emacs recording UI. |
 | =Super+Shift+Print= | Stop/finalize active recording. |
+| =Super+Shift+s= | Streamer mode + recording toggle (records via =screen-capture record-screen= while streamer mode is armed; see [[file:desktop.org][desktop.org]]). |
 
 These bindings are generated from =.config/qtile/qtile-capture.org=. The old
 Spectacle path is retired; do not add a second capture frontend to Qtile.

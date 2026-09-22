@@ -297,17 +297,17 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1789928359,
-        "narHash": "sha256-2cQvz3pGxEBj9zQNSgYfUNILrxOOBSzow6uukcMBSaE=",
+        "lastModified": 1789989467,
+        "narHash": "sha256-3HbfGJ95ksJAemPeLjoZgexnmG7t/Mn2X2tIfmeX4zE=",
         "owner": "lost-rob0t",
         "repo": "zara",
-        "rev": "89a9ab12461b7c6fa1630b2137ed5a500724e6c7",
+        "rev": "629344a8202965ccd0eae79b57c1533a2778da75",
         "type": "github"
       },
       "original": {
         "owner": "lost-rob0t",
         "repo": "zara",
-        "rev": "89a9ab12461b7c6fa1630b2137ed5a500724e6c7",
+        "rev": "629344a8202965ccd0eae79b57c1533a2778da75",
         "type": "github"
       }
     },
@@ -318,17 +318,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1788232883,
-        "narHash": "sha256-biTYFQO3zclnyz8X+zFVMiyB7bg2NNqlSq5PS4uUQb0=",
+        "lastModified": 1789969684,
+        "narHash": "sha256-gEG9WC8ifPF6P9M6fCYGXi7XmTEuFh0hT55LJ49O3po=",
         "owner": "lost-rob0t",
         "repo": "zara-plugins",
-        "rev": "4f791d83b6d0a969c26f81273d075d5d78acd7db",
+        "rev": "b3c9aea01be1d42953f48c50175e2518d226f6ee",
         "type": "github"
       },
       "original": {
         "owner": "lost-rob0t",
         "repo": "zara-plugins",
-        "rev": "4f791d83b6d0a969c26f81273d075d5d78acd7db",
+        "rev": "b3c9aea01be1d42953f48c50175e2518d226f6ee",
         "type": "github"
       }
     }

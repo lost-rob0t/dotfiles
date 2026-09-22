@@ -577,6 +577,47 @@ allowing gptel to add persistent cards through a closed action vocabulary.
       :desc "AI dashboard" "y d" #'ai/dashboard
       :desc "Zara chat" "y z" #'zara-chat)
 #+end_src
+**** Agenda UI overlays
+The =*Org Agenda*= buffer does not run font-lock: it assigns faces with
+text properties while the buffer is built, so custom keyword styling is
+layered on as overlays from `org-finalize-agenda-hook'.  The helpers
+live in [[file:autoload/org-agenda-ui.org][org-agenda-ui.org]].  Keyword pills, struck-through done
+entries and bolded group headers all derive from standard faces, so the
+look follows whatever theme `ivan/cycle-theme' currently loaded.
+#+begin_src emacs-lisp
+(add-hook 'org-finalize-agenda-hook #'nsa/agenda-ui-fontify)
+
+(setq! org-agenda-skip-scheduled-if-done t
+       org-agenda-skip-deadline-if-done t
+       org-agenda-skip-timestamp-if-done t)
+
+(defface nsa/agenda-deadline-imminent
+  '((t :inherit org-warning :weight bold :underline t))
+  "Face for deadlines due within the first day of their window.")
+
+(setq! org-agenda-deadline-faces
+       '((1.0 . nsa/agenda-deadline-imminent)
+         (0.5 . org-warning)
+         (0.25 . org-upcoming-deadline)
+         (0.0 . org-upcoming-distant-deadline)))
+#+end_src
+**** Clear the backlog
+The agenda collects overdue repeats and stale reminders fast (the
+weekly =LOOP= work shifts alone pile up).  One command marks every
+overdue entry DONE: repeating entries advance with Org's repeat
+semantics until the next occurrence is in the future and keep the
+keyword they had, so a cleared =LOOP= shift stays =LOOP=, just in the
+future.  Bound to =C-c b= inside the agenda and =SPC o a b= everywhere.
+Zara's "clear backlog" voice intent runs the same command via
+emacsclient.
+#+begin_src emacs-lisp
+(map! :map org-agenda-mode-map
+      "C-c b" #'nsa/org-agenda-clear-backlog)
+
+(map! :leader
+      :desc "Clear overdue backlog"
+      "o a b" #'nsa/org-agenda-clear-backlog)
+#+end_src
 *** Babel
 Tangle a file
 #+begin_src emacs-lisp
@@ -786,14 +827,14 @@ A Personal wiki
 
 Set roam directory
 #+begin_src emacs-lisp
-(setq org-roam-directory "~/Documents/Notes/org/")
+(setq org-roam-directory "~/Documents/Notes/org/roam")
 #+end_src
 
 #+begin_src emacs-lisp
 (after! org-roam
   :init
   (setq org-roam-v2-ack t)
-  (setq org-roam-directory "~/Documents/Notes/org/")
+  (setq org-roam-directory "~/Documents/Notes/org/roam/")
   (setq org-roam-dailies-directory "daily")
   (setq org-roam-complete-everywhere t)
 

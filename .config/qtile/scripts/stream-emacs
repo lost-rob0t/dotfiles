@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# stream-emacs — chrooted Doom "stream" Emacs for the streamer center screen.
+#
+# Bubblewrap sandbox: ONLY ~/Documents/Projects and ~/starintel are bound in
+# read-write; HOME is a private tmpfs; the Doom user config (~/.doom.d) and
+# the Doom core (~/.emacs.d) are read-only with writable tmpfs state/cache
+# overlays; the X11 socket, X authority cookie, and the Wayland socket (when
+# present) are shared.  Emacs runs with server name "stream" and frames
+# named/classed "StreamEmacs", so streamer mode can allow-list it.
+# With no filesystem leaks beyond the two project roots, stream Emacs can
+# appear on the recorded screen while the rest of the desktop stays private.
+
+set -Eeuo pipefail
+
+program="${0##*/}"
+die() { printf '%s: %s\n' "$program" "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+have bwrap || die "bubblewrap (bwrap) is required but missing; install it to use the sandboxed stream Emacs"
+have emacs || die "emacs is required but missing"
+
+projects_dir="${HOME}/Documents/Projects"
+starintel_dir="${HOME}/starintel"
+doom_dir="${HOME}/.doom.d"
+doom_core="${HOME}/.emacs.d"
+init_file="${HOME}/.config/qtile/scripts/stream-emacs-init.el"
+
+[[ -d "$projects_dir" ]] || die "missing project directory: $projects_dir"
+[[ -d "$starintel_dir" ]] || die "missing project directory: $starintel_dir"
+[[ -d "$doom_dir" ]] || die "missing Doom config: $doom_dir"
+[[ -d "$doom_core" ]] || die "missing Doom core: $doom_core"
+[[ -r "$init_file" ]] || die "missing init file: $init_file"
+
+emacs_bin="$(readlink -f "$(command -v emacs)")"
+[[ -x "$emacs_bin" ]] || die "cannot resolve the real emacs binary"
+
+emacs_uid="$(id -u)"
+emacs_socket_root="/tmp/emacs/${emacs_uid}"
+server_auth_dir="${emacs_socket_root}/stream-auth"
+mkdir -p -- "$server_auth_dir"
+chmod 700 -- "$emacs_socket_root" "$server_auth_dir"
+
+xauth_file="${XAUTHORITY:-${HOME}/.Xauthority}"
+
+args=(
+    --die-with-parent
+    --tmpfs /tmp
+    --bind "$emacs_socket_root" "$emacs_socket_root"
+    --bind /tmp/.X11-unix /tmp/.X11-unix
+    --dev /dev
+    --proc /proc
+    --ro-bind /sys /sys
+    --ro-bind /etc /etc
+    --ro-bind /nix/store /nix/store
+    --ro-bind-try /nix/var/nix /nix/var/nix
+    --ro-bind-try /run/current-system /run/current-system
+    --tmpfs "$HOME"
+    --ro-bind "$doom_dir" "$doom_dir"
+    --ro-bind "$doom_core" "$doom_core"
+    --tmpfs "$doom_core/.local"
+    --tmpfs "$doom_core/.cache"
+    --ro-bind "$init_file" "$init_file"
+    --bind "$projects_dir" "$projects_dir"
+    --bind "$starintel_dir" "$starintel_dir"
+    --setenv DISPLAY "${DISPLAY:-:0}"
+    --setenv EMACS_SERVER_NAME stream
+)
+
+if [[ -n "${XAUTHORITY:-}" && -e "$xauth_file" ]] || [[ -e "$xauth_file" ]]; then
+    args+=(--ro-bind "$xauth_file" "$xauth_file")
+fi
+
+runtime_dir="${XDG_RUNTIME_DIR:-/run/user/${emacs_uid}}"
+if [[ -n "${WAYLAND_DISPLAY:-}" && -e "$runtime_dir/$WAYLAND_DISPLAY" ]]; then
+    args+=(--ro-bind "$runtime_dir/$WAYLAND_DISPLAY" "$runtime_dir/$WAYLAND_DISPLAY")
+    args+=(--setenv WAYLAND_DISPLAY "$WAYLAND_DISPLAY")
+    args+=(--setenv XDG_RUNTIME_DIR "$runtime_dir")
+fi
+
+exec bwrap "${args[@]}" "$emacs_bin" -F '((name . "StreamEmacs"))' -l "$init_file"

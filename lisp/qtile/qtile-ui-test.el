@@ -11,6 +11,9 @@
 (load-file
  (expand-file-name "../../.config/qtile/qtile-workflow.el"
                    (file-name-directory load-file-name)))
+(load-file
+ (expand-file-name "qtile-topics.el"
+                   (file-name-directory load-file-name)))
 
 (ert-deftest qtile-ui-frame-parameters-are-popup-safe ()
   (let* ((background (face-attribute 'default :background nil nil))
@@ -192,5 +195,94 @@
           '((args . ((choices . ["coding"])
                      (default . "coding")))))))
       (should closed))))
+
+(ert-deftest qtile-topics-ipc-calls-use-qtile-cmd-obj ()
+  (let (calls)
+    (cl-letf (((symbol-function 'start-process)
+               (lambda (&rest arguments) (push arguments calls))))
+      (qtile-topics--call "create_topic" "zara")
+      (should (equal (car calls)
+                     '("qtile-topic-cmd" nil "qtile" "cmd-obj" "-o" "cmd"
+                       "-f" "create_topic" "-a" "zara"))))))
+
+(ert-deftest qtile-topics-topic-pairs-handle-vectors-and-strings ()
+  (should (equal (qtile-topics--topic-name ["t:zara" "Zara"]) "t:zara"))
+  (should (equal (qtile-topics--topic-label ["t:zara" "Zara"]) "Zara"))
+  (should (equal (qtile-topics--topic-label ["t:solo"]) "t:solo"))
+  (should (equal (qtile-topics--topic-name "t:plain") "t:plain")))
+
+(ert-deftest qtile-topics-dashboard-renders-topic-actions ()
+  (with-temp-buffer
+    (qtile-topics-mode)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (qtile-topics-render
+       '((args . ((topics . [["t:zara" "Zara"] ["t:web" "Web"]]))))))
+    (should (string-match-p "TOPICS" (buffer-string)))
+    (should (string-match-p "Zara" (buffer-string)))
+    (should (string-match-p "\\[switch\\]" (buffer-string)))
+    (should (string-match-p "\\[send\\]" (buffer-string)))
+    (should (string-match-p "\\[close\\]" (buffer-string)))
+    (should (string-match-p "create topic" (buffer-string)))
+    (should (eq (key-binding (kbd "c")) #'qtile-topics-create))
+    (should (eq (key-binding (kbd "q")) #'qtile-ui-close-current))))
+
+(ert-deftest qtile-topics-dashboard-handles-an-empty-topic-pool ()
+  (with-temp-buffer
+    (qtile-topics-mode)
+    (let ((inhibit-read-only t))
+      (erase-buffer)
+      (qtile-topics-render '((args . ((topics . []))))))
+    (should (string-match-p "No topic groups exist yet" (buffer-string)))))
+
+(ert-deftest qtile-topics-create-prompts-and-registers-through-ipc ()
+  (let (calls closed)
+    (cl-letf (((symbol-function 'read-string) (lambda (_prompt &optional _v) " My Topic "))
+              ((symbol-function 'start-process)
+               (lambda (&rest arguments) (push arguments calls)))
+              ((symbol-function 'qtile-ui-close-current)
+               (lambda () (setq closed t))))
+      (with-temp-buffer
+        (qtile-topics-create))
+      (should closed)
+      (should (equal (car calls)
+                     '("qtile-topic-cmd" nil "qtile" "cmd-obj" "-o" "cmd"
+                       "-f" "create_topic" "-a" "My Topic"))))))
+
+(ert-deftest qtile-topics-picker-returns-the-selected-topic ()
+  (with-temp-buffer
+    (let (received)
+      (cl-letf (((symbol-function 'completing-read)
+                 (lambda (_prompt choices &rest _args)
+                   (setq received choices)
+                   "t:zara"))
+                ((symbol-function 'qtile-ui-close-current) (lambda () nil)))
+        (should (equal (qtile-topics-pick
+                        '((args . ((choices . ["t:zara" "t:web"])
+                                   (prompt . "Topic: ")))))
+                       "t:zara"))
+        (should (equal received '("t:zara" "t:web" "[Cancel]")))))))
+
+(ert-deftest qtile-topics-picker-cancel-closes-without-applying ()
+  (with-temp-buffer
+    (let (closed)
+      (cl-letf (((symbol-function 'completing-read)
+                 (lambda (&rest _args) "[Cancel]"))
+                ((symbol-function 'qtile-ui-close-current)
+                 (lambda () (setq closed t))))
+        (should-not
+         (qtile-topics-pick '((args . ((choices . ["t:zara"]))))))
+        (should closed)))))
+
+(ert-deftest qtile-topics-picker-quit-closes-the-popup ()
+  (with-temp-buffer
+    (let (closed)
+      (cl-letf (((symbol-function 'completing-read)
+                 (lambda (&rest _args) (signal 'quit nil)))
+                ((symbol-function 'qtile-ui-close-current)
+                 (lambda () (setq closed t))))
+        (should-not
+         (qtile-topics-pick '((args . ((choices . ["t:zara"]))))))
+        (should closed)))))
 
 ;;; qtile-ui-test.el ends here

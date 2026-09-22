@@ -11,6 +11,7 @@ The primary Qtile configuration is literate:
 | [[file:../../.config/qtile/qtile-workflows.org][qtile-workflows.org]] | [[file:../../.config/qtile/qtile_workflows.py][qtile_workflows.py]], [[file:../../.config/qtile/workflows.json][workflows.json]] | Declarative desktop workflow lifecycle, layout overrides, launches, and workflow definitions. |
 | [[file:../../.config/qtile/qtile-ai-windows.org][qtile-ai-windows.org]] | [[file:../../.config/qtile/qtile_ai_windows.py][qtile_ai_windows.py]] | Auto-mode window metadata routing and workflow-runtime bootstrap. |
 | [[file:../../.config/qtile/qtile-openrouter.org][qtile-openrouter.org]] | [[file:../../.config/qtile/qtile_openrouter.py][qtile_openrouter.py]] | OpenRouter telemetry and its dynamic sync/reload integration. |
+| [[file:../../.config/qtile/qtile-audio.org][qtile-audio.org]] | [[file:../../.config/qtile/qtile_audio.py][qtile_audio.py]] | Bar audio plugin: active-output volume, output dropdown, pinned default sink. |
 
 The main Org source describes itself as modular and self-documenting.  Prefer improving that source when documenting a concrete keybinding or widget rather than duplicating the detail here.
 
@@ -28,6 +29,66 @@ The repository editing rules require Qtile sync/reload behavior to:
 OpenRouter telemetry is rate-oriented rather than balance-oriented. The bar reports prompt and completion tokens from the trailing 60-second window as tokens per minute, polls the analytics helper every five seconds, and graphs five minutes of sampled rates. The balance and 30-day counters are deliberately omitted. The graph suppresses constant series and adaptively scales moving series so a much larger prompt stream does not visually erase completion traffic.
 
 The dynamic =Super+Ctrl+Shift+R= binding belongs to the OpenRouter telemetry helper.  Keep its documentation and generated implementation synchronized with =qtile-openrouter.org=.
+
+The audio bar widget replaces the stock =Volume= widget because =amixer set Master= cannot address PipeWire outputs.  =qtile_audio.py= talks to =pactl= and always targets =@DEFAULT_SINK@=: left click opens a =Popup= dropdown of every sink and selecting one runs =pactl set-default-sink= plus a pinned preference under =$XDG_STATE_HOME/nsa-qtile/=, scroll changes volume, middle click toggles mute.  All =pactl= calls run in the poll thread or an executor (the cached sink list feeds the dropdown), so the Qtile event loop never blocks.  Tests: =tests/test_qtile_audio.py= covers parsers, click-path structure, and Org/generated parity.
+
+* Topics
+Groups are mapped to named topics.  The declarative registry =DEFAULT_TOPICS=
+lives in [[file:../../.config/qtile/qtile-ai.org][qtile-ai.org]]; each topic generates one prefixed group =t:<name>= after
+the static ="1".."0"= workspaces, so the pool scales without keybinding or
+bar collisions.  The initial pool: =zara=, =dotfiles=, =prolog-rlm=,
+=symbolic-memory=, =quasar=, =tek9=, =zara-plugins=, =starintel=, plus the
+generic =comms=, =media=, =web=, =scratch=.
+
+- =all_group_names()= is the single helper every =group_names= consumer uses
+  for the extended set (bar =OwnedGroupBox= filter, auto layouts, telemetry
+  =session_start=).  Static workspaces, =workflows.json= screen mapping, and
+  the generated =Mod+1..0= bindings are unchanged; topic groups have no
+  digit bindings.
+- =OwnedGroupBox= only renders groups with live windows, so empty topics do
+  not clutter the bar.
+- Topic groups are exempt from Auto routing: windows placed in a topic stay.
+- Keybindings: =Mod+g g= jump (Emacs picker), =Mod+g n=/=Mod+g p= next/prev
+  topic, =Mod+g t= toggle the Emacs topics dashboard, =Mod+Shift+g= move the
+  focused window to a topic.
+- Runtime management is exposed on the IPC root for the Emacs UI and shell:
+  =qtile cmd-obj -o cmd -f create_topic|remove_topic|focus_topic|send_to_topic -a <name>=.
+
+The topics dashboard and picker are provided by
+[[file:../../lisp/qtile/qtile-topics.el][lisp/qtile/qtile-topics.el]] on top of the shared popup lifecycle (see
+[[file:../qtile-emacs-ui.org][Qtile and Emacs dropdown UI]]).
+
+* Streamer mode
+Streamer mode is a session-only privacy gate for the recorded center screen.
+It is OFF on every Qtile start and a config reload resets it.  While armed,
+only allow-listed windows may occupy the group shown on the =center= role's
+screen (resolved via =screen_roles()=); anything else landing there is moved
+to the =hold= group on another screen — never killed.  Enabling sweeps
+existing violations off center.  The allow-list classifier and
+=STREAM_ALLOWLIST= constant live in [[file:../../.config/qtile/qtile-ai-windows.org][qtile-ai-windows.org]].
+
+| Window | Allowed while streaming |
+|--------+-------------------------|
+| Nyxt browser (=Nyxt= / =nyxt= class) | yes |
+| Stream Emacs (frames named/classed =StreamEmacs=) | yes |
+| OpenCode (=terminator= titled =OpenCode=) | yes |
+| Brave, KeePassXC, Discord, generic terminals, everything else | no |
+
+- Bar: a = STREAM = toggle button sits next to =AUTO= (same callback style;
+  the armed state paints the accent color for an unambiguous center
+  indicator).
+- Keys: =Mod+s= toggles; =Mod+Shift+s= toggles plus starts
+  =screen-capture record-screen= and stops it on disable (only recordings
+  the streamer started; the X11 recorder captures the monitor under the
+  pointer, so keep the pointer on center when arming).  Both recording
+  calls spawn without blocking the event loop.
+- =Mod+u= launches the chrooted Doom stream Emacs:
+  =.config/qtile/scripts/stream-emacs= runs Emacs inside bubblewrap with
+  only =~/Documents/Projects= and =~/starintel= bound read-write, a tmpfs
+  =HOME=, read-only Doom config/core with writable state overlays, and the
+  X11/Wayland sockets shared.  Its server name is =stream= and frames are
+  named =StreamEmacs= (=scripts/stream-emacs-init.el=), which is what the
+  allow-list matches.
 
 * Desktop workflows
 The Emacs-backed workflow picker reads the tangled =workflows.json=.  The

@@ -119,6 +119,35 @@ class LiterateConfigParityTests(unittest.TestCase):
                 path.read_text(encoding="utf-8"),
             )
 
+    def test_qtile_ai_windows_org_matches_runtime_exactly(self):
+        self.assertEqual(
+            _single_python_block(ROOT / ".config" / "qtile" / "qtile-ai-windows.org"),
+            (ROOT / ".config" / "qtile" / "qtile_ai_windows.py").read_text(encoding="utf-8"),
+        )
+
+    def test_topic_pool_and_runtime_are_in_source_and_tangle(self):
+        for path in (QTILE_CONFIG_ORG, QTILE_CONFIG):
+            source = path.read_text(encoding="utf-8")
+            self.assertIn("DEFAULT_TOPICS = [", source)
+            self.assertIn("topic_groups = qtile_topics.build_topic_groups(DEFAULT_TOPICS)", source)
+            self.assertIn("groups.extend(topic_groups)", source)
+            self.assertIn("def all_group_names():", source)
+            self.assertIn("groups.append(Group(name=HOLDING_GROUP_NAME", source)
+            self.assertIn("qtile_topics.expose_topic_commands()", source)
+            # Static digit bindings must ignore generated topic groups.
+            self.assertIn("isinstance(i, Group) and i.name in group_names:", source)
+            # Streamer mode wiring.
+            self.assertIn("streamer_button = qtile_streamer.streamer_button", source)
+            self.assertIn("lazy.function(qtile_streamer.toggle_streamer_mode, record=True)", source)
+            self.assertIn('lazy.spawn(home + "/.config/qtile/scripts/stream-emacs")', source)
+
+    def test_stream_allowlist_is_declared_in_source_and_tangle(self):
+        source = (ROOT / ".config" / "qtile" / "qtile-ai-windows.org").read_text(encoding="utf-8")
+        runtime = (ROOT / ".config" / "qtile" / "qtile_ai_windows.py").read_text(encoding="utf-8")
+        for text in (source, runtime):
+            self.assertIn("STREAM_ALLOWLIST = {", text)
+            self.assertIn("def is_stream_allowed(", text)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -192,6 +192,12 @@ def _startup_complete():
     if not _config:
         return
     group_names = _config.get("group_names", ())
+    all_names = _config.get("all_group_names")
+    if callable(all_names):
+        try:
+            group_names = all_names()
+        except Exception:
+            pass
     groups = []
     for name in group_names:
         group = qtile.groups_map.get(name)

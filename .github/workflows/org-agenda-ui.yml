@@ -1,0 +1,38 @@
+name: Org agenda UI
+
+on:
+  pull_request:
+    paths:
+      - '.doom.d/autoload/org-agenda-ui.org'
+      - '.doom.d/autoload/org-agenda-ui.el'
+      - '.doom.d/tests/org-agenda-ui-test.el'
+      - '.github/workflows/org-agenda-ui.yml'
+  push:
+    branches: [master]
+    paths:
+      - '.doom.d/autoload/org-agenda-ui.org'
+      - '.doom.d/autoload/org-agenda-ui.el'
+      - '.doom.d/tests/org-agenda-ui-test.el'
+      - '.github/workflows/org-agenda-ui.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Emacs
+        run: sudo apt-get update && sudo apt-get install -y emacs-nox
+      - name: Run agenda UI tests
+        run: >-
+          emacs -Q --batch
+          -L .doom.d/autoload
+          -l .doom.d/tests/org-agenda-ui-test.el
+          -f ert-run-tests-batch-and-exit
+      - name: Check literate parity
+        run: >-
+          emacs -Q --batch
+          --eval '(progn (require (quote org)) (require (quote ob-tangle)) (org-babel-tangle-file ".doom.d/autoload/org-agenda-ui.org"))'
+          && git diff --exit-code .doom.d/autoload/org-agenda-ui.el

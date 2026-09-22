@@ -1,7 +1,6 @@
 # Known literate drift tolerated while being repaired (see literate-sync epic).
 # Remove each entry after restoring parity for that Org source.
 .config/qtile/qtile-ai.org
-.doom.d/config.org
 .doom.d/packages.org
 emacs/hackmode/hackmacs.org
 emacs/temple/temple.org

@@ -11,6 +11,14 @@ before the topology-aware desktop control module is installed, so workflow
 activation can extend =qtile_control.apply_workflow= without modifying the
 control layer itself.
 
+** Streamer allow-list
+
+Streamer mode guards the recorded center screen.  =STREAM_ALLOWLIST= is the
+single source of truth for what may appear there: the Nyxt browser, the
+sandboxed =StreamEmacs= frames, and OpenCode terminals.  Everything else is
+blocked from the center screen while streamer mode is armed (see the Topics
+& Streamer Mode section of qtile-ai.org).
+
 #+begin_src python
 """Window metadata patterns for the Qtile AI workspace."""
 
@@ -118,6 +126,26 @@ AI_TITLE_PATTERNS = tuple(
         r"^oc\s*\|",
     )
 )
+
+
+STREAM_ALLOWLIST = {
+    "classes": frozenset({"nyxt", "streamemacs"}),
+    "title_classes": frozenset({"emacs", "terminator"}),
+    "title_patterns": tuple(
+        re.compile(pattern, re.IGNORECASE)
+        for pattern in (r"\bopencode\b", r"\bstreamemacs\b")
+    ),
+}
+
+
+def is_stream_allowed(wm_classes: Iterable[str] | None, title: str | None) -> bool:
+    """Return whether a window may appear on the center screen in streamer mode."""
+    classes = {value.casefold() for value in (wm_classes or ()) if value}
+    if classes & STREAM_ALLOWLIST["classes"]:
+        return True
+    if not classes & STREAM_ALLOWLIST["title_classes"]:
+        return False
+    return any(pattern.search(title or "") for pattern in STREAM_ALLOWLIST["title_patterns"])
 
 
 def is_ai_window(wm_classes: Iterable[str] | None, title: str | None) -> bool:

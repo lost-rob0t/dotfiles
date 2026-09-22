@@ -28,7 +28,7 @@ lisp/qtile/qtile-ui.el
     |
     v
 feature renderer: qtile-desktop, qtile-workflow, qtile-notifications,
-qtile-services, Mara
+qtile-services, qtile-topics, Mara
 #+end_example
 
 * Named Emacs server
@@ -210,6 +210,28 @@ the same parser, so the Dmenu UI is not removed or silently replaced.
 =make-process=, displays all returned records without a twenty-entry cap, and
 provides urgency/source/summary/body faces, selected notification highlighting,
 replay, refresh, DND toggle, two-step clear confirmation, and backend buttons.
+
+** Topics dashboard and picker
+
+=lisp/qtile/qtile-topics.el= provides two renderers on the shared lifecycle:
+
+- =qtile-topics-open= renders the topics dashboard (popup ID =topics=,
+  toggled with =Mod+g t=, anchored to the center-bar =mara_button= because
+  keyboard flows have no trigger widget).  Each topic row offers =switch=,
+  =send= (move the focused window), and =close= buttons; =c= or the create
+  button prompts for a name and registers the topic at runtime.  Every
+  action calls back into Qtile through =qtile cmd-obj -o cmd -f
+  create_topic|remove_topic|focus_topic|send_to_topic -a <name>=, so Qtile
+  stays the single owner of group state.  The topic payload is a list of
+  =["t:<name>", "label"]= pairs supplied by Qtile at open time.
+- =qtile-topics-pick= is a =completing-read= picker that returns the chosen
+  topic name on stdout, mirroring the workflow picker.  =Mod+g g= (jump) and
+  =Mod+Shift+g= (send window) run it; the Qtile worker thread applies the
+  result via =call_soon_threadsafe=, so the event loop never blocks.
+
+Closing a topic moves its windows to another group; nothing is killed.
+Topic creation is idempotent per name and visible immediately on the next
+dashboard open.
 
 ** SERVICES: a fourth dropdown
 

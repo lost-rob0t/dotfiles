@@ -106,6 +106,26 @@ AI_TITLE_PATTERNS = tuple(
 )
 
 
+STREAM_ALLOWLIST = {
+    "classes": frozenset({"nyxt", "streamemacs"}),
+    "title_classes": frozenset({"emacs", "terminator"}),
+    "title_patterns": tuple(
+        re.compile(pattern, re.IGNORECASE)
+        for pattern in (r"\bopencode\b", r"\bstreamemacs\b")
+    ),
+}
+
+
+def is_stream_allowed(wm_classes: Iterable[str] | None, title: str | None) -> bool:
+    """Return whether a window may appear on the center screen in streamer mode."""
+    classes = {value.casefold() for value in (wm_classes or ()) if value}
+    if classes & STREAM_ALLOWLIST["classes"]:
+        return True
+    if not classes & STREAM_ALLOWLIST["title_classes"]:
+        return False
+    return any(pattern.search(title or "") for pattern in STREAM_ALLOWLIST["title_patterns"])
+
+
 def is_ai_window(wm_classes: Iterable[str] | None, title: str | None) -> bool:
     """Return whether X11 window metadata identifies an AI-related window."""
     classes = {value.casefold() for value in (wm_classes or ()) if value}

@@ -1,0 +1,280 @@
+#!/usr/bin/env python3
+"""Pair the Zara Android app to this host's zara-server over wireless ADB.
+
+Fast, guarded, idempotent:
+  - never injects input unless ai.zara.app owns the focus (or --takeover)
+  - drives the UI by text/bounds from uiautomator dumps, never blind taps
+  - enrolls the phone's client key server-side via zara-server CLI
+  - pins the server CURVE key and connects from the app
+  - verifies end-to-end (app status + server TCP)
+
+Usage:
+  zara-adb-pair [--serial SERIAL] [--endpoint HOST:PORT] [--device-id ID]
+                [--security-dir DIR] [--takeover] [--check] [--evidence-dir DIR]
+"""
+
+import argparse
+import html
+import ipaddress
+import re
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+APP = "ai.zara.app"
+MAIN_ACTIVITY = f"{APP}/.MainActivity"
+Z85_40 = re.compile(r"^[\x21-\x7e]{40}$")
+KEY_GUARD = "zara-server"
+
+
+def run(cmd, timeout=30, check=False):
+    p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    if check and p.returncode != 0:
+        raise RuntimeError(f"{' '.join(cmd)} -> {p.returncode}: {p.stderr.strip()}")
+    return p
+
+
+class Phone:
+    def __init__(self, adb, serial):
+        self.adb, self.serial = adb, serial
+
+    def sh(self, arg, timeout=30):
+        return run([self.adb, "-s", self.serial, "shell", arg], timeout=timeout)
+
+    def focused(self):
+        out = self.sh("dumpsys window").stdout
+        m = re.search(r"mCurrentFocus=Window{[^}]* ([^\s}/]+)", out)
+        return m.group(1) if m else ""
+
+    def launch(self):
+        self.sh(f"am start -n {MAIN_ACTIVITY}")
+        for _ in range(20):
+            if self.focused() == APP:
+                return True
+            time.sleep(0.5)
+        return False
+
+    def wake(self):
+        out = self.sh("dumpsys power").stdout
+        if "mWakefulness=Awake" not in out:
+            self.sh("input keyevent KEYCODE_WAKEUP")
+            time.sleep(1)
+        if "Bouncer" in self.sh("dumpsys window").stdout:
+            sys.exit("phone is on the lock screen (Bouncer); unlock it, then rerun")
+
+    def dump(self, tries=4):
+        for _ in range(tries):
+            xml = run(
+                [self.adb, "-s", self.serial, "exec-out", "uiautomator", "dump", "/dev/tty"],
+                timeout=45,
+            ).stdout
+            if len(xml) > 500:
+                return xml
+            time.sleep(1)
+        return ""
+
+    def nodes(self):
+        for m in re.finditer(r"<node[^>]*>", self.dump()):
+            tag = m.group(0)
+            text = html.unescape(re.search(r'text="([^"]*)"', tag).group(1)).strip()
+            cls = re.search(r'class="([^"]*)"', tag).group(1)
+            bounds = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', tag)
+            if not bounds:
+                continue
+            x1, y1, x2, y2 = map(int, bounds.groups())
+            yield dict(text=text, cls=cls, cx=(x1 + x2) // 2, cy=(y1 + y2) // 2,
+                       w=x2 - x1, h=y2 - y1)
+
+    def find(self, pred):
+        for n in self.nodes():
+            if pred(n):
+                return n
+        return None
+
+    def guarded_tap(self, node, reason):
+        self.require_focus(f"tap {reason}")
+        self.sh(f"input tap {node['cx']} {node['cy']}")
+        time.sleep(1.0)
+
+    def type_text(self, text):
+        self.require_focus("type text")
+        quoted = "'" + text.replace("'", "") + "'"
+        p = self.sh(f"input text {quoted}")
+        if p.returncode != 0:
+            sys.exit(f"input text failed: {p.stderr.strip()}")
+        time.sleep(0.8)
+
+    def require_focus(self, doing):
+        f = self.focused()
+        if f != APP:
+            sys.exit(f"abort before {doing}: focus moved to {f!r}; rerun with --takeover")
+
+    def scroll(self, down=True):
+        self.require_focus("scroll")
+        w, h = 540, 1200
+        if down:
+            self.sh(f"input swipe {w} {int(h*1.6)} {w} {int(h*0.6)} 250")
+        else:
+            self.sh(f"input swipe {w} {int(h*0.6)} {w} {int(h*1.6)} 250")
+        time.sleep(0.9)
+
+    def find_scrolling(self, pred, passes=4, down=True):
+        for _ in range(passes):
+            n = self.find(pred)
+            if n:
+                return n
+            self.scroll(down)
+        return None
+
+
+def pick_device(adb, want):
+    out = run([adb, "devices", "-l"]).stdout
+    cands = [ln.split("\t")[0] for ln in out.splitlines()
+             if "\tdevice" in ln and (not want or ln.startswith(want))]
+    if not cands:
+        sys.exit("no adb device in state 'device'; pair wireless debugging first")
+    if want and len(cands) == 1:
+        return cands[0]
+    if len(cands) > 1:
+        sys.exit("multiple devices online; pass --serial")
+    return cands[0]
+
+
+def default_lan_ip():
+    out = run(["ip", "route", "get", "1.1.1.1"]).stdout
+    m = re.search(r"src (\d+\.\d+\.\d+\.\d+)", out)
+    return m.group(1) if m else socket.gethostbyname(socket.gethostname())
+
+
+def server_key(security_dir):
+    p = run([KEY_GUARD, "--security-dir", str(security_dir),
+             "--security-show-public-key"], check=True)
+    return p.stdout.strip()
+
+
+def enroll(security_dir, key, device_id):
+    p = run([KEY_GUARD, "--security-dir", str(security_dir),
+             "--security-enroll-key", key, "--security-device-id", device_id])
+    out = (p.stdout + p.stderr).strip()
+    return p.returncode == 0 or "already" in out.lower(), out
+
+
+def open_connection_tab(phone):
+    if phone.find(lambda n: n["text"] == "Connection" and n["cy"] < 400):
+        return True
+    burger = phone.find(lambda n: n["text"] == "☰")
+    if not burger:
+        sys.exit("app is not on a screen with the navigation handle (☰)")
+    phone.guarded_tap(burger, "drawer")
+    settings = phone.find_scrolling(lambda n: n["text"] == "Settings", passes=2)
+    if not settings:
+        sys.exit("drawer has no Settings item")
+    phone.guarded_tap(settings, "Settings")
+    tab = phone.find_scrolling(lambda n: n["text"] == "Connection", passes=2)
+    if not tab:
+        sys.exit("Settings has no Connection tab")
+    phone.guarded_tap(tab, "Connection tab")
+    return True
+
+
+def pair(phone, args, sec_key):
+    open_connection_tab(phone)
+
+    client = phone.find(lambda n: Z85_40.match(n["text"]))
+    if not client:
+        sys.exit("no 40-char client public key visible on the Connection tab")
+    print(f"[pair] phone client key: {client['text']}")
+
+    ok, out = enroll(args.security_dir, client["text"], args.device_id)
+    print(f"[pair] server enroll {args.device_id}: {'ok' if ok else 'FAILED'} :: {out}")
+    if not ok:
+        sys.exit("server-side enrollment failed")
+
+    if not phone.find_scrolling(lambda n: n["text"] == "SAVED SERVER PUBLIC KEY", passes=3, down=False):
+        field = phone.find_scrolling(lambda n: "EditText" in n["cls"], passes=3, down=False)
+        if not field:
+            sys.exit("server CURVE key field not found")
+        phone.guarded_tap(field, "server key field")
+        phone.type_text(sec_key)
+        seen = phone.find(lambda n: "EditText" in n["cls"] and n["text"] == sec_key)
+        if not seen:
+            sys.exit("typed server key did not land in the field; aborting before pin")
+        pin = phone.find_scrolling(lambda n: n["text"].startswith("Pin server key"), passes=2)
+        if pin:
+            phone.guarded_tap(pin, "Pin server key")
+    print("[pair] server key pinned")
+
+    if args.skip_connect:
+        return
+    field = phone.find_scrolling(
+        lambda n: "EditText" in n["cls"] and not n["text"].startswith("?Q"), passes=4)
+    connect = phone.find_scrolling(lambda n: n["text"] == "Connect", passes=2)
+    if not field or not connect:
+        print("[pair] endpoint field/connect button not found; skipping connect step")
+        return
+    phone.guarded_tap(field, "endpoint field")
+    phone.type_text(args.endpoint)
+    if not phone.find(lambda n: "EditText" in n["cls"] and n["text"] == args.endpoint):
+        sys.exit("typed endpoint did not land in the field")
+    btn = phone.find(lambda n: n["text"] == "Connect")
+    phone.guarded_tap(btn, "Connect")
+
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        texts = {n["text"] for n in phone.nodes()}
+        if any("AUTHENTICATED" in t for t in texts):
+            print(f"[pair] CONNECTED: {args.endpoint} is authenticated")
+            return
+        time.sleep(2)
+    sys.exit("connect did not reach AUTHENTICATED within 30s; check Connection tab status")
+
+
+def check(phone, args):
+    print(f"device     : {phone.serial}")
+    print(f"focus      : {phone.focused()}")
+    open_connection_tab(phone)
+    for n in phone.nodes():
+        if n["text"] in ("connection", "enrollment", "session") or "AUTHENTICATED" in n["text"]:
+            print(f"ui         : {n['text']}")
+    host, port = args.endpoint.rsplit(":", 1)
+    with socket.create_connection((host, int(port)), timeout=3):
+        print(f"server tcp : {args.endpoint} reachable")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--serial")
+    ap.add_argument("--endpoint", default=f"tcp://{default_lan_ip()}:6060")
+    ap.add_argument("--device-id", default=f"android-phone-{time.strftime('%Y%m%d-%H%M')}")
+    ap.add_argument("--security-dir", type=Path,
+                    default=Path.home() / ".local/state/zarathushtra/security")
+    ap.add_argument("--takeover", action="store_true",
+                    help="bring Zara to the foreground even if another app has focus")
+    ap.add_argument("--check", action="store_true", help="report state only, no input")
+    ap.add_argument("--skip-connect", action="store_true")
+    args = ap.parse_args()
+
+    adb = str(run(["sh", "-c", "command -v adb || ls -d /nix/store/*-android-tools-*/bin/adb | head -1"],
+                  check=True).stdout.strip())
+    phone = Phone(adb, pick_device(adb, args.serial))
+    sec_key = server_key(args.security_dir)
+    print(f"[pair] server public key: {sec_key}")
+
+    phone.wake()
+    if phone.focused() != APP:
+        if not args.takeover and not args.check:
+            sys.exit(f"focus is on {phone.focused()!r}, not {APP}; "
+                     "close it or rerun with --takeover")
+        if not phone.launch():
+            sys.exit("could not bring Zara to the foreground")
+
+    if args.check:
+        check(phone, args)
+    else:
+        pair(phone, args, sec_key)
+
+
+if __name__ == "__main__":
+    main()

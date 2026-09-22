@@ -12,6 +12,7 @@ The Doom configuration is literate.
 | [[file:../../.doom.d/packages.org][.doom.d/packages.org]] | [[file:../../.doom.d/packages.el][packages.el]] | Doom package declarations. |
 | [[file:../../.doom.d/autoload/research-approval.org][.doom.d/autoload/research-approval.org]] | [[file:../../.doom.d/autoload/research-approval.el][research-approval.el]] | Fail-safe research/RAGE approval, commit, and push workflow. |
 | [[file:../../.doom.d/autoload/gpt-todos.org][.doom.d/autoload/gpt-todos.org]] | [[file:../../.doom.d/autoload/gpt-todos.el][gpt-todos.el]] | Durable agenda synchronization and save hook. |
+| [[file:../../.doom.d/autoload/org-agenda-ui.org][.doom.d/autoload/org-agenda-ui.org]] | [[file:../../.doom.d/autoload/org-agenda-ui.el][org-agenda-ui.el]] | Agenda overlay styling and overdue backlog clearing. |
 | [[file:../../.doom.d/snippets/][.doom.d/snippets/]] | n/a | Yasnippet and Org helper snippets. |
 
 The top of =config.org= declares =config.el= as its default tangle target, while individual blocks may override the target.  Read block-level =:tangle= arguments before assuming one Org file produces only one output.
@@ -94,6 +95,25 @@ For package/module changes:
 Android changes are covered by =.github/workflows/android-emacs.yml= for tangle
 parity, Elisp structure, ERT, and shell validation.  The separate
 =android-emacs-release.yml= exercises the actual Android/Termux packaging path.
+
+* Agenda UI and backlog clearing
+The =*Org Agenda*= buffer does not run font-lock; Org assigns faces with text
+properties while building the buffer.  Custom keyword styling therefore lives
+in [[file:../../.doom.d/autoload/org-agenda-ui.org][org-agenda-ui.org]] as overlays applied from
+`org-finalize-agenda-hook': TODO-keyword pills, struck-through done states,
+and bolded group headers.  Colors inherit from standard faces, so the look
+adapts to the light/dark `ivan/cycle-theme' toggle without theme hooks.
+
+Backlog clearing is one command, =nsa/org-agenda-clear-backlog=: every
+entry with an active TODO keyword whose SCHEDULED or DEADLINE is strictly
+before today is marked DONE.  Repeating =LOOP= entries advance with Org's
+repeat semantics until the next occurrence is in the future and keep the
+keyword they had, so cleared work shifts stay =LOOP=.  Bindings: =C-c b=
+inside the agenda and =SPC o a b= everywhere.  Zara's =clear backlog=
+voice intent invokes the same command through emacsclient.  Regression
+tests: [[file:../../.doom.d/tests/org-agenda-ui-test.el][org-agenda-ui-test.el]] (run with
+=emacs -Q --batch -L .doom.d/autoload -l .doom.d/tests/org-agenda-ui-test.el -f ert-run-tests-batch-and-exit=),
+covered by the org-agenda-ui Actions workflow.
 
 * Durable Org-roam save synchronization
 The canonical integration is [[file:../../.doom.d/autoload/gpt-todos.org][gpt-todos.org]].
