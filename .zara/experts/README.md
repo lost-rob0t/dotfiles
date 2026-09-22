@@ -27,6 +27,9 @@ semantics by `lost-rob0t/zara#1249`.
 - `git/` — symbolic Git operation/effect/precondition reasoning.
 - `home-manager/` — adapter over the existing durable Home Manager ownership KB.
 - `zara/` — adapter over existing Zara deployment and voice-validation KB facts.
+- `keyring/` — platform keyring-service enumeration, probing, and selection
+  policy for client pairing (provider-agnostic, fails closed, no plaintext
+  fallback).
 - `sysadmin/` — symptom → hypothesis → diagnostic → verification rules.
 - `javascript/` / `typescript/` — canonical JS/TS language semantics.
 - `java/` / `kotlin/` — canonical JVM language semantics.

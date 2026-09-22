@@ -297,17 +297,17 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1789986358,
-        "narHash": "sha256-Qn5VvWngSzExFWg/kACt25eKLqDEalVKsUeG3/Hty/U=",
+        "lastModified": 1789989467,
+        "narHash": "sha256-3HbfGJ95ksJAemPeLjoZgexnmG7t/Mn2X2tIfmeX4zE=",
         "owner": "lost-rob0t",
         "repo": "zara",
-        "rev": "af7185ee48def384783002332262412e9674343e",
+        "rev": "629344a8202965ccd0eae79b57c1533a2778da75",
         "type": "github"
       },
       "original": {
         "owner": "lost-rob0t",
         "repo": "zara",
-        "rev": "af7185ee48def384783002332262412e9674343e",
+        "rev": "629344a8202965ccd0eae79b57c1533a2778da75",
         "type": "github"
       }
     },
