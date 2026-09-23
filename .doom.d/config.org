@@ -577,6 +577,25 @@ allowing gptel to add persistent cards through a closed action vocabulary.
       :desc "AI dashboard" "y d" #'ai/dashboard
       :desc "Zara chat" "y z" #'zara-chat)
 #+end_src
+*** Skill lab
+Generate a bounded candidate in the canonical skills checkout and review its diff
+before normal Gitflow promotion.
+#+begin_src emacs-lisp
+
+(autoload #'skill-lab-auto-improve "skill-lab" nil t)
+(autoload #'skill-lab-improve "skill-lab" nil t)
+(autoload #'skill-lab-show-diff "skill-lab" nil t)
+(autoload #'skill-lab-open-magit "skill-lab" nil t)
+(autoload #'skill-lab-reject "skill-lab" nil t)
+
+(map! :leader
+      (:prefix ("y s" . "skill lab")
+       :desc "Auto improve skill" "a" #'skill-lab-auto-improve
+       :desc "Improve skill" "i" #'skill-lab-improve
+       :desc "Show skill diff" "d" #'skill-lab-show-diff
+       :desc "Open skill candidate in Magit" "m" #'skill-lab-open-magit
+       :desc "Reject skill candidate" "x" #'skill-lab-reject))
+#+end_src
 *** Babel
 Tangle a file
 #+begin_src emacs-lisp
