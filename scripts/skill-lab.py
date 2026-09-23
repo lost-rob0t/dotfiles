@@ -74,11 +74,31 @@ def choose(repo: Path, requested: str) -> str:
 
     if not available:
         raise Error("no skills found")
-    return min(available, key=age)
+    seen = attempts()
+    return min(available, key=lambda name: (seen.get(name, 0), age(name)))
 
 
 def cache() -> Path:
     return Path(os.getenv("XDG_CACHE_HOME", Path.home() / ".cache")) / "skill-lab"
+
+
+def attempts() -> dict[str, int]:
+    path = cache() / "attempts.json"
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return {str(key): int(value) for key, value in data.items() if isinstance(value, int)}
+
+
+def mark_attempt(skill: str) -> None:
+    root = cache()
+    root.mkdir(parents=True, exist_ok=True)
+    data = attempts()
+    data[skill] = int(time.time())
+    (root / "attempts.json").write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
 def add_worktree(repo: Path, skill: str) -> tuple[str, Path]:
@@ -204,6 +224,7 @@ def run_candidate(args: argparse.Namespace) -> int:
         print(json.dumps({"status": "dry-run", "repo": str(repo), "skill": skill, "model": args.model}))
         return 0
 
+    mark_attempt(skill)
     branch, worktree = add_worktree(repo, skill)
     result: dict[str, object] = {
         "status": "started",
