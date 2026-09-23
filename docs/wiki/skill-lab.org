@@ -12,7 +12,7 @@ Dotfiles owns the local lab UX.  The skills repository remains the canonical
 source of reusable skills.
 
 * Flow
-1. Emacs asks for a skill, or =auto= chooses the least-recently changed skill.
+1. Emacs asks for a skill, or =auto= rotates through least-recently attempted skills, using Git age as the tie-breaker.
 2. =scripts/skill-lab.py= creates a =lab/skill-...= linked worktree under
    =~/.cache/skill-lab/worktrees/=.
 3. =opencode-worker= runs in =isolated-mutate= mode against that worktree.
