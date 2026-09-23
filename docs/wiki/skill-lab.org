@@ -1,0 +1,57 @@
+#+TITLE: Emacs Skill Lab
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil
+
+* Purpose
+=skill-lab= is a small local experiment loop for =lost-rob0t/skills=.  It borrows
+the useful part of SkillGen/SkillOpt-style workflows: let an agent propose one
+bounded skill change, verify the candidate, and keep the result isolated until a
+human reviews the diff.
+
+Dotfiles owns the local lab UX.  The skills repository remains the canonical
+source of reusable skills.
+
+* Flow
+1. Emacs asks for a skill, or =auto= chooses the least-recently changed skill.
+2. =scripts/skill-lab.py= creates a =lab/skill-...= linked worktree under
+   =~/.cache/skill-lab/worktrees/=.
+3. =opencode-worker= runs in =isolated-mutate= mode against that worktree.
+4. The harness rejects changes outside =skills/<skill>/=.
+5. It runs the target skill validator, support-script validation,
+   =git diff --check=, and a matching focused Python test when one exists.
+6. Emacs opens the candidate as a =diff-mode= buffer.  Magit can open the same
+   worktree for normal review, staging, commits, and PR work.
+
+No candidate is committed, pushed, or merged by the lab.
+
+* Emacs
+The leader prefix is =SPC y s=:
+
+- =a= :: choose a skill automatically and generate one candidate.
+- =i= :: choose a skill; with =C-u= also provide an explicit improvement goal.
+- =d= :: reopen the latest candidate diff.
+- =m= :: open the candidate worktree in Magit.
+- =x= :: reject the candidate and delete its lab worktree/branch.
+
+The editable skills checkout is discovered from =SKILL_LAB_REPO=, then
+=OPENCODE_GLOBAL_SKILLS_CHECKOUT=, with =~/Documents/AI/skills= as the personal
+fallback.  The model defaults to the logical =astra-medium= route already owned
+by =opencode-worker=.
+
+Set =skill-lab-full-validation= non-nil to add =nix flake check --no-build=.
+
+* Safety boundary
+The lab intentionally does less than a release worker.
+
+- The model may mutate only the selected canonical skill package.
+- The harness owns branch/worktree lifecycle.
+- The model cannot use a shared/main worktree because =opencode-worker=
+  =isolated-mutate= rejects it.
+- Deterministic validators decide whether the candidate is marked =ready=.
+- Failed validation and scope violations remain reviewable but are never called
+  ready.
+- Secrets stay in the existing OpenCode/provider configuration; the lab does not
+  accept or persist API keys.
+
+Promotion is deliberately manual through the existing skills Gitflow and
+=skill-edit=/=merge-on-green= rules.
