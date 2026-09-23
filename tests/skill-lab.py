@@ -87,6 +87,18 @@ class SkillLabTest(unittest.TestCase):
         source_status = self._run(["git", "status", "--porcelain"], self.repo).stdout
         self.assertEqual(source_status, "")
 
+    def test_no_change_cache_has_no_deleted_worktree(self):
+        self._worker("pass")
+        proc = self._lab()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        result = json.loads(proc.stdout)
+        self.assertEqual(result["status"], "no-change")
+        self.assertIsNone(result["worktree"])
+        latest = json.loads(
+            (Path(self.env["XDG_CACHE_HOME"]) / "skill-lab" / "latest.json").read_text()
+        )
+        self.assertIsNone(latest["worktree"])
+
     def test_scope_violation_is_not_ready(self):
         self._worker("(root / 'README.md').write_text('nope\\n')")
         proc = self._lab()
