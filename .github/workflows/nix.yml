@@ -57,6 +57,14 @@ jobs:
         run: bash tests/variety-home-manager.sh
       - name: Run skill sync tests
         run: bash tests/skill-sync.sh
+      - name: Run skill lab regression tests
+        run: python3 tests/skill-lab.py
+      - name: Load skill lab Emacs package
+        run: >-
+          emacs -Q --batch
+          -L lisp/llm
+          -l lisp/llm/skill-lab.el
+          --eval '(princ "skill-lab-loaded\\n")'
       - name: Run GPT TODO bidirectional sync tests
         run: bash tests/gpt-todos-sync.sh
       - name: Run Org/Logseq bidirectional sync tests
