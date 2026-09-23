@@ -199,6 +199,21 @@ def save(result: dict[str, object]) -> None:
     (root / "latest.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
 
 
+def clear_latest(worktree: Path | None = None) -> None:
+    path = cache() / "latest.json"
+    if not path.is_file():
+        return
+    if worktree is not None:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            data = {}
+        recorded = data.get("worktree")
+        if not recorded or Path(recorded).expanduser().resolve() != worktree.expanduser().resolve():
+            return
+    path.unlink(missing_ok=True)
+
+
 def cleanup(repo: Path, worktree: Path) -> None:
     worktree = worktree.expanduser().resolve()
     listing = git(repo, "worktree", "list", "--porcelain").stdout.splitlines()
@@ -248,10 +263,10 @@ def run_candidate(args: argparse.Namespace) -> int:
 
         if not paths:
             result["status"] = "no-change"
-            save(result)
             cleanup(repo, worktree)
             result["branch"] = None
             result["worktree"] = None
+            save(result)
             print(json.dumps(result))
             return 0
 
@@ -298,7 +313,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             return run_candidate(args)
         if args.command == "cleanup":
             repo = repo_path(args.repo)
-            cleanup(repo, Path(args.worktree))
+            worktree = Path(args.worktree)
+            cleanup(repo, worktree)
+            clear_latest(worktree)
             print(json.dumps({"status": "cleaned", "worktree": args.worktree}))
             return 0
         path = cache() / "latest.json"
