@@ -17,6 +17,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:org-logseq-sync.org][Org-roam and Logseq synchronization]] - conflict-safe bidirectional Org notes, pages, journals, and the user systemd watcher.
 - [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, desktop workflows, and desktop integration.
 - [[file:opencode-commands.org][Global OpenCode commands]] - declarative =/= commands, reusable skills, the =opencode-worker= Unix contract, model routing, and hosting workflows.
+- [[file:skill-lab.org][Emacs skill lab]] - isolated agent skill candidates, deterministic validation, diff review, and Magit handoff.
 - [[file:../../scripts/opencode-tmux.org][OpenCode tmux sessions and EZF]] - named sessions, fzf/Emacs selection, hardened completion transport, installation, and verification.
 - [[file:llm-log.org][llm-log telemetry]] - adjacent z.AI/GPT quota meters and the new accurate API grapher.
 - [[file:zara.org][Zara workflows]] - declarative Zara base config, private-overlay ownership, Qwen3-TTS voice service, desktop/voice workflows, and bounded system updates.
@@ -53,6 +54,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |
 | Org ↔ Logseq sync | [[file:../../nix/home-manager/mods/org-logseq-sync.org][org-logseq-sync.org]] | Literate source for the Unison/inotify bridge, Home Manager module, and regression test. |
 | OpenCode | [[file:../../nix/home-manager/mods/opencode.org][opencode.org]] | Literate Home Manager source for global policy, commands, theme, routing, and the optional web workspace; tangles to =opencode.nix=. |
+| Skill lab | [[file:skill-lab.org][skill-lab.org]] | Emacs front end plus =scripts/skill-lab.py= for isolated, reviewable skill improvement candidates. |
 | OpenCode tmux / EZF | [[file:../../scripts/opencode-tmux.org][scripts/opencode-tmux.org]] | Standalone session commands, private-file Emacs bridge, and optional Home Manager packaging. |
 | Zara workflows | [[file:../../nix/home-manager/mods/zara-workflows.nix][zara-workflows.nix]] | Home Manager-owned base workflows plus the Qwen3-TTS service integration; private Zara runtime config remains unmanaged. |
 | Zara Android template | [[file:zara-android-automation.org][zara-android-automation.org]] | Git-importable Org source for deterministic Android automations and special-access policy. |
