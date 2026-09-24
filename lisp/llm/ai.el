@@ -20,7 +20,8 @@ for explicit manual selection."
                  (const :tag "OpenAI subscription OAuth" openai-oauth)
                  (const :tag "Z.AI API" zai)
                  (const :tag "OpenAI API" openai)
-                 (const :tag "Anthropic API" anthropic))
+                 (const :tag "Anthropic API" anthropic)
+                 (const :tag "StarIntel local" starintel))
   :group 'ai/llm)
 
 (defcustom ai/llm-model 'z-ai/glm-5.2
@@ -31,6 +32,31 @@ for explicit manual selection."
 (defcustom ai/llm-zai-host "api.z.ai"
   "Z.AI API host for explicit direct-provider use."
   :type 'string
+  :group 'ai/llm)
+
+(defcustom ai/llm-starintel-host "llm.starintel.actor"
+  "StarIntel local inference host (the OpenAI-compatible llm gateway)."
+  :type 'string
+  :group 'ai/llm)
+
+(defcustom ai/llm-starintel-endpoint "/v1/chat/completions"
+  "StarIntel chat-completions endpoint for the llm gateway."
+  :type 'string
+  :group 'ai/llm)
+
+(defcustom ai/llm-starintel-models
+  '((qwen3-8b
+     :description "Qwen3 8B chat tier on the StarIntel RTX 2060 (fast)"
+     :capabilities (reasoning tool-use json)
+     :context-window 4)
+    (qwen38-27b
+     :description "Qwen3.8 27B vision tier (mmproj); swaps VRAM away from the 8B"
+     :capabilities (reasoning media json)
+     :context-window 8))
+  "Models advertised by the StarIntel local backend.
+bge-m3 (embeddings) is served by the same gateway but is not a chat
+model, so it is deliberately not listed."
+  :type '(repeat sexp)
   :group 'ai/llm)
 
 (defcustom ai/llm-zai-endpoint "/api/paas/v4/chat/completions"
@@ -139,6 +165,12 @@ Environment variables are preferred, then auth-source is consulted."
          (and (fboundp 'nsa/auth-source-get)
               (ignore-errors (nsa/auth-source-get :host "openrouter.ai")))
          (ai/llm--auth-source-secret "openrouter.ai")))
+    ('starintel
+     (or (getenv "STARINTEL_LLM_API_KEY")
+         (and (fboundp 'nsa/auth-source-get)
+              (ignore-errors
+                (nsa/auth-source-get :host ai/llm-starintel-host)))
+         (ai/llm--auth-source-secret ai/llm-starintel-host)))
     (_ (error "Unsupported API-key LLM provider: %S" provider))))
 
 (defun ai/llm--require-api-key (provider)
@@ -184,6 +216,15 @@ Environment variables are preferred, then auth-source is consulted."
     :key (lambda () (ai/llm--require-api-key 'openrouter))
     :models ai/llm-openrouter-models))
 
+(cl-defun ai/llm-starintel-backend (&key (stream t) (name "StarIntel"))
+  "Return the StarIntel local inference backend (llm gateway)."
+  (gptel-make-openai name
+    :host ai/llm-starintel-host
+    :endpoint ai/llm-starintel-endpoint
+    :stream stream
+    :key (lambda () (ai/llm--require-api-key 'starintel))
+    :models ai/llm-starintel-models))
+
 (defun ai/llm-backend (&optional provider refresh)
   "Return the backend for PROVIDER.
 PROVIDER defaults to `ai/llm-provider'.  When REFRESH is non-nil, rebuild it."
@@ -198,6 +239,7 @@ PROVIDER defaults to `ai/llm-provider'.  When REFRESH is non-nil, rebuild it."
                    ('zai (ai/llm-zai-backend))
                    ('openai (ai/llm-openai-backend))
                    ('anthropic (ai/llm-anthropic-backend))
+                   ('starintel (ai/llm-starintel-backend))
                    (_ (error "Unsupported LLM provider: %S" provider)))
                  ai/llm--backends))))
 
@@ -214,6 +256,7 @@ PROVIDER defaults to `ai/llm-provider'.  When REFRESH is non-nil, rebuild it."
   (pcase (or provider ai/llm-provider)
     ('openrouter (mapcar #'ai/llm--model-name ai/llm-openrouter-models))
     ('zai (mapcar #'ai/llm--model-name ai/llm-zai-models))
+    ('starintel (mapcar #'ai/llm--model-name ai/llm-starintel-models))
     ((or 'openai 'openai-oauth) ai/llm-openai-models)
     ('anthropic ai/llm-anthropic-models)
     (_ nil)))
@@ -226,7 +269,8 @@ With LOCAL non-nil, only change the current buffer."
            (intern
             (completing-read
              "Provider: "
-             '("openrouter" "openai-oauth" "zai" "openai" "anthropic")
+             '("openrouter" "openai-oauth" "zai" "openai" "anthropic"
+               "starintel")
              nil t nil nil (symbol-name ai/llm-provider))))
           (available (ai/llm-models-for-provider provider))
           (default (if (memq ai/llm-model available)
@@ -273,6 +317,15 @@ With LOCAL non-nil, only change the current buffer."
   "Use GPT-5.6 Sol through an OpenAI subscription OAuth session."
   (interactive "P")
   (ai/llm-use 'openai-oauth 'gpt-5.6-sol local))
+
+(defun ai/llm-use-starintel (&optional heavy model local)
+  "Use the StarIntel local backend.
+With HEAVY (prefix), pick the qwen38-27b vision tier; otherwise the fast
+qwen3-8b chat tier.  MODEL overrides the choice."
+  (interactive "P")
+  (ai/llm-use 'starintel
+              (or model (if heavy 'qwen38-27b 'qwen3-8b))
+              local))
 
 (defun ai/llm-openai-oauth-login ()
   "Authenticate gptel's OpenAI subscription backend."
@@ -328,6 +381,13 @@ With LOCAL non-nil, only change the current buffer."
   :description "Claude Fable 5 through OpenRouter."
   :backend (ai/llm-backend 'openrouter)
   :model 'anthropic/claude-fable-5
+  :stream t
+  :include-reasoning 'ignore)
+
+(gptel-make-preset 'starintel-qwen3-8b
+  :description "Qwen3 8B through the StarIntel local llm gateway."
+  :backend (ai/llm-backend 'starintel)
+  :model 'qwen3-8b
   :stream t
   :include-reasoning 'ignore)
 

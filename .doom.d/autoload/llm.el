@@ -182,6 +182,20 @@
   (ai/llm-use-fable local))
 
 ;;;###autoload
+(defun +llm/use-starintel (&optional local)
+  "Switch to the StarIntel local llm gateway (fast qwen3-8b tier)."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-starintel nil nil local))
+
+;;;###autoload
+(defun +llm/use-starintel-heavy (&optional local)
+  "Switch to the StarIntel heavy qwen38-27b vision tier."
+  (interactive "P")
+  (require 'ai)
+  (ai/llm-use-starintel t nil local))
+
+;;;###autoload
 (defun +llm/use-openai-oauth (&optional local)
   "Switch to GPT-5.6 Sol through OpenAI subscription OAuth."
   (interactive "P")

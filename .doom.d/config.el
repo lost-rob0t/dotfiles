@@ -1207,7 +1207,10 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
   (when (file-exists-p temple)
     (load temple)))
 
-(setq auth-sources '("~/.authinfo.gpg")
+;; Secrets live in the home authinfo plus the encrypted per-credential
+;; files tracked in this repo (secrets/*.authinfo.gpg), so a fresh clone
+;; can load credentials after decrypting with the personal key.
+(setq auth-sources '("~/.authinfo.gpg" "~/.dotfiles/secrets/*.authinfo.gpg")
       auth-source-cache-expiry 1360)
 
 (setq nsa/music-dir "~/Music/Music-inbox")
