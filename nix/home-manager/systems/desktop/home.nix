@@ -32,6 +32,8 @@
     enable = true;
     nixManaged = false;
     workflows.enable = true;
+    featureLab.enable = true;
+    featureLab.autoStart = true;
 
     server = {
       enable = true;
