@@ -32,7 +32,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara-plugins = {
-      url = "github:lost-rob0t/zara-plugins/4f791d83b6d0a969c26f81273d075d5d78acd7db";
+      url = "github:lost-rob0t/zara-plugins/149b5bff358037e3c4b277a2f664dd2d6f066f58";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     bixby-studio = {
@@ -181,6 +181,27 @@
       };
 
       desktopHome = homeConfigurations."unseen@desktop";
+      zaraPluginRegistry =
+        (builtins.fromJSON (builtins.readFile "${zara-plugins}/plugins.json")).plugins;
+      zaraPluginNames = map (entry: entry.name) zaraPluginRegistry;
+      zaraAllPluginsCheck =
+        assert desktopHome.config.zara.plugins.enableAll;
+        assert lib.all
+          (name: lib.elem zara-plugins.packages.${system}.${name} desktopHome.config.home.packages)
+          zaraPluginNames;
+        assert lib.all
+          (entry:
+            builtins.hasAttr
+              ".zarathushtra/plugins/${builtins.baseNameOf entry.entrypoint}"
+              desktopHome.config.home.file
+            && builtins.hasAttr
+              ".config/zarathushtra/plugins/${entry.name}/lib"
+              desktopHome.config.home.file)
+          zaraPluginRegistry;
+        pkgs.runCommand "zara-all-plugins-check" { } ''
+          test "${toString (builtins.length zaraPluginNames)}" -gt 0
+          touch "$out"
+        '';
       aiClientThemeCheck =
         assert !builtins.hasAttr ".codex/config.toml" desktopHome.config.home.file;
         assert !builtins.hasAttr ".codex/config.yaml" desktopHome.config.home.file;
@@ -353,6 +374,7 @@
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
         zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
+        zara-all-plugins = zaraAllPluginsCheck;
         zara-emacs-expert = zaraExperts.emacs;
         zara-expert-library = zaraExperts.library;
       };

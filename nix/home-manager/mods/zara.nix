@@ -12,12 +12,17 @@ let
       (entry: lib.nameValuePair entry.name entry)
       pluginRegistryDocument.plugins
   );
+  allRegistryPluginNames = map (entry: entry.name) pluginRegistryDocument.plugins;
+  requestedRegistryPlugins = lib.unique (
+    lib.optionals cfg.plugins.enableAll allRegistryPluginNames
+    ++ cfg.plugins.registry
+  );
   unknownRegistryPlugins = lib.filter
     (name: !(builtins.hasAttr name pluginRegistry))
-    cfg.plugins.registry;
+    requestedRegistryPlugins;
   selectedRegistryEntries = map
     (name: pluginRegistry.${name})
-    (lib.filter (name: builtins.hasAttr name pluginRegistry) cfg.plugins.registry);
+    (lib.filter (name: builtins.hasAttr name pluginRegistry) requestedRegistryPlugins);
   registryPackageFor = entry:
     inputs.zara-plugins.packages.${system}.${entry.name};
   registryPackages = map registryPackageFor selectedRegistryEntries;
@@ -154,6 +159,17 @@ in
     };
 
     plugins = {
+      enableAll = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Install and declaratively wire every plugin present in the pinned
+          zara-plugins registry. The pinned registry remains the source of
+          truth, so registry updates become available only after the flake
+          input is deliberately updated and checked.
+        '';
+      };
+
       registry = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
