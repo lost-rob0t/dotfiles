@@ -29,8 +29,8 @@ let
       [plugins]
       lifecycle_timeout = 5.0
       EOF
-      python3 nix/home-manager/files/apply-zara-expert-config.py \\
-        "$TMPDIR/zara-config.toml" \\
+      python3 nix/home-manager/files/apply-zara-expert-config.py \
+        "$TMPDIR/zara-config.toml" \
         "$PWD/.zara/experts"
       python3 - "$TMPDIR/zara-config.toml" <<'PY'
       import pathlib
