@@ -11,6 +11,7 @@ let
         pkgs.nix
         pkgs.sbcl
         pkgs.emacs-nox
+        (pkgs.python3.withPackages (pythonPackages: [ pythonPackages.tomlkit ]))
       ];
     }
     ''
@@ -18,6 +19,41 @@ let
       cp -R "$src" source
       chmod -R u+w source
       cd source
+
+      python3 scripts/generate-zara-android-experts.py --check
+
+      cat > "$TMPDIR/zara-config.toml" <<'EOF'
+      [desktop]
+      theme = "outrun"
+
+      [plugins]
+      lifecycle_timeout = 5.0
+      EOF
+      python3 nix/home-manager/files/apply-zara-expert-config.py \\
+        "$TMPDIR/zara-config.toml" \\
+        "$PWD/.zara/experts"
+      python3 - "$TMPDIR/zara-config.toml" <<'PY'
+      import pathlib
+      import sys
+      import tomllib
+
+      path = pathlib.Path(sys.argv[1])
+      config = tomllib.loads(path.read_text(encoding="utf-8"))
+      assert config["desktop"]["theme"] == "outrun"
+      assert config["plugins"]["lifecycle_timeout"] == 5.0
+      expert = config["plugins"]["zara-expert"]
+      assert set(expert["language_expert_sources"]) == {
+          "bash", "java", "javascript", "kotlin", "nim", "nix",
+          "prolog", "python", "typescript",
+      }
+      assert set(expert["lisp_family_sources"]) == {
+          "lisp", "common-lisp", "emacs-lisp",
+      }
+      for family in ("language_expert_sources", "lisp_family_sources"):
+          for paths in expert[family].values():
+              assert len(paths) == 1
+              assert pathlib.Path(paths[0]).is_file()
+      PY
 
       swipl -q -f none -s .zara/experts/git/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/home-manager/tests/expert-tests.pl
