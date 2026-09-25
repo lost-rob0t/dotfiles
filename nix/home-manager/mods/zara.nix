@@ -5,6 +5,43 @@ let
   toml = pkgs.formats.toml { };
   system = pkgs.stdenv.hostPlatform.system;
 
+  dotfilesExpertPackages = import ../../../.zara/experts { inherit pkgs; };
+  defaultExpertLibrary = dotfilesExpertPackages.library;
+  expertLibraryRoot = "${cfg.experts.package}/share/zara/dotfiles";
+  expertRoot = "${expertLibraryRoot}/.zara/experts";
+  languageExpertNames = [
+    "prolog"
+    "python"
+    "nim"
+    "javascript"
+    "typescript"
+    "java"
+    "kotlin"
+    "nix"
+    "bash"
+  ];
+  lispExpertNames = [ "lisp" "common-lisp" "emacs-lisp" ];
+  expertSourceMap = names:
+    lib.genAttrs names (name: [ "${expertRoot}/${name}/kb/expert.pl" ]);
+  expertPluginSettings = {
+    plugins."zara-expert" = {
+      language_expert_sources = expertSourceMap languageExpertNames;
+      lisp_family_sources = expertSourceMap lispExpertNames;
+    };
+  };
+  effectiveSettings = lib.recursiveUpdate cfg.settings (
+    lib.optionalAttrs cfg.experts.enable expertPluginSettings
+  );
+  expertConfigUpdater = pkgs.writeShellApplication {
+    name = "apply-zara-expert-config";
+    runtimeInputs = [
+      (pkgs.python3.withPackages (pythonPackages: [ pythonPackages.tomlkit ]))
+    ];
+    text = ''
+      exec python3 ${../files/apply-zara-expert-config.py} "$@"
+    '';
+  };
+
   pluginRegistryDocument =
     builtins.fromJSON (builtins.readFile "${inputs.zara-plugins}/plugins.json");
   pluginRegistry = lib.listToAttrs (
@@ -15,6 +52,7 @@ let
   allRegistryPluginNames = map (entry: entry.name) pluginRegistryDocument.plugins;
   requestedRegistryPlugins = lib.unique (
     lib.optionals cfg.plugins.enableAll allRegistryPluginNames
+    ++ lib.optional cfg.experts.enable "zara-expert"
     ++ cfg.plugins.registry
   );
   unknownRegistryPlugins = lib.filter
@@ -93,11 +131,31 @@ in
       default = false;
       description = ''
         Take ownership of ~/.config/zarathushtra/config.toml from Nix. When
-        false (default) this module never writes Zara configuration and any
-        existing user configuration is left untouched. When true the file is
-        generated from {option}`zara.settings` and replaced on every
-        activation (Home Manager backs up an existing unmanaged file).
+        false (default) the general Zara configuration remains user-owned.
+        When {option}`zara.experts.enable` is also true, Home Manager merges
+        only the non-secret zara-expert source tables into that mutable file.
+        When true the whole file is generated from {option}`zara.settings`
+        plus the expert source tables and replaced on every activation.
       '';
+    };
+
+    experts = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Register the canonical Dotfiles language and Lisp expert brains with
+          Zara's existing zara-expert plugin. The source package preserves the
+          project .zara/experts tree; no second expert registry is created.
+        '';
+      };
+
+      package = lib.mkOption {
+        type = lib.types.package;
+        default = defaultExpertLibrary;
+        defaultText = lib.literalExpression "(import ../../../.zara/experts { inherit pkgs; }).library";
+        description = "Built and tested package containing the canonical Dotfiles Zara expert library.";
+      };
     };
 
     server = {
@@ -233,7 +291,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    warnings = lib.mkIf (cfg.nixManaged && cfg.settings == { }) [
+    warnings = lib.mkIf (cfg.nixManaged && effectiveSettings == { }) [
       "zara.nixManaged is enabled while zara.settings is empty; activation will replace ~/.config/zarathushtra/config.toml with an empty configuration."
     ];
 
@@ -260,13 +318,29 @@ in
       }
     ];
 
-    home.packages = [ cfg.package ] ++ registryPackages ++ cfg.plugins.packages;
+    home.packages = [ cfg.package ]
+      ++ lib.optional cfg.experts.enable cfg.experts.package
+      ++ registryPackages
+      ++ cfg.plugins.packages;
+
+    home.sessionVariables = lib.mkIf cfg.experts.enable {
+      ZARA_DOTFILES_ROOT = expertLibraryRoot;
+    };
 
     home.file = discoveryFiles // pluginConfigFiles // {
       ".config/zarathushtra/config.toml" = lib.mkIf cfg.nixManaged {
-        source = toml.generate "zara-config.toml" cfg.settings;
+        source = toml.generate "zara-config.toml" effectiveSettings;
       };
     };
+
+    home.activation.zaraExpertConfig = lib.mkIf (cfg.experts.enable && !cfg.nixManaged) (
+      lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        config_path=${lib.escapeShellArg "${config.home.homeDirectory}/.config/zarathushtra/config.toml"}
+        $DRY_RUN_CMD ${expertConfigUpdater}/bin/apply-zara-expert-config \\
+          "$config_path" \\
+          ${lib.escapeShellArg expertRoot}
+      ''
+    );
 
     systemd.user.services.zara-server = lib.mkIf cfg.server.enable {
       Unit = {
@@ -278,6 +352,7 @@ in
           + lib.optionalString (cfg.server.remoteEndpoint != null && cfg.server.securityDir != null)
             " --remote-endpoint ${cfg.server.remoteEndpoint} --security-dir ${cfg.server.securityDir}";
         EnvironmentFile = lib.optional (cfg.server.environmentFile != null) cfg.server.environmentFile;
+        Environment = lib.optional cfg.experts.enable "ZARA_DOTFILES_ROOT=${expertLibraryRoot}";
         Restart = "on-failure";
         RestartSec = 5;
         UMask = "0077";
@@ -300,6 +375,7 @@ in
         # Materialized by zara-pair from the platform keyring; optional so the
         # copilot still starts (unauthenticated IPC fallback) before pairing.
         EnvironmentFile = "-%h/.config/zarathushtra/secrets-daemon-clients.env";
+        Environment = lib.optional cfg.experts.enable "ZARA_DOTFILES_ROOT=${expertLibraryRoot}";
         Restart = "on-failure";
         RestartSec = 3;
         UMask = "0077";
