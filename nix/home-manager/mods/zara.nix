@@ -336,8 +336,8 @@ in
     home.activation.zaraExpertConfig = lib.mkIf (cfg.experts.enable && !cfg.nixManaged) (
       lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         config_path=${lib.escapeShellArg "${config.home.homeDirectory}/.config/zarathushtra/config.toml"}
-        $DRY_RUN_CMD ${expertConfigUpdater}/bin/apply-zara-expert-config \\
-          "$config_path" \\
+        $DRY_RUN_CMD ${expertConfigUpdater}/bin/apply-zara-expert-config \
+          "$config_path" \
           ${lib.escapeShellArg expertRoot}
       ''
     );
