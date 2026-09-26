@@ -32,6 +32,7 @@
     enable = true;
     nixManaged = false;
     workflows.enable = true;
+    experts.enable = true;
 
     server = {
       enable = true;

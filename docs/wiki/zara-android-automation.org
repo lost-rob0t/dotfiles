@@ -165,14 +165,48 @@ rule(example).
 ,#+end_src
 #+end_src
 
+
+* Shared expert projection
+=.zara/experts/= remains the only canonical Dotfiles expert source.  Desktop
+Home Manager builds that tree with =.zara/experts/default.nix= and configures
+the existing =zara-expert= service plugin with immutable source paths for the
+nine language brains and three Lisp-family brains.  Existing user TOML is
+structurally merged when =zara.nixManaged=false=; secrets and unrelated settings
+are not copied into Nix.
+
+Android intentionally does not consult the raw SWI-Prolog modules from
+=.zara/experts/=.  The Git-template importer is a smaller Trealla/data boundary:
+it accepts flat Prolog workspace files and rejects module loading, arbitrary
+consults, shell/file effects, nested source authority, and similar desktop-only
+features.
+
+Instead, =.config/zarathushtra/android/dotfiles_experts.pl= is generated from
+the canonical brains that explicitly declare both =provider_policy(disabled)=
+and =max_model_calls(0)=.  It exposes only source identity plus local
+=*_explain/2= routing, which Zara Android can load into the same private Prolog
+workspace as =android_automation.pl=.
+
+Regenerate and verify it with:
+
+#+begin_src sh
+python3 scripts/generate-zara-android-experts.py
+python3 scripts/generate-zara-android-experts.py --check
+#+end_src
+
+This is a projection, not another expert registry.  Full Android/Desktop
+=ZARA-EXPERT/1= root discovery still belongs to Zara Core's canonical discovery
+work; until that lands, Android must not pretend the Trealla projection has the
+same SWI execution surface as desktop.
+
 * Desktop configuration relationship
-Desktop Zara's tracked base is
+Desktop Zara's tracked Prolog base is
 =file:../../.config/zarathushtra/config.pl=; Home Manager installs that exact
 source at =~/.config/zarathushtra/config.pl=.  The mutable
-=~/.config/zarathushtra/config.local.pl= overlay remains outside Git.  Android
-uses the sibling tracked =.config/zarathushtra/android/= directory through the
-Git-template importer, while its app-private Prolog workspace remains the
-mutable layer.
+=~/.config/zarathushtra/config.local.pl= overlay remains outside Git.  The same
+Home Manager profile also activates canonical expert source paths in
+=~/.config/zarathushtra/config.toml=.  Android uses the sibling tracked
+=.config/zarathushtra/android/= directory through the Git-template importer,
+while its app-private Prolog workspace remains the mutable layer.
 
 Desktop-only process mappings such as =app_mapping/2= with Linux executables do
 not become Android executable commands.  Port cross-platform intent meaning to
