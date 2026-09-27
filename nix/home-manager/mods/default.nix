@@ -32,6 +32,7 @@
     ./pentesting.nix
     ./llm.nix
     ./zara.nix
+    ./zara-development.nix
     ./zara-workflows.nix
     ./screen-capture.nix
     ./prolog-mcp.nix

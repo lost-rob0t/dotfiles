@@ -1,0 +1,125 @@
+#+title: Zara scheduled work and coding setup
+
+* Ownership and activation
+This module configures the existing Zara task runner and =zara-coding= plugin.
+It does not create a cron daemon, worker loop, task database, provider, or approval
+bypass. The desktop profile enables it; other profiles remain opt-in.
+
+=~/.config/zarathushtra/config.toml= stays user-owned when =zara.nixManaged=false=.
+Activation merges only known =[tasks]= and =[plugins.zara-coding]= keys after
+expert-source activation, retaining unrelated settings and comments. The updater
+rejects malformed tables, unknown/secret fields, symlink targets, and detected
+concurrent edits. Changed files are replaced atomically with mode 0600. No secret
+value is generated in Nix. Existing private settings are not printed.
+
+The default coding scope is =~/Documents/Projects= and =~/git/worktrees=, with
+Prolog-RLM at =~/Documents/Projects/prolog-rlm=. Git and SWI-Prolog use immutable
+package paths, including when Zara starts from systemd without an interactive
+shell. Missing checkouts remain the plugin's truthful degraded state; activation
+neither clones repositories nor widens access. Existing Emacs/OpenCode clients
+remain clients of their existing runtimes.
+
+Tasks use two concurrent runs, twenty steps, thirty minutes, and 2000-character
+step logs by default. These enable the canonical task subsystem; no actual job is
+created. Cron UI/service integration remains Zara PR #1058, interval recurrence
+#1150, and the Android shared Code workbench #1266. Do not treat this configuration
+as proof those PRs are merged, or repin to unverified feature branches. The pinned
+coding plugin currently exposes repository/SPEC/symbolic-task operations, not a
+complete autonomous build/test worker.
+
+After a successful Home Manager switch, restart the existing =zara-server= and
+=zara-desktop= user services when idle. Query =coding.status= and =coding.repo.list=
+to verify the actual checkout and repository scope. Check =schedule_list= only on
+a Zara revision containing the Scheduled integration. Android continues using its
+canonical runtime and shared Code workbench; this host config is not an APK install.
+
+Run =python nix/home-manager/files/test-zara-development-config.py= for the focused
+activation tests and literal Org/generated parity. The Home Manager helper build
+runs the same suite and validates the generated settings; full Nix evaluation and
+upstream runtime/Android acceptance remain separate gates.
+
+* Home Manager module
+#+begin_src nix :tangle zara-development.nix
+{ config, lib, pkgs, ... }:
+let
+  cfg = config.zara;
+  enabled = cfg.coding.enable || cfg.scheduled.enable;
+  python = pkgs.python3.withPackages (p: [ p.tomlkit ]);
+  settings = {
+    tasks = {
+      enabled = true;
+      max_concurrent = cfg.scheduled.maxConcurrent;
+      max_task_steps = cfg.scheduled.maxTaskSteps;
+      wall_clock_minutes = cfg.scheduled.wallClockMinutes * 1.0;
+      step_log_chars = cfg.scheduled.stepLogChars;
+    };
+  } // lib.optionalAttrs cfg.coding.enable {
+    plugins.zara-coding = {
+      allowed_roots = cfg.coding.allowedRoots;
+      prolog_rlm_checkout = cfg.coding.prologRlmCheckout;
+      git = "${pkgs.git}/bin/git";
+      swipl = "${pkgs.swi-prolog}/bin/swipl";
+    };
+  };
+  settingsFile = pkgs.writeText "zara-development-settings.json" (builtins.toJSON settings);
+  checks = pkgs.runCommand "zara-development-config-tests" { nativeBuildInputs = [ python ]; } ''
+    mkdir -p files mods
+    cp ${../files/apply-zara-development-config.py} files/apply-zara-development-config.py
+    cp ${../files/test-zara-development-config.py} files/test-zara-development-config.py
+    cp ${./zara-development.org} mods/zara-development.org
+    cp ${./zara-development.nix} mods/zara-development.nix
+    python files/test-zara-development-config.py
+    python files/apply-zara-development-config.py "$TMPDIR/config.toml" ${settingsFile}
+    touch "$out"
+  '';
+  updater = pkgs.writeShellApplication {
+    name = "apply-zara-development-config";
+    runtimeInputs = [ python ];
+    text = ''
+      test -e ${checks}
+      exec python ${../files/apply-zara-development-config.py} "$@"
+    '';
+  };
+in
+{
+  options.zara = {
+    coding = {
+      enable = lib.mkEnableOption "Zara's existing Prolog-RLM coding plugin";
+      allowedRoots = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        default = [ "${config.home.homeDirectory}/Documents/Projects" "${config.home.homeDirectory}/git/worktrees" ];
+        description = "Explicit repository and linked-worktree roots; never the whole filesystem.";
+      };
+      prologRlmCheckout = lib.mkOption {
+        type = lib.types.str;
+        default = "${config.home.homeDirectory}/Documents/Projects/prolog-rlm";
+        description = "Existing Prolog-RLM checkout; the plugin checks runtime readiness.";
+      };
+    };
+    scheduled = {
+      enable = lib.mkEnableOption "Zara's canonical scheduled-task substrate";
+      maxConcurrent = lib.mkOption { type = lib.types.ints.positive; default = 2; };
+      maxTaskSteps = lib.mkOption { type = lib.types.ints.positive; default = 20; };
+      wallClockMinutes = lib.mkOption { type = lib.types.ints.positive; default = 30; };
+      stepLogChars = lib.mkOption { type = lib.types.ints.positive; default = 2000; };
+    };
+  };
+
+  config = lib.mkIf (cfg.enable && enabled) {
+    assertions = [ {
+      assertion = cfg.server.enable;
+      message = "Zara coding/scheduled setup requires the existing zara-server service.";
+    } ];
+    zara.settings = settings;
+    zara.plugins.registry = lib.optional cfg.coding.enable "zara-coding";
+    home.packages = [ updater ] ++ lib.optionals cfg.coding.enable [ pkgs.git pkgs.swi-prolog ];
+    home.activation.zaraDevelopmentConfig = lib.mkIf (!cfg.nixManaged) (
+      lib.hm.dag.entryAfter [ "writeBoundary" "zaraExpertConfig" ] ''
+        $DRY_RUN_CMD ${updater}/bin/apply-zara-development-config \
+          ${lib.escapeShellArg "${config.home.homeDirectory}/.config/zarathushtra/config.toml"} \
+          ${settingsFile}
+      ''
+    );
+  };
+}
+#+end_src
