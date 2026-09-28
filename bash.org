@@ -22,6 +22,15 @@ export PATH
 
 #+end_src
 
+Make Lish the default interactive shell while keeping Bash as the recovery/login shim.
+The shared handoff helper is also consumed by Home Manager so the policy has one
+implementation.
+#+begin_src sh :tangle .bashrc
+if [[ -f "${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}/scripts/lish-bash-enter" ]]; then
+    source "${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}/scripts/lish-bash-enter"
+fi
+#+end_src
+
 Load any extra configuration.
 #+begin_src sh :tangle .bashrc
 if [ ! -d ~/.bashrc.d ]; then

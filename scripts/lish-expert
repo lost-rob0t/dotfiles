@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dotfiles="${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}"
+experts="$dotfiles/.zara/experts"
+action="${1:-list}"
+name="${2:-}"
+
+find_expert() {
+  local expert="$1"
+  local file="$experts/$expert/kb/expert.pl"
+  [[ -f "$file" ]] || {
+    printf 'lish-expert: unknown expert: %s\n' "$expert" >&2
+    exit 2
+  }
+  printf '%s\n' "$file"
+}
+
+case "$action" in
+  list)
+    find "$experts" -mindepth 3 -maxdepth 3 -path '*/kb/expert.pl' -print \
+      | sed -E 's#^.*/experts/([^/]+)/kb/expert\.pl$#\1#' \
+      | sort
+    ;;
+  source)
+    [[ -n "$name" ]] || { printf 'Usage: lish-expert source NAME\n' >&2; exit 2; }
+    find_expert "$name"
+    ;;
+  test)
+    [[ -n "$name" ]] || { printf 'Usage: lish-expert test NAME\n' >&2; exit 2; }
+    test_file="$experts/$name/tests/expert-tests.pl"
+    [[ -f "$test_file" ]] || { printf 'lish-expert: no test suite for %s\n' "$name" >&2; exit 2; }
+    exec swipl -q -f none -s "$test_file"
+    ;;
+  query)
+    [[ -n "$name" && -n "${3:-}" ]] || {
+      printf 'Usage: lish-expert query NAME PROLOG_GOAL\n' >&2
+      exit 2
+    }
+    file="$(find_expert "$name")"
+    goal="$3"
+    exec swipl -q -f none -s "$file" -g "$goal" -t halt
+    ;;
+  status)
+    printf 'dotfiles=%s\n' "$dotfiles"
+    printf 'experts=%s\n' "$experts"
+    printf 'swipl=%s\n' "$(command -v swipl || true)"
+    printf 'sbcl=%s\n' "$(command -v sbcl || true)"
+    ;;
+  *)
+    printf 'Usage: lish-expert <list|source|test|query|status> [NAME] [GOAL]\n' >&2
+    exit 2
+    ;;
+esac

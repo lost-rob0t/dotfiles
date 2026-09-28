@@ -1,0 +1,8 @@
+(in-package :lish-user)
+
+(let* ((config-root (or (uiop:getenv "STAR_DOTFILES_ROOT")
+                        (namestring (merge-pathnames ".dotfiles/" (user-homedir-pathname)))))
+       (init (merge-pathnames ".config/lish/init.lisp"
+                              (uiop:ensure-directory-pathname config-root))))
+  (when (probe-file init)
+    (load init)))

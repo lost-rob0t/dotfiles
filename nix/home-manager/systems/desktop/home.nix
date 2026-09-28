@@ -27,6 +27,7 @@
   };
 
   hackmode.enable = true;
+  lish.enable = true;
 
   zara = {
     enable = true;

@@ -74,6 +74,7 @@ packages=(
   curl
   emacs
   fd
+  fzf
   gh
   git
   gnupg
@@ -89,6 +90,7 @@ packages=(
   stow
   swi-prolog
   termux-api
+  tmux
 )
 
 case "$(dpkg --print-architecture 2>/dev/null || true)" in
@@ -117,6 +119,19 @@ elif [[ -e "$DOTFILES_DIR" ]]; then
 else
   git clone --branch master --single-branch "$DOTFILES_REPO" "$DOTFILES_DIR"
 fi
+
+note "Installing Lish agentic shell"
+export STAR_DOTFILES_ROOT="$DOTFILES_DIR"
+for tool in lish lish-bootstrap lish-default-shell lish-rlm lish-expert; do
+  install -m 0755 "$DOTFILES_DIR/scripts/$tool" "$PREFIX/bin/$tool"
+done
+
+if [[ -e "$HOME/.bashrc" && ! -L "$HOME/.bashrc" ]]; then
+  cp -p "$HOME/.bashrc" "$HOME/.bashrc.pre-star" || true
+fi
+ln -sfn "$DOTFILES_DIR/.bashrc" "$HOME/.bashrc"
+
+lish-bootstrap
 
 note "Installing platform-aware entry command"
 cat > "$PREFIX/bin/platform-enter" <<'PLATFORM_ENTER'
@@ -450,6 +465,10 @@ printf 'Nix:       '
 nix --version 2>/dev/null || true
 printf 'OpenCode:  '
 opencode --version 2>/dev/null || true
+printf 'Lish:      '
+lish --version 2>/dev/null || true
+printf 'RLM shell: '
+lish-rlm status 2>/dev/null | paste -sd ' ' - || true
 printf 'AI:        ai\n'
 printf 'Nix shell: nix-termux\n'
 printf 'Org UI:    emacs-org\n'

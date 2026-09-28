@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+kind="${1:-suggest}"
+if (( $# )); then shift; fi
+query="$*"
+
+if [[ "$kind" == "status" ]]; then
+  command -v swipl >/dev/null 2>&1 || { printf 'swipl: missing\n'; exit 1; }
+  root="${PROLOG_RLM_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/lish/vendor/prolog-rlm}"
+  [[ -f "$root/bin/prolog-rlm.pl" ]] || { printf 'prolog-rlm: missing (%s)\n' "$root"; exit 1; }
+  printf 'prolog-rlm: %s\nmode: %s\n' "$root" "${STAR_LISH_RLM_MODE:-auto}"
+  exit 0
+fi
+
+[[ -n "$query" ]] || {
+  printf 'Usage: lish-rlm <suggest|ask|agent|shell|lisp|oneliner> QUERY...\n' >&2
+  exit 2
+}
+
+root="${PROLOG_RLM_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/lish/vendor/prolog-rlm}"
+entry="$root/bin/prolog-rlm.pl"
+[[ -f "$entry" ]] || {
+  printf 'lish-rlm: Prolog-RLM checkout missing: %s\n' "$root" >&2
+  exit 1
+}
+command -v swipl >/dev/null 2>&1 || {
+  printf 'lish-rlm: swipl is required\n' >&2
+  exit 127
+}
+
+mode="${STAR_LISH_RLM_MODE:-auto}"
+case "$kind" in
+  suggest)
+    intent="Answer the free-form shell input. If executable output is useful, include concise SHELL, LISP, and ONELINER sections. Do not execute generated text."
+    ;;
+  ask)
+    intent="Answer the question. Prefer concise explanation; include executable snippets only when useful."
+    ;;
+  agent)
+    intent="Treat this as an agentic task under Prolog-RLM capability, budget, effect, trace, and verifier boundaries. Use registered tools only through the runtime. Return the completed result and evidence."
+    ;;
+  shell)
+    intent="Produce the smallest correct shell command or command sequence. Explain destructive/effectful behavior before the command."
+    ;;
+  lisp)
+    intent="Produce idiomatic Common Lisp suitable for the current Lish image, preferring existing libraries and functions."
+    ;;
+  oneliner)
+    intent="Produce one compact command-line one-liner when possible, plus one short explanation."
+    ;;
+  *)
+    printf 'lish-rlm: unknown mode: %s\n' "$kind" >&2
+    exit 2
+    ;;
+esac
+
+platform="$(uname -srm 2>/dev/null || true)"
+context="shell=lish
+strategy=$mode
+cwd=$PWD
+platform=$platform
+dotfiles=${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}
+The shell is Common Lisp-native. Existing commands and Lisp forms execute directly; this request came through the free-form/agentic path.
+$intent"
+
+prompt="[$kind][$mode] $query"
+
+exec swipl -q -s "$entry" -- rlm "$prompt" --context "$context"

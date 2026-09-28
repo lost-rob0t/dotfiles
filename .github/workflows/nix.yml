@@ -24,6 +24,8 @@ jobs:
           set -euo pipefail
           bash -n .bashrc scripts/*.sh scripts/org-logseq-sync tests/home-manager-updater.sh tests/gpt-todos-sync.sh tests/org-logseq-sync.sh tests/llm-log-expert-consumer.sh tests/skill-sync.sh tests/variety-home-manager.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh scripts/agent-zero-tunnel scripts/remote-gui-launch scripts/install-termux-widgets scripts/starintel-tunnel tests/agent-zero-tunnel.sh tests/remote-gui-launch.sh tests/starintel-tunnel.sh
           shellcheck --severity=warning scripts/*.sh scripts/org-logseq-sync tests/home-manager-updater.sh tests/gpt-todos-sync.sh tests/org-logseq-sync.sh tests/llm-log-expert-consumer.sh tests/skill-sync.sh tests/variety-home-manager.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh scripts/agent-zero-tunnel scripts/remote-gui-launch scripts/install-termux-widgets scripts/starintel-tunnel tests/agent-zero-tunnel.sh tests/remote-gui-launch.sh tests/starintel-tunnel.sh
+      - name: Run Lish agentic shell tests
+        run: bash tests/lish-shell.sh
       - name: Run StarIntel tunnel tests
         run: bash tests/starintel-tunnel.sh
       - name: Run Nix deprecation contract
