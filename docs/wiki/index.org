@@ -49,6 +49,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | llm-log quotas | [[file:../../.config/qtile/qtile-llm-log.org][qtile-llm-log.org]] | Adjacent z.AI/GPT account quota meters; tangles to =llm_log_client.py= and =qtile_llm_log.py=. |
 | llm-log API graph | [[file:../../.config/qtile/qtile-llm-log-graph.org][qtile-llm-log-graph.org]] | Exact UTC buckets and per-field coverage; tangles to =llm_log_graph.py= and =qtile_llm_log_graph.py=. |
 | Qtile telemetry installer | [[file:../../.config/qtile/qtile-telemetry.org][qtile-telemetry.org]] | WM/key telemetry and old/new widget integration; tangles to =qtile_telemetry.py=. |
+| Zara donation totals | [[file:../../.config/qtile/qtile-donations.org][qtile-donations.org]] | Non-blocking Qtile projection of Zara's =ZARA-DONATIONS/1= USD campaign totals. |
 | Nix flake | [[file:../../flake.nix][flake.nix]] | NixOS, Home Manager, installer, and package outputs. |
 | Home Manager | [[file:../../nix/home-manager/][nix/home-manager/]] | Shared modules/files and per-system profiles. |
 | Org ↔ Logseq sync | [[file:../../nix/home-manager/mods/org-logseq-sync.org][org-logseq-sync.org]] | Literate source for the Unison/inotify bridge, Home Manager module, and regression test. |

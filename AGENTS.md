@@ -15,6 +15,7 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `.config/qtile/qtile-capture.org` is the source of truth for `.config/qtile/qtile_capture.py`.
 - `.config/qtile/qtile-prompt-lib.org` is the source of truth for `.config/qtile/qtile_prompt_lib.py`.
 - `.config/qtile/qtile-openrouter.org` is the source of truth for `.config/qtile/qtile_openrouter.py`.
+- `.config/qtile/qtile-donations.org` is the source of truth for `.config/qtile/qtile_donations.py`.
 - `.doom.d/autoload/gpt-todos.org` is the source of truth for `.doom.d/autoload/gpt-todos.el`.
 - `scripts/gpt-todos-sync.org` is the source of truth for `scripts/gpt-todos-sync` and `scripts/install-gpt-todos-cron`.
 - `scripts/dotfiles-sync.org` is the source of truth for `scripts/dotfiles-sync`.
