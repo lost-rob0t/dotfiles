@@ -347,6 +347,113 @@ exec bash "$DOTFILES_DIR/android/bin/install-native-profile" "\$@"
 EOF_STOW
 chmod 0755 "$PREFIX/bin/android-emacs-stow"
 
+cat > "$PREFIX/bin/android-emacs-doctor" <<'ANDROID_EMACS_DOCTOR'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+readonly NATIVE_HOME="/data/data/org.gnu.emacs/files"
+readonly TERMUX_HOME="/data/data/com.termux/files"
+readonly TERMUX_PREFIX="/data/data/com.termux/files/usr"
+readonly -a EXPECTED_PACKAGES=(
+  "org.gnu.emacs:GNU Emacs"
+  "com.termux:Termux"
+  "com.termux.api:Termux:API"
+  "com.termux.widget:Termux:Widget"
+  "com.termux.boot:Termux:Boot"
+  "com.termux.window:Termux:Float"
+  "com.termux.styling:Termux:Styling"
+  "com.termux.tasker:Termux:Tasker"
+)
+
+failures=0
+
+pass() {
+  printf 'ok   %s\n' "$*"
+}
+
+fail_check() {
+  printf 'FAIL %s\n' "$*" >&2
+  failures=$((failures + 1))
+}
+
+package_installed() {
+  pm list packages "$1" 2>/dev/null | grep -qx "package:$1"
+}
+
+printf 'Android Emacs / Termux integration doctor\n\n'
+for spec in "${EXPECTED_PACKAGES[@]}"; do
+  package="${spec%%:*}"
+  label="${spec#*:}"
+  if package_installed "$package"; then
+    pass "$label ($package)"
+  else
+    fail_check "$label missing ($package)"
+  fi
+done
+
+printf '\nShared-user bridge\n'
+if [[ -d "$NATIVE_HOME" ]]; then
+  pass "native Emacs home is accessible from Termux"
+else
+  fail_check "cannot access $NATIVE_HOME; launch Emacs once and verify the Emacs/Termux APKs share one signer and sharedUserId=com.termux"
+fi
+
+if [[ -d "$NATIVE_HOME" ]]; then
+  termux_uid="$(stat -c '%u' "$TERMUX_HOME" 2>/dev/null || true)"
+  emacs_uid="$(stat -c '%u' "$NATIVE_HOME" 2>/dev/null || true)"
+  if [[ -n "$termux_uid" && "$termux_uid" == "$emacs_uid" ]]; then
+    pass "Termux and native Emacs resolve to the same Android UID ($termux_uid)"
+  else
+    fail_check "Termux UID (${termux_uid:-unknown}) != Emacs UID (${emacs_uid:-unknown})"
+  fi
+fi
+
+printf '\nTermux toolchain\n'
+for tool in bash git rg fd python swipl nim; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    pass "$tool -> $(command -v "$tool")"
+  else
+    fail_check "$tool is missing from PATH"
+  fi
+done
+
+case "$(dpkg --print-architecture 2>/dev/null || true)" in
+  aarch64|x86_64|amd64)
+    if command -v sbcl >/dev/null 2>&1; then
+      pass "sbcl -> $(command -v sbcl)"
+    else
+      fail_check "sbcl is missing on a supported 64-bit Termux architecture"
+    fi
+    ;;
+esac
+
+printf '\nNative profile\n'
+if [[ -e "$NATIVE_HOME/.emacs.d/init.el" ]]; then
+  pass "native init.el is installed"
+else
+  fail_check "native init.el is missing; run android-emacs-stow"
+fi
+if [[ -e "$NATIVE_HOME/.emacs.d/early-init.el" ]]; then
+  pass "native early-init.el is installed"
+else
+  fail_check "native early-init.el is missing; run android-emacs-stow"
+fi
+if [[ -x "$TERMUX_PREFIX/bin/git" ]]; then
+  pass "Termux Git is executable at the bridge path"
+else
+  fail_check "$TERMUX_PREFIX/bin/git is not executable"
+fi
+
+printf '\n'
+if (( failures == 0 )); then
+  printf 'PASS native Emacs + Termux integration is ready\n'
+  exit 0
+fi
+printf 'FAIL %d integration check(s) failed\n' "$failures" >&2
+exit 1
+ANDROID_EMACS_DOCTOR
+chmod 0755 "$PREFIX/bin/android-emacs-doctor"
+
 note "Synchronizing Termux Doom profile"
 DOOMDIR="$DOOMDIR_TERMUX" "$DOOM_ROOT/bin/doom" sync
 DOOMDIR="$DOOMDIR_TERMUX" "$DOOM_ROOT/bin/doom" sync --env || true
@@ -403,6 +510,14 @@ cat > "$shortcuts/07-Nix" <<'WIDGET_NIX'
 set -euo pipefail
 exec nix-termux
 WIDGET_NIX
+
+cat > "$shortcuts/08-Emacs-Doctor" <<'WIDGET_EMACS_DOCTOR'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+android-emacs-doctor || true
+printf '\nPress enter to close...'
+read -r _
+WIDGET_EMACS_DOCTOR
 
 cat > "$tasks/Sync-Dotfiles" <<'WIDGET_SYNC_DOTFILES'
 #!/data/data/com.termux/files/usr/bin/bash
