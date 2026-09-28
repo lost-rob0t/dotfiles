@@ -8,6 +8,7 @@
 (require 'ai-agent)
 (require 'ai-image-tools)
 (require 'ai-prolog-rlm)
+(require 'ai-devlog)
 (require 'ai-mcp)
 (require 'chat)
 (require 'ai-dashboard)
@@ -75,6 +76,7 @@
 
 (ai/image-register-gptel-tools)
 (ai/prolog-rlm-register-gptel-tool)
+(ai/devlog-register-gptel-tools)
 (ai/dashboard-register-gptel-tools)
 (when (require 'zara nil t)
   (zara-gptel-register-tool))
@@ -84,6 +86,9 @@
 (unless (string-match-p "Prolog RLM rules:" ai/agent-system-prompt)
   (setq ai/agent-system-prompt
         (concat ai/agent-system-prompt ai/prolog-rlm-agent-instructions)))
+(unless (string-match-p "Devlog rules:" ai/agent-system-prompt)
+  (setq ai/agent-system-prompt
+        (concat ai/agent-system-prompt ai/devlog-agent-instructions)))
 (setq ai/chat-system-prompt ai/agent-system-prompt)
 
 (gptel-make-preset 'best
