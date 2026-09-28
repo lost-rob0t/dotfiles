@@ -32,6 +32,10 @@ semantics by `lost-rob0t/zara#1249`.
 - `java/` / `kotlin/` — canonical JVM language semantics.
 - `bash/` — shell grammar/startup/quoting semantics with parse-only inspection.
 - `nix/` — Nix/flake/module/Home Manager reasoning with build/eval kept explicit.
+- `music/` — zero-model media intent routing over the canonical Zara media tools,
+  with fresh now-playing context required before music discussion/recommendation.
+- `proxmox/` — typed Proxmox observation/mutation/destructive policy, explicit
+  approval/postcondition rules, and environment/wallet/auth-source-only credentials.
 - `prolog/` — module/predicate/DCG diagnostics with parser/xref/compiler evidence,
   explicit no-`call/1` source execution, generation fences, and fresh re-xref
   repair verification.
@@ -79,6 +83,10 @@ narrow and stable: `can_handle/2`, `structural_check/2`, `structural_diagnose/2`
 All three brains pin providers disabled and `max_model_calls=0` / `model_calls=0`.
 No predicate applies edits; Zara Core retains expected-preimage capability,
 approval, generation fencing, and fresh postcondition ownership.
+
+MusicExpert and ProxmoxExpert are Dotfiles-owned domain brains for the
+Zara feature lab. Product-facing MPRIS and Proxmox adapters remain downstream
+plugin work; these brains do not create a second runtime, registry, or effect path.
 
 The expert-library Nix package runs every tracked Prolog expert test and also
 executes parser-only fixtures for the Bash and Nix packages (`bash -n` and
