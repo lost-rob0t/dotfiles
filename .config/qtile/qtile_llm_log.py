@@ -1,4 +1,4 @@
-"""Adjacent z.AI/GPT quota widgets; all render-time reads are in memory."""
+"""Adjacent z.AI/Codex quota widgets; all render-time reads are in memory."""
 from __future__ import annotations
 
 from html import escape

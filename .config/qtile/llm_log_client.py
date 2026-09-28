@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 MAX_BYTES = 262144
-LABELS = {"zai": "z.AI", "gpt": "GPT"}
+LABELS = {"zai": "z.AI", "gpt": "Codex"}
 STATES = {"ok", "unknown", "unavailable", "disabled", "stale", "expired"}
 
 
@@ -135,9 +135,17 @@ def details(snapshot: Snapshot | None, key: str, now: float, *, offline=False) -
     item = find_provider(snapshot, key)
     if item is None:
         return "Quota unavailable: enable llm-log provider telemetry and check its local API."
+    provider_age = max(0.0, now - item.updated_at) if item.updated_at else None
+    snapshot_age = max(0.0, now - snapshot.generated_at) if snapshot else None
     lines = [f"plan: {item.plan}", f"source: {item.source}", f"scope: {item.scope}"]
+    if provider_age is not None:
+        lines.append(f"provider age: {provider_age:.0f}s")
+    if snapshot_age is not None:
+        lines.append(f"snapshot age: {snapshot_age:.0f}s")
+    if offline:
+        lines.append("collector: offline; showing last good snapshot")
     if key == "gpt":
-        lines.append("Account meters (e.g. Codex), not all ChatGPT web/voice usage.")
+        lines.append("Codex account meter under ChatGPT authentication; not all ChatGPT web/voice/model usage.")
     for i, row in enumerate(item.windows):
         lines.append(render_quota(snapshot, key, i, now, offline=offline)[0])
         if row.resets_at is not None:

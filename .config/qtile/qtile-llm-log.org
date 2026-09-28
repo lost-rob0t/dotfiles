@@ -1,4 +1,4 @@
-#+title: llm-log quota widgets: z.AI and GPT
+#+title: llm-log quota widgets: z.AI and Codex
 #+property: header-args:python :mkdirp yes :results none
 
 * Usage and ownership
@@ -9,10 +9,10 @@ environment. Provider credentials belong to llm-log, never this consumer.
 Backend work: https://github.com/lost-rob0t/llm-log/issues/79
 Consumer work: https://github.com/lost-rob0t/dotfiles/issues/233
 
-The labels are =z.AI= and =GPT=. Percentages mean USED. Each widget rotates its
+The labels are =z.AI= and =Codex=. Percentages mean USED. Each widget rotates its
 reported windows every five seconds. Left-click advances and pauses; middle
 click resumes; right-click shows plan, source, meter, reset and freshness details.
-The GPT meter retains Codex scope: it is not all ChatGPT web/voice/model usage.
+The Codex meter is explicitly scoped to managed Codex account quota; it is not all ChatGPT web/voice/model usage.
 Plans are metadata, not a hard-coded entitlement table. Missing/stale/expired
 values are neutral and explicit, never synthetic green zero or unlimited.
 
@@ -45,7 +45,7 @@ from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 MAX_BYTES = 262144
-LABELS = {"zai": "z.AI", "gpt": "GPT"}
+LABELS = {"zai": "z.AI", "gpt": "Codex"}
 STATES = {"ok", "unknown", "unavailable", "disabled", "stale", "expired"}
 
 
@@ -168,9 +168,17 @@ def details(snapshot: Snapshot | None, key: str, now: float, *, offline=False) -
     item = find_provider(snapshot, key)
     if item is None:
         return "Quota unavailable: enable llm-log provider telemetry and check its local API."
+    provider_age = max(0.0, now - item.updated_at) if item.updated_at else None
+    snapshot_age = max(0.0, now - snapshot.generated_at) if snapshot else None
     lines = [f"plan: {item.plan}", f"source: {item.source}", f"scope: {item.scope}"]
+    if provider_age is not None:
+        lines.append(f"provider age: {provider_age:.0f}s")
+    if snapshot_age is not None:
+        lines.append(f"snapshot age: {snapshot_age:.0f}s")
+    if offline:
+        lines.append("collector: offline; showing last good snapshot")
     if key == "gpt":
-        lines.append("Account meters (e.g. Codex), not all ChatGPT web/voice usage.")
+        lines.append("Codex account meter under ChatGPT authentication; not all ChatGPT web/voice/model usage.")
     for i, row in enumerate(item.windows):
         lines.append(render_quota(snapshot, key, i, now, offline=offline)[0])
         if row.resets_at is not None:
@@ -279,7 +287,7 @@ def shared_feed(base_url: str) -> QuotaFeed:
 
 * Qtile pair and installation
 #+begin_src python :tangle qtile_llm_log.py
-"""Adjacent z.AI/GPT quota widgets; all render-time reads are in memory."""
+"""Adjacent z.AI/Codex quota widgets; all render-time reads are in memory."""
 from __future__ import annotations
 
 from html import escape
