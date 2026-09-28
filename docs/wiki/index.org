@@ -67,3 +67,5 @@ Do not copy large sections of configuration into this wiki merely to describe th
 - [[file:kb-roam-publishing.org][KB Roam ingestion and publishing]]
 
 - [[file:starintel-admin.org][StarIntel Admin Emacs UI]]
+
+- [[file:starintel-admin-cli.org][StarIntel Admin CLI deployment]]

@@ -40,6 +40,7 @@ emacsclient --eval '(starintel-admin)'
 | =r= | revoke user |
 | =k= | revoke API key |
 | =v= | dataset public/private/planned policy |
+| =a= | replay durable dataset policy into the live server |
 | =i= | generate a StarIntel graph image |
 | =q= | quit window |
 
@@ -59,3 +60,7 @@ The Emacs layer never reads =~/.config/starintelinfra= itself. It launches the
 portable CLI, which owns runtime secret resolution and never returns API keys in
 normal dashboard JSON. Temporary generated user passwords are shown in a
 dedicated undo-disabled buffer only when the create operation returns one.
+
+* Policy drift
+
+The main dashboard compares the durable dataset registry returned by the CLI with the server's live dataset-policy generation. A mismatch is rendered as =DRIFT — replay required=; =a= replays the durable policy.
