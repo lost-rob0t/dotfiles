@@ -66,6 +66,28 @@ At the time this policy was written, the active release/profile is `0.9.1` and t
 next additive release is `0.9.2`. This sentence is historical context only: the
 live lock and canonical scripts always outrank it.
 
+## Where the gpt-todos Org workspace lives
+
+Path map for agents working on the user's notes graph:
+
+- Live workspace: `$GPT_TODOS_NOTES_DIR` (default `~/Documents/Notes/org`).
+- Durable private checkout: `$GPT_TODOS_REPO_DIR` (default `~/Documents/gpt-todos`),
+  remote `git@github.com:lost-rob0t/gpt-todos.git` (private), branch `main`.
+- Mapping: live `agenda/` <-> repo `agenda/` (`*.org` only, Todo Manager
+  compatibility); every other allowed live path <-> repo `notes/`.
+- Never synchronized into the repo: `.env`/`.envrc` credentials, `.orgids`,
+  `.projectile`, Org-roam/Org-ID caches, `__pycache__`/`.cache`/`.git`, editor
+  lock and backup files, and symlinks pointing outside the workspace.
+- Shared agent memory: `$GPT_TODOS_NOTES_DIR/memory/shared/` (mirrored to
+  `notes/memory/shared/`).
+- Durable research artifacts: `llm/research/` under the workspace root.
+- Sync command: `gpt-todos-sync` (also the `gpt-todos-sync.timer` systemd user
+  timer, every 5 minutes). Run it after non-Emacs writes before claiming the
+  graph is published.
+- Interrupted-save recovery files: `~/.local/state/gpt-todos-sync/recovery/`.
+- The sync refuses to start while the durable checkout is dirty under
+  `agenda/` or `notes/`; resolve or commit that state first.
+
 ## Shared Org-roam agent memory
 
 The user's cross-project shared memory lives in the Git-backed Org graph at
