@@ -5,6 +5,7 @@
 % Raw per-run execution state lives in .prolog/runs/ (untracked).
 
 :- consult("home_manager_ownership").
+:- consult("starintel_admin").
 :- consult("nixpkgs_deprecations").
 :- consult("literate_sync").
 :- consult("gpt_todos_sync").

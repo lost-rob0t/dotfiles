@@ -38,6 +38,16 @@ OpenCode, Claude, and generic Agent Skills user paths (including the
 changes in the skills repository; this dotfiles repository only selects the input
 revision and enables the client adapters.
 
+The local =starintel-admin= package is an exact, provenance-marked snapshot of
+the private =starintel-labs/starintel-admin= CLI.  Keeping the pinned source in
+the dotfiles package tree lets anonymous flake evaluation and CI remain
+reproducible without publishing or injecting repository credentials.  The
+shared Emacs Home Manager module installs that package into the user profile
+because the literate Doom UI delegates control-plane operations to the CLI on
+=PATH=.  The =checks.x86_64-linux.starintel-admin= output runs the upstream
+operator regression test and verifies profile membership plus the expected
+ingest administration command surface.
+
 * GPT TODO synchronization
 [[file:../../nix/home-manager/mods/gpt-todos.nix][gpt-todos.nix]] installs the
 shared =gpt-todos-sync= command and enables a systemd user timer by default when

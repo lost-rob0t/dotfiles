@@ -1,0 +1,603 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+PROGRAM=starintel-admin
+VERSION=0.1.0
+
+: "${STARINTEL_ADMIN_URL:=${STAR_SERVER_URL:-http://127.0.0.1:5000}}"
+: "${STARINTEL_ADMIN_CONFIG_DIR:=${XDG_CONFIG_HOME:-$HOME/.config}/starintel-admin}"
+: "${STARINTEL_ADMIN_STATE_DIR:=${XDG_STATE_HOME:-$HOME/.local/state}/starintel-admin}"
+: "${STARINTEL_INFRA_CONFIG:=${XDG_CONFIG_HOME:-$HOME/.config}/starintelinfra}"
+: "${STARINTEL_ADMIN_CURL:=curl}"
+: "${STARINTEL_ADMIN_DEFAULT_CAPABILITIES:=documents:read,documents:write,documents:delete,documents:bulk,search:read,views:read,targets:read,targets:dispatch}"
+: "${STARINTEL_ADMIN_IMAGE_ENDPOINT:=https://openrouter.ai/api/v1/images}"
+: "${STARINTEL_ADMIN_IMAGE_MODEL:=openai/gpt-image-2}"
+
+policy_file="${STARINTEL_ADMIN_POLICY_FILE:-$STARINTEL_ADMIN_CONFIG_DIR/datasets.json}"
+
+die() {
+  printf '%s: %s\n' "$PROGRAM" "$*" >&2
+  exit 2
+}
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || die "missing dependency: $1"
+}
+
+json_escape_uri() {
+  jq -rn --arg value "$1" '$value|@uri'
+}
+
+read_first_line() {
+  local path=$1
+  [[ -r "$path" ]] || return 1
+  IFS= read -r REPLY <"$path" || true
+  [[ -n "${REPLY:-}" ]]
+}
+
+admin_token() {
+  local candidate
+  if [[ -n "${STARINTEL_ADMIN_TOKEN:-}" ]]; then
+    printf '%s' "$STARINTEL_ADMIN_TOKEN"
+    return
+  fi
+  if [[ -n "${STAR_SERVER_TOKEN:-}" ]]; then
+    printf '%s' "$STAR_SERVER_TOKEN"
+    return
+  fi
+  if [[ -n "${STAR_SERVER_API_KEY:-}" ]]; then
+    printf '%s' "$STAR_SERVER_API_KEY"
+    return
+  fi
+  if [[ -n "${STARINTEL_ADMIN_TOKEN_FILE:-}" ]] && read_first_line "$STARINTEL_ADMIN_TOKEN_FILE"; then
+    printf '%s' "$REPLY"
+    return
+  fi
+  for candidate in     "$STARINTEL_INFRA_CONFIG/admin-token"     "$STARINTEL_INFRA_CONFIG/starintel-api-key"     "$STARINTEL_INFRA_CONFIG/api-key"
+  do
+    if read_first_line "$candidate"; then
+      printf '%s' "$REPLY"
+      return
+    fi
+  done
+  die "no admin token; set STARINTEL_ADMIN_TOKEN or STARINTEL_ADMIN_TOKEN_FILE"
+}
+
+openrouter_key() {
+  local candidate
+  if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
+    printf '%s' "$OPENROUTER_API_KEY"
+    return
+  fi
+  if [[ -n "${STARINTEL_ADMIN_IMAGE_KEY_FILE:-}" ]] && read_first_line "$STARINTEL_ADMIN_IMAGE_KEY_FILE"; then
+    printf '%s' "$REPLY"
+    return
+  fi
+  for candidate in     "$STARINTEL_INFRA_CONFIG/openrouter-api-key"     "$STARINTEL_INFRA_CONFIG/openrouter.key"
+  do
+    if read_first_line "$candidate"; then
+      printf '%s' "$REPLY"
+      return
+    fi
+  done
+  die "no image key; set OPENROUTER_API_KEY or STARINTEL_ADMIN_IMAGE_KEY_FILE"
+}
+
+curl_secret_config() {
+  local token=$1
+  local file
+  file=$(mktemp)
+  chmod 600 "$file"
+  printf 'header = "Authorization: Bearer %s"\n' "${token//\"/\\\"}" >"$file"
+  printf '%s' "$file"
+}
+
+api_request() {
+  local method=$1
+  local path=$2
+  local body=${3-}
+  local token config rc
+  token=$(admin_token)
+  config=$(curl_secret_config "$token")
+  trap 'rm -f -- "${config:-}"' RETURN
+  if [[ -n "$body" ]]; then
+    "$STARINTEL_ADMIN_CURL" --silent --show-error --fail-with-body       --config "$config"       --request "$method"       --header 'Content-Type: application/json'       --data-binary "$body"       "$STARINTEL_ADMIN_URL$path"
+  else
+    "$STARINTEL_ADMIN_CURL" --silent --show-error --fail-with-body       --config "$config"       --request "$method"       "$STARINTEL_ADMIN_URL$path"
+  fi
+  rc=$?
+  rm -f -- "$config"
+  trap - RETURN
+  return "$rc"
+}
+
+image_request() {
+  local prompt=$1
+  local output=$2
+  local key config payload encoded
+  key=$(openrouter_key)
+  config=$(mktemp)
+  chmod 600 "$config"
+  trap 'rm -f -- "${config:-}"' RETURN
+  printf 'header = "Authorization: Bearer %s"\n' "${key//\"/\\\"}" >"$config"
+  payload=$(jq -cn     --arg model "$STARINTEL_ADMIN_IMAGE_MODEL"     --arg prompt "$prompt"     '{model:$model,prompt:$prompt,n:1,size:"1536x1024",quality:"high",output_format:"png",background:"auto"}')
+  encoded=$(
+    "$STARINTEL_ADMIN_CURL" --silent --show-error --fail-with-body       --config "$config"       --request POST       --header 'Content-Type: application/json'       --data-binary "$payload"       "$STARINTEL_ADMIN_IMAGE_ENDPOINT" |
+      jq -er '.data[0].b64_json'
+  )
+  rm -f -- "$config"
+  trap - RETURN
+  mkdir -p -- "$(dirname -- "$output")"
+  printf '%s' "$encoded" | base64 --decode >"$output"
+  jq -cn --arg path "$output" --arg model "$STARINTEL_ADMIN_IMAGE_MODEL"     '{status:"ok",image:$path,model:$model}'
+}
+
+ensure_policy_file() {
+  mkdir -p -- "$(dirname -- "$policy_file")"
+  if [[ ! -e "$policy_file" ]]; then
+    printf '%s\n' '{"version":1,"datasets":{}}' >"$policy_file"
+  fi
+  jq -e '.version == 1 and (.datasets|type=="object")' "$policy_file" >/dev/null ||
+    die "invalid dataset policy file: $policy_file"
+}
+
+policy_payload() {
+  ensure_policy_file
+  jq '{
+    public_datasets:
+      [.datasets
+       | to_entries[]
+       | select(.value.mode=="public")
+       | .key]
+      | sort,
+    planned_datasets:
+      ([.datasets
+        | to_entries[]
+        | select(.value.mode=="planned")
+        | {key:.key,value:.value.tenant_id}]
+       | from_entries)
+  }' "$policy_file"
+}
+
+policy_apply() {
+  local payload
+  payload=$(policy_payload)
+  api_request PUT /admin/dataset-policy "$payload"
+}
+
+policy_status() {
+  api_request GET /admin/dataset-policy
+}
+
+policy_update() {
+  local dataset=$1
+  local mode=$2
+  local tenant=${3-}
+  local tmp desired live
+  ensure_policy_file
+  tmp=$(mktemp)
+  jq \
+    --arg dataset "$dataset" \
+    --arg mode "$mode" \
+    --arg tenant "$tenant" \
+    --arg updated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '.datasets[$dataset] = {
+       mode:$mode,
+       tenant_id:(if $tenant=="" then null else $tenant end),
+       updated_at:$updated_at
+     }' "$policy_file" >"$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$policy_file"
+
+  desired=$(jq --arg dataset "$dataset" '.datasets[$dataset]' "$policy_file")
+  if ! live=$(policy_apply); then
+    printf '%s: desired dataset policy saved but live apply failed; run "%s dataset apply" after the server is reachable\n' \
+      "$PROGRAM" "$PROGRAM" >&2
+    return 1
+  fi
+  jq -cn --argjson desired "$desired" --argjson live "$live" \
+    '{status:"ok",desired:$desired,live:$live}'
+}
+
+policy_list() {
+  ensure_policy_file
+  jq '.datasets' "$policy_file"
+}
+
+policy_tenant_map() {
+  ensure_policy_file
+  jq -r '
+    [.datasets
+     | to_entries[]
+     | select(.value.mode=="planned")
+     | "\(.key)=\(.value.tenant_id)"]
+    | join(",")
+  ' "$policy_file"
+}
+
+user_json() {
+  local username=$1
+  api_request GET /auth/users |
+    jq -e --arg username "$username" '.[] | select(.username==$username)'
+}
+
+capability_scopes_json() {
+  local caps=$STARINTEL_ADMIN_DEFAULT_CAPABILITIES
+  jq -cn --arg caps "$caps" '$caps|split(",")|map(select(length>0))'
+}
+
+plan_scopes_json() {
+  local plan=$1
+  local base
+  base=$(capability_scopes_json)
+  jq -cn --argjson base "$base" --arg plan "$plan"     '$base + ["tenant:"+$plan,"dataset:*"] | unique'
+}
+
+user_create() {
+  local username=$1
+  shift
+  local plan=
+  local password=
+  local random=true
+  while (($#)); do
+    case "$1" in
+      --plan) plan=$2; shift 2 ;;
+      --password-stdin)
+        IFS= read -r password
+        random=false
+        shift
+        ;;
+      --random-password) random=true; shift ;;
+      *) die "unknown user create option: $1" ;;
+    esac
+  done
+  if [[ "$random" == true ]]; then
+    password=$(openssl rand -base64 27 | tr -d '\n')
+  fi
+  [[ -n "$password" ]] || die "password is empty"
+  local scopes body result
+  if [[ -n "$plan" ]]; then
+    scopes=$(plan_scopes_json "$plan")
+  else
+    scopes=$(capability_scopes_json)
+  fi
+  body=$(jq -cn     --arg username "$username"     --arg password "$password"     --argjson scopes "$scopes"     '{username:$username,password:$password,principal_type:"user",scopes:$scopes,must_change_password:true}')
+  result=$(api_request POST /auth/users "$body")
+  if [[ "$random" == true ]]; then
+    jq --arg temporary_password "$password" '. + {temporary_password:$temporary_password}' <<<"$result"
+  else
+    printf '%s\n' "$result"
+  fi
+}
+
+user_update() {
+  local username=$1
+  local body=$2
+  api_request PUT "/auth/users/$(json_escape_uri "$username")" "$body"
+}
+
+user_revoke_keys() {
+  local username=$1
+  local credentials
+  credentials=$(api_request GET /auth/credentials)
+  jq -r --arg owner "$username" '
+    .[] | select(.owner==$owner and (.status=="active" or .status=="disabled")) | .id
+  ' <<<"$credentials" |
+  while IFS= read -r id; do
+    [[ -n "$id" ]] || continue
+    api_request POST "/auth/credentials/$(json_escape_uri "$id")/revoke" >/dev/null
+  done
+}
+
+user_revoke() {
+  local username=$1
+  local result
+  result=$(user_update "$username" '{"status":"disabled"}')
+  user_revoke_keys "$username"
+  printf '%s\n' "$result"
+}
+
+plan_set() {
+  local username=$1
+  local plan=$2
+  local user scopes
+  user=$(user_json "$username")
+  scopes=$(jq -c --arg plan "$plan" '
+    .scopes
+    | map(select((startswith("tenant:") or startswith("dataset:"))|not))
+    | . + ["tenant:"+$plan,"dataset:*"]
+    | unique
+  ' <<<"$user")
+  local result
+  result=$(user_update "$username" "$(jq -cn --argjson scopes "$scopes" '{scopes:$scopes}')")
+  user_revoke_keys "$username"
+  printf '%s\n' "$result"
+}
+
+plan_revoke() {
+  local username=$1
+  local plan=${2-}
+  local user scopes
+  user=$(user_json "$username")
+  if [[ -n "$plan" ]]; then
+    scopes=$(jq -c --arg plan "$plan" '
+      .scopes
+      | map(select(. != ("tenant:"+$plan)))
+      | if any(.[]; startswith("tenant:")) then . else map(select(. != "dataset:*")) end
+    ' <<<"$user")
+  else
+    scopes=$(jq -c '
+      .scopes
+      | map(select((startswith("tenant:") or .=="dataset:*")|not))
+    ' <<<"$user")
+  fi
+  local result
+  result=$(user_update "$username" "$(jq -cn --argjson scopes "$scopes" '{scopes:$scopes}')")
+  user_revoke_keys "$username"
+  printf '%s\n' "$result"
+}
+
+document_search() {
+  local tenant=$1
+  local query=${2:-"*:*"}
+  local limit=${3:-100}
+  api_request GET "/api/v1/documents/search?q=$(json_escape_uri "$query")&tenant=$(json_escape_uri "$tenant")&limit=$(json_escape_uri "$limit")"
+}
+
+logical_stats_from_json() {
+  local kind=$1
+  local id=$2
+  jq -c --arg kind "$kind" --arg id "$id" '
+    def docs:
+      if .rows then [.rows[]? | (.doc // .value // empty)]
+      elif .hits then [.hits[]? | (.doc // .document // .)]
+      else [] end;
+    docs as $docs
+    | {
+        kind:$kind,
+        id:$id,
+        document_count:($docs|length),
+        logical_json_bytes:([$docs[] | tojson | length] | add // 0)
+      }
+    | . + {logical_mib:(.logical_json_bytes / 1048576)}
+  '
+}
+
+stats_user() {
+  local user=$1
+  local record tmp
+  record=$(user_json "$user")
+  tmp=$(mktemp)
+  trap 'rm -f -- "${tmp:-}"' RETURN
+
+  jq -r '
+    .scopes[]
+    | select(startswith("tenant:"))
+    | sub("^tenant:";"")
+  ' <<<"$record" | sort -u |
+  while IFS= read -r tenant; do
+    [[ -n "$tenant" ]] || continue
+    document_search "$tenant" "*:*" 10000 |
+      jq -c --arg tenant "$tenant" '{tenant:$tenant,response:.}' >>"$tmp"
+  done
+
+  jq -s --arg user "$user" '
+    def response_docs($r):
+      if $r.hits then [$r.hits[]? | (.doc // .document // .)]
+      elif $r.rows then [$r.rows[]? | (.doc // .value // empty)]
+      else [] end;
+    [.[].tenant] as $tenants
+    | [ .[] | response_docs(.response)[] ]
+    | unique_by((._id // .id // tojson))
+    | . as $docs
+    | {
+        kind:"user-accessible",
+        id:$user,
+        tenant_ids:($tenants|unique),
+        document_count:($docs|length),
+        logical_json_bytes:([$docs[] | tojson | length] | add // 0),
+        semantics:"Deduplicated logical JSON bytes accessible through the account tenant/plan scopes; not creator-owned bytes."
+      }
+    | . + {logical_mib:(.logical_json_bytes / 1048576)}
+  ' "$tmp"
+
+  rm -f -- "$tmp"
+  trap - RETURN
+}
+
+stats_group() {
+  local group=$1
+  local result
+  result=$(stats_tenant "$group")
+  jq --arg group "$group" '
+    .kind = "user-group"
+    | .id = $group
+    | .semantics = "Logical JSON bytes in the tenant/plan group; not physical CouchDB/S3 usage."
+  ' <<<"$result"
+}
+
+stats_tenant() {
+  local tenant=$1
+  document_search "$tenant" "*:*" 10000 | logical_stats_from_json tenant "$tenant"
+}
+
+dashboard_json() {
+  local users credentials policies live_policy health
+  users=$(api_request GET /auth/users)
+  credentials=$(api_request GET /auth/credentials)
+  policies=$(policy_list)
+  if ! live_policy=$(policy_status 2>/dev/null); then
+    live_policy='{"status":"unavailable","runtime_only":true}'
+  fi
+  health=$("$STARINTEL_ADMIN_CURL" --silent --show-error --fail-with-body "$STARINTEL_ADMIN_URL/health")
+  jq -cn \
+    --argjson users "$users" \
+    --argjson credentials "$credentials" \
+    --argjson policies "$policies" \
+    --argjson live_policy "$live_policy" \
+    --argjson health "$health" \
+    '{
+       health:$health,
+       users:$users,
+       credentials:$credentials,
+       dataset_policies:$policies,
+       live_dataset_policy:$live_policy,
+       counts:{
+         users:($users|length),
+         active_users:([$users[]|select(.status=="active")]|length),
+         active_credentials:([$credentials[]|select(.status=="active")]|length),
+         datasets:($policies|keys|length),
+         live_public_datasets:(($live_policy.public_datasets // [])|length),
+         live_planned_datasets:(($live_policy.planned_datasets // {})|keys|length)
+       }
+     }'
+}
+
+graph_image() {
+  local tenant=
+  local output
+  output="$STARINTEL_ADMIN_STATE_DIR/graphs/admin-$(date -u +%Y%m%dT%H%M%SZ).png"
+  while (($#)); do
+    case "$1" in
+      --tenant) tenant=$2; shift 2 ;;
+      --output) output=$2; shift 2 ;;
+      *) die "unknown graph image option: $1" ;;
+    esac
+  done
+  local summary tenant_stats prompt
+  summary=$(dashboard_json)
+  tenant_stats=null
+  if [[ -n "$tenant" ]]; then
+    tenant_stats=$(stats_tenant "$tenant")
+  fi
+  prompt=$(jq -rn     --argjson summary "$summary"     --argjson tenant_stats "$tenant_stats"     '"
+Create a clean StarIntel operator graph/dashboard image from this live summary.
+Visual language: black/deep-purple background, sharp red/pink highlights, cyan links,
+dense but legible graph topology, no fake 3D, no stock imagery.
+Show users, active credentials, dataset-policy nodes, tenant/plan boundaries, and
+document-size metrics when supplied. Do not render secrets or API keys.
+
+SUMMARY:
+" + ($summary|tojson) + "
+
+TENANT_STATS:
+" + ($tenant_stats|tojson)')
+  image_request "$prompt" "$output"
+}
+
+usage() {
+  cat <<EOF
+$PROGRAM $VERSION
+
+users:
+  $PROGRAM user create USER [--plan TENANT] [--random-password|--password-stdin]
+  $PROGRAM user list
+  $PROGRAM user show USER
+  $PROGRAM user revoke USER
+
+plans (tenant ids are plan ids):
+  $PROGRAM plan set USER TENANT
+  $PROGRAM plan revoke USER [TENANT]
+
+keys:
+  $PROGRAM key list
+  $PROGRAM key revoke CREDENTIAL_ID
+
+dataset policy:
+  $PROGRAM dataset list
+  $PROGRAM dataset public DATASET
+  $PROGRAM dataset private DATASET
+  $PROGRAM dataset planned DATASET TENANT
+  $PROGRAM dataset tenant-map
+  $PROGRAM dataset apply
+  $PROGRAM dataset status
+
+documents and logical data size:
+  $PROGRAM documents tenant TENANT [QUERY] [LIMIT]
+  $PROGRAM stats tenant TENANT
+  $PROGRAM stats user USER
+  $PROGRAM stats group TENANT_OR_PLAN
+
+dashboard / visualization:
+  $PROGRAM dashboard json
+  $PROGRAM graph image [--tenant TENANT] [--output FILE]
+EOF
+}
+
+main() {
+  need jq
+  need "$STARINTEL_ADMIN_CURL"
+  local group=${1:-}
+  local action=${2:-}
+  case "$group:$action" in
+    user:create)
+      [[ $# -ge 3 ]] || die "user create requires USER"
+      shift 2
+      user_create "$@"
+      ;;
+    user:list) api_request GET /auth/users ;;
+    user:show)
+      [[ $# -eq 3 ]] || die "user show requires USER"
+      user_json "$3"
+      ;;
+    user:revoke)
+      [[ $# -eq 3 ]] || die "user revoke requires USER"
+      user_revoke "$3"
+      ;;
+    plan:set)
+      [[ $# -eq 4 ]] || die "plan set requires USER TENANT"
+      plan_set "$3" "$4"
+      ;;
+    plan:revoke)
+      [[ $# -ge 3 && $# -le 4 ]] || die "plan revoke requires USER [TENANT]"
+      plan_revoke "$3" "${4-}"
+      ;;
+    key:list) api_request GET /auth/credentials ;;
+    key:revoke)
+      [[ $# -eq 3 ]] || die "key revoke requires CREDENTIAL_ID"
+      api_request POST "/auth/credentials/$(json_escape_uri "$3")/revoke"
+      ;;
+    dataset:list) policy_list ;;
+    dataset:public)
+      [[ $# -eq 3 ]] || die "dataset public requires DATASET"
+      policy_update "$3" public
+      ;;
+    dataset:private)
+      [[ $# -eq 3 ]] || die "dataset private requires DATASET"
+      policy_update "$3" private
+      ;;
+    dataset:planned)
+      [[ $# -eq 4 ]] || die "dataset planned requires DATASET TENANT"
+      policy_update "$3" planned "$4"
+      ;;
+    dataset:tenant-map) policy_tenant_map ;;
+    dataset:apply) policy_apply ;;
+    dataset:status) policy_status ;;
+    documents:tenant)
+      [[ $# -ge 3 && $# -le 5 ]] || die "documents tenant requires TENANT [QUERY] [LIMIT]"
+      document_search "$3" "${4:-"*:*"}" "${5:-100}"
+      ;;
+    stats:tenant)
+      [[ $# -eq 3 ]] || die "stats tenant requires TENANT"
+      stats_tenant "$3"
+      ;;
+    stats:user)
+      [[ $# -eq 3 ]] || die "stats user requires USER"
+      stats_user "$3"
+      ;;
+    stats:group)
+      [[ $# -eq 3 ]] || die "stats group requires TENANT_OR_PLAN"
+      stats_group "$3"
+      ;;
+    dashboard:json) dashboard_json ;;
+    graph:image)
+      shift 2
+      graph_image "$@"
+      ;;
+    -h:|--help:|help:|:) usage ;;
+    --version:|version:) printf '%s %s\n' "$PROGRAM" "$VERSION" ;;
+    *) usage >&2; exit 2 ;;
+  esac
+}
+
+main "$@"

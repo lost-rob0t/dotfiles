@@ -66,6 +66,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
       prologMcp = pkgs.callPackage ./nix/packages/prolog-mcp.nix { };
       braveMcp = pkgs.callPackage ./nix/packages/brave-mcp { };
+      starintelAdmin = pkgs.callPackage ./nix/packages/starintel-admin { };
       zaraExperts = import ./.zara/experts { inherit pkgs; };
 
       sharedArgs = {
@@ -267,6 +268,32 @@
 
             touch "$out"
           '';
+      starintelAdminCheck =
+        assert lib.elem starintelAdmin desktopHome.config.home.packages;
+        pkgs.runCommand "starintel-admin-check"
+          {
+            nativeBuildInputs = [
+              pkgs.bash
+              pkgs.coreutils
+              pkgs.curl
+              pkgs.jq
+              pkgs.openssl
+              starintelAdmin
+            ];
+          }
+          ''
+            starintel-admin --help > help.txt
+            grep -Fq 'dashboard' help.txt
+            grep -Fq 'user list' help.txt
+            grep -Fq 'dataset public' help.txt
+            grep -Fq 'documents tenant' help.txt
+            cp -R ${./nix/packages/starintel-admin} source
+            chmod -R u+w source
+            substituteInPlace source/tests/admin-cli.sh \
+              --replace-fail '#!/usr/bin/env bash' '#!${pkgs.bash}/bin/bash'
+            bash source/tests/admin-cli.sh
+            touch "$out"
+          '';
       codexConfigPatchCheck =
         let
           python = pkgs.python3.withPackages (pythonPackages: [ pythonPackages.tomlkit ]);
@@ -339,6 +366,7 @@
         install-logos-gui = installLogosGui;
         prolog-mcp = prologMcp;
         brave-mcp = braveMcp;
+        starintel-admin = starintelAdmin;
         zara-emacs-expert = zaraExperts.emacs;
         zara-expert-library = zaraExperts.library;
         inherit flash-logos;
@@ -368,6 +396,7 @@
         ai-client-theme = aiClientThemeCheck;
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
+        starintel-admin = starintelAdminCheck;
         zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
         zara-all-plugins = zaraAllPluginsCheck;
         zara-emacs-expert = zaraExperts.emacs;
