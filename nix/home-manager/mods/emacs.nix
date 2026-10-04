@@ -6,6 +6,7 @@
   ...
 }:
 let
+  starintelAdmin = pkgs.callPackage ../../packages/starintel-admin { };
   doomEmacsWrapper = pkgs.writeShellScript "emacs-doom-default" ''
     set -euo pipefail
 
@@ -79,6 +80,11 @@ in
   };
 
   config = with lib; mkIf config.emacs.enable {
+    # The literate Doom operator UI invokes this portable control-plane client.
+    # Install it in the Home Manager profile so both Emacs and the shell resolve
+    # the same pinned executable through PATH.
+    home.packages = [ starintelAdmin ];
+
     home.sessionVariables = {
       STARINTEL_SOCIAL_ROOT = "${config.home.homeDirectory}/starintel/starintel-social-presence";
       # Existing shell aliases and $EDITOR/$VISUAL invoke emacsclient without an

@@ -4,6 +4,11 @@
 
 =starintel-admin-mode= is a standalone Org-native operator interface backed by
 the portable =starintel-admin= command from =starintel-labs/starintel-admin=.
+The shared Home Manager Emacs module installs the pinned full CLI package in the
+user profile, so Doom and interactive shells resolve the same executable on
+=PATH=. This includes dashboard, user and plan lifecycle, credential revocation,
+dataset policy replay, tenant document queries, logical data-size reporting, and
+graph-image generation.
 
 It does *not* set =initial-buffer-choice= and does not replace the normal AI
 startup dashboard.
@@ -24,6 +29,12 @@ The main mode is friendly to:
 
 #+begin_src shell
 emacsclient --eval '(starintel-admin)'
+#+end_src
+
+For a direct control-plane smoke test, run:
+
+#+begin_src shell
+starintel-admin dashboard
 #+end_src
 
 * Main keys
