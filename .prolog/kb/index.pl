@@ -7,6 +7,7 @@
 :- consult("home_manager_ownership").
 :- consult("nixpkgs_deprecations").
 :- consult("literate_sync").
+:- consult("gpt_todos_sync").
 :- consult("forgejo_ci").
 :- consult("opencode_commands").
 :- consult("opencode_worker").
