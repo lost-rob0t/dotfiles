@@ -21,8 +21,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara = {
-      url = "github:lost-rob0t/zara/9ff68d63b76c1db39689867f848d47c83c49cbcc";
-=======
       url = "github:lost-rob0t/zara/af7185ee48def384783002332262412e9674343e";
       # Zara vendors its MCP v2 python stack (httpx2/httpcore2); following this
       # repo's newer nixpkgs made nixpkgs' own httpx2 collide with the vendored
@@ -183,23 +181,18 @@
       };
 
       desktopHome = homeConfigurations."unseen@desktop";
-      zaraPluginRegistry =
-        (builtins.fromJSON (builtins.readFile "${zara-plugins}/plugins.json")).plugins;
+      zaraPluginRegistry = (builtins.fromJSON (builtins.readFile "${zara-plugins}/plugins.json")).plugins;
       zaraPluginNames = map (entry: entry.name) zaraPluginRegistry;
       zaraAllPluginsCheck =
         assert desktopHome.config.zara.plugins.enableAll;
-        assert lib.all
-          (name: lib.elem zara-plugins.packages.${system}.${name} desktopHome.config.home.packages)
-          zaraPluginNames;
-        assert lib.all
-          (entry:
-            builtins.hasAttr
-              ".zarathushtra/plugins/${builtins.baseNameOf entry.entrypoint}"
-              desktopHome.config.home.file
-            && builtins.hasAttr
-              ".config/zarathushtra/plugins/${entry.name}/lib"
-              desktopHome.config.home.file)
-          zaraPluginRegistry;
+        assert lib.all (
+          name: lib.elem zara-plugins.packages.${system}.${name} desktopHome.config.home.packages
+        ) zaraPluginNames;
+        assert lib.all (
+          entry:
+          builtins.hasAttr ".zarathushtra/plugins/${builtins.baseNameOf entry.entrypoint}" desktopHome.config.home.file
+          && builtins.hasAttr ".config/zarathushtra/plugins/${entry.name}/lib" desktopHome.config.home.file
+        ) zaraPluginRegistry;
         pkgs.runCommand "zara-all-plugins-check" { } ''
           test "${toString (builtins.length zaraPluginNames)}" -gt 0
           touch "$out"
