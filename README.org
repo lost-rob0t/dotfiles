@@ -6,6 +6,7 @@ Before editing this repository, read [[./AGENTS.md][AGENTS.md]] and follow it as
 In particular, keep literate Org sources and their tangled/generated outputs synchronized, and update the relevant documentation in the same change whenever behavior, architecture, ownership, deployment, interfaces, workflows, host/profile names, or important invariants change.
 
 * Index
++ [[./docs/wiki/starintel.org][Local StarIntel full-stack module and operating guide]]
 + [[./docs/wiki/index.org][Dotfiles wiki]]
 + [[./docs/wiki/nix.org::*AI client modules and Outrun theme][OpenCode, Codex, and ChatGPT Desktop modules]]
 + [[./docs/wiki/nix.org::*Global Prolog verification][Global Prolog verification policy and hooks]]
@@ -157,3 +158,4 @@ Since you will be using this with your username, you will need to edit the usern
 #+begin_src shell :async :results output replace
 
 #+end_src
+

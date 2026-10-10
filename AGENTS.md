@@ -8,6 +8,7 @@ Before editing this repository, read this file and treat it as the repository ed
 
 This repository uses literate Org configuration. Treat the Org files as source code and tangled files as generated artifacts.
 
+- `nix/home-manager/mods/starintel.org` is the source of truth for `starintel.nix` and the two init templates under `nix/home-manager/files/starintel/`.
 - `bash.org` is the source of truth for `.bashrc`.
 - `.config/qtile/qtile-ai.org` is the main source of truth for `.config/qtile/config.py`.
 - `.config/qtile/qtile-ai-windows.org` is the source of truth for `.config/qtile/qtile_ai_windows.py`.
@@ -109,3 +110,4 @@ Follow TDD for behavior changes. Add or update regression tests before implement
 The user-global coding-agent contract is owned by `nix/home-manager/files/global-agents.md` and deployed through the Codex and OpenCode Home Manager modules. Durable Prolog gate packaging and Codex lifecycle hooks are owned by `nix/home-manager/mods/agent-verification.nix`. Keep those clients synchronized instead of maintaining divergent global instructions.
 
 For shared shell helpers, test both sourced-function behavior and direct command execution. Home Manager evaluation must remain green for changes to installed commands.
+

@@ -1,0 +1,141 @@
+#+TITLE: Local StarIntel stack
+#+OPTIONS: toc:2 num:nil
+
+* Ownership and scope
+The [[file:../../nix/home-manager/mods/starintel.org][canonical module source]] owns an opt-in Home Manager stack. It creates manual-start user units, never enables the stack in a host profile, never installs or configures a container engine, and never migrates existing data. The repository's =unseen@desktop= profile remains unchanged.
+
+Native Nix packages run star-server, Quasar and the legacy ZeroMQ starRouter. Existing upstream image archives run CouchDB with Clouseau search, RabbitMQ and Valkey. No images are pulled at service startup. Optional telemetry exporters are not enabled. External actors are explicit opt-ins.
+
+The default work directory is =~/.starintel=:
+- =config/init.lisp= and =config/quasar-init.lisp=: editable operator-owned Lisp
+- =config/secrets/=: runtime credential files, never Nix-store contents
+- =data/couchdb/=, =data/clouseau/=, =data/rabbitmq/=, =data/valkey/=: infrastructure data
+- =data/quasar/tek9/=: durable Quasar workspace and operation journal
+- =data/actors/NAME/=: each actor's working directory and XDG data root
+- =cache/= and =logs/=: local cache and router logs; native service output also goes to the user journal
+
+* Package wiring
+The module deliberately has no default upstream packages: importing it while disabled does not fetch private sources or build the stack. Supply immutable upstream packages in the consuming flake. These inspected public revisions are the baseline, not a claim that pending upstream pull requests have merged:
+
+#+begin_src nix
+inputs.starintel-server.url = "github:lost-rob0t/starintel-server/491b89dad31e15b4172d52a03ab525b6c92fd637";
+inputs.quasar.url = "github:lost-rob0t/quasar/9079604f766990db7f9b8998705862c4fa914c45";
+inputs.star-router.url = "github:lost-rob0t/starRouter/0a4e9abd073924e9186482fe847034b4fc4c401b";
+#+end_src
+
+Keep upstream nixpkgs locks initially; do not add =follows= unless the resulting closure is tested. Server transitively fetches Forgejo =org-doc=; Quasar fetches =tek9= and =starintel-biz=. Fetch/build access must exist before enabling. No access token belongs in an input URL, Nix expression or lock file. The current binaries target =x86_64-linux=.
+
+Inside a Home Manager module receiving these =inputs=:
+
+#+begin_src nix
+{ inputs, pkgs, ... }:
+let
+  system = pkgs.stdenv.hostPlatform.system;
+  server = inputs.starintel-server.packages.${system};
+in {
+  # Dotfiles profiles already import this module. External consumers can use
+  # inputs.dotfiles.homeManagerModules.starintel instead.
+  services.starintel = {
+    enable = true;
+    workDir = "/home/unseen/.starintel";
+    infrastructure.engineReady = true; # Only after verifying prerequisites.
+    packages = {
+      server = server.default;
+      quasar = inputs.quasar.packages.${system}.quasar-server;
+      router = inputs.star-router.packages.${system}.default;
+    };
+    infrastructure.images = {
+      couchdb = server.couchdb-image;
+      clouseau = server.clouseau-image;
+      rabbitmq = server.rabbitmq-image;
+      valkey = server.valkey-image;
+    };
+  };
+}
+#+end_src
+
+Do not select Quasar's =default= output: that is only the static =web-dist=. The infrastructure archives must contain the declared =infrastructure.imageTags=: CouchDB =starintel/couchdb:3.5.2=, Clouseau =starintel/clouseau:3.3.0=, RabbitMQ =rabbitmq:4.3.4-management=, Valkey =starintel/valkey:9.0.1=. When an upstream pin changes, check its actual archive tags and update these options together. Image tag strings are local archive identifiers, not a request to pull mutable remote images.
+
+* Prerequisites and first start
+An existing Docker engine must be reachable by this user. Docker access is privileged; this module does not add groups, enable sockets, alter networking or install the engine. It supplies Docker/Compose client executables only for its service scripts. Validate the engine and its Compose support separately. Rootless/UID-remapped engines need their own tested ownership mapping; the numeric IDs below describe a standard non-remapped Docker engine.
+
+Provision a new root privately and create infrastructure directories explicitly. Never run ownership changes on an existing deployment as an upgrade procedure. CouchDB and RabbitMQ upstream entrypoints initialize their own mounted directories; Clouseau and Valkey run as container UID/GID =65532:65532= and require writable data directories. For an empty, new installation only, an administrator must assign those two directories to that container UID/GID (or the correctly mapped host IDs). Do not loosen permissions to =777=. Keep the work root owner-private. The Docker daemon can mount children without making the root public.
+
+Place nonempty, user-readable, mode =0600= secret files under =config/secrets/=:
+- =couchdb_password= and =couchdb_secret=
+- =erlang_cookie= (shared only by CouchDB and Clouseau)
+- =rabbitmq_password= and =valkey_password=
+- =auth_pepper= and =auth_bootstrap_secret=
+
+Use your existing secret manager or a deliberate operator setup. This module does not create, rotate or print secrets. Container secrets are bind-mounted files, not a promise of encrypted-at-rest storage. Host backups must protect them. Changing an existing database's credential file does not necessarily rotate its stored credential.
+
+Build/evaluate your Home Manager profile first. Activating it installs units but does not start the target. The first explicit start checks prerequisites and creates missing Lisp templates with exclusive-create semantics. Existing files, including invalid files, are never replaced.
+
+#+begin_src sh
+systemctl --user start starintel.target
+systemctl --user status starintel.target starintel-infrastructure.service starintel-server.service
+journalctl --user -u starintel-server -u starintel-quasar -u starintel-router -f
+systemctl --user stop starintel.target
+#+end_src
+
+Infrastructure readiness gates server startup; the server's =/health= endpoint gates Quasar and actors. Failed starts are visible in the journal. Infrastructure cleanup removes containers/networks without =--volumes=; bound database files are retained. No boot/login autostart is configured.
+
+Ports are fixed loopback defaults for this single local stack: CouchDB 5984, RabbitMQ 5672/15672, Valkey 6379, server 5000, Quasar 8080/8081, router 6000/6001. Check for collisions with existing installations before starting. Do not expose them publicly or use this module as a hosted multi-tenant deployment.
+
+* 1. Install actors
+Installing a package and starting a collector are separate decisions. The core module installs no actor fleet. Build an actor's documented upstream package first and inspect its =bin/= entrypoints. Add only the actor you intend to operate to =services.starintel.actors=; the module's =package= field makes its executable available to that service without a global installation or a second package implementation.
+
+Private actor repositories and credentials remain outside public dotfiles inputs. Use a private consuming flake/module to supply their packages. Consult that repository's authorized install guide rather than copying its private inventory here. No generic =nix profile install ...#all-actors= output is assumed.
+
+For local Common Lisp actors, make the actor ASDF system and its dependencies available to the chosen server runtime, then load trusted code from the server init file. A native saved server image does not automatically discover every separately installed Lisp package. Build a composed runtime when the addon requires it; simply adding an ASDF package to =home.packages= is insufficient.
+
+* 2. Configure Quasar
+=packages.quasar= must expose =bin/quasar-server=. The service sets:
+- =QUASAR_INIT_FILE= to =config/quasar-init.lisp=
+- =QUASAR_STORAGE_PATH= to =data/quasar/tek9/=
+- =QUASAR_HOST= to =127.0.0.1=
+- =QUASAR_HTTP_PORT= to =8080= and =QUASAR_WS_PORT= to =8081=
+
+The trusted init file is in package =quasar.config=. The supplied template selects Tek9 persistence and stdout logging. Upstream supports =*autodig-persistence-backend*=, =*autodig-filesystem-path*=, =*log-sink*= and =*log-file-path*=; any alternate durable path must remain beneath workDir. The module does not disable Quasar authentication. Configure the supported authentication/session bridge from the pinned upstream documentation before using protected workspace features. Do not use development insecure mode as a production workaround.
+
+Configure the local StarIntel connection using Quasar's supported service settings and a scoped runtime credential. The module does not invent a =QUASAR_STARINTEL_URL= variable or assume that starting both processes creates an authenticated connection. Never send backend or actor credentials to the browser. See [[https://github.com/lost-rob0t/quasar/blob/9079604f766990db7f9b8998705862c4fa914c45/README.md][Quasar runtime and capability boundaries]].
+
+* 3. Configure starintel-server through init.lisp
+The service invokes =star-server start -i WORKDIR/config/init.lisp=. The init file is executable Common Lisp in package =star=, runs before actors start, and can override environment-derived defaults. Keep it operator-owned and never load untrusted actor files.
+
+The template binds HTTP to loopback, disables public-read mode, points CouchDB and RabbitMQ to their local ports with user =starintel=, and enables durable Valkey leases. Its passwords come from =uiop:getenv=. The launcher reads the CouchDB and RabbitMQ secret files immediately before exec, because native server Lisp does not implement those two =*_PASSWORD_FILE= variables. Valkey reads =VALKEY_PASSWORD_FILE= directly and must never receive a password-value environment variable.
+
+Authentication is configured with =STAR_AUTH_MODE=api-key= and runtime pepper/bootstrap-secret paths. Follow the pinned server's bootstrap/API-key procedure; the module does not create an account or API key. Optional =services.starintel.environmentFile= names a runtime file for additional supported settings, not secret values embedded in Nix.
+
+Load a trusted local actor definition from this file and register its startup through =star:*actors-start-hook*=. A visible operator catalog additionally requires a semantic manifest and runtime binding; a RabbitMQ queue name alone does not register an actor. See [[https://github.com/lost-rob0t/starintel-server/blob/491b89dad31e15b4172d52a03ab525b6c92fd637/doc/configuration.org][server configuration]] and [[https://github.com/lost-rob0t/starintel-server/blob/491b89dad31e15b4172d52a03ab525b6c92fd637/doc/actors.org][actor lifecycle]]. Check current schema examples against the generated contract; historical snippets may use old document shapes.
+
+* 4. starRouter configuration
+The legacy ZeroMQ router is separate from RabbitMQ and does not bridge the two transports automatically. The module invokes:
+
+#+begin_example
+starRouter --pubAddress=tcp://127.0.0.1:6000 --apiAddress=tcp://127.0.0.1:6001
+#+end_example
+
+=ROUTER_LOG_LEVEL=lvlInfo= and =FEDIWATCH_LOG=WORKDIR/logs/starRouter.log= configure logging. The upstream default wildcard bind is deliberately overridden. Its transport connection binding is not authentication. Use it only with compatible trusted local clients; do not publish its ports. See [[https://github.com/lost-rob0t/starRouter/blob/0a4e9abd073924e9186482fe847034b4fc4c401b/README.org][router contract and limitations]].
+
+* 5. Actor configuration
+An explicit service definition has these real module fields:
+
+#+begin_src nix
+services.starintel.actors.example = {
+  package = myActorPackage;
+  executable = "my-actor"; # Replace with an actual verified bin entrypoint.
+  arguments = [ "serve" ]; # Use that actor's documented CLI.
+  environmentFile = "/home/unseen/.starintel/config/example-actor.env";
+};
+#+end_src
+
+This is a package-hook illustration, not a claimed StarIntel executable. Each configured actor starts with the target, after server readiness, in =data/actors/NAME/=. Its XDG data and cache roots also stay under workDir. Configure package-specific SQLite/session/download paths explicitly if that actor ignores working-directory/XDG conventions. Do not put credentials in =arguments=.
+
+Use the actor's documented transport variables, schema release, stable identity and provider configuration. RabbitMQ-based actors should use local host 127.0.0.1, port 5672, and the intended vhost/user with a runtime password. API actors need a scoped server key supplied through their documented runtime secret mechanism. Prefer distinct least-privilege actor credentials; the stack does not grant permissions or create users for actors. Schema, routing keys and manifest contracts must match the pinned server and actor release. A running process does not by itself prove catalog registration or successful document ingestion.
+
+* Backup and changes
+Stop =starintel.target= before a consistent offline backup. Back up the whole root, including secrets, init files, all four infrastructure stores and Quasar Tek9 state, preserving ownership. Docker-managed logs/images and the user journal are host infrastructure, not the canonical data backup. Do not delete volumes, clear databases, recursively chown an existing root, or repoint workDir as an implicit migration. Restore into a separate root and validate versions/ownership before switching deliberately.
+
+* Validation
+=nix build .#checks.x86_64-linux.starintel-module= evaluates the disabled and configured module with harmless fixture packages and checks generated scripts/configuration. It does not build upstream applications, run Docker, validate real provider credentials or exercise live ingestion. Run the actual upstream package builds and a deliberate fresh-root full-stack smoke before deployment. The module is not evidence that such a deployment has occurred.

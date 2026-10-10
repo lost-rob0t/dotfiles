@@ -136,6 +136,7 @@
       };
 
       homeManagerModules = {
+        starintel = import ./nix/home-manager/mods/starintel.nix;
         nodeRed = import ./nix/home-manager/mods/node-red.nix;
       };
 
@@ -385,6 +386,7 @@
       };
 
       checks.${system} = {
+        starintel-module = import ./tests/starintel-module.nix { inherit home-manager pkgs lib; };
         logos = logos.config.system.build.toplevel;
         install-logos = installLogos;
         prolog-mcp = prologMcp;
@@ -411,3 +413,4 @@
       formatter.${system} = pkgs.nixfmt-rfc-style;
     };
 }
+
