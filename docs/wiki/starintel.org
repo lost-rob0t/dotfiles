@@ -157,3 +157,5 @@ Stop =starintel.target= before a consistent offline backup. Back up the whole ro
 
 * Validation
 =nix build .#checks.x86_64-linux.starintel-module= evaluates the disabled and configured module with harmless fixture packages and checks generated scripts/configuration. It does not build upstream applications, run Docker, validate real provider credentials or exercise live ingestion. Run the actual upstream package builds and a deliberate fresh-root full-stack smoke before deployment. The module is not evidence that such a deployment has occurred.
+
+The =StarIntel module= workflow also runs =tests/starintel-live.py= on a disposable hosted Docker runner. It builds the three pinned application packages and four image archives, starts only a fresh =/tmp/starintel-live-*= root, checks readiness, and verifies a synthetic CouchDB record survives infrastructure recreation. Sanitized logs and a result summary are attached to the workflow. Upstream fetch/build failures fail the check; they are never silently skipped. This exercises no actor/provider collection and is separate from deployment to your machine.
