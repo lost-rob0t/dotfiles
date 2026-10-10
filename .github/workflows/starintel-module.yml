@@ -50,5 +50,8 @@ jobs:
           nix build --impure --print-build-logs --expr \
             'let f = builtins.getFlake (toString ./.); in f.inputs.chatgpt-desktop.packages.x86_64-linux.default'
           test -x result/lib/chatgpt/ChatGPT
-          ldd result/lib/chatgpt/ChatGPT | tee /tmp/chatgpt-consumer-ldd.txt
-          ! grep -q 'not found' /tmp/chatgpt-consumer-ldd.txt
+          interpreter=$(nix run --impure --expr \
+            'let f = builtins.getFlake (toString ./.); in f.inputs.nixpkgs.legacyPackages.x86_64-linux.patchelf' \
+            -- --print-interpreter result/lib/chatgpt/ChatGPT)
+          "$interpreter" --list "$(readlink -f result)/lib/chatgpt/ChatGPT" | tee /tmp/chatgpt-consumer-libraries.txt
+          ! grep -q 'not found' /tmp/chatgpt-consumer-libraries.txt
