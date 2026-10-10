@@ -14,7 +14,7 @@ for name in ('couchdb', 'clouseau', 'rabbitmq', 'valkey'):
     (root / 'data' / name).mkdir(parents=True)
 secret_dir = root / 'config/secrets'
 secret_dir.mkdir(parents=True)
-for name in ('couchdb_password', 'couchdb_secret', 'erlang_cookie', 'rabbitmq_password', 'valkey_password', 'auth_pepper', 'auth_bootstrap_secret'):
+for name in ('couchdb_password', 'couchdb_secret', 'erlang_cookie', 'rabbitmq_password', 'valkey_password', 'auth_pepper', 'auth_bootstrap_secret', 'initial_password'):
     file = secret_dir / name
     file.write_text('hermetic-fixture-value')
     file.chmod(0o600)

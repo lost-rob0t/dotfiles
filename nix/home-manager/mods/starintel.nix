@@ -3,6 +3,7 @@ let
   cfg = config.services.starintel;
   inherit (lib) mkOption types;
   root = cfg.workDir;
+  projectName = "starintel-${builtins.substring 0 16 (builtins.hashString "sha256" root)}";
   secretDir = "${root}/config/secrets";
   packageOption = description: mkOption {
     type = types.nullOr types.package;
@@ -26,7 +27,7 @@ let
   secret = name: "/run/secrets/${name}";
   health = test: { inherit test; interval = "5s"; timeout = "5s"; retries = 24; start_period = "15s"; };
   compose = pkgs.writeText "starintel-compose.json" (builtins.toJSON {
-    name = "starintel-local";
+    name = projectName;
     services = {
       clouseau = {
         image = imageNames.clouseau;
@@ -98,7 +99,7 @@ let
       for name in couchdb clouseau rabbitmq valkey; do
         test -d "$root/data/$name" || { echo "Missing infrastructure directory: $root/data/$name" >&2; exit 1; }
       done
-      for name in couchdb_password couchdb_secret erlang_cookie rabbitmq_password valkey_password auth_pepper auth_bootstrap_secret; do
+      for name in couchdb_password couchdb_secret erlang_cookie rabbitmq_password valkey_password auth_pepper initial_password; do
         file="$root/config/secrets/$name"
         test -s "$file" || { echo "Missing nonempty secret file: $name" >&2; exit 1; }
         mode="$(stat -c %a "$file")"
@@ -122,9 +123,9 @@ let
       case "$1" in
         start)
           ${lib.concatMapStringsSep "\n" (name: "docker load --input ${image name}") (builtins.attrNames defaultImageNames)}
-          docker-compose --project-name starintel-local --file ${compose} up --detach --wait --wait-timeout 180
+          docker-compose --project-name ${projectName} --file ${compose} up --detach --wait --wait-timeout 180
           ;;
-        stop) docker-compose --project-name starintel-local --file ${compose} down ;;
+        stop) docker-compose --project-name ${projectName} --file ${compose} down ;;
         *) echo "Use start or stop" >&2; exit 2 ;;
       esac
     '';
@@ -133,8 +134,6 @@ let
     name = "starintel-server-start";
     runtimeInputs = [ pkgs.coreutils ];
     text = ''
-      export COUCHDB_PASSWORD="$(cat ${lib.escapeShellArg "${secretDir}/couchdb_password"})"
-      export RABBITMQ_PASSWORD="$(cat ${lib.escapeShellArg "${secretDir}/rabbitmq_password"})"
       exec ${cfg.packages.server}/bin/star-server start -i ${lib.escapeShellArg "${root}/config/init.lisp"}
     '';
   };
@@ -142,7 +141,7 @@ let
     name = "starintel-wait-ready";
     runtimeInputs = [ pkgs.curl pkgs.coreutils ];
     text = ''
-      for attempt in $(seq 1 60); do
+      for _attempt in $(seq 1 60); do
         if curl --fail --silent --max-time 2 http://127.0.0.1:5000/health >/dev/null; then exit 0; fi
         sleep 2
       done
@@ -252,9 +251,9 @@ in
         Service.TimeoutStartSec = 180;
         Service.Environment = [
           "XDG_CACHE_HOME=${root}/cache" "XDG_DATA_HOME=${root}/data"
-          "COUCHDB_HOST=127.0.0.1" "COUCHDB_USER=starintel" "RABBITMQ_ADDRESS=127.0.0.1" "RABBITMQ_USER=starintel"
+          "COUCHDB_HOST=127.0.0.1" "COUCHDB_USER=starintel" "COUCHDB_PASSWORD_FILE=${secretDir}/couchdb_password" "RABBITMQ_ADDRESS=127.0.0.1" "RABBITMQ_USER=starintel" "RABBITMQ_PASSWORD_FILE=${secretDir}/rabbitmq_password"
           "STAR_LEASE_STORE_BACKEND=valkey" "VALKEY_HOST=127.0.0.1" "VALKEY_PORT=6379" "VALKEY_PASSWORD_FILE=${secretDir}/valkey_password"
-          "STAR_AUTH_MODE=api-key" "STAR_AUTH_PEPPER_FILE=${secretDir}/auth_pepper" "STAR_AUTH_BOOTSTRAP_SECRET_FILE=${secretDir}/auth_bootstrap_secret"
+          "STAR_AUTH_INITIAL_PASSWORD_FILE=${secretDir}/initial_password" "STAR_AUTH_MODE=api-key" "STAR_AUTH_PEPPER_FILE=${secretDir}/auth_pepper" "STAR_AUTH_BOOTSTRAP_SECRET_FILE=${secretDir}/auth_bootstrap_secret"
         ];
       };
       starintel-quasar = lib.recursiveUpdate (appService "Quasar workspace" [ "starintel-server.service" ] "${cfg.packages.quasar}/bin/quasar-server") {

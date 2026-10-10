@@ -31,7 +31,7 @@ in
 assert !(builtins.hasAttr "starintel" disabled.config.systemd.user.targets);
 assert !(builtins.hasAttr "starintel-server" disabled.config.systemd.user.services);
 assert disabled.config.services.starintel.workDir == "/home/fixture/.starintel";
-assert lib.any (item: !item.assertion) missingEngine.config.assertions;
+assert !(builtins.tryEval missingEngine.config.home.username).success;
 assert lib.all (item: item.assertion) enabled.config.assertions;
 assert units.starintel-server.Service.WorkingDirectory == root;
 assert lib.elem "starintel-infrastructure.service" units.starintel-server.Unit.Requires;

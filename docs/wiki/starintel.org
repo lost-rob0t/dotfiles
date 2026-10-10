@@ -65,7 +65,7 @@ Place nonempty, user-readable, mode =0600= secret files under =config/secrets/=:
 - =couchdb_password= and =couchdb_secret=
 - =erlang_cookie= (shared only by CouchDB and Clouseau)
 - =rabbitmq_password= and =valkey_password=
-- =auth_pepper= and =auth_bootstrap_secret=
+- =auth_pepper=, =auth_bootstrap_secret= and =initial_password= (a strong initial human-user password; never accept the upstream default)
 
 Use your existing secret manager or a deliberate operator setup. This module does not create, rotate or print secrets. Container secrets are bind-mounted files, not a promise of encrypted-at-rest storage. Host backups must protect them. Changing an existing database's credential file does not necessarily rotate its stored credential.
 
@@ -78,7 +78,7 @@ journalctl --user -u starintel-server -u starintel-quasar -u starintel-router -f
 systemctl --user stop starintel.target
 #+end_src
 
-Infrastructure readiness gates server startup; the server's =/health= endpoint gates Quasar and actors. Failed starts are visible in the journal. Infrastructure cleanup removes containers/networks without =--volumes=; bound database files are retained. No boot/login autostart is configured.
+Infrastructure readiness gates server startup; the server's =/health= endpoint gates Quasar and actors. Failed starts are visible in the journal. Each workDir has a stable hash-derived Compose project name, so a different root cannot silently take over its containers. Port conflicts fail instead. Infrastructure cleanup removes containers/networks without =--volumes=; bound database files are retained. No boot/login autostart is configured.
 
 Ports are fixed loopback defaults for this single local stack: CouchDB 5984, RabbitMQ 5672/15672, Valkey 6379, server 5000, Quasar 8080/8081, router 6000/6001. Check for collisions with existing installations before starting. Do not expose them publicly or use this module as a hosted multi-tenant deployment.
 
@@ -96,16 +96,16 @@ For local Common Lisp actors, make the actor ASDF system and its dependencies av
 - =QUASAR_HOST= to =127.0.0.1=
 - =QUASAR_HTTP_PORT= to =8080= and =QUASAR_WS_PORT= to =8081=
 
-The trusted init file is in package =quasar.config=. The supplied template selects Tek9 persistence and stdout logging. Upstream supports =*autodig-persistence-backend*=, =*autodig-filesystem-path*=, =*log-sink*= and =*log-file-path*=; any alternate durable path must remain beneath workDir. The module does not disable Quasar authentication. Configure the supported authentication/session bridge from the pinned upstream documentation before using protected workspace features. Do not use development insecure mode as a production workaround.
+The trusted init file is in package =quasar.config=. The supplied template selects Tek9 persistence and stdout logging. The default local shared session is retained; hosted multi-user authentication is a separate configuration. Upstream supports =*autodig-persistence-backend*=, =*autodig-filesystem-path*=, =*log-sink*= and =*log-file-path*=; any alternate durable path must remain beneath workDir. The module does not enable insecure-development mode. If replacing the local shared session with multi-user mode, configure the supported authentication/session bridge from the pinned upstream documentation. Do not use development insecure mode as a production workaround.
 
 Configure the local StarIntel connection using Quasar's supported service settings and a scoped runtime credential. The module does not invent a =QUASAR_STARINTEL_URL= variable or assume that starting both processes creates an authenticated connection. Never send backend or actor credentials to the browser. See [[https://github.com/lost-rob0t/quasar/blob/9079604f766990db7f9b8998705862c4fa914c45/README.md][Quasar runtime and capability boundaries]].
 
 * 3. Configure starintel-server through init.lisp
 The service invokes =star-server start -i WORKDIR/config/init.lisp=. The init file is executable Common Lisp in package =star=, runs before actors start, and can override environment-derived defaults. Keep it operator-owned and never load untrusted actor files.
 
-The template binds HTTP to loopback, disables public-read mode, points CouchDB and RabbitMQ to their local ports with user =starintel=, and enables durable Valkey leases. Its passwords come from =uiop:getenv=. The launcher reads the CouchDB and RabbitMQ secret files immediately before exec, because native server Lisp does not implement those two =*_PASSWORD_FILE= variables. Valkey reads =VALKEY_PASSWORD_FILE= directly and must never receive a password-value environment variable.
+The template binds HTTP to loopback, disables public-read mode, points CouchDB and RabbitMQ to their local ports with user =starintel=, and enables durable Valkey leases. The server is a saved SBCL image: build-time =defparameter= environment reads are not a runtime configuration mechanism. The template explicitly calls =environment-secret= for CouchDB, RabbitMQ, the auth pepper, bootstrap secret and initial human-user password when the init file loads. These functions support runtime =*_FILE= paths. Valkey reads =VALKEY_PASSWORD_FILE= directly and must never receive a password-value environment variable.
 
-Authentication is configured with =STAR_AUTH_MODE=api-key= and runtime pepper/bootstrap-secret paths. Follow the pinned server's bootstrap/API-key procedure; the module does not create an account or API key. Optional =services.starintel.environmentFile= names a runtime file for additional supported settings, not secret values embedded in Nix.
+Authentication is configured with =STAR_AUTH_MODE=api-key= and runtime pepper/bootstrap-secret paths. Follow the pinned server's bootstrap/API-key procedure; the module does not create an account or API key. Optional =services.starintel.environmentFile= names a runtime file, not secret values embedded in Nix. For additional server settings, explicitly read their values in init.lisp; do not assume compiled environment defaults refresh automatically. The bootstrap-secret file is needed only for initial bootstrap. Remove it afterward; =read-secret-file= returns nil when it is absent, disabling that bootstrap credential without replacing init.lisp.
 
 Load a trusted local actor definition from this file and register its startup through =star:*actors-start-hook*=. A visible operator catalog additionally requires a semantic manifest and runtime binding; a RabbitMQ queue name alone does not register an actor. See [[https://github.com/lost-rob0t/starintel-server/blob/491b89dad31e15b4172d52a03ab525b6c92fd637/doc/configuration.org][server configuration]] and [[https://github.com/lost-rob0t/starintel-server/blob/491b89dad31e15b4172d52a03ab525b6c92fd637/doc/actors.org][actor lifecycle]]. Check current schema examples against the generated contract; historical snippets may use old document shapes.
 

@@ -3,13 +3,18 @@
 (setf *couchdb-host* "127.0.0.1"
       *couchdb-port* 5984
       *couchdb-user* "starintel"
-      *couchdb-password* (or (uiop:getenv "COUCHDB_PASSWORD") "")
+      *couchdb-password* (environment-secret "COUCHDB_PASSWORD" "COUCHDB_PASSWORD_FILE")
       *rabbit-address* "127.0.0.1"
       *rabbit-port* 5672
       *rabbit-user* "starintel"
-      *rabbit-password* (or (uiop:getenv "RABBITMQ_PASSWORD") "")
+      *rabbit-password* (environment-secret "RABBITMQ_PASSWORD" "RABBITMQ_PASSWORD_FILE")
       *http-api-address* "127.0.0.1"
       *http-api-port* 5000
+      *auth-mode* "api-key"
+      *auth-dev-bypass* nil
+      *auth-pepper* (environment-secret "STAR_AUTH_PEPPER" "STAR_AUTH_PEPPER_FILE")
+      *auth-bootstrap-secret* (environment-secret "STAR_AUTH_BOOTSTRAP_SECRET" "STAR_AUTH_BOOTSTRAP_SECRET_FILE")
+      *auth-initial-password* (environment-secret "STAR_AUTH_INITIAL_PASSWORD" "STAR_AUTH_INITIAL_PASSWORD_FILE")
       *public-mode* nil
       *lease-store-backend* "valkey"
       *valkey-lease-host* "127.0.0.1"
