@@ -42,8 +42,8 @@ assert !(builtins.hasAttr "Install" enabled.config.systemd.user.targets.starinte
 pkgs.runCommand "starintel-module-check" {
   nativeBuildInputs = [ pkgs.python3 pkgs.coreutils pkgs.bash ];
   inherit metadata;
-  prepare = units.starintel-prepare.Service.ExecStart;
-  infrastructure = builtins.head (lib.splitString " " units.starintel-infrastructure.Service.ExecStart);
+  prepare = builtins.head units.starintel-prepare.Service.ExecStart;
+  infrastructure = builtins.head (lib.splitString " " (builtins.head units.starintel-infrastructure.Service.ExecStart));
 } ''
   python3 ${./starintel-module.py} "$metadata" "$prepare" "$infrastructure"
   python3 ${./starintel-literate.py} ${../.}

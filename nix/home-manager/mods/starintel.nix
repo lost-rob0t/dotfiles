@@ -3,6 +3,11 @@ let
   cfg = config.services.starintel;
   inherit (lib) mkOption types;
   root = cfg.workDir;
+  safePath = path: builtins.match "/[a-zA-Z0-9/._-]+" path != null
+    && !(lib.hasInfix "/../" "${path}/")
+    && !(lib.hasInfix "/./" "${path}/")
+    && !(lib.hasInfix "//" path)
+    && !(lib.hasPrefix "/nix/store" path);
   projectName = "starintel-${builtins.substring 0 16 (builtins.hashString "sha256" root)}";
   secretDir = "${root}/config/secrets";
   packageOption = description: mkOption {
@@ -32,6 +37,7 @@ let
       clouseau = {
         image = imageNames.clouseau;
         pull_policy = "never";
+        restart = "on-failure:3";
         hostname = "clouseau";
         domainname = "starintel.internal";
         environment.CLOUSEAU_COOKIE_FILE = secret "erlang_cookie";
@@ -43,6 +49,7 @@ let
       couchdb = {
         image = imageNames.couchdb;
         pull_policy = "never";
+        restart = "on-failure:3";
         hostname = "couchdb";
         domainname = "starintel.internal";
         environment = {
@@ -62,6 +69,7 @@ let
       rabbitmq = {
         image = imageNames.rabbitmq;
         pull_policy = "never";
+        restart = "on-failure:3";
         hostname = "rabbitmq";
         environment.RABBITMQ_DEFAULT_USER = "starintel";
         entrypoint = [ "/bin/bash" "-ec" ];
@@ -75,6 +83,7 @@ let
       valkey = {
         image = imageNames.valkey;
         pull_policy = "never";
+        restart = "on-failure:3";
         environment.VALKEY_PASSWORD_FILE = secret "valkey_password";
         secrets = [ "valkey_password" ];
         volumes = [ (mount "valkey" "/data") ];
@@ -101,8 +110,8 @@ let
       done
       for name in couchdb_password couchdb_secret erlang_cookie rabbitmq_password valkey_password auth_pepper initial_password; do
         file="$root/config/secrets/$name"
-        test -s "$file" || { echo "Missing nonempty secret file: $name" >&2; exit 1; }
-        mode="$(stat -c %a "$file")"
+        test -f "$file" && test -r "$file" && test -s "$file" || { echo "Missing nonempty secret file: $name" >&2; exit 1; }
+        mode="$(stat -Lc %a "$file")"
         if (( (8#$mode & 077) != 0 )); then
           echo "Secret must not be group/world accessible: $name" >&2; exit 1
         fi
@@ -217,8 +226,9 @@ in
 
   config = lib.mkIf cfg.enable {
     assertions = [
-      { assertion = lib.hasPrefix "/" root && !(lib.hasInfix "/../" "${root}/") && !(lib.hasInfix "%" root) && !(lib.hasInfix "\n" root); message = "StarIntel workDir must be an absolute path without parent traversal, systemd specifiers or newlines."; }
+      { assertion = safePath root && !(lib.hasSuffix "/" root); message = "StarIntel workDir must be an absolute non-store path using letters, digits, slash, dot, underscore or hyphen, without traversal or trailing slash."; }
       { assertion = builtins.attrNames cfg.infrastructure.imageTags == builtins.attrNames defaultImageNames; message = "StarIntel imageTags must contain exactly couchdb, clouseau, rabbitmq and valkey."; }
+      { assertion = (cfg.environmentFile == null || safePath cfg.environmentFile) && lib.all (actor: safePath actor.environmentFile) (builtins.attrValues cfg.actors); message = "StarIntel runtime environment files require absolute, non-store safe paths."; }
       { assertion = cfg.infrastructure.engineReady; message = "StarIntel requires an operator-provisioned Docker engine; set infrastructure.engineReady only after verifying it."; }
       { assertion = lib.all (p: p != null) (builtins.attrValues cfg.packages ++ builtins.attrValues cfg.infrastructure.images); message = "StarIntel requires three explicit upstream application packages and four infrastructure image archives."; }
       { assertion = lib.all (name: builtins.match "[a-zA-Z0-9_-]+" name != null) (builtins.attrNames cfg.actors); message = "StarIntel actor service names may contain only letters, digits, underscores and hyphens."; }

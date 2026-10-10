@@ -6,7 +6,9 @@ The [[file:../../nix/home-manager/mods/starintel.org][canonical module source]] 
 
 Native Nix packages run star-server, Quasar and the legacy ZeroMQ starRouter. Existing upstream image archives run CouchDB with Clouseau search, RabbitMQ and Valkey. No images are pulled at service startup. Optional telemetry exporters are not enabled. External actors are explicit opt-ins.
 
-The default work directory is =~/.starintel=:
+The default work directory is =~/.starintel=. WorkDir and runtime environment-file paths must be absolute non-store paths containing only letters, digits, slashes, dots, underscores and hyphens; traversal and a trailing workDir slash are rejected to avoid systemd/Compose interpolation ambiguity.
+
+State layout:
 - =config/init.lisp= and =config/quasar-init.lisp=: editable operator-owned Lisp
 - =config/secrets/=: runtime credential files, never Nix-store contents
 - =data/couchdb/=, =data/clouseau/=, =data/rabbitmq/=, =data/valkey/=: infrastructure data
@@ -67,7 +69,7 @@ Place nonempty, user-readable, mode =0600= secret files under =config/secrets/=:
 - =rabbitmq_password= and =valkey_password=
 - =auth_pepper=, =auth_bootstrap_secret= and =initial_password= (a strong initial human-user password; never accept the upstream default)
 
-Use your existing secret manager or a deliberate operator setup. This module does not create, rotate or print secrets. Container secrets are bind-mounted files, not a promise of encrypted-at-rest storage. Host backups must protect them. Changing an existing database's credential file does not necessarily rotate its stored credential.
+Use your existing secret manager or a deliberate operator setup. Readable symlinks to regular private secret files are supported; target permissions are checked. This module does not create, rotate or print secrets. Container secrets are bind-mounted files, not a promise of encrypted-at-rest storage. Host backups must protect them. Changing an existing database's credential file does not necessarily rotate its stored credential.
 
 Build/evaluate your Home Manager profile first. Activating it installs units but does not start the target. The first explicit start checks prerequisites and creates missing Lisp templates with exclusive-create semantics. Existing files, including invalid files, are never replaced.
 
@@ -78,7 +80,7 @@ journalctl --user -u starintel-server -u starintel-quasar -u starintel-router -f
 systemctl --user stop starintel.target
 #+end_src
 
-Infrastructure readiness gates server startup; the server's =/health= endpoint gates Quasar and actors. Failed starts are visible in the journal. Each workDir has a stable hash-derived Compose project name, so a different root cannot silently take over its containers. Port conflicts fail instead. Infrastructure cleanup removes containers/networks without =--volumes=; bound database files are retained. No boot/login autostart is configured.
+Infrastructure readiness gates server startup; the server's =/health= endpoint gates Quasar and actors. Failed starts are visible in the journal. Infrastructure containers retry abnormal exits up to three times, without starting automatically after a Docker daemon restart; the oneshot infrastructure unit is not a continuous health monitor. Inspect container health after startup and restart the target deliberately after engine failure. Each workDir has a stable hash-derived Compose project name, so a different root cannot silently take over its containers. Port conflicts fail instead. Infrastructure cleanup removes containers/networks without =--volumes=; bound database files are retained. No boot/login autostart is configured.
 
 Ports are fixed loopback defaults for this single local stack: CouchDB 5984, RabbitMQ 5672/15672, Valkey 6379, server 5000, Quasar 8080/8081, router 6000/6001. Check for collisions with existing installations before starting. Do not expose them publicly or use this module as a hosted multi-tenant deployment.
 

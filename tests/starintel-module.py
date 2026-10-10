@@ -53,7 +53,7 @@ assert '--volumes' not in script and 'docker pull' not in script
 for unit in config['services'].values():
     assert not unit.get('Install', {}).get('WantedBy', [])
     assert 'starintel.target' in unit['Unit']['PartOf']
-router = config['services']['starintel-router']['Service']['ExecStart']
+router = config['services']['starintel-router']['Service']['ExecStart'][0]
 assert '--pubAddress=tcp://127.0.0.1:6000' in router
 assert '--apiAddress=tcp://127.0.0.1:6001' in router
 server = config['services']['starintel-server']['Service']
