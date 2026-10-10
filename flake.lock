@@ -28,11 +28,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790384678,
-        "narHash": "sha256-7wChh3bz4gaRWNkcHLRCUV9tHOPBXypIA0E7/EUkgCY=",
+        "lastModified": 1791672772,
+        "narHash": "sha256-qRBRP0hAF88b3Hx+NaMQREnmmD+wexARnRZIG0Eamrk=",
         "owner": "lost-rob0t",
         "repo": "chatgpt-desktop",
-        "rev": "f60a365bd5bbc7b14d141225d0667363ad267985",
+        "rev": "25bf97ec61f3c972107afaa4f0596ac42057b15b",
         "type": "github"
       },
       "original": {

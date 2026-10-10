@@ -103,13 +103,18 @@ let
       umask 077
       root=${lib.escapeShellArg root}
       mkdir -p "$root/config/secrets" "$root/logs" "$root/cache" "$root/data/quasar" "$root/data/actors"
+      root_mode="$(stat -Lc %a "$root")"
+      if (( (8#$root_mode & 077) != 0 )); then
+        echo "StarIntel workDir must be owner-private" >&2; exit 1
+      fi
       # Infrastructure directories are provisioned explicitly by the operator.
       # Never chown or migrate an existing database during service startup.
       for name in couchdb clouseau rabbitmq valkey; do
         test -d "$root/data/$name" || { echo "Missing infrastructure directory: $root/data/$name" >&2; exit 1; }
       done
-      for name in couchdb_password couchdb_secret erlang_cookie rabbitmq_password valkey_password auth_pepper initial_password; do
+      for name in couchdb_password couchdb_secret erlang_cookie rabbitmq_password valkey_password auth_pepper initial_password auth_bootstrap_secret; do
         file="$root/config/secrets/$name"
+        if [[ "$name" == auth_bootstrap_secret && ! -e "$file" ]]; then continue; fi
         test -f "$file" && test -r "$file" && test -s "$file" || { echo "Missing nonempty secret file: $name" >&2; exit 1; }
         mode="$(stat -Lc %a "$file")"
         if (( (8#$mode & 077) != 0 )); then
@@ -238,7 +243,8 @@ in
       Description = "Local StarIntel stack (manual start only)";
       Requires = [ "starintel-server.service" "starintel-quasar.service" "starintel-router.service" ]
         ++ map (name: "starintel-actor-${name}.service") (builtins.attrNames cfg.actors);
-      After = [ "starintel-server.service" "starintel-quasar.service" "starintel-router.service" ];
+      After = [ "starintel-server.service" "starintel-quasar.service" "starintel-router.service" ]
+        ++ map (name: "starintel-actor-${name}.service") (builtins.attrNames cfg.actors);
     };
     systemd.user.services = {
       starintel-prepare = {

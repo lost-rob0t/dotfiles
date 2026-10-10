@@ -10,6 +10,7 @@
       *rabbit-password* (environment-secret "RABBITMQ_PASSWORD" "RABBITMQ_PASSWORD_FILE")
       *http-api-address* "127.0.0.1"
       *http-api-port* 5000
+      *http-cors-allowed-origins* '("http://127.0.0.1:8080")
       *auth-mode* "api-key"
       *auth-dev-bypass* nil
       *auth-pepper* (environment-secret "STAR_AUTH_PEPPER" "STAR_AUTH_PEPPER_FILE")

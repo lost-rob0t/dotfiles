@@ -10,7 +10,7 @@ let
     ];
   };
   disabled = evaluate { };
-  enabled = evaluate {
+  enabledConfig = {
     services.starintel = {
       enable = true;
       workDir = root;
@@ -20,6 +20,9 @@ let
       actors.fixture = { package = pkgs.hello; executable = "hello"; arguments = [ "--greeting=local test" ]; environmentFile = "${root}/config/actor.env"; };
     };
   };
+  enabled = evaluate enabledConfig;
+  invalidPath = evaluate (lib.recursiveUpdate enabledConfig { services.starintel.workDir = "/tmp/bad path"; });
+  storeSecret = evaluate (lib.recursiveUpdate enabledConfig { services.starintel.environmentFile = "/nix/store/not-a-runtime-secret"; });
   missingEngine = evaluate { services.starintel.enable = true; };
   units = enabled.config.systemd.user.services;
   metadata = pkgs.writeText "starintel-units.json" (builtins.toJSON {
@@ -32,6 +35,8 @@ assert !(builtins.hasAttr "starintel" disabled.config.systemd.user.targets);
 assert !(builtins.hasAttr "starintel-server" disabled.config.systemd.user.services);
 assert disabled.config.services.starintel.workDir == "/home/fixture/.starintel";
 assert !(builtins.tryEval missingEngine.config.home.username).success;
+assert !(builtins.tryEval invalidPath.config.home.username).success;
+assert !(builtins.tryEval storeSecret.config.home.username).success;
 assert lib.all (item: item.assertion) enabled.config.assertions;
 assert units.starintel-server.Service.WorkingDirectory == root;
 assert lib.elem "starintel-infrastructure.service" units.starintel-server.Unit.Requires;

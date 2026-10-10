@@ -63,6 +63,20 @@ An existing Docker engine must be reachable by this user. Docker access is privi
 
 Provision a new root privately and create infrastructure directories explicitly. Never run ownership changes on an existing deployment as an upgrade procedure. CouchDB and RabbitMQ upstream entrypoints initialize their own mounted directories; Clouseau and Valkey run as container UID/GID =65532:65532= and require writable data directories. For an empty, new installation only, an administrator must assign those two directories to that container UID/GID (or the correctly mapped host IDs). Do not loosen permissions to =777=. Keep the work root owner-private. The Docker daemon can mount children without making the root public.
 
+For a new, standard Docker installation only, this sequence refuses an existing root before creating anything:
+
+#+begin_src sh
+set -eu
+umask 077
+root="$HOME/.starintel"
+mkdir -m 700 "$root"  # Intentionally fails if the path already exists.
+mkdir -p "$root/config/secrets" "$root/data/couchdb" "$root/data/rabbitmq" \
+  "$root/data/clouseau" "$root/data/valkey"
+sudo chown 65532:65532 "$root/data/clouseau" "$root/data/valkey"
+#+end_src
+
+Do not replace that first =mkdir= with =mkdir -p= when following this fresh-install procedure. An existing root needs inspection and a separate migration/ownership plan. The upstream CouchDB/RabbitMQ container entrypoints may manage ownership inside their dedicated bind mounts; they must never be pointed at unrelated data directories.
+
 Place nonempty, user-readable, mode =0600= secret files under =config/secrets/=:
 - =couchdb_password= and =couchdb_secret=
 - =erlang_cookie= (shared only by CouchDB and Clouseau)
@@ -100,7 +114,9 @@ For local Common Lisp actors, make the actor ASDF system and its dependencies av
 
 The trusted init file is in package =quasar.config=. The supplied template selects Tek9 persistence and stdout logging. The default local shared session is retained; hosted multi-user authentication is a separate configuration. Upstream supports =*autodig-persistence-backend*=, =*autodig-filesystem-path*=, =*log-sink*= and =*log-file-path*=; any alternate durable path must remain beneath workDir. The module does not enable insecure-development mode. If replacing the local shared session with multi-user mode, configure the supported authentication/session bridge from the pinned upstream documentation. Do not use development insecure mode as a production workaround.
 
-Configure the local StarIntel connection using Quasar's supported service settings and a scoped runtime credential. The module does not invent a =QUASAR_STARINTEL_URL= variable or assume that starting both processes creates an authenticated connection. Never send backend or actor credentials to the browser. See [[https://github.com/lost-rob0t/quasar/blob/9079604f766990db7f9b8998705862c4fa914c45/README.md][Quasar runtime and capability boundaries]].
+Open Quasar at =http://127.0.0.1:8080=. In Settings, the StarIntel server panel exposes =Server URL=, =Username=, =Password= and =Bearer token=. Set Server URL to =http://127.0.0.1:5000= and use a least-privilege user API token in Bearer token (it takes precedence over Basic authentication). Click =Test server connection=. Actor Studio's =Refresh registry= requires =actors:read= and lists only registered manifests; use appropriate additional scopes for any operations you deliberately run. The template allows the exact Quasar origin =http://127.0.0.1:8080= for CORS. If you choose a different origin, update the trusted server init allowlist explicitly.
+
+This pinned UI stores its connection settings in browser-side state: use only a scoped client credential you intend that browser to hold, never CouchDB/RabbitMQ administrator passwords, the auth pepper, bootstrap secret or provider/actor credentials. Prefer the supported server-side auth bridge for hosted use. The module does not invent a =QUASAR_STARINTEL_URL= variable or assume that starting both processes creates an authenticated connection. See [[https://github.com/lost-rob0t/quasar/blob/9079604f766990db7f9b8998705862c4fa914c45/README.md][Quasar runtime and capability boundaries]].
 
 * 3. Configure starintel-server through init.lisp
 The service invokes =star-server start -i WORKDIR/config/init.lisp=. The init file is executable Common Lisp in package =star=, runs before actors start, and can override environment-derived defaults. Keep it operator-owned and never load untrusted actor files.
