@@ -22,3 +22,20 @@ jobs:
         run: python3 tests/starintel-literate.py
       - name: Evaluate and build module regression check
         run: nix build .#checks.x86_64-linux.starintel-module --no-write-lock-file --print-build-logs
+  live-stack:
+    needs: module
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Build pinned packages and smoke disposable stack
+        run: python3 tests/starintel-live.py --artifacts "$RUNNER_TEMP/starintel-live-logs"
+      - name: Upload sanitized live-stack evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: starintel-live-evidence
+          path: ${{ runner.temp }}/starintel-live-logs
+          if-no-files-found: warn
+          retention-days: 7
