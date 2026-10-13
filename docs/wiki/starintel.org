@@ -20,10 +20,10 @@ State layout:
 This draft is not deployment-ready. The existing secret-file transport below does
 not satisfy the requested runtime-environment/keyring/auth-source-only policy.
 In particular, the upstream Valkey lease client requires a password file and the
-Clouseau entrypoint copies its cookie into a generated file. A sealed anonymous-memory descriptor has passed the pinned SBCL =probe-file=/UIOP reader test, and the server launcher now uses that adapter when VALKEY_PASSWORD is supplied at runtime, without a filesystem secret. Backing-service generated cookie/configuration files still need an explicit tmpfs-only decision. Do not provision the
+Clouseau entrypoint copies its cookie into a generated file. A sealed anonymous-memory descriptor has passed the pinned SBCL =probe-file=/UIOP reader test, and the server launcher now uses that adapter when VALKEY_PASSWORD is supplied at runtime, without a filesystem secret. Production backing-service generated cookie/configuration files remain outside the approved secret policy. Do not provision the
 legacy credential files or activate this draft under that policy. Replacing that
 transport requires upstream changes and a fresh live ingestion/persistence test.
-The merged repair in [[https://github.com/lost-rob0t/quasar/pull/106][Quasar PR #106]] corrects the stale =starintel-license= package entry. Consumer CI built all three applications and all four infrastructure images at candidate =f0902b54=; the fixture now also includes the upstream main merge and must repeat acceptance on that exact pin. The isolated test fixture has a separately authorized exception for random credentials on non-swappable tmpfs. It does not supply production credentials or authorize production generated secret files.
+The merged repair in [[https://github.com/lost-rob0t/quasar/pull/106][Quasar PR #106]] corrects the stale =starintel-license= package entry. [[https://github.com/lost-rob0t/dotfiles/actions/runs/38445982364][Consumer CI at e8229756]] built all three applications and four infrastructure images with the merged Quasar candidate, passed actual readiness and canonical ingestion/rejection, and verified document/API-credential persistence after full stack recreation. The isolated test fixture has a separately authorized exception for random credentials on non-swappable tmpfs. It does not supply production credentials or authorize production generated secret files.
 A green module check alone does not establish a working full stack.
 
 * Package wiring
