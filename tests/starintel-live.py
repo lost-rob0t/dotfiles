@@ -4,7 +4,8 @@
 Run: python3 tests/starintel-live.py --artifacts "$RUNNER_TEMP/starintel-live-logs"
 Requires Nix, a local rootful Docker engine, free module ports and passwordless
 sudo (unless root). The module owns startup; this runner only provisions NEW
-empty state. It never reads ~/.starintel or starts an actor. Fetch/build errors,
+empty state. Test-only random credentials live exclusively on non-swappable tmpfs;
+this fixture is not a production credential provider. It never reads ~/.starintel or starts an actor. Fetch/build errors,
 including unavailable Forgejo inputs, fail the check instead of being skipped.
 """
 
@@ -73,6 +74,7 @@ class Smoke:
         self.processes = []
         self.services = {}
         self.infrastructure_attempted = False
+        self.credentials_mounted = False
         self.project = "starintel-" + hashlib.sha256(str(self.root).encode()).hexdigest()[:16]
         self.environment = {
             "HOME": str(self.root / "home"), "PATH": os.defpath,
@@ -152,7 +154,10 @@ class Smoke:
         paths = set(re.findall(r'/nix/store/[^\s"\']+-starintel-compose\.json', script))
         if len(paths) != 1:
             raise RuntimeError("Cannot identify the real module's Compose configuration")
-        compose = json.loads(Path(paths.pop()).read_text())
+        self.compose_path = paths.pop()
+        compose = json.loads(Path(self.compose_path).read_text())
+        self.compose_configuration = compose
+        self.infrastructure_script = script
         if compose["name"] != self.project or set(compose["services"]) != set(INFRA):
             raise RuntimeError("Unexpected Compose project or services")
         for name, service in compose["services"].items():
@@ -178,16 +183,57 @@ class Smoke:
     def provision(self):
         self.report["stage"] = "fresh-state-provisioning"
         (self.root / "home").mkdir()
-        # Do not materialize credentials to work around file-only upstream APIs.
-        # Fail before any startup if the actual evaluated units still need files.
-        file_variables = [assignment.split("=", 1)[0]
-                          for service in self.services.values()
-                          for assignment in service.get("Environment", [])
-                          if assignment.split("=", 1)[0].endswith("_FILE")
-                          and any(word in assignment for word in ("PASSWORD", "PEPPER", "SECRET"))]
-        if file_variables:
-            raise RuntimeError("Runtime-environment-only secret transport is blocked by "
-                               "file-only unit settings: " + ", ".join(sorted(file_variables)))
+        # Authorized test-only exception: never create these on a disk filesystem.
+        credentials = self.root / "config/secrets"
+        credentials.mkdir(parents=True)
+        options = f"size=1m,mode=0700,uid={os.getuid()},gid={os.getgid()},nosuid,nodev,noexec,noswap"
+        subprocess.run(self.sudo + ["mount", "-t", "tmpfs", "-o", options,
+                                   "tmpfs", str(credentials)], check=True)
+        self.credentials_mounted = True
+        filesystem = subprocess.check_output(["findmnt", "-n", "-o", "FSTYPE,OPTIONS",
+                                              "--target", str(credentials)], text=True)
+        if not filesystem.startswith("tmpfs ") or "noswap" not in filesystem:
+            raise RuntimeError("Credentials require non-swappable tmpfs")
+        for name, value in self.values.items():
+            path = credentials / name
+            path.write_text(value)
+            path.chmod(0o600)
+        self.values["rabbitmq_erlang_cookie"] = secrets.token_hex(24)
+        extra = {
+            "couchdb-runtime.ini": ("", 5984),
+            "couchdb-runtime.cookie": (self.values["erlang_cookie"], 5984),
+            "rabbitmq-runtime.cookie": (self.values["rabbitmq_erlang_cookie"], 999),
+        }
+        for name, (value, owner) in extra.items():
+            path = credentials / name
+            path.write_text(value)
+            path.chmod(0o600)
+            subprocess.run(self.sudo + ["chown", f"{owner}:{owner}", str(path)], check=True)
+        # Only the isolated fixture adds ephemeral mounts to the evaluated Compose
+        # graph. This does not grant or implement a production secret-file exception.
+        compose = self.compose_configuration
+        def memory_file(service, name, destination):
+            compose["services"][service]["volumes"].append({
+                "type": "bind", "source": str(credentials / name), "target": destination,
+                "bind": {"create_host_path": False}})
+        memory_file("couchdb", "couchdb-runtime.ini", "/opt/couchdb/etc/local.d/docker.ini")
+        memory_file("couchdb", "couchdb-runtime.cookie", "/opt/couchdb/.erlang.cookie")
+        memory_file("rabbitmq", "rabbitmq-runtime.cookie", "/var/lib/rabbitmq/.erlang.cookie")
+        # Running the upstream CouchDB entrypoint as its own user preserves 0600
+        # instead of the root branch chmodding configuration files to 0644.
+        compose["services"]["couchdb"]["user"] = "5984:5984"
+        compose["services"]["clouseau"]["tmpfs"] = ["/tmp:rw,nosuid,nodev,noexec,noswap,mode=1777"]
+        compose["services"]["valkey"]["tmpfs"] = ["/run/starintel-valkey:rw,nosuid,nodev,noexec,noswap,mode=0700"]
+        fixture_compose = self.root / "config/test-compose.json"
+        fixture_compose.write_text(json.dumps(compose))
+        fixture_script = self.root / "config/test-infrastructure"
+        fixture_script.write_text(self.infrastructure_script.replace(self.compose_path, str(fixture_compose)))
+        fixture_script.chmod(0o700)
+        service = self.services["starintel-infrastructure"]
+        for field in ("ExecStart", "ExecStopPost"):
+            command = self.command("starintel-infrastructure", field)
+            command[0] = str(fixture_script)
+            service[field] = [shlex.join(command)]
         self.environment.update({
             "COUCHDB_PASSWORD": self.values["couchdb_password"],
             "COUCHDB_SECRET": self.values["couchdb_secret"],
@@ -203,15 +249,16 @@ class Smoke:
             directory.mkdir(parents=True)
             # Only new, empty directories are ever chowned. These two upstream
             # entrypoints drop privilege without repairing bind-mount ownership.
-            if name in ("clouseau", "valkey"):
+            if name in ("clouseau", "valkey", "couchdb"):
                 if directory.is_symlink() or any(directory.iterdir()):
                     raise RuntimeError(f"Refusing to change nonempty state: {directory}")
-                self.run(self.sudo + ["chown", "65532:65532", str(directory)], "provision")
+                owner = 5984 if name == "couchdb" else 65532
+                self.run(self.sudo + ["chown", f"{owner}:{owner}", str(directory)], "provision")
                 stat = directory.stat()
-                if (stat.st_uid, stat.st_gid) != (65532, 65532):
+                if (stat.st_uid, stat.st_gid) != (owner, owner):
                     raise RuntimeError(f"Incorrect fresh bind-mount ownership: {directory}")
         self.run(self.command("starintel-prepare"), "prepare", env=self.environment)
-        self.record("Prepared runtime environment and fresh UID/GID 65532 state")
+        self.record("Prepared isolated test credentials on non-swappable tmpfs and fresh service-owned state")
 
     def start_infrastructure(self):
         self.report["stage"] = "infrastructure-start"
@@ -419,6 +466,9 @@ class Smoke:
                 or not re.fullmatch(r"/tmp/starintel-live-[a-zA-Z0-9_-]+", str(self.root))
                 or (self.root / ".disposable-smoke").read_text() != self.marker):
             raise RuntimeError("Disposable root identity changed; refusing cleanup")
+        if self.credentials_mounted:
+            subprocess.run(self.sudo + ["umount", str(self.root / "config/secrets")], check=True)
+            self.credentials_mounted = False
         # Docker-created database files can be root-owned. Never prune images,
         # volumes, networks, unrelated containers, or any user's home directory.
         subprocess.run(self.sudo + ["rm", "-rf", "--", str(self.root)], check=True, timeout=60)
