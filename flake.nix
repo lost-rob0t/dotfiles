@@ -399,8 +399,9 @@
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
         starintel-admin = starintelAdminCheck;
-        zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
-        zara-all-plugins = zaraAllPluginsCheck;
+        # The Zara runtime checks are temporarily replaced by a fail-closed
+        # disabled-state check while the local Zara stack is being cleaned up.
+        zara-disabled = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
         zara-emacs-expert = zaraExperts.emacs;
         zara-expert-library = zaraExperts.library;
       };
