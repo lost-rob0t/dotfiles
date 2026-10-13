@@ -23,6 +23,7 @@ jobs:
       - name: Evaluate and build module regression check
         run: nix build .#checks.x86_64-linux.starintel-module --no-write-lock-file --print-build-logs
       - name: Exercise startup and restart under an isolated systemd user
+        timeout-minutes: 5
         run: |
           set -eu
           test ! -e /tmp/starintel-wiring-home

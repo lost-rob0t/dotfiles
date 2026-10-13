@@ -17,7 +17,10 @@ import time
 
 
 def systemctl(*args):
-    return subprocess.check_output(["systemctl", "--user", *args], text=True).strip()
+    if args[0] != "show":
+        print("systemctl --user " + " ".join(args), flush=True)
+    return subprocess.check_output(["systemctl", "--user", *args], text=True,
+                                   timeout=45).strip()
 
 
 def wait_for(predicate, description):
@@ -121,6 +124,7 @@ def main():
         assert len((root / "events").read_text().splitlines()) == count
         print("PASS: default-target startup, readiness ordering, crash/prerequisite recovery, clean stop")
     finally:
+        subprocess.run(["journalctl", "--user", "--no-pager", "-n", "100"], timeout=15)
         systemctl("stop", "starintel.target")
         systemctl("disable", "starintel.target")
 
