@@ -225,8 +225,8 @@ class Smoke:
             "COUCHDB_SECRET_FILE": "/run/couchdb-secret",
             "COUCHDB_ERLANG_COOKIE_FILE": "/opt/couchdb/.erlang.cookie",
         })
-        # CouchDB atomically rewrites its INI after hashing the administrator
-        # password; a single-file bind mount would make rename fail with EBUSY.
+        # CouchDB persists updates to the last sorted configuration file,
+        # including the image search configuration. Keep the entire directory in RAM.
         configuration = credentials / "couchdb-config"
         configuration.mkdir()
         self.run([self.docker, "load", "--input", self.images["couchdb"]], "couchdb-image")
@@ -250,8 +250,15 @@ class Smoke:
         # Running the upstream CouchDB entrypoint as its own user preserves 0600
         # instead of the root branch chmodding configuration files to 0644.
         compose["services"]["couchdb"]["user"] = "5984:5984"
-        compose["services"]["clouseau"]["tmpfs"] = ["/tmp:rw,nosuid,nodev,noexec,noswap,mode=1777"]
-        compose["services"]["valkey"]["tmpfs"] = ["/run/starintel-valkey:rw,nosuid,nodev,noexec,noswap,mode=0700"]
+        # Docker's tmpfs option parser does not accept noswap. Bind directories
+        # from the verified host noswap mount instead of weakening the guarantee.
+        for service, name, destination, mode in (
+                ("clouseau", "clouseau-tmp", "/tmp", 0o1777),
+                ("valkey", "valkey-run", "/run/starintel-valkey", 0o700)):
+            directory = credentials / name
+            directory.mkdir()
+            directory.chmod(mode)
+            memory_file(service, name, destination)
         fixture_compose = self.root / "config/test-compose.json"
         fixture_compose.write_text(json.dumps(compose))
         fixture_script = self.root / "config/test-infrastructure"

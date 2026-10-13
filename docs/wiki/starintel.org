@@ -188,8 +188,8 @@ The CI fixture alone generates random credentials. It mounts a new, owner-privat
 non-swappable tmpfs at its disposable =/tmp/starintel-live-*/config/secrets=;
 credential files are mode =0600=. No credentials enter Nix expressions, Git,
 command arguments or artifacts. CouchDB's configuration directory/cookie and RabbitMQ's cookie bind to that
-same tmpfs; the directory permits CouchDB's atomic INI rewrites. Clouseau's =/tmp= and Valkey's
-=/run/starintel-valkey= are container tmpfs mounts. The CouchDB test container runs
+same tmpfs, covering writes to any file in CouchDB's configuration directory. Clouseau's =/tmp= and Valkey's
+=/run/starintel-valkey= bind subdirectories of the same verified host tmpfs. The CouchDB test container runs
 as UID 5984 to preserve private configuration permissions. The fixture retains the
 module's actual package commands and dependency graph, but adds these test-only
 mounts; it does not prove the production credential transport is compliant.
