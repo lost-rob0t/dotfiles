@@ -7,8 +7,8 @@ let
   lib = pkgs.lib;
   sources = {
     server = "github:lost-rob0t/starintel-server/491b89dad31e15b4172d52a03ab525b6c92fd637";
-    # Tested commit from merged Quasar PR #106; immutable runtime package source.
-    quasar = "github:lost-rob0t/quasar/cb1a088d288b799de0b45c7d239ae7c9b935f18c";
+    # PR #108 candidate: same pinned Tek9 contents via verified public mirror.
+    quasar = "github:lost-rob0t/quasar/9303835a6c982c9c2036e5ab044df1ec149a42c6";
     router = "github:lost-rob0t/starRouter/0a4e9abd073924e9186482fe847034b4fc4c401b";
   };
   upstream = lib.mapAttrs (_: ref: (builtins.getFlake ref).packages.${system}) sources;
