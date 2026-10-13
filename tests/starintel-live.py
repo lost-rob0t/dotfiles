@@ -144,6 +144,7 @@ class Smoke:
         if set(manifest["services"]) != expected:
             raise RuntimeError("Unexpected services or actors in smoke fixture")
         self.services = manifest["services"]
+        self.images = manifest["images"]
         self.authority = manifest["authority"]
         self.schema = manifest["schema"]
         self.python = manifest["python"]
@@ -200,7 +201,6 @@ class Smoke:
             path.chmod(0o600)
         self.values["rabbitmq_erlang_cookie"] = secrets.token_hex(24)
         extra = {
-            "couchdb-runtime.ini": ("", 5984),
             "couchdb-runtime.password": (self.values["couchdb_password"], 5984),
             "couchdb-runtime.secret": (self.values["couchdb_secret"], 5984),
             "couchdb-runtime.cookie": (self.values["erlang_cookie"], 5984),
@@ -225,7 +225,26 @@ class Smoke:
             "COUCHDB_SECRET_FILE": "/run/couchdb-secret",
             "COUCHDB_ERLANG_COOKIE_FILE": "/opt/couchdb/.erlang.cookie",
         })
-        memory_file("couchdb", "couchdb-runtime.ini", "/opt/couchdb/etc/local.d/docker.ini")
+        # CouchDB atomically rewrites its INI after hashing the administrator
+        # password; a single-file bind mount would make rename fail with EBUSY.
+        configuration = credentials / "couchdb-config"
+        configuration.mkdir()
+        self.run([self.docker, "load", "--input", self.images["couchdb"]], "couchdb-image")
+        inspection = subprocess.check_output(
+            [self.docker, "create", compose["services"]["couchdb"]["image"]],
+            env=self.environment, text=True, timeout=30).strip()
+        try:
+            subprocess.run([self.docker, "cp", inspection + ":/opt/couchdb/etc/local.d/.",
+                            str(configuration)], env=self.environment, check=True, timeout=30)
+        finally:
+            subprocess.run([self.docker, "rm", "-v", inspection], env=self.environment,
+                           check=True, stdout=subprocess.DEVNULL, timeout=30)
+        for path in sorted(configuration.rglob("*"), key=lambda p: len(p.parts), reverse=True) + [configuration]:
+            if path.is_symlink():
+                raise RuntimeError("Unexpected symlink in pinned CouchDB configuration")
+            path.chmod(0o700 if path.is_dir() else 0o600)
+            subprocess.run(self.sudo + ["chown", "5984:5984", str(path)], check=True)
+        memory_file("couchdb", "couchdb-config", "/opt/couchdb/etc/local.d")
         memory_file("couchdb", "couchdb-runtime.cookie", "/opt/couchdb/.erlang.cookie")
         memory_file("rabbitmq", "rabbitmq-runtime.cookie", "/var/lib/rabbitmq/.erlang.cookie")
         # Running the upstream CouchDB entrypoint as its own user preserves 0600
