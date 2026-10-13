@@ -560,7 +560,11 @@ class Smoke:
                     cleanup_errors.append(str(exc))
             for log in self.log_dir.iterdir():
                 if log.is_file():
-                    (self.artifacts / log.name).write_text(self.redact(log.read_text(errors="replace")))
+                    sanitized = self.redact(log.read_text(errors="replace"))
+                    (self.artifacts / log.name).write_text(sanitized)
+                    if not ok and log.suffix == ".log" and log.name != "nix-build.log":
+                        print(f"--- {log.name}: last 50 sanitized lines ---", file=sys.stderr)
+                        print("\n".join(sanitized.splitlines()[-50:]), file=sys.stderr)
             if not cleanup_errors:
                 try:
                     self.remove_root()
