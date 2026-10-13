@@ -239,6 +239,8 @@ class Smoke:
         finally:
             subprocess.run([self.docker, "rm", "-v", inspection], env=self.environment,
                            check=True, stdout=subprocess.DEVNULL, timeout=30)
+        # Precreate the entrypoint file so touch cannot inherit a permissive umask.
+        (configuration / "docker.ini").touch(mode=0o600, exist_ok=True)
         for path in sorted(configuration.rglob("*"), key=lambda p: len(p.parts), reverse=True) + [configuration]:
             if path.is_symlink():
                 raise RuntimeError("Unexpected symlink in pinned CouchDB configuration")
