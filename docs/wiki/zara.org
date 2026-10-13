@@ -2,10 +2,20 @@
 #+AUTHOR: nsaspy
 #+STARTUP: overview
 
+* Temporary runtime disable
+
+The desktop, flake, and hunter02 Home Manager profiles currently leave the
+Zara runtime, workflow helpers, plugin projection, and user services disabled
+while the stack is cleaned up.  The Qwen3-TTS service is also commented out
+because its GPU path may contribute to GPU crashes or wider UI/system
+instability.  The dormant modules, expert sources, and user data remain intact
+so the runtime can be restored deliberately after review.
+
 * Scope
-The desktop Home Manager profile enables =zara.workflows=.  That module installs
-non-secret operator workflow defaults and the bounded =zara-system-update=
-helper without taking ownership of Zara's mutable private overlay.
+When enabled, the desktop Home Manager profile's =zara.workflows= module
+installs non-secret operator workflow defaults and the bounded
+=zara-system-update= helper without taking ownership of Zara's mutable private
+overlay.
 
 * Configuration ownership
 - =.config/zarathushtra/config.pl= is the canonical tracked declarative base layer

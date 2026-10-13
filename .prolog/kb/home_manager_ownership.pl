@@ -26,3 +26,11 @@ repair(hm_link_conflict(Unit)) :-
 % into a home-manager-files store path or absent before activation.
 hm_owns_path('/.config/systemd/user/qwen3-tts.service').
 hm_owns_path('/.config/systemd/user/zara-server.service').
+
+% A runtime mask under /run/user does not override a Home Manager unit linked
+% from the user's higher-priority ~/.config/systemd/user directory.  When the
+% declarative source already disables the unit, `systemctl --user disable`
+% removes the current-generation links until the next activation reconciles
+% the profile.
+hm_runtime_mask_limitation(home_manager_user_unit, higher_priority_user_config_link).
+hm_temporary_disable_method(home_manager_user_unit, systemctl_user_disable).
