@@ -2,7 +2,7 @@
 #+OPTIONS: toc:2 num:nil
 
 * Ownership and scope
-The [[file:../../nix/home-manager/mods/starintel.org][canonical module source]] owns an opt-in Home Manager stack. It creates manual-start user units, never enables the stack in a host profile, never installs or configures a container engine, and never migrates existing data. The repository's =unseen@desktop= profile remains unchanged.
+The [[file:../../nix/home-manager/mods/starintel.org][canonical module source]] owns an opt-in Home Manager stack. It exports =homeManagerModules.starintel= for reuse on NixOS and non-NixOS Linux hosts using Home Manager (including Arch). It creates automatically started user units when enabled, never enables the stack in a host profile itself, never installs or configures a container engine, and never migrates existing data. The repository's =unseen@desktop= profile remains unchanged.
 
 Native Nix packages run star-server, Quasar and the legacy ZeroMQ starRouter. Existing upstream image archives run CouchDB with Clouseau search, RabbitMQ and Valkey. No images are pulled at service startup. Optional telemetry exporters are not enabled. External actors are explicit opt-ins.
 
@@ -15,6 +15,16 @@ State layout:
 - =data/quasar/tek9/=: durable Quasar workspace and operation journal
 - =data/actors/NAME/=: each actor's working directory and XDG data root
 - =cache/= and =logs/=: local cache and router logs; native service output also goes to the user journal
+
+* Current release blockers
+This draft is not deployment-ready. The existing secret-file transport below does
+not satisfy the requested runtime-environment/keyring/auth-source-only policy.
+In particular, the upstream Valkey lease client requires a password file and the
+Clouseau entrypoint copies its cookie into a generated file. Do not provision the
+legacy credential files or activate this draft under that policy. Replacing that
+transport requires upstream changes and a fresh live ingestion/persistence test.
+Quasar packaging also requests a missing =starintel-license= ASDF component.
+A green module check alone does not establish a working full stack.
 
 * Package wiring
 The module deliberately has no default upstream packages: importing it while disabled does not fetch private sources or build the stack. Supply immutable upstream packages in the consuming flake. These inspected public revisions are the baseline, not a claim that pending upstream pull requests have merged:
@@ -35,8 +45,8 @@ let
   system = pkgs.stdenv.hostPlatform.system;
   server = inputs.starintel-server.packages.${system};
 in {
-  # Dotfiles profiles already import this module. External consumers can use
-  # inputs.dotfiles.homeManagerModules.starintel instead.
+  imports = [ inputs.dotfiles.homeManagerModules.starintel ];
+  # Omit imports above inside dotfiles profiles, which already import it.
   services.starintel = {
     enable = true;
     workDir = "/home/unseen/.starintel";
@@ -85,7 +95,7 @@ Place nonempty, user-readable, mode =0600= secret files under =config/secrets/=:
 
 Use your existing secret manager or a deliberate operator setup. Readable symlinks to regular private secret files are supported; target permissions are checked. This module does not create, rotate or print secrets. Container secrets are bind-mounted files, not a promise of encrypted-at-rest storage. Host backups must protect them. Changing an existing database's credential file does not necessarily rotate its stored credential.
 
-Build/evaluate your Home Manager profile first. Activating it installs units but does not start the target. The first explicit start checks prerequisites and creates missing Lisp templates with exclusive-create semantics. Existing files, including invalid files, are never replaced.
+Build/evaluate your Home Manager profile first. After the blockers above are resolved, activating it installs the enabled target and may start it according to Home Manager's =systemd.user.startServices= policy. The first start checks prerequisites and creates missing Lisp templates with exclusive-create semantics. Existing files, including invalid files, are never replaced.
 
 #+begin_src sh
 systemctl --user start starintel.target
@@ -94,9 +104,22 @@ journalctl --user -u starintel-server -u starintel-quasar -u starintel-router -f
 systemctl --user stop starintel.target
 #+end_src
 
-Infrastructure readiness gates server startup; the server's =/health= endpoint gates Quasar and actors. Failed starts are visible in the journal. Infrastructure containers retry abnormal exits up to three times, without starting automatically after a Docker daemon restart; the oneshot infrastructure unit is not a continuous health monitor. Inspect container health after startup and restart the target deliberately after engine failure. Each workDir has a stable hash-derived Compose project name, so a different root cannot silently take over its containers. Port conflicts fail instead. Infrastructure cleanup removes containers/networks without =--volumes=; bound database files are retained. No boot/login autostart is configured.
+Infrastructure readiness gates server startup; the server's =/health= endpoint gates Quasar and actors. Failed starts are visible in the journal. Infrastructure containers retry abnormal exits up to three times, without starting automatically after a Docker daemon restart; the oneshot infrastructure unit is not a continuous health monitor. Inspect container health after startup and restart the target deliberately after engine failure. Each workDir has a stable hash-derived Compose project name, so a different root cannot silently take over its containers. Port conflicts fail instead. Infrastructure cleanup removes containers/networks without =--volumes=; bound database files are retained. The target uses =WantedBy=default.target= by default. Set =services.starintel.autoStart = false= to install only manual-start units. The target keeps the configured units running through =Upholds= (systemd 249+); prerequisite failures remain visible and retry when the dependency is available. Stopping the target propagates to every service through =PartOf= and stops retries.
 
 Ports are fixed loopback defaults for this single local stack: CouchDB 5984, RabbitMQ 5672/15672, Valkey 6379, server 5000, Quasar 8080/8081, router 6000/6001. Check for collisions with existing installations before starting. Do not expose them publicly or use this module as a hosted multi-tenant deployment.
+
+* Startup on other hosts
+Import =inputs.dotfiles.homeManagerModules.starintel= into the Home Manager
+configuration for each host and supply the pinned packages/images shown above.
+On NixOS this is a Home Manager module inside =home-manager.users.<name>=, not a
+module for the top-level NixOS =services= namespace. On Arch use standalone Home
+Manager with a running systemd user manager and an existing Docker engine.
+
+Automatic startup normally happens when the user first logs in. Boot without
+login requires an administrator to enable lingering for that user separately;
+the module does not configure linger. Runtime secrets must be available without
+an interactive desktop unlock if boot startup is expected. No host activation,
+linger change or engine installation is performed by this development change.
 
 * 1. Install actors
 Installing a package and starting a collector are separate decisions. The core module installs no actor fleet. Build an actor's documented upstream package first and inspect its =bin/= entrypoints. Add only the actor you intend to operate to =services.starintel.actors=; the module's =package= field makes its executable available to that service without a global installation or a second package implementation.
@@ -123,7 +146,7 @@ The service invokes =star-server start -i WORKDIR/config/init.lisp=. The init fi
 
 The template binds HTTP to loopback, disables public-read mode, points CouchDB and RabbitMQ to their local ports with user =starintel=, and enables durable Valkey leases. The server is a saved SBCL image: build-time =defparameter= environment reads are not a runtime configuration mechanism. The template explicitly calls =environment-secret= for CouchDB, RabbitMQ, the auth pepper, bootstrap secret and initial human-user password when the init file loads. These functions support runtime =*_FILE= paths. Valkey reads =VALKEY_PASSWORD_FILE= directly and must never receive a password-value environment variable.
 
-Authentication is configured with =STAR_AUTH_MODE=api-key= and runtime pepper/bootstrap-secret paths. Evaluation and Home Manager activation create no account. On the first explicit server start with an empty store, upstream =ensure-initial-user= creates the initial human administrator (default username =star=) using the supplied =initial_password=. Set =*auth-initial-username*= in trusted init.lisp if needed. API-key provisioning remains operator-controlled; follow the pinned server's bootstrap/API-key procedure. Optional =services.starintel.environmentFile= names a runtime file, not secret values embedded in Nix. For additional server settings, explicitly read their values in init.lisp; do not assume compiled environment defaults refresh automatically. The bootstrap-secret file is needed only for initial bootstrap. Remove it afterward; =read-secret-file= returns nil when it is absent, disabling that bootstrap credential without replacing init.lisp.
+Authentication is configured with =STAR_AUTH_MODE=api-key= and runtime pepper/bootstrap-secret paths. Evaluation creates no account. Enabling automatic startup may start the server during activation; on the first server start with an empty store, upstream =ensure-initial-user= creates the initial human administrator (default username =star=) using the supplied =initial_password=. Set =*auth-initial-username*= in trusted init.lisp if needed. API-key provisioning remains operator-controlled; follow the pinned server's bootstrap/API-key procedure. Optional =services.starintel.environmentFile= names a runtime file, not secret values embedded in Nix. For additional server settings, explicitly read their values in init.lisp; do not assume compiled environment defaults refresh automatically. The bootstrap-secret file is needed only for initial bootstrap. Remove it afterward; =read-secret-file= returns nil when it is absent, disabling that bootstrap credential without replacing init.lisp.
 
 Load a trusted local actor definition from this file and register its startup through =star:*actors-start-hook*=. A visible operator catalog additionally requires a semantic manifest and runtime binding; a RabbitMQ queue name alone does not register an actor. See [[https://github.com/lost-rob0t/starintel-server/blob/491b89dad31e15b4172d52a03ab525b6c92fd637/doc/configuration.org][server configuration]] and [[https://github.com/lost-rob0t/starintel-server/blob/491b89dad31e15b4172d52a03ab525b6c92fd637/doc/actors.org][actor lifecycle]]. Check current schema examples against the generated contract; historical snippets may use old document shapes.
 
@@ -156,6 +179,6 @@ Use the actor's documented transport variables, schema release, stable identity 
 Stop =starintel.target= before a consistent offline backup. Back up the whole root, including secrets, init files, all four infrastructure stores and Quasar Tek9 state, preserving ownership. Docker-managed logs/images and the user journal are host infrastructure, not the canonical data backup. Do not delete volumes, clear databases, recursively chown an existing root, or repoint workDir as an implicit migration. Restore into a separate root and validate versions/ownership before switching deliberately.
 
 * Validation
-=nix build .#checks.x86_64-linux.starintel-module= evaluates the disabled and configured module with harmless fixture packages and checks generated scripts/configuration. It does not build upstream applications, run Docker, validate real provider credentials or exercise live ingestion. Run the actual upstream package builds and a deliberate fresh-root full-stack smoke before deployment. The module is not evidence that such a deployment has occurred.
+=nix build .#checks.x86_64-linux.starintel-module= evaluates the disabled and configured module with harmless fixture packages and checks generated scripts/configuration. It does not build upstream applications, run Docker, validate real provider credentials or exercise live ingestion. The workflow additionally uses a new disposable Linux user and real systemd user manager to test default-target startup, readiness ordering, crash/dependency recovery and target shutdown with harmless lifecycle probes. This is service-wiring evidence, not an application startup claim. Run the actual upstream package builds, canonical ingestion/readback and restart persistence tests before deployment. The current live harness only contains a raw CouchDB persistence probe; canonical ingestion coverage remains outstanding. The module is not evidence that such a deployment has occurred.
 
-The =StarIntel module= workflow also runs =tests/starintel-live.py= on a disposable hosted Docker runner. It builds the three pinned application packages and four image archives, starts only a fresh =/tmp/starintel-live-*= root, checks readiness, and verifies a synthetic CouchDB record survives infrastructure recreation. Sanitized logs and a result summary are attached to the workflow. Upstream fetch/build failures fail the check; they are never silently skipped. This exercises no actor/provider collection and is separate from deployment to your machine.
+The =StarIntel module= workflow also runs =tests/starintel-live.py= on a disposable hosted Docker runner. It builds the three pinned application packages and four image archives. The runner now rejects legacy file-only secret settings before provisioning credentials or starting any service. Once that policy gate and packaging are repaired, it starts only a fresh =/tmp/starintel-live-*= root, checks readiness, and verifies a synthetic CouchDB record survives infrastructure recreation. Sanitized logs and a result summary are attached to the workflow. Upstream fetch/build failures fail the check; they are never silently skipped. This exercises no actor/provider collection and is separate from deployment to your machine.

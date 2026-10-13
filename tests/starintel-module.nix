@@ -21,6 +21,7 @@ let
     };
   };
   enabled = evaluate enabledConfig;
+  manual = evaluate (lib.recursiveUpdate enabledConfig { services.starintel.autoStart = false; });
   invalidPath = evaluate (lib.recursiveUpdate enabledConfig { services.starintel.workDir = "/tmp/bad path"; });
   storeSecret = evaluate (lib.recursiveUpdate enabledConfig { services.starintel.environmentFile = "/nix/store/not-a-runtime-secret"; });
   missingEngine = evaluate { services.starintel.enable = true; };
@@ -42,8 +43,14 @@ assert units.starintel-server.Service.WorkingDirectory == root;
 assert lib.elem "starintel-infrastructure.service" units.starintel-server.Unit.Requires;
 assert lib.elem "starintel-server.service" units.starintel-quasar.Unit.After;
 assert lib.elem "starintel-server.service" units.starintel-actor-fixture.Unit.After;
-assert !(builtins.hasAttr "Install" enabled.config.systemd.user.targets.starintel)
-  || (enabled.config.systemd.user.targets.starintel.Install.WantedBy or [ ]) == [ ];
+assert enabled.config.systemd.user.targets.starintel.Install.WantedBy == [ "default.target" ];
+assert manual.config.systemd.user.targets.starintel.Install.WantedBy == [ ];
+assert enabled.config.systemd.user.targets.starintel.Unit.Upholds == enabled.config.systemd.user.targets.starintel.Unit.Wants;
+assert lib.elem "starintel-prepare.service" enabled.config.systemd.user.targets.starintel.Unit.Wants;
+assert lib.elem "starintel-infrastructure.service" enabled.config.systemd.user.targets.starintel.Unit.Wants;
+assert !(builtins.hasAttr "Requires" enabled.config.systemd.user.targets.starintel.Unit);
+assert units.starintel-prepare.Service.Restart == "on-failure";
+assert units.starintel-infrastructure.Service.Restart == "on-failure";
 pkgs.runCommand "starintel-module-check" {
   nativeBuildInputs = [ pkgs.python3 pkgs.coreutils pkgs.bash ];
   inherit metadata;
@@ -52,5 +59,6 @@ pkgs.runCommand "starintel-module-check" {
 } ''
   python3 ${./starintel-module.py} "$metadata" "$prepare" "$infrastructure"
   python3 ${./starintel-literate.py} ${../.}
-  touch "$out"
+  mkdir "$out"
+  cp "$metadata" "$out/units.json"
 ''

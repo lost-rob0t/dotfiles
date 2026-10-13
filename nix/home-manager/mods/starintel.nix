@@ -9,6 +9,10 @@ let
     && !(lib.hasInfix "//" path)
     && !(lib.hasPrefix "/nix/store" path);
   projectName = "starintel-${builtins.substring 0 16 (builtins.hashString "sha256" root)}";
+  serviceNames = [ "starintel-prepare" "starintel-infrastructure" "starintel-server"
+    "starintel-quasar" "starintel-router" ]
+    ++ map (name: "starintel-actor-${name}") (builtins.attrNames cfg.actors);
+  serviceUnits = map (name: "${name}.service") serviceNames;
   secretDir = "${root}/config/secrets";
   packageOption = description: mkOption {
     type = types.nullOr types.package;
@@ -185,7 +189,12 @@ let
 in
 {
   options.services.starintel = {
-    enable = lib.mkEnableOption "the operator-started, local StarIntel full stack";
+    enable = lib.mkEnableOption "the local StarIntel full stack";
+    autoStart = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Start with the systemd user manager (login, or boot with separately configured linger). Requires systemd 249 or newer for dependency recovery through Upholds.";
+    };
     workDir = mkOption {
       type = types.str;
       default = "${config.home.homeDirectory}/.starintel";
@@ -239,17 +248,20 @@ in
       { assertion = lib.all (name: builtins.match "[a-zA-Z0-9_-]+" name != null) (builtins.attrNames cfg.actors); message = "StarIntel actor service names may contain only letters, digits, underscores and hyphens."; }
       { assertion = lib.all (actor: builtins.match "[a-zA-Z0-9_.-]+" actor.executable != null) (builtins.attrValues cfg.actors); message = "StarIntel actor executable must be a basename."; }
     ];
-    systemd.user.targets.starintel.Unit = {
-      Description = "Local StarIntel stack (manual start only)";
-      Requires = [ "starintel-server.service" "starintel-quasar.service" "starintel-router.service" ]
-        ++ map (name: "starintel-actor-${name}.service") (builtins.attrNames cfg.actors);
-      After = [ "starintel-server.service" "starintel-quasar.service" "starintel-router.service" ]
-        ++ map (name: "starintel-actor-${name}.service") (builtins.attrNames cfg.actors);
+    systemd.user.targets.starintel = {
+      Unit = {
+        Description = "Local StarIntel stack";
+        # Keep the target active after a prerequisite failure so systemd retries
+        # dependent services when their prerequisites become available again.
+        Wants = serviceUnits;
+        Upholds = serviceUnits;
+      };
+      Install.WantedBy = lib.optional cfg.autoStart "default.target";
     };
     systemd.user.services = {
       starintel-prepare = {
         Unit = { Description = "Check StarIntel state and preserve operator configuration"; PartOf = [ "starintel.target" ]; };
-        Service = { Type = "oneshot"; RemainAfterExit = true; ExecStart = lib.getExe prepare; UMask = "0077"; };
+        Service = { Type = "oneshot"; RemainAfterExit = true; ExecStart = lib.getExe prepare; UMask = "0077"; Restart = "on-failure"; RestartSec = 10; };
       };
       starintel-infrastructure = {
         Unit = { Description = "StarIntel persistent infrastructure"; Requires = [ "starintel-prepare.service" ]; After = [ "starintel-prepare.service" ]; PartOf = [ "starintel.target" ]; };
@@ -258,6 +270,8 @@ in
           RemainAfterExit = true;
           ExecStart = "${lib.getExe infrastructure} start";
           ExecStopPost = "${lib.getExe infrastructure} stop";
+          Restart = "on-failure";
+          RestartSec = 10;
           TimeoutStartSec = 600;
           TimeoutStopSec = 120;
         };

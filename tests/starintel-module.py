@@ -68,6 +68,13 @@ assert '--volumes' not in script and 'docker pull' not in script
 for unit in config['services'].values():
     assert not unit.get('Install', {}).get('WantedBy', [])
     assert 'starintel.target' in unit['Unit']['PartOf']
+target = config['targets']['starintel']
+assert target['Install']['WantedBy'] == ['default.target']
+assert set(target['Unit']['Wants']) == {name + '.service' for name in config['services']}
+assert target['Unit']['Upholds'] == target['Unit']['Wants']
+assert 'Requires' not in target['Unit']
+for name in ('starintel-prepare', 'starintel-infrastructure'):
+    assert config['services'][name]['Service']['Restart'] == 'on-failure'
 router = config['services']['starintel-router']['Service']['ExecStart'][0]
 assert '--pubAddress=tcp://127.0.0.1:6000' in router
 assert '--apiAddress=tcp://127.0.0.1:6001' in router

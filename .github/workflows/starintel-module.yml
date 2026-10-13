@@ -22,6 +22,24 @@ jobs:
         run: python3 tests/starintel-literate.py
       - name: Evaluate and build module regression check
         run: nix build .#checks.x86_64-linux.starintel-module --no-write-lock-file --print-build-logs
+      - name: Exercise startup and restart under an isolated systemd user
+        run: |
+          set -eu
+          test ! -e /tmp/starintel-wiring-home
+          ! id starintel-wiring-ci >/dev/null 2>&1
+          sudo useradd --create-home --home-dir /tmp/starintel-wiring-home starintel-wiring-ci
+          wiring_uid=$(id -u starintel-wiring-ci)
+          cleanup() {
+            sudo systemctl stop "user@$wiring_uid.service" || true
+            sudo userdel --remove starintel-wiring-ci
+          }
+          trap cleanup EXIT
+          sudo install -m 644 tests/starintel-systemd.py /tmp/starintel-wiring-home/probe.py
+          sudo install -m 644 result/units.json /tmp/starintel-wiring-home/units.json
+          sudo systemctl start "user@$wiring_uid.service"
+          sudo -u starintel-wiring-ci env XDG_RUNTIME_DIR="/run/user/$wiring_uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$wiring_uid/bus" \
+            python3 /tmp/starintel-wiring-home/probe.py /tmp/starintel-wiring-home/units.json
   live-stack:
     needs: module
     runs-on: ubuntu-latest

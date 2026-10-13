@@ -173,11 +173,26 @@ class Smoke:
     def provision(self):
         self.report["stage"] = "fresh-state-provisioning"
         (self.root / "home").mkdir()
-        secret_dir = self.root / "config" / "secrets"
-        secret_dir.mkdir(parents=True)
-        for name, value in self.values.items():
-            (secret_dir / name).write_text(value + "\n")
-            (secret_dir / name).chmod(0o600)
+        # Do not materialize credentials to work around file-only upstream APIs.
+        # Fail before any startup if the actual evaluated units still need files.
+        file_variables = [assignment.split("=", 1)[0]
+                          for service in self.services.values()
+                          for assignment in service.get("Environment", [])
+                          if assignment.split("=", 1)[0].endswith("_FILE")
+                          and any(word in assignment for word in ("PASSWORD", "PEPPER", "SECRET"))]
+        if file_variables:
+            raise RuntimeError("Runtime-environment-only secret transport is blocked by "
+                               "file-only unit settings: " + ", ".join(sorted(file_variables)))
+        self.environment.update({
+            "COUCHDB_PASSWORD": self.values["couchdb_password"],
+            "COUCHDB_SECRET": self.values["couchdb_secret"],
+            "COUCHDB_ERLANG_COOKIE": self.values["erlang_cookie"],
+            "RABBITMQ_PASSWORD": self.values["rabbitmq_password"],
+            "VALKEY_PASSWORD": self.values["valkey_password"],
+            "STAR_AUTH_PEPPER": self.values["auth_pepper"],
+            "STAR_AUTH_BOOTSTRAP_SECRET": self.values["auth_bootstrap_secret"],
+            "STAR_AUTH_INITIAL_PASSWORD": self.values["initial_password"],
+        })
         for name in INFRA:
             directory = self.root / "data" / name
             directory.mkdir(parents=True)
@@ -191,7 +206,7 @@ class Smoke:
                 if (stat.st_uid, stat.st_gid) != (65532, 65532):
                     raise RuntimeError(f"Incorrect fresh bind-mount ownership: {directory}")
         self.run(self.command("starintel-prepare"), "prepare", env=self.environment)
-        self.record("Prepared private ephemeral secrets and fresh UID/GID 65532 state")
+        self.record("Prepared runtime environment and fresh UID/GID 65532 state")
 
     def start_infrastructure(self):
         self.report["stage"] = "infrastructure-start"
