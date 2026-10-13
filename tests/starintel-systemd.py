@@ -103,6 +103,11 @@ def main():
         def active(name):
             return systemctl("show", name, "--property=ActiveState", "--value") == "active"
         wait_for(lambda: all(active(n + ".service") for n in names), "automatic startup")
+        # Type=simple becomes active before the probe has executed. Wait for
+        # every recorded start before asserting ordering; keep all assertions.
+        wait_for(lambda: (root / "events").exists()
+                 and set(names).issubset((root / "events").read_text().splitlines()),
+                 "all startup probes recorded")
         events = (root / "events").read_text().splitlines()
         assert events.index("starintel-prepare") < events.index("starintel-infrastructure")
         assert events.index("starintel-infrastructure") < events.index("starintel-server")

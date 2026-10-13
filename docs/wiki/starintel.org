@@ -20,7 +20,7 @@ State layout:
 This draft is not deployment-ready. The existing secret-file transport below does
 not satisfy the requested runtime-environment/keyring/auth-source-only policy.
 In particular, the upstream Valkey lease client requires a password file and the
-Clouseau entrypoint copies its cookie into a generated file. A sealed anonymous-memory descriptor has passed the pinned SBCL =probe-file=/UIOP reader test, so the server Valkey adapter itself can be supported without a filesystem secret. Backing-service generated cookie/configuration files still need an explicit tmpfs-only decision. Do not provision the
+Clouseau entrypoint copies its cookie into a generated file. A sealed anonymous-memory descriptor has passed the pinned SBCL =probe-file=/UIOP reader test, and the server launcher now uses that adapter when VALKEY_PASSWORD is supplied at runtime, without a filesystem secret. Backing-service generated cookie/configuration files still need an explicit tmpfs-only decision. Do not provision the
 legacy credential files or activate this draft under that policy. Replacing that
 transport requires upstream changes and a fresh live ingestion/persistence test.
 The candidate in [[https://github.com/lost-rob0t/quasar/pull/106][Quasar PR #106]] corrects the stale =starintel-license= package entry. Consumer CI built all three applications and all four infrastructure images at candidate =f0902b54=; the fixture now also includes the upstream main merge and must repeat acceptance on that exact pin. The secret-transport policy gate still prevents startup.
@@ -31,7 +31,7 @@ The module deliberately has no default upstream packages: importing it while dis
 
 #+begin_src nix
 inputs.starintel-server.url = "github:lost-rob0t/starintel-server/491b89dad31e15b4172d52a03ab525b6c92fd637";
-inputs.quasar.url = "github:lost-rob0t/quasar/9079604f766990db7f9b8998705862c4fa914c45";
+inputs.quasar.url = "github:lost-rob0t/quasar/cb1a088d288b799de0b45c7d239ae7c9b935f18c";
 inputs.star-router.url = "github:lost-rob0t/starRouter/0a4e9abd073924e9186482fe847034b4fc4c401b";
 #+end_src
 
@@ -139,7 +139,7 @@ The trusted init file is in package =quasar.config=. The supplied template selec
 
 Open Quasar at =http://127.0.0.1:8080=. In Settings, the StarIntel server panel exposes =Server URL=, =Username=, =Password= and =Bearer token=. Set Server URL to =http://127.0.0.1:5000= and use a least-privilege user API token in Bearer token (it takes precedence over Basic authentication). Click =Test server connection=. Actor Studio's =Refresh registry= requires =actors:read= and lists only registered manifests; use appropriate additional scopes for any operations you deliberately run. The template allows the exact Quasar origin =http://127.0.0.1:8080= for CORS. If you choose a different origin, update the trusted server init allowlist explicitly.
 
-This pinned UI stores its connection settings in browser-side state: use only a scoped client credential you intend that browser to hold, never CouchDB/RabbitMQ administrator passwords, the auth pepper, bootstrap secret or provider/actor credentials. Prefer the supported server-side auth bridge for hosted use. The module does not invent a =QUASAR_STARINTEL_URL= variable or assume that starting both processes creates an authenticated connection. See [[https://github.com/lost-rob0t/quasar/blob/9079604f766990db7f9b8998705862c4fa914c45/README.md][Quasar runtime and capability boundaries]].
+This pinned UI stores its connection settings in browser-side state: use only a scoped client credential you intend that browser to hold, never CouchDB/RabbitMQ administrator passwords, the auth pepper, bootstrap secret or provider/actor credentials. Prefer the supported server-side auth bridge for hosted use. The module does not invent a =QUASAR_STARINTEL_URL= variable or assume that starting both processes creates an authenticated connection. See [[https://github.com/lost-rob0t/quasar/blob/cb1a088d288b799de0b45c7d239ae7c9b935f18c/README.md][Quasar runtime and capability boundaries]].
 
 * 3. Configure starintel-server through init.lisp
 The service invokes =star-server start -i WORKDIR/config/init.lisp=. The init file is executable Common Lisp in package =star=, runs before actors start, and can override environment-derived defaults. Keep it operator-owned and never load untrusted actor files.

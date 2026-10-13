@@ -152,7 +152,7 @@ let
     name = "starintel-server-start";
     runtimeInputs = [ pkgs.coreutils ];
     text = ''
-      exec ${cfg.packages.server}/bin/star-server start -i ${lib.escapeShellArg "${root}/config/init.lisp"}
+      exec ${pkgs.python3}/bin/python3 ${../files/starintel/runtime-secret.py} ${cfg.packages.server}/bin/star-server start -i ${lib.escapeShellArg "${root}/config/init.lisp"}
     '';
   };
   ready = pkgs.writeShellApplication {

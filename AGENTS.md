@@ -8,7 +8,7 @@ Before editing this repository, read this file and treat it as the repository ed
 
 This repository uses literate Org configuration. Treat the Org files as source code and tangled files as generated artifacts.
 
-- `nix/home-manager/mods/starintel.org` is the source of truth for `starintel.nix` and the two init templates under `nix/home-manager/files/starintel/`.
+- `nix/home-manager/mods/starintel.org` is the source of truth for `starintel.nix` and the two init templates plus runtime credential adapter under `nix/home-manager/files/starintel/`.
 - `bash.org` is the source of truth for `.bashrc`.
 - `.config/qtile/qtile-ai.org` is the main source of truth for `.config/qtile/config.py`.
 - `.config/qtile/qtile-ai-windows.org` is the source of truth for `.config/qtile/qtile_ai_windows.py`.

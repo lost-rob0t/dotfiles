@@ -8,7 +8,7 @@ let
   sources = {
     server = "github:lost-rob0t/starintel-server/491b89dad31e15b4172d52a03ab525b6c92fd637";
     # Candidate from Quasar PR #106; not yet merged. Validate before adopting.
-    quasar = "github:lost-rob0t/quasar/71e08593ce2c1395179ea8b270b89c402d374ffd";
+    quasar = "github:lost-rob0t/quasar/cb1a088d288b799de0b45c7d239ae7c9b935f18c";
     router = "github:lost-rob0t/starRouter/0a4e9abd073924e9186482fe847034b4fc4c401b";
   };
   upstream = lib.mapAttrs (_: ref: (builtins.getFlake ref).packages.${system}) sources;

@@ -62,7 +62,7 @@ pkgs.runCommand "starintel-module-check" {
   infrastructure = builtins.head (lib.splitString " " (builtins.head units.starintel-infrastructure.Service.ExecStart));
 } ''
   python3 ${./starintel-module.py} "$metadata" "$prepare" "$infrastructure"
-  python3 ${./starintel-secret-memory.py}
+  python3 ${./starintel-secret-memory.py} ${../nix/home-manager/files/starintel/runtime-secret.py}
   python3 ${./starintel-literate.py} ${../.}
   mkdir "$out"
   cp "$metadata" "$out/units.json"
