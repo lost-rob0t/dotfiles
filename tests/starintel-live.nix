@@ -8,10 +8,12 @@ let
   sources = {
     server = "github:lost-rob0t/starintel-server/491b89dad31e15b4172d52a03ab525b6c92fd637";
     # Candidate from Quasar PR #106; not yet merged. Validate before adopting.
-    quasar = "github:lost-rob0t/quasar/698e8b05a6e67870d95dd83542057001d75ffe01";
+    quasar = "github:lost-rob0t/quasar/f0902b54d37ab85a171e969b4b33acfd08150f3c";
     router = "github:lost-rob0t/starRouter/0a4e9abd073924e9186482fe847034b4fc4c401b";
   };
   upstream = lib.mapAttrs (_: ref: (builtins.getFlake ref).packages.${system}) sources;
+  serverSource = (builtins.getFlake sources.server).outPath;
+  authority = builtins.fromJSON (builtins.readFile "${serverSource}/schema/starintel-schema.lock.json");
   packages = {
     server = upstream.server.default;
     quasar = upstream.quasar.quasar-server;
@@ -42,6 +44,9 @@ let
     "starintel-quasar" "starintel-router" ];
   manifest = pkgs.writeText "starintel-live-manifest.json" (builtins.toJSON {
     inherit root system sources;
+    inherit authority;
+    schema = "${serverSource}/schemas/starintel-${authority.release_version}/generated/schema.json";
+    python = lib.getExe (pkgs.python3.withPackages (ps: [ ps.jsonschema ]));
     packages = lib.mapAttrs (_: value: toString value) packages;
     images = lib.mapAttrs (_: value: toString value) images;
     services = lib.genAttrs names (name: evaluated.config.systemd.user.services.${name}.Service);

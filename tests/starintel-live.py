@@ -26,6 +26,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+import urllib.parse
 
 
 PORTS = (5000, 5672, 5984, 6000, 6001, 6379, 8080, 8081, 15672)
@@ -141,6 +142,10 @@ class Smoke:
         if set(manifest["services"]) != expected:
             raise RuntimeError("Unexpected services or actors in smoke fixture")
         self.services = manifest["services"]
+        self.authority = manifest["authority"]
+        self.schema = manifest["schema"]
+        self.python = manifest["python"]
+        self.report["schema_authority"] = self.authority
         self.docker = manifest["docker"]
         self.report.update({key: manifest[key] for key in ("sources", "packages", "images")})
         script = Path(self.command("starintel-infrastructure")[0]).read_text()
@@ -230,11 +235,15 @@ class Smoke:
             if process.poll() is not None:
                 raise RuntimeError(f"{name} exited early with status {process.returncode}")
 
-    def request(self, port, path, *, method="GET", body=None, auth=False):
+    def request(self, port, path, *, method="GET", body=None, auth=False, api_auth=False, bootstrap=False):
         headers = {"Content-Type": "application/json"}
         if auth:
             credential = base64.b64encode(f"starintel:{self.values['couchdb_password']}".encode()).decode()
             headers["Authorization"] = "Basic " + credential
+        if api_auth:
+            headers["Authorization"] = "Bearer " + self.values["api_key"]
+        if bootstrap:
+            headers["X-Star-Bootstrap-Secret"] = self.values["auth_bootstrap_secret"]
         request = urllib.request.Request(f"http://127.0.0.1:{port}{path}",
                                          data=None if body is None else json.dumps(body).encode(),
                                          headers=headers, method=method)
@@ -312,27 +321,85 @@ class Smoke:
             raise RuntimeError("Disposable Compose project still has containers after teardown")
         self.infrastructure_attempted = False
 
+    def validate_canonical(self, document):
+        # The generated schema is a definitions library: select the Person
+        # definition explicitly instead of accidentally accepting the empty root.
+        program = ("import json,sys,jsonschema; "
+                   "schema=json.load(open(sys.argv[1])); "
+                   "schema['$ref']='#/$defs/Person'; "
+                   "jsonschema.Draft202012Validator(schema).validate(json.load(sys.stdin))")
+        subprocess.run([self.python, "-c", program, self.schema],
+                       input=json.dumps(document), text=True, check=True, timeout=30,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     def persistence(self):
-        self.report["stage"] = "persistence-probe"
-        database = "/starintel_ci_smoke"
-        self.request(5984, database, method="PUT", auth=True)
-        probe = {"kind": "synthetic-ci-persistence-probe", "value": secrets.token_hex(24)}
-        self.request(5984, database + "/probe", method="PUT", body=probe, auth=True)
+        self.report["stage"] = "canonical-ingestion"
+        status, body = self.request(5000, "/auth/bootstrap", method="POST", bootstrap=True,
+                                    body={"owner": "starintel-ci"})
+        credential = json.loads(body).get("api_key")
+        if status != 201 or not isinstance(credential, str) or not credential:
+            raise RuntimeError("Initial administrator API bootstrap failed")
+        # Keep the one-time bearer only in memory, and redact it from diagnostics.
+        self.values["api_key"] = credential
+        document = {"id": "ci:person:" + secrets.token_hex(12), "dataset": "starintel-ci",
+                    "dtype": "person", "schemaVersion": self.authority["schema_version"],
+                    "fname": "Synthetic CI", "lname": secrets.token_hex(12)}
+        self.validate_canonical(document)
+        invalid = dict(document, id=document["id"] + "-invalid", unexpectedCiField=True)
+        try:
+            self.validate_canonical(invalid)
+        except subprocess.CalledProcessError:
+            pass
+        else:
+            raise RuntimeError("Pinned schema unexpectedly accepts the invalid fixture")
+        try:
+            self.request(5000, "/api/v1/documents", method="POST", body=invalid, api_auth=True)
+        except urllib.error.HTTPError as exc:
+            if exc.code != 422:
+                raise
+        else:
+            raise RuntimeError("Canonical ingress accepted an undeclared field")
+        status, _ = self.request(5000, "/api/v1/documents", method="POST", body=document, api_auth=True)
+        if status not in (200, 201, 202):
+            raise RuntimeError("Canonical ingress did not accept the valid fixture")
+        path = "/api/v1/documents/" + urllib.parse.quote(document["id"], safe="")
 
-        def check_probe():
-            _, body = self.request(5984, database + "/probe", auth=True)
-            saved = json.loads(body)
-            if any(saved.get(key) != value for key, value in probe.items()):
-                raise RuntimeError("CouchDB synthetic persistence probe changed or disappeared")
+        def readback():
+            deadline = time.monotonic() + 120
+            while time.monotonic() < deadline:
+                self.check_processes()
+                try:
+                    _, payload = self.request(5000, path, api_auth=True)
+                    saved = json.loads(payload)
+                    self.validate_canonical(saved)
+                    if any(saved.get(key) != value for key, value in document.items()):
+                        raise RuntimeError("Canonical readback changed fixture fields")
+                    if any(key in saved for key in ("_id", "_rev", "tenant_id")):
+                        raise RuntimeError("Canonical readback exposed storage-only fields")
+                    return
+                except urllib.error.HTTPError as exc:
+                    if exc.code != 404:
+                        raise
+                time.sleep(1)
+            raise RuntimeError("Canonical HTTP ingestion did not reach durable readback")
 
-        check_probe()
-        self.record("Wrote and read a synthetic CouchDB probe")
+        readback()
+        self.record("Canonical HTTP ingress rejected invalid data and persisted a schema-valid person through RabbitMQ")
+        self.report["stage"] = "canonical-restart-persistence"
         self.stop_apps()
         self.stop_infrastructure()
         self.start_infrastructure()
-        check_probe()
-        self.record("The same CouchDB probe survived full infrastructure removal and recreation")
         self.start_apps()
+        readback()
+        invalid_path = "/api/v1/documents/" + urllib.parse.quote(invalid["id"], safe="")
+        try:
+            self.request(5000, invalid_path, api_auth=True)
+        except urllib.error.HTTPError as exc:
+            if exc.code != 404:
+                raise
+        else:
+            raise RuntimeError("Rejected canonical document was nevertheless persisted")
+        self.record("Canonical document and API credential survived full application/infrastructure recreation; invalid document remains absent")
 
     def redact(self, text):
         for value in self.values.values():
