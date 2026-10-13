@@ -270,11 +270,11 @@ in
     };
     systemd.user.services = {
       starintel-prepare = {
-        Unit = { Description = "Check StarIntel state and preserve operator configuration"; PartOf = [ "starintel.target" ]; };
+        Unit = { Description = "Check StarIntel state and preserve operator configuration"; PartOf = [ "starintel.target" ]; Upholds = [ "starintel-infrastructure.service" "starintel-router.service" ]; };
         Service = { Type = "oneshot"; RemainAfterExit = true; ExecStart = lib.getExe prepare; UMask = "0077"; Restart = "on-failure"; RestartSec = 10; };
       };
       starintel-infrastructure = {
-        Unit = { Description = "StarIntel persistent infrastructure"; Requires = [ "starintel-prepare.service" ]; After = [ "starintel-prepare.service" ]; PartOf = [ "starintel.target" ]; };
+        Unit = { Description = "StarIntel persistent infrastructure"; Requires = [ "starintel-prepare.service" ]; After = [ "starintel-prepare.service" ]; PartOf = [ "starintel.target" ]; Upholds = [ "starintel-server.service" ]; };
         Service = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -287,6 +287,10 @@ in
         };
       };
       starintel-server = lib.recursiveUpdate (appService "StarIntel server" [ "starintel-infrastructure.service" ] (lib.getExe server)) {
+        # Requeue dependants when this prerequisite becomes active again. A
+        # target-only Upholds job can be discarded during an explicit stop.
+        Unit.Upholds = [ "starintel-quasar.service" ]
+          ++ map (name: "starintel-actor-${name}.service") (builtins.attrNames cfg.actors);
         Service.ExecStartPost = lib.getExe ready;
         Service.TimeoutStartSec = 180;
         Service.Environment = [

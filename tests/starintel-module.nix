@@ -49,6 +49,9 @@ assert enabled.config.systemd.user.targets.starintel.Unit.Upholds == enabled.con
 assert lib.elem "starintel-prepare.service" enabled.config.systemd.user.targets.starintel.Unit.Wants;
 assert lib.elem "starintel-infrastructure.service" enabled.config.systemd.user.targets.starintel.Unit.Wants;
 assert !(builtins.hasAttr "Requires" enabled.config.systemd.user.targets.starintel.Unit);
+assert units.starintel-prepare.Unit.Upholds == [ "starintel-infrastructure.service" "starintel-router.service" ];
+assert units.starintel-infrastructure.Unit.Upholds == [ "starintel-server.service" ];
+assert units.starintel-server.Unit.Upholds == [ "starintel-quasar.service" "starintel-actor-fixture.service" ];
 assert units.starintel-prepare.Service.Restart == "on-failure";
 assert units.starintel-infrastructure.Service.Restart == "on-failure";
 pkgs.runCommand "starintel-module-check" {
