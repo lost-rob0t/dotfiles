@@ -310,7 +310,26 @@ class Smoke:
         if not all(state.get("Running") and state.get("Health", {}).get("Status") == "healthy"
                    for state in states):
             raise RuntimeError("Infrastructure is not uniformly running and healthy")
-        self.record("CouchDB, Clouseau, RabbitMQ and Valkey are healthy")
+        for identifier in ids:
+            inspection = json.loads(subprocess.check_output(
+                [self.docker, "inspect", identifier], env=self.environment,
+                text=True, timeout=20))[0]
+            service = inspection["Config"]["Labels"]["com.docker.compose.service"]
+            metadata = json.dumps(inspection["Config"])
+            if any(value in metadata for value in self.values.values()):
+                raise RuntimeError("Test credential leaked into container configuration")
+            required = {
+                "couchdb": ["/opt/couchdb/etc/local.d", "/opt/couchdb/.erlang.cookie"],
+                "rabbitmq": ["/var/lib/rabbitmq/.erlang.cookie"],
+                "clouseau": ["/tmp"],
+                "valkey": ["/run/starintel-valkey"],
+            }[service]
+            mounts = {mount["Destination"]: mount for mount in inspection["Mounts"]}
+            for destination in required:
+                mount = mounts[destination]
+                if mount["Type"] != "bind" or not Path(mount["Source"]).is_relative_to(self.root / "config/secrets"):
+                    raise RuntimeError("Generated credentials escaped the verified memory mount")
+        self.record("All backing services healthy; generated credentials remain RAM-mounted and absent from container environment metadata")
 
     def check_processes(self):
         for name, process in self.processes:
