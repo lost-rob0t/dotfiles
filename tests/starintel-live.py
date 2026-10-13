@@ -201,6 +201,8 @@ class Smoke:
         self.values["rabbitmq_erlang_cookie"] = secrets.token_hex(24)
         extra = {
             "couchdb-runtime.ini": ("", 5984),
+            "couchdb-runtime.password": (self.values["couchdb_password"], 5984),
+            "couchdb-runtime.secret": (self.values["couchdb_secret"], 5984),
             "couchdb-runtime.cookie": (self.values["erlang_cookie"], 5984),
             "rabbitmq-runtime.cookie": (self.values["rabbitmq_erlang_cookie"], 999),
         }
@@ -216,6 +218,13 @@ class Smoke:
             compose["services"][service]["volumes"].append({
                 "type": "bind", "source": str(credentials / name), "target": destination,
                 "bind": {"create_host_path": False}})
+        memory_file("couchdb", "couchdb-runtime.password", "/run/couchdb-password")
+        memory_file("couchdb", "couchdb-runtime.secret", "/run/couchdb-secret")
+        compose["services"]["couchdb"]["environment"].update({
+            "COUCHDB_PASSWORD_FILE": "/run/couchdb-password",
+            "COUCHDB_SECRET_FILE": "/run/couchdb-secret",
+            "COUCHDB_ERLANG_COOKIE_FILE": "/opt/couchdb/.erlang.cookie",
+        })
         memory_file("couchdb", "couchdb-runtime.ini", "/opt/couchdb/etc/local.d/docker.ini")
         memory_file("couchdb", "couchdb-runtime.cookie", "/opt/couchdb/.erlang.cookie")
         memory_file("rabbitmq", "rabbitmq-runtime.cookie", "/var/lib/rabbitmq/.erlang.cookie")
