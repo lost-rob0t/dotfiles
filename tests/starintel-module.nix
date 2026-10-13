@@ -57,10 +57,12 @@ assert units.starintel-infrastructure.Service.Restart == "on-failure";
 pkgs.runCommand "starintel-module-check" {
   nativeBuildInputs = [ pkgs.python3 pkgs.coreutils pkgs.bash ];
   inherit metadata;
+  sbcl = lib.getExe pkgs.sbcl;
   prepare = builtins.head units.starintel-prepare.Service.ExecStart;
   infrastructure = builtins.head (lib.splitString " " (builtins.head units.starintel-infrastructure.Service.ExecStart));
 } ''
   python3 ${./starintel-module.py} "$metadata" "$prepare" "$infrastructure"
+  python3 ${./starintel-secret-memory.py}
   python3 ${./starintel-literate.py} ${../.}
   mkdir "$out"
   cp "$metadata" "$out/units.json"
