@@ -20,10 +20,10 @@ State layout:
 This draft is not deployment-ready. The existing secret-file transport below does
 not satisfy the requested runtime-environment/keyring/auth-source-only policy.
 In particular, the upstream Valkey lease client requires a password file and the
-Clouseau entrypoint copies its cookie into a generated file. Do not provision the
+Clouseau entrypoint copies its cookie into a generated file. A sealed anonymous-memory descriptor has passed the pinned SBCL =probe-file=/UIOP reader test, so the server Valkey adapter itself can be supported without a filesystem secret. Backing-service generated cookie/configuration files still need an explicit tmpfs-only decision. Do not provision the
 legacy credential files or activate this draft under that policy. Replacing that
 transport requires upstream changes and a fresh live ingestion/persistence test.
-Quasar packaging requested a missing =starintel-license= ASDF component. The candidate in [[https://github.com/lost-rob0t/quasar/pull/106][Quasar PR #106]] corrects the package list; the real saved-runtime build is a required check before adoption.
+The candidate in [[https://github.com/lost-rob0t/quasar/pull/106][Quasar PR #106]] corrects the stale =starintel-license= package entry. Consumer CI built all three applications and all four infrastructure images at candidate =f0902b54=; the fixture now also includes the upstream main merge and must repeat acceptance on that exact pin. The secret-transport policy gate still prevents startup.
 A green module check alone does not establish a working full stack.
 
 * Package wiring
