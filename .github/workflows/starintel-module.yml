@@ -1,0 +1,79 @@
+name: StarIntel module
+on:
+  pull_request:
+    paths:
+      - 'nix/home-manager/mods/starintel*'
+      - 'nix/home-manager/files/starintel/**'
+      - 'tests/starintel-*'
+      - 'flake.nix'
+      - 'flake.lock'
+      - '.github/workflows/starintel-module.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  module:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Verify literate source
+        run: python3 tests/starintel-literate.py
+      - name: Evaluate and build module regression check
+        run: nix build .#checks.x86_64-linux.starintel-module --no-write-lock-file --print-build-logs
+      - name: Exercise startup and restart under an isolated systemd user
+        timeout-minutes: 5
+        run: |
+          set -eu
+          test ! -e /tmp/starintel-wiring-home
+          if id starintel-wiring-ci >/dev/null 2>&1; then
+            echo "Refusing to reuse an existing CI account" >&2
+            exit 1
+          fi
+          sudo useradd --create-home --home-dir /tmp/starintel-wiring-home starintel-wiring-ci
+          wiring_uid=$(id -u starintel-wiring-ci)
+          cleanup() {
+            sudo systemctl stop "user@$wiring_uid.service" || true
+            sudo userdel --remove starintel-wiring-ci
+          }
+          trap cleanup EXIT
+          sudo install -m 644 tests/starintel-systemd.py /tmp/starintel-wiring-home/probe.py
+          sudo install -m 644 result/units.json /tmp/starintel-wiring-home/units.json
+          sudo systemctl start "user@$wiring_uid.service"
+          sudo -u starintel-wiring-ci env XDG_RUNTIME_DIR="/run/user/$wiring_uid" \
+            DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$wiring_uid/bus" \
+            python3 /tmp/starintel-wiring-home/probe.py /tmp/starintel-wiring-home/units.json
+  live-stack:
+    needs: module
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Build pinned packages and smoke disposable stack
+        run: python3 tests/starintel-live.py --artifacts "$RUNNER_TEMP/starintel-live-logs"
+      - name: Upload sanitized live-stack evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: starintel-live-evidence
+          path: ${{ runner.temp }}/starintel-live-logs
+          if-no-files-found: warn
+          retention-days: 7
+  chatgpt-consumer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Build ChatGPT with dotfiles nixpkgs
+        run: |
+          nix build --impure --print-build-logs --expr \
+            'let f = builtins.getFlake (toString ./.); in f.inputs.chatgpt-desktop.packages.x86_64-linux.default'
+          test -x result/lib/chatgpt/ChatGPT
+          patchelf=$(nix build --impure --no-link --print-out-paths --expr \
+            'let f = builtins.getFlake (toString ./.); in f.inputs.nixpkgs.legacyPackages.x86_64-linux.patchelf')
+          interpreter=$("$patchelf/bin/patchelf" --print-interpreter result/lib/chatgpt/ChatGPT)
+          "$interpreter" --list "$(readlink -f result)/lib/chatgpt/ChatGPT" | tee /tmp/chatgpt-consumer-libraries.txt
+          ! grep -q 'not found' /tmp/chatgpt-consumer-libraries.txt

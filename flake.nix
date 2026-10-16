@@ -43,6 +43,25 @@
       url = "github:lost-rob0t/Mousetrap";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    starintel-server = {
+      url = "github:lost-rob0t/starintel-server/491b89dad31e15b4172d52a03ab525b6c92fd637";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.org-doc.url = "github:lost-rob0t/org-doc/5bdb907a6dfbfdac594d661e0f475b5e65581ed2";
+    };
+    quasar = {
+      url = "github:lost-rob0t/quasar/9303835a6c982c9c2036e5ab044df1ec149a42c6";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.starintel-biz = {
+        # Private GitHub input: use the operator's SSH authentication instead
+        # of the unauthenticated GitHub archive endpoint.
+        url = "git+ssh://git@ssh.github.com:443/starintel-labs/starintel-biz.git?rev=c25f9e8972c2392c9c43f30c2254654012d26d38&shallow=1";
+        flake = false;
+      };
+    };
+    star-router = {
+      url = "github:lost-rob0t/starRouter/0a4e9abd073924e9186482fe847034b4fc4c401b";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -59,6 +78,9 @@
       zara-plugins,
       bixby-studio,
       mousetrap,
+      starintel-server,
+      quasar,
+      star-router,
     }:
     let
       system = "x86_64-linux";
@@ -136,6 +158,7 @@
       };
 
       homeManagerModules = {
+        starintel = import ./nix/home-manager/mods/starintel.nix;
         nodeRed = import ./nix/home-manager/mods/node-red.nix;
       };
 
@@ -385,6 +408,17 @@
       };
 
       checks.${system} = {
+        starintel-module = import ./tests/starintel-module.nix { inherit home-manager pkgs lib; };
+        starintel-host = import ./tests/starintel-host.nix {
+          inherit
+            homeConfigurations
+            lib
+            pkgs
+            quasar
+            star-router
+            starintel-server
+            ;
+        };
         logos = logos.config.system.build.toplevel;
         install-logos = installLogos;
         prolog-mcp = prologMcp;
@@ -397,8 +431,9 @@
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
         starintel-admin = starintelAdminCheck;
-        zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
-        zara-all-plugins = zaraAllPluginsCheck;
+        # The Zara runtime checks are temporarily replaced by a fail-closed
+        # disabled-state check while the local Zara stack is being cleaned up.
+        zara-disabled = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
         zara-emacs-expert = zaraExperts.emacs;
         zara-expert-library = zaraExperts.library;
       };
