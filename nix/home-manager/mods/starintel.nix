@@ -100,6 +100,13 @@ let
       (name: { file = "${secretDir}/${name}"; });
     networks.backend = { };
   });
+  credentials = pkgs.writeShellApplication {
+    name = "starintel-credentials";
+    text = ''
+      exec ${pkgs.python3}/bin/python3 ${../files/starintel/credentials.py} \
+        ${lib.escapeShellArg root} "$@"
+    '';
+  };
   prepare = pkgs.writeShellApplication {
     name = "starintel-prepare";
     runtimeInputs = [ pkgs.coreutils ];
@@ -116,10 +123,20 @@ let
       for name in couchdb clouseau rabbitmq valkey; do
         test -d "$root/data/$name" || { echo "Missing infrastructure directory: $root/data/$name" >&2; exit 1; }
       done
-      for name in couchdb_password couchdb_secret erlang_cookie rabbitmq_password valkey_password auth_pepper initial_password auth_bootstrap_secret; do
+      required=(couchdb_password couchdb_secret erlang_cookie rabbitmq_password valkey_password auth_pepper)
+      ${lib.optionalString cfg.credentials.requireInitialPassword "required+=(initial_password)"}
+      for name in "''${required[@]}"; do
         file="$root/config/secrets/$name"
-        if [[ "$name" == auth_bootstrap_secret && ! -e "$file" ]]; then continue; fi
         test -f "$file" && test -r "$file" && test -s "$file" || { echo "Missing nonempty secret file: $name" >&2; exit 1; }
+        mode="$(stat -Lc %a "$file")"
+        if (( (8#$mode & 077) != 0 )); then
+          echo "Secret must not be group/world accessible: $name" >&2; exit 1
+        fi
+      done
+      for name in auth_bootstrap_secret initial_password; do
+        file="$root/config/secrets/$name"
+        [[ -e "$file" ]] || continue
+        test -f "$file" && test -r "$file" && test -s "$file" || { echo "Invalid optional secret file: $name" >&2; exit 1; }
         mode="$(stat -Lc %a "$file")"
         if (( (8#$mode & 077) != 0 )); then
           echo "Secret must not be group/world accessible: $name" >&2; exit 1
@@ -205,6 +222,11 @@ in
       default = null;
       description = "Optional runtime environment file path; never put secret values in Nix options.";
     };
+    credentials.requireInitialPassword = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Require initial_password during preparation. Disable only when reusing a persistent database that already contains the intended administrator account.";
+    };
     packages = {
       server = packageOption "Pinned upstream starintel-server default package.";
       quasar = packageOption "Pinned upstream Quasar quasar-server package, not web-dist.";
@@ -248,6 +270,7 @@ in
       { assertion = lib.all (name: builtins.match "[a-zA-Z0-9_-]+" name != null) (builtins.attrNames cfg.actors); message = "StarIntel actor service names may contain only letters, digits, underscores and hyphens."; }
       { assertion = lib.all (actor: builtins.match "[a-zA-Z0-9_.-]+" actor.executable != null) (builtins.attrValues cfg.actors); message = "StarIntel actor executable must be a basename."; }
     ];
+    home.packages = [ credentials ];
     systemd.user.targets.starintel = {
       Unit = {
         Description = "Local StarIntel stack";

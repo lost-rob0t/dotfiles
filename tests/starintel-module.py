@@ -6,7 +6,7 @@ import re
 import subprocess
 import sys
 
-metadata, prepare, infrastructure = sys.argv[1:]
+metadata, prepare, infrastructure, credentials = sys.argv[1:]
 config = json.loads(Path(metadata).read_text())
 root = Path(config['root'])
 assert str(root) == '/build/starintel-fixture'
@@ -15,11 +15,28 @@ for name in ('couchdb', 'clouseau', 'rabbitmq', 'valkey'):
 root.chmod(0o700)
 secret_dir = root / 'config/secrets'
 secret_dir.mkdir(parents=True)
-for name in ('couchdb_password', 'couchdb_secret', 'erlang_cookie', 'rabbitmq_password', 'valkey_password', 'auth_pepper', 'auth_bootstrap_secret', 'initial_password'):
+for name in ('couchdb_password', 'couchdb_secret', 'erlang_cookie', 'rabbitmq_password', 'valkey_password', 'auth_pepper', 'auth_bootstrap_secret'):
     file = secret_dir / name
     file.write_text('hermetic-fixture-value')
     file.chmod(0o600)
 subprocess.run([prepare], check=True)
+listing = subprocess.run([credentials, 'list'], check=True, text=True,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+assert 'initial_password\tmissing' in listing.stdout
+secret_value = 'configured-without-echo'
+configured = subprocess.run([credentials, 'set', 'initial_password', '--stdin'],
+                            input=secret_value, text=True,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+assert configured.returncode == 0
+assert secret_value not in configured.stdout + configured.stderr
+initial_password = secret_dir / 'initial_password'
+assert initial_password.read_text() == secret_value
+assert initial_password.stat().st_mode & 0o777 == 0o600
+unknown = subprocess.run([credentials, 'set', 'not_a_credential', '--stdin'],
+                         input='value', text=True,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+assert unknown.returncode != 0
+assert 'value' not in unknown.stdout + unknown.stderr
 init = (root / 'config/init.lisp').read_text()
 for setting in ('*auth-pepper*', '*auth-bootstrap-secret*', '*auth-initial-password*', '*valkey-lease-password-file*'):
     assert setting in init
@@ -32,6 +49,7 @@ subprocess.run([prepare], check=True)
 for name in ('init.lisp', 'quasar-init.lisp'):
     assert (root / 'config' / name).read_text() == '; operator-owned sentinel\n'
 (secret_dir / 'auth_bootstrap_secret').unlink()
+(secret_dir / 'initial_password').unlink()
 subprocess.run([prepare], check=True)
 file = secret_dir / 'couchdb_password'
 private_target = secret_dir / 'managed-couchdb-password'

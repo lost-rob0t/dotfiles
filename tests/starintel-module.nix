@@ -10,7 +10,7 @@ let
     ];
   };
   disabled = evaluate { };
-  enabledConfig = {
+  baseConfig = {
     services.starintel = {
       enable = true;
       workDir = root;
@@ -20,12 +20,18 @@ let
       actors.fixture = { package = pkgs.hello; executable = "hello"; arguments = [ "--greeting=local test" ]; environmentFile = "${root}/config/actor.env"; };
     };
   };
+  enabledConfig = lib.recursiveUpdate baseConfig {
+    services.starintel.credentials.requireInitialPassword = false;
+  };
   enabled = evaluate enabledConfig;
+  fresh = evaluate baseConfig;
   manual = evaluate (lib.recursiveUpdate enabledConfig { services.starintel.autoStart = false; });
   invalidPath = evaluate (lib.recursiveUpdate enabledConfig { services.starintel.workDir = "/tmp/bad path"; });
   storeSecret = evaluate (lib.recursiveUpdate enabledConfig { services.starintel.environmentFile = "/nix/store/not-a-runtime-secret"; });
   missingEngine = evaluate { services.starintel.enable = true; };
   units = enabled.config.systemd.user.services;
+  credentialPackages = builtins.filter (package: lib.getName package == "starintel-credentials") enabled.config.home.packages;
+  credentialCommand = lib.getExe (lib.head credentialPackages);
   metadata = pkgs.writeText "starintel-units.json" (builtins.toJSON {
     inherit root;
     services = units;
@@ -39,6 +45,9 @@ assert !(builtins.tryEval missingEngine.config.home.username).success;
 assert !(builtins.tryEval invalidPath.config.home.username).success;
 assert !(builtins.tryEval storeSecret.config.home.username).success;
 assert lib.all (item: item.assertion) enabled.config.assertions;
+assert builtins.length credentialPackages == 1;
+assert enabled.config.services.starintel.credentials.requireInitialPassword == false;
+assert fresh.config.services.starintel.credentials.requireInitialPassword == true;
 assert units.starintel-server.Service.WorkingDirectory == root;
 assert lib.elem "starintel-infrastructure.service" units.starintel-server.Unit.Requires;
 assert lib.elem "starintel-server.service" units.starintel-quasar.Unit.After;
@@ -60,8 +69,9 @@ pkgs.runCommand "starintel-module-check" {
   sbcl = lib.getExe pkgs.sbcl;
   prepare = builtins.head units.starintel-prepare.Service.ExecStart;
   infrastructure = builtins.head (lib.splitString " " (builtins.head units.starintel-infrastructure.Service.ExecStart));
+  inherit credentialCommand;
 } ''
-  python3 ${./starintel-module.py} "$metadata" "$prepare" "$infrastructure"
+  python3 ${./starintel-module.py} "$metadata" "$prepare" "$infrastructure" "$credentialCommand"
   python3 ${./starintel-secret-memory.py} ${../nix/home-manager/files/starintel/runtime-secret.py}
   python3 ${./starintel-literate.py} ${../.}
   mkdir "$out"
