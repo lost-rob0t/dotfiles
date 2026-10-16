@@ -23,6 +23,7 @@ subprocess.run([prepare], check=True)
 listing = subprocess.run([credentials, 'list'], check=True, text=True,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 assert 'initial_password\tmissing' in listing.stdout
+assert 'local_ingest_api_key\tmissing' in listing.stdout
 secret_value = 'configured-without-echo'
 configured = subprocess.run([credentials, 'set', 'initial_password', '--stdin'],
                             input=secret_value, text=True,
@@ -32,6 +33,14 @@ assert secret_value not in configured.stdout + configured.stderr
 initial_password = secret_dir / 'initial_password'
 assert initial_password.read_text() == secret_value
 assert initial_password.stat().st_mode & 0o777 == 0o600
+local_key_value = 'scoped-local-ingest-key'
+local_key = subprocess.run([credentials, 'set', 'local_ingest_api_key', '--stdin'],
+                           input=local_key_value, text=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+assert local_key.returncode == 0
+assert local_key_value not in local_key.stdout + local_key.stderr
+assert (secret_dir / 'local_ingest_api_key').read_text() == local_key_value
+assert (secret_dir / 'local_ingest_api_key').stat().st_mode & 0o777 == 0o600
 unknown = subprocess.run([credentials, 'set', 'not_a_credential', '--stdin'],
                          input='value', text=True,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -70,6 +79,7 @@ compose = json.loads(Path(compose_path).read_text())
 assert set(compose['services']) == {'couchdb', 'clouseau', 'rabbitmq', 'valkey'}
 assert 'volumes' not in compose
 assert compose['name'] == 'starintel-' + hashlib.sha256(str(root).encode()).hexdigest()[:16]
+assert compose['services']['couchdb']['environment']['COUCHDB_USER'] == 'admin'
 for name, service in compose['services'].items():
     assert service['pull_policy'] == 'never'
     assert service['restart'] == 'on-failure:3'
@@ -99,5 +109,6 @@ assert '--apiAddress=tcp://127.0.0.1:6001' in router
 server = config['services']['starintel-server']['Service']
 assert 'ExecStartPost' in server
 assert f'VALKEY_PASSWORD_FILE={secret_dir}/valkey_password' in server['Environment']
+assert 'COUCHDB_USER=admin' in server['Environment']
 assert not any(entry.startswith('VALKEY_PASSWORD=') for entry in server['Environment'])
 print('StarIntel module configuration, init preservation and secret checks passed')

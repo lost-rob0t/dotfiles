@@ -1,8 +1,33 @@
-{ ... }:
+{ inputs, pkgs, ... }:
+let
+  system = pkgs.stdenv.hostPlatform.system;
+  serverPackages = inputs.starintel-server.packages.${system};
+in
 {
   imports = [ ../desktop/home.nix ];
 
   node-red.enable = true;
+
+  services.starintel = {
+    enable = true;
+    workDir = "/home/unseen/.starintel";
+    credentials.requireInitialPassword = false;
+    packages = {
+      server = serverPackages.default;
+      quasar = inputs.quasar.packages.${system}.quasar-server;
+      router = inputs.star-router.packages.${system}.default;
+    };
+    infrastructure = {
+      engineReady = true;
+      couchdbUser = "admin";
+      images = {
+        couchdb = serverPackages.couchdb-image;
+        clouseau = serverPackages.clouseau-image;
+        rabbitmq = serverPackages.rabbitmq-image;
+        valkey = serverPackages.valkey-image;
+      };
+    };
+  };
 
   homeManagerUpdater = {
     enable = true;

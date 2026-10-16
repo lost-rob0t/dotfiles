@@ -9,7 +9,7 @@ This wiki is the operational map for the dotfiles repository.
 The configuration itself remains the source of truth.  In particular, literate Org files are executable documentation and their tangled files are generated artifacts.  The wiki should explain where things live, how they fit together, and how to change them without creating a second source of truth.
 
 * Start here
-- [[file:starintel.org][Local StarIntel full stack]] - opt-in Home Manager services, private state, actors, Quasar, server init and legacy router.
+- [[file:starintel.org][Local StarIntel full stack]] - the =unseen@flake= deployment, persistent private state and credentials, actors, Quasar, server init and legacy router.
 - [[file:getting-started.org][Getting started]] - clone, Stow, Home Manager, and the main repository entry points.
 - [[file:literate-config.org][Literate configuration]] - canonical Org sources, generated files, tangling, and consistency rules.
 - [[file:nix.org][Nix and Home Manager]] - flake outputs, hosts, profiles, installers, and module layout.
@@ -68,4 +68,3 @@ Do not copy large sections of configuration into this wiki merely to describe th
 - [[file:kb-roam-publishing.org][KB Roam ingestion and publishing]]
 
 - [[file:starintel-admin.org][StarIntel Admin Emacs UI]]
-

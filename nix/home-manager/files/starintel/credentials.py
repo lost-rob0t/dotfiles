@@ -16,6 +16,7 @@ CREDENTIALS = (
     "auth_pepper",
     "auth_bootstrap_secret",
     "initial_password",
+    "local_ingest_api_key",
 )
 
 

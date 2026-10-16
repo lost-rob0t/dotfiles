@@ -2,7 +2,7 @@
 #+OPTIONS: toc:2 num:nil
 
 * Ownership and scope
-The [[file:../../nix/home-manager/mods/starintel.org][canonical module source]] owns an opt-in Home Manager stack. It exports =homeManagerModules.starintel= for reuse on NixOS and non-NixOS Linux hosts using Home Manager (including Arch). It creates automatically started user units when enabled, never enables the stack in a host profile itself, never installs or configures a container engine, and never migrates existing data. The repository's =unseen@desktop= profile remains unchanged.
+The [[file:../../nix/home-manager/mods/starintel.org][canonical module source]] owns an opt-in Home Manager stack. It exports =homeManagerModules.starintel= for reuse on NixOS and non-NixOS Linux hosts using Home Manager (including Arch). It creates automatically started user units when enabled, never installs or configures a container engine, and never migrates existing data. The =unseen@flake= profile enables the stack at =~/.starintel=; the shared =unseen@desktop= profile remains reusable and does not enable it.
 
 Native Nix packages run star-server, Quasar and the legacy ZeroMQ starRouter. Existing upstream image archives run CouchDB with Clouseau search, RabbitMQ and Valkey. No images are pulled at service startup. Optional telemetry exporters are not enabled. External actors are explicit opt-ins.
 
@@ -16,15 +16,21 @@ State layout:
 - =data/actors/NAME/=: each actor's working directory and XDG data root
 - =cache/= and =logs/=: local cache and router logs; native service output also goes to the user journal
 
-* Current release blockers
-This draft is not deployment-ready. The existing secret-file transport below does
-not satisfy the requested runtime-environment/keyring/auth-source-only policy.
-In particular, the upstream Valkey lease client requires a password file and the
-Clouseau entrypoint copies its cookie into a generated file. A sealed anonymous-memory descriptor has passed the pinned SBCL =probe-file=/UIOP reader test, and the server launcher now uses that adapter when VALKEY_PASSWORD is supplied at runtime, without a filesystem secret. Production backing-service generated cookie/configuration files remain outside the approved secret policy. Do not provision the
-legacy credential files or activate this draft under that policy. Replacing that
-transport requires upstream changes and a fresh live ingestion/persistence test.
-The merged repair in [[https://github.com/lost-rob0t/quasar/pull/106][Quasar PR #106]] corrects the stale =starintel-license= package entry. [[https://github.com/lost-rob0t/dotfiles/actions/runs/38445982364][Consumer CI at e8229756]] built all three applications and four infrastructure images with the merged Quasar candidate, passed actual readiness and canonical ingestion/rejection, and verified document/API-credential persistence after full stack recreation. The isolated test fixture has a separately authorized exception for random credentials on non-swappable tmpfs. It does not supply production credentials or authorize production generated secret files.
-The current consumer pin also includes [[https://github.com/lost-rob0t/quasar/pull/108][PR #108]] to fetch the same Tek9 revision/content hash from its public mirror after the Forgejo endpoint failed. Exact-head acceptance must pass for this transport repair. A green module check alone does not establish a working full stack.
+* Deployment boundary
+The local deployment keeps durable data and owner-private credential files below
+=~/.starintel=. Credential values never belong in Nix expressions, Git, command
+arguments or logs. =starintel-credentials= is the supported local writer: it
+accepts only the fixed stack credential names, writes atomically with mode =0600=,
+and reports status without printing values. Existing credential files and database
+state are preserved during migration; the module never invents replacements.
+
+All source pins and transitive overrides use GitHub while Forgejo is unavailable.
+The private =starintel-biz= input uses authenticated GitHub SSH on port 443; the
+tracked SSH alias reuses the already-trusted =github.com= host key. The merged
+repair in [[https://github.com/lost-rob0t/quasar/pull/106][Quasar PR #106]] corrects the stale
+=starintel-license= package entry, and [[https://github.com/lost-rob0t/quasar/pull/108][PR #108]]
+provides the pinned Tek9 content through GitHub. Exact-head tests still distinguish
+module evaluation from a real local deployment.
 
 * Package wiring
 The module deliberately has no default upstream packages: importing it while disabled does not fetch private sources or build the stack. Supply immutable upstream packages in the consuming flake. These inspected public revisions are the baseline, not a claim that pending upstream pull requests have merged:
@@ -35,7 +41,11 @@ inputs.quasar.url = "github:lost-rob0t/quasar/9303835a6c982c9c2036e5ab044df1ec14
 inputs.star-router.url = "github:lost-rob0t/starRouter/0a4e9abd073924e9186482fe847034b4fc4c401b";
 #+end_src
 
-Keep upstream nixpkgs locks initially; do not add =follows= unless the resulting closure is tested. Server transitively fetches Forgejo =org-doc=; Quasar fetches =tek9= and =starintel-biz=. Fetch/build access must exist before enabling. No access token belongs in an input URL, Nix expression or lock file. The current binaries target =x86_64-linux=.
+The consuming flake follows its tested nixpkgs input and overrides the server's
+=org-doc= and Quasar's =starintel-biz= inputs to their exact GitHub commits. The
+latter repository is private, so authenticated GitHub SSH access must exist before
+evaluation. No access token, private key or credential belongs in an input URL,
+Nix expression or lock file. The current binaries target =x86_64-linux=.
 
 Inside a Home Manager module receiving these =inputs=:
 
@@ -50,7 +60,10 @@ in {
   services.starintel = {
     enable = true;
     workDir = "/home/unseen/.starintel";
+    # Only for a migrated database whose intended administrator already exists.
+    credentials.requireInitialPassword = false;
     infrastructure.engineReady = true; # Only after verifying prerequisites.
+    infrastructure.couchdbUser = "admin"; # Preserved account for this migration.
     packages = {
       server = server.default;
       quasar = inputs.quasar.packages.${system}.quasar-server;
@@ -87,15 +100,48 @@ sudo chown 65532:65532 "$root/data/clouseau" "$root/data/valkey"
 
 Do not replace that first =mkdir= with =mkdir -p= when following this fresh-install procedure. An existing root needs inspection and a separate migration/ownership plan. The upstream CouchDB/RabbitMQ container entrypoints may manage ownership inside their dedicated bind mounts; they must never be pointed at unrelated data directories.
 
-Place nonempty, user-readable, mode =0600= secret files under =config/secrets/=:
+When migrating an existing CouchDB volume, set =infrastructure.couchdbUser= to
+the administrator already stored in that database. The =unseen@flake= migration
+uses =admin=. This option changes no account and no password; it only keeps the
+container and server client aligned with preserved state.
+
+Configure nonempty, mode =0600= secret files under =config/secrets/=:
 - =couchdb_password= and =couchdb_secret=
 - =erlang_cookie= (shared only by CouchDB and Clouseau)
 - =rabbitmq_password= and =valkey_password=
 - =auth_pepper=, =auth_bootstrap_secret= and =initial_password= (a strong initial human-user password; never accept the upstream default)
+- =local_ingest_api_key= is optional client material for a least-privilege local
+  ingest principal; it is not consumed by the server unit itself
 
-Use your existing secret manager or a deliberate operator setup. Readable symlinks to regular private secret files are supported; target permissions are checked. This module does not create, rotate or print secrets. Container secrets are bind-mounted files, not a promise of encrypted-at-rest storage. Host backups must protect them. Changing an existing database's credential file does not necessarily rotate its stored credential.
+Use the installed writer interactively so values do not enter shell history:
 
-Build/evaluate your Home Manager profile first. After the blockers above are resolved, activating it installs the enabled target and may start it according to Home Manager's =systemd.user.startServices= policy. The first start checks prerequisites and creates missing Lisp templates with exclusive-create semantics. Existing files, including invalid files, are never replaced.
+#+begin_src sh
+starintel-credentials list
+starintel-credentials set couchdb_password
+starintel-credentials set auth_pepper
+#+end_src
+
+Repeat =set= for the required names. =--stdin= exists for an authorized secret
+manager pipeline, but the caller must ensure that pipeline does not expose the
+value. The writer creates or tightens =~/.starintel=, =config= and
+=config/secrets= to mode =0700=, uses an atomic same-directory replacement, and
+never prints a value. It does not generate, rotate or copy credentials
+automatically. Container secrets are bind-mounted files, not a promise of
+encrypted-at-rest storage; host backups must protect them. Changing an existing
+database's credential file does not necessarily rotate its stored credential.
+
+Fresh databases retain the default =credentials.requireInitialPassword = true=
+gate. Set it to =false= only when migrating a database that already contains the
+intended administrator; =initial_password= then becomes optional and should not
+be recreated merely to start the service.
+
+Create API credentials only through the pinned server's supported lifecycle
+interface. Capture a new key's one-time value directly into
+=local_ingest_api_key=; never place it in Git, command arguments or logs. Grant
+only the document and resource scopes required by that client. The credential
+status command reports whether the file is present without revealing it.
+
+Build/evaluate your Home Manager profile first. Activating it installs the enabled target and may start it according to Home Manager's =systemd.user.startServices= policy. The first start checks prerequisites and creates missing Lisp templates with exclusive-create semantics. Existing files, including invalid files, are never replaced.
 
 #+begin_src sh
 systemctl --user start starintel.target
@@ -144,7 +190,7 @@ This pinned UI stores its connection settings in browser-side state: use only a 
 * 3. Configure starintel-server through init.lisp
 The service invokes =star-server start -i WORKDIR/config/init.lisp=. The init file is executable Common Lisp in package =star=, runs before actors start, and can override environment-derived defaults. Keep it operator-owned and never load untrusted actor files.
 
-The template binds HTTP to loopback, disables public-read mode, points CouchDB and RabbitMQ to their local ports with user =starintel=, and enables durable Valkey leases. The server is a saved SBCL image: build-time =defparameter= environment reads are not a runtime configuration mechanism. The template explicitly calls =environment-secret= for CouchDB, RabbitMQ, the auth pepper, bootstrap secret and initial human-user password when the init file loads. These functions support runtime =*_FILE= paths. The launcher consumes runtime =VALKEY_PASSWORD= into sealed anonymous memory, removes that environment value, and supplies a =/proc/self/fd/= path to the Valkey Lisp adapter.
+The template binds HTTP to loopback, disables public-read mode, points CouchDB and RabbitMQ to their local ports with user =starintel=, and enables durable Valkey leases. The server is a saved SBCL image: build-time =defparameter= environment reads are not a runtime configuration mechanism. The template explicitly calls =environment-secret= for CouchDB, RabbitMQ, the auth pepper, bootstrap secret and initial human-user password when the init file loads. These functions support the configured runtime =*_FILE= paths. The launcher also retains support for an externally supplied =VALKEY_PASSWORD=: it consumes that value into sealed anonymous memory, removes the environment value, and supplies a =/proc/self/fd/= path to the Valkey Lisp adapter.
 
 Authentication is configured with =STAR_AUTH_MODE=api-key= and runtime pepper/bootstrap-secret paths. Evaluation creates no account. Enabling automatic startup may start the server during activation; on the first server start with an empty store, upstream =ensure-initial-user= creates the initial human administrator (default username =star=) using the supplied =initial_password=. Set =*auth-initial-username*= in trusted init.lisp if needed. API-key provisioning remains operator-controlled; follow the pinned server's bootstrap/API-key procedure. Optional =services.starintel.environmentFile= names a runtime file, not secret values embedded in Nix. For additional server settings, explicitly read their values in init.lisp; do not assume compiled environment defaults refresh automatically. The bootstrap-secret file is needed only for initial bootstrap. Remove it afterward; =read-secret-file= returns nil when it is absent, disabling that bootstrap credential without replacing init.lisp.
 
@@ -194,5 +240,5 @@ as UID 5984 to preserve private configuration permissions. The fixture retains t
 module's actual package commands and dependency graph, but adds these test-only
 mounts; it does not prove the production credential transport is compliant.
 Containers are removed before unmounting and discarding credential memory.
-Deployment must use operator-configured runtime credentials; it must never adopt
-this random test credential provider. The production transport remains a blocker.
+Deployment uses operator-configured credentials under =~/.starintel=; it must
+never adopt the random test credential provider.

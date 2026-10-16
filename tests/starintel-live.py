@@ -6,7 +6,7 @@ Requires Nix, a local rootful Docker engine, free module ports and passwordless
 sudo (unless root). The module owns startup; this runner only provisions NEW
 empty state. Test-only random credentials live exclusively on non-swappable tmpfs;
 this fixture is not a production credential provider. It never reads ~/.starintel or starts an actor. Fetch/build errors,
-including unavailable Forgejo inputs, fail the check instead of being skipped.
+including unavailable upstream inputs, fail the check instead of being skipped.
 """
 
 import argparse

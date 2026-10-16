@@ -6,6 +6,7 @@
 
 :- consult("home_manager_ownership").
 :- consult("starintel_admin").
+:- consult("starintel_local_stack").
 :- consult("nixpkgs_deprecations").
 :- consult("literate_sync").
 :- consult("gpt_todos_sync").

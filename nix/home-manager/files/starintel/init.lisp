@@ -2,7 +2,7 @@
 (in-package :star)
 (setf *couchdb-host* "127.0.0.1"
       *couchdb-port* 5984
-      *couchdb-user* "starintel"
+      *couchdb-user* (or (uiop:getenv "COUCHDB_USER") "starintel")
       *couchdb-password* (environment-secret "COUCHDB_PASSWORD" "COUCHDB_PASSWORD_FILE")
       *rabbit-address* "127.0.0.1"
       *rabbit-port* 5672
