@@ -1,4 +1,9 @@
-{ config, pkgs, inputs, ... }:
+{
+  config,
+  pkgs,
+  inputs,
+  ...
+}:
 {
   imports = [
     inputs.skills.homeManagerModules.opencode
@@ -29,6 +34,7 @@
     #./python.nix
     ./syncthing.nix
     ./media.nix
+    ./games.nix
     ./pentesting.nix
     ./llm.nix
     ./zara.nix

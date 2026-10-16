@@ -4,6 +4,13 @@
 %
 % Raw per-run execution state lives in .prolog/runs/ (untracked).
 
+:- multifile invariant/2.
+:- multifile repair_recipe/2.
+:- multifile failure_mode/2.
+:- multifile infra_quirk/2.
+:- multifile owner/2.
+:- multifile deployment_path/2.
+
 :- consult("home_manager_ownership").
 :- consult("starintel_admin").
 :- consult("nixpkgs_deprecations").
@@ -13,8 +20,6 @@
 :- consult("opencode_commands").
 :- consult("opencode_worker").
 :- consult("emacs_entrypoint").
-:- consult("emacs_org_agenda").
-:- consult("qtile_widget_api").
 :- consult("zara_deployment").
 :- consult("zara_voice_validation").
 :- consult("zara_pairing").

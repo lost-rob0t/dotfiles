@@ -48,6 +48,16 @@ because the literate Doom UI delegates control-plane operations to the CLI on
 operator regression test and verifies profile membership plus the expected
 ingest administration command surface.
 
+* Gaming
+[[file:../../nix/home-manager/mods/games.nix][games.nix]] provides the
+=gaming= module: Lutris, Wine, Sunshine (stream host), Moonlight Qt (stream
+client, =gaming.moonlight.enable=), and the Steam client
+(=gaming.steam.enable=, unfree; Home Manager master removed =programs.steam=,
+so the nixpkgs FHS package is used instead).  Steam-distributed titles such as
+Terraria and War Thunder install through the Steam client rather than as
+nixpkgs packages.  The =unseen@flake= host enables it with
+=gaming.enable = true=.
+
 * GPT TODO synchronization
 [[file:../../nix/home-manager/mods/gpt-todos.nix][gpt-todos.nix]] installs the
 shared =gpt-todos-sync= command and enables a systemd user timer by default when

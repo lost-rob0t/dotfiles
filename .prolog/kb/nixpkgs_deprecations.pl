@@ -1,5 +1,8 @@
 % nixpkgs deprecation mappings enforced by tests/nix-deprecations.sh.
 
+:- discontiguous deprecated_attr/2.
+:- discontiguous replacement/2.
+
 deprecated_attr(pkgs_system, '${pkgs.system}').
 replacement(pkgs_system, '${pkgs.stdenv.hostPlatform.system}').
 

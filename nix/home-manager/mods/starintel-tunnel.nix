@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.programs.starintelTunnel;
@@ -20,7 +25,7 @@ in
     home.packages = [ starintelTunnel ];
 
     xdg.configFile."starintel/tunnels.conf" = {
-      source = ../../../.config/starintel/tunnels.conf;
+      source = ../files/starintel-tunnels.conf;
       force = true;
     };
   };
