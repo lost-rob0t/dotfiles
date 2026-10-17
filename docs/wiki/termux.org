@@ -412,8 +412,13 @@ closed. Both pins are upstream CouchDB 3.5.2 with embedded Erlang OTP 26.
 The command starts a dedicated loopback EPMD and CouchDB, waits up to 90 seconds
 for readiness, creates one fixture if absent, sends SIGTERM, restarts against the
 same private data directory, verifies readback, and stops its own process groups.
-SIGINT/SIGTERM also trigger cleanup; a child that ignores shutdown is killed after
-15 seconds. Status is the foreground JSON result/exit status; logs are =couch.log=
+SIGINT/SIGTERM also trigger cleanup. A separate live guardian pins each owned
+session/group ID even after PRoot exits. Cleanup sends TERM, allows 15 seconds
+for graceful shutdown, then kills the guardian and any remaining group members.
+If the guardian is unexpectedly lost, cleanup fails closed instead of signaling
+a possibly reused group. Remaining listeners also fail acceptance. The supported
+commands run in the foreground; detached processes that create new sessions are
+not covered by group supervision. Status is the foreground JSON result/exit status; logs are =couch.log=
 and =epmd.log= in the state directory. Re-execute the command to start another
 acceptance run. It does not create a detached service or PID-file control API.
 
@@ -422,7 +427,11 @@ All listeners bind to 127.0.0.1; PRoot shares the host network. This does not is
 other applications running under the same Android UID. A generated private admin
 password stays in a mode-0600 state file and HTTP memory; the CouchDB ini contains
 only its PBKDF2 verifier. The Erlang cookie is mode 0400. Neither is placed in
-source, command arguments, or logs. State must be new or owned by this probe;
+source, command arguments, or logs. Managed outputs, rotated log targets and the
+lock must be private, regular, singly linked files owned by the current UID.
+Symlink/hardlink/nonregular targets fail before writing; descriptor checks and
+no-follow opens also protect the actual log/lock file. Logger failures fail
+acceptance rather than silently dropping evidence. State must be new or owned by this probe;
 existing state and fixture bytes are preserved on rerun.
 
 Each component log rotates at 1 MiB with two backups. The short acceptance run
@@ -447,6 +456,25 @@ service needs storage policy, broker readiness and an Android lifecycle test.
   =https://cache.nixos.org/nix-cache-info=: =CONNECT tunnel failed, response 403=.
   The host CA was supplied without disabling TLS. No compilation result is
   claimed, and no source rebuild/retry loop was launched after this blocker.
+- The 403 is a rejection of =CONNECT cache.nixos.org:443= by the configured
+  =http://proxy:8080= HTTPS proxy, before an origin TLS connection/GET
+  =/nix-cache-info= was established. It is not an origin 404 or evidence of a
+  private Server artifact. The same log records rejection of
+  =CONNECT ftpmirror.gnu.org:443= for =/bash/bash-5.3.tar.gz=. This explains the
+  subsequent dependency failure. No proxy bypass, alternate mirror, TLS/auth
+  weakening, or repeated network probe was used to evade either denial.
+- Source-build route inspection at the same Server baseline: README's supported
+  reproducible route is Nix; its interactive example still runs =nix develop=
+  before =sbcl --load run.lisp=, but =run.lisp= is absent. =make -n build= does
+  expose the existing =sbcl= / =ql:quickload= / =save-lisp-and-die= recipe; it
+  does not provision Quicklisp/Qlot, native libraries, or a Debian dependency
+  closure. The Qlot cl-couch lock is =e3c8e7d1548c7814e49528869c098e5e03ccbe80=,
+  whereas the supported flake pins =a37150193b81fad16d24b42102353fcad9c649ad=.
+  No SBCL/Quicklisp/Qlot executable or preinstalled dependency closure exists
+  in this test environment. This is source-inspected deployment drift, not a
+  failed SBCL compilation or proof that ASDF cannot run on Debian. There is no
+  documented, self-contained non-Nix Debian deployment route to execute without
+  defining a new dependency/install path. No replacement Server was written.
 - No Android emulator, ADB endpoint or authorized phone is available. No device
   was deployed to or changed.
 

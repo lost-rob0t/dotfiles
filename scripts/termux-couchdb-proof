@@ -10,9 +10,12 @@ import os
 from pathlib import Path
 import platform
 import secrets
+import select
 import shutil
 import signal
 import socket
+import stat
+import sys
 import subprocess
 import threading
 import time
@@ -45,6 +48,11 @@ def prepare(root):
         required = ('owner', 'data', 'password', 'cookie', 'couch.ini', 'vm.args')
         if any((root / name).is_symlink() or not (root / name).exists() for name in required):
             raise RuntimeError('incomplete or symlinked state; inspect it manually')
+        for name in required:
+            if name != 'data':
+                safe_file(root / name)
+        if not (root / 'data').is_dir():
+            raise RuntimeError('state data must be a directory')
         if (root / 'owner').read_text() != MARKER:
             raise RuntimeError('refusing state not created by this probe')
         return
@@ -101,6 +109,144 @@ def check_ports(ports):
             sock.bind(('127.0.0.1', port))
 
 
+def safe_file(path):
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return
+    safe_info(info, path.name)
+
+
+def safe_info(info, name):
+    if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+            or info.st_uid != os.getuid() or info.st_mode & 0o077):
+        raise RuntimeError('unsafe managed file: ' + name)
+
+
+def safe_outputs(root):
+    for name in ('lock', 'couch.log', 'epmd.log'):
+        safe_file(root / name)
+        if name.endswith('.log'):
+            for suffix in ('.1', '.2'):
+                safe_file(root / (name + suffix))
+
+
+class PrivateLogHandler(logging.handlers.RotatingFileHandler):
+    def _open(self):
+        path = Path(self.baseFilename)
+        safe_outputs(path.parent)
+        fd = os.open(path, os.O_CREAT | os.O_WRONLY | os.O_APPEND |
+                     os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK, 0o600)
+        try:
+            safe_info(os.fstat(fd), path.name)
+            return os.fdopen(fd, 'a', encoding='utf-8')
+        except BaseException:
+            os.close(fd)
+            raise
+
+    def doRollover(self):
+        safe_outputs(Path(self.baseFilename).parent)
+        super().doRollover()
+
+    def handleError(self, record):
+        raise RuntimeError('private log write failed')
+
+
+# The guardian pins the session/group identity until cleanup sends SIGKILL.
+# A completed PRoot launcher therefore cannot let its group ID be reused while
+# its descendants still need cleanup. Caught signals reset to defaults on exec.
+GUARDIAN = r"""
+import os, signal, subprocess, sys
+signal.signal(signal.SIGTERM, lambda *_: None)
+signal.signal(signal.SIGINT, lambda *_: None)
+fd = int(sys.argv[1])
+os.write(fd, b'R')
+try:
+    status = subprocess.Popen(sys.argv[2:], stdin=subprocess.DEVNULL).wait()
+except OSError:
+    status = 127
+os.write(fd, (str(status) + '\n').encode())
+os.close(fd)
+while True:
+    signal.pause()
+"""
+
+
+class OwnedProcess:
+    def __init__(self, argv, stdout):
+        read_fd, write_fd = os.pipe()
+        try:
+            self.guard = subprocess.Popen(
+                [sys.executable, '-I', '-S', '-c', GUARDIAN, str(write_fd)] + argv,
+                stdin=subprocess.DEVNULL, stdout=stdout, stderr=subprocess.STDOUT,
+                pass_fds=(write_fd,), start_new_session=True)
+        except BaseException:
+            os.close(read_fd)
+            raise
+        finally:
+            os.close(write_fd)
+        if not select.select([read_fd], [], [], 5)[0] or os.read(read_fd, 1) != b'R':
+            self.guard.kill()
+            self.guard.wait(timeout=5)
+            os.close(read_fd)
+            raise RuntimeError('guardian startup handshake failed')
+        self.status_fd = read_fd
+        os.set_blocking(read_fd, False)
+        self.stdout = self.guard.stdout
+        self.pid = self.guard.pid
+        self.status = None
+        self.stopped = False
+
+    def poll(self):
+        if self.status is None and not self.stopped:
+            try:
+                value = os.read(self.status_fd, 32)
+                if value:
+                    self.status = int(value)
+            except BlockingIOError:
+                pass
+            if self.status is None and self.guard.poll() is not None:
+                raise RuntimeError('process guardian exited unexpectedly')
+        return self.status
+
+    def wait(self, timeout):
+        deadline = time.monotonic() + timeout
+        while self.poll() is None:
+            if time.monotonic() >= deadline:
+                raise subprocess.TimeoutExpired('owned child', timeout)
+            time.sleep(.01)
+        return self.status
+
+    def stop(self, timeout=15):
+        if self.stopped:
+            return
+        # Never signal a group after losing the live guardian identity.
+        if self.guard.poll() is not None:
+            raise RuntimeError('lost guardian ownership; refusing to signal a possibly reused group')
+        os.killpg(self.pid, signal.SIGTERM)
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if self.guard.poll() is not None:
+                raise RuntimeError('guardian lost during cleanup; refusing an unsafe group signal')
+            time.sleep(min(.05, max(0, deadline - time.monotonic())))
+        os.killpg(self.pid, signal.SIGKILL)
+        self.guard.wait(timeout=5)
+        os.close(self.status_fd)
+        self.stopped = True
+
+
+def wait_ports_closed(ports):
+    deadline = time.monotonic() + 5
+    while True:
+        try:
+            check_ports(ports)
+            return
+        except OSError:
+            if time.monotonic() >= deadline:
+                raise RuntimeError('listener remains after process-group cleanup')
+            time.sleep(.05)
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, request, fp, code, message, headers, newurl):
         return None
@@ -114,22 +260,28 @@ class Probe:
                      '--env', 'ERL_EPMD_PORT=45969', guest, '--']
         self.children = []
         self.logs = []
+        self.log_errors = []
         password = (root / 'password').read_text().strip()
         self.auth = 'Basic ' + base64.b64encode(('admin:' + password).encode()).decode()
         # Ignore ambient HTTP proxies; credentials are only sent to this loopback URL.
         self.http = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
 
     def budget(self):
+        if self.log_errors:
+            raise RuntimeError('private log writer failed')
         size = sum(p.stat().st_size for p in self.root.rglob('*') if p.is_file())
         if size > 128 * 1024**2 or shutil.disk_usage(self.root).free < 128 * 1024**2:
             raise RuntimeError('probe storage budget/reserve exceeded')
 
     def start(self, args, name):
-        handler = logging.handlers.RotatingFileHandler(
+        safe_outputs(self.root)
+        handler = PrivateLogHandler(
             self.root / (name + '.log'), maxBytes=1024**2, backupCount=2)
-        proc = subprocess.Popen(self.argv + args, stdin=subprocess.DEVNULL,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                start_new_session=True)
+        try:
+            proc = OwnedProcess(self.argv + args, stdout=subprocess.PIPE)
+        except BaseException:
+            handler.close()
+            raise
         self.children.append(proc)
         def drain():
             try:
@@ -137,6 +289,8 @@ class Probe:
                     record = logging.LogRecord(name, logging.INFO, '', 0,
                                                chunk.decode('utf-8', 'replace'), (), None)
                     handler.emit(record)
+            except Exception:
+                self.log_errors.append('private log writer failed')
             finally:
                 proc.stdout.close()
                 handler.close()
@@ -146,14 +300,10 @@ class Probe:
         return proc
 
     @staticmethod
-    def stop(proc):
-        if proc.poll() is None:
-            os.killpg(proc.pid, signal.SIGTERM)
-            try:
-                proc.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                os.killpg(proc.pid, signal.SIGKILL)
-                proc.wait(timeout=5)
+    def stop(proc, timeout=15):
+        if not isinstance(proc, OwnedProcess):
+            raise RuntimeError('cleanup requires an owned guardian')
+        proc.stop(timeout)
 
     def request(self, path, method='GET', value=None):
         request = urllib.request.Request('http://127.0.0.1:45984' + path, method=method,
@@ -205,19 +355,30 @@ class Probe:
                 previous = {'marker': secrets.token_hex(24)}
                 self.request('/dotfiles_proof/preserved', 'PUT', previous)
             self.stop(couch)
+            wait_ports_closed((45984, 45910))
             couch = self.couch()
             self.ready(couch)
             if self.request('/dotfiles_proof/preserved')['marker'] != previous['marker']:
                 raise RuntimeError('restart readback mismatch')
-            print(json.dumps({'couchdb': '3.5.2', 'restartReadback': 'pass',
-                              'host': platform.system(), 'architecture': platform.machine(),
-                              'serverHttp': 'not-run', 'actor': 'not-run',
-                              'androidEvidence': 'not-established'}))
+
         finally:
+            errors = []
             for proc in reversed(self.children):
-                self.stop(proc)
+                try:
+                    self.stop(proc)
+                except (OSError, RuntimeError) as error:
+                    errors.append(error)
             for thread in self.logs:
                 thread.join(timeout=5)
+            if self.log_errors:
+                raise RuntimeError('private log writer failed')
+            if errors:
+                raise RuntimeError('cleanup failed: ' + str(errors[0]))
+        wait_ports_closed(PORTS)
+        print(json.dumps({'couchdb': '3.5.2', 'restartReadback': 'pass',
+                          'host': platform.system(), 'architecture': platform.machine(),
+                          'serverHttp': 'not-run', 'actor': 'not-run',
+                          'androidEvidence': 'not-established'}))
 
 
 def main():
@@ -232,9 +393,10 @@ def main():
     if args.manifest.parent.name != args.guest:
         raise RuntimeError('manifest directory must match the named installed guest')
     prepare(args.state)
-    if (args.state / 'lock').is_symlink():
-        raise RuntimeError('lock must not be a symlink')
-    with (args.state / 'lock').open('a') as lock:
+    safe_outputs(args.state)
+    fd = os.open(args.state / 'lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    with os.fdopen(fd, 'a') as lock:
+        safe_info(os.fstat(lock.fileno()), 'lock')
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         Probe(args.state.resolve(), args.proot_distro, args.guest).run()
 
