@@ -1,0 +1,155 @@
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+umask 077
+: "${PREFIX:?Run inside Termux (PREFIX is required)}"
+export PATH="$PREFIX/bin:$HOME/.local/bin:$PATH"
+export SVDIR="$PREFIX/var/service" LOGDIR="$PREFIX/var/log"
+state="$HOME/.local/state/termux-starintel"
+collector="$HOME/.local/bin/election26"
+config="$HOME/starintel/ops/archive-config.json"
+archive="$HOME/starintel/ops/archive"
+logs="$PREFIX/var/log/sv/election26"
+fail() { printf 'termux-starintel: %s\n' "$*" >&2; exit 1; }
+ready() {
+  [[ -x "$collector" ]] || fail "missing executable $collector; restore the existing collector first"
+  [[ -r "$config" && -d "$archive" ]] || fail "existing archive/config is not ready; no data was created or replaced"
+  python - "$config" <<'PY'
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        json.load(f)
+except (OSError, ValueError):
+    sys.exit('termux-starintel: archive config is not readable JSON')
+PY
+}
+start() {
+  local daemon_pid=''
+  if [[ -r "$PREFIX/var/run/service-daemon.pid" ]]; then
+    read -r daemon_pid < "$PREFIX/var/run/service-daemon.pid" || true
+  fi
+  if [[ ! "$daemon_pid" =~ ^[0-9]+$ ]] || ! kill -0 "$daemon_pid" 2>/dev/null; then
+    service-daemon start
+  fi
+  if pgrep -x crond >/dev/null; then
+    printf 'crond already running; retaining it until reboot (no second daemon started)\n'
+  else
+    # runsvdir discovers new services asynchronously (normally within five seconds).
+    local attempt
+    for attempt in {1..15}; do
+      [[ -p "$SVDIR/crond/supervise/ok" ]] && break
+      sleep 1
+    done
+    sv-enable crond
+    sv -w 15 up "$SVDIR/crond"
+  fi
+}
+case "${1:-status}" in
+  install)
+    ready
+    for command in crontab flock timeout svlogd service-daemon sv-enable sv; do
+      command -v "$command" >/dev/null || fail "missing dependency: $command"
+    done
+    [[ -f "$SVDIR/crond/run" ]] || fail 'packaged crond service missing; install cronie and termux-services'
+    pgrep -f '[/]election26([[:space:]]|$)' >/dev/null && fail 'collector running; retry after it finishes'
+    mkdir -p "$state" "$logs" "$PREFIX/var/log/sv/crond" "$HOME/.termux/boot"
+    exec 9>"$state/install.lock"
+    flock -n 9 || fail 'another installation is running'
+    # Install this exact reviewed helper; reruns from its installed location are valid.
+    if [[ "$(readlink -f "${BASH_SOURCE[0]}")" != "$PREFIX/bin/termux-starintel" ]]; then
+      install -m 0755 "${BASH_SOURCE[0]}" "$PREFIX/bin/termux-starintel"
+    fi
+    python - "$PREFIX/bin/termux-starintel" "$collector" "$config" "$archive" "$state" <<'PY'
+import os, re, subprocess, sys, tempfile
+from pathlib import Path
+helper, collector, config, archive, state = sys.argv[1:]
+def read_cron():
+    result = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
+    if result.returncode and 'no crontab for' not in result.stderr.lower():
+        sys.exit('termux-starintel: cannot read crontab; refusing replacement')
+    return result.stdout if result.returncode == 0 else ''
+# Cron paths cannot contain its unescaped percent syntax or shell metacharacters.
+for value in (helper, collector, config, archive):
+    if not re.fullmatch(r'/[A-Za-z0-9_./-]+', value):
+        sys.exit('termux-starintel: unsupported path characters; crontab unchanged')
+before = read_cron()
+lines = before.splitlines(keepends=True)
+found = []
+for i, line in enumerate(lines):
+    if line.lstrip().startswith('#') or not re.search(r'\belection26\b|\btermux-starintel\s+collect\b', line):
+        continue
+    match = re.match(r'((?:\S+\s+){5})(.*)', line.rstrip('\n'))
+    if not match:
+        sys.exit('termux-starintel: unfamiliar collector entry; crontab unchanged')
+    prefix, cmd = match.groups()
+    wrapped = helper + ' collect'
+    executable = next((name for name in (collector, 'election26', '~/.local/bin/election26', '$HOME/.local/bin/election26') if cmd.startswith(name + ' ')), None)
+    if executable:
+        found.append(i)
+        lines[i] = prefix + wrapped + cmd[len(executable):] + ('\n' if line.endswith('\n') else '')
+    elif cmd.startswith(wrapped + ' '):
+        found.append(i)
+    else:
+        sys.exit('termux-starintel: unfamiliar collector command; crontab unchanged')
+if len(found) > 1:
+    sys.exit('termux-starintel: multiple collector entries; crontab unchanged')
+if not found:
+    if lines and not lines[-1].endswith('\n'):
+        lines[-1] += '\n'
+    lines.append(f'*/5 * * * * {helper} collect --config {config} --archive {archive} run --mode rss\n')
+after = ''.join(lines)
+if after != before:
+    fd, backup = tempfile.mkstemp(prefix='crontab.', dir=state)
+    with os.fdopen(fd, 'w') as f:
+        f.write(before)
+    fd, candidate = tempfile.mkstemp(prefix='candidate.', dir=state)
+    try:
+        with os.fdopen(fd, 'w') as f:
+            f.write(after)
+        if read_cron() != before:
+            sys.exit('termux-starintel: concurrent crontab change; retry installation')
+        subprocess.run(['crontab', candidate], check=True)
+    finally:
+        Path(candidate).unlink(missing_ok=True)
+PY
+    printf 's1000000\nn3\n' > "$logs/config"
+    printf 's1000000\nn3\n' > "$PREFIX/var/log/sv/crond/config"
+    cat > "$HOME/.termux/boot/20-starintel-services" <<EOF
+#!$PREFIX/bin/bash
+export PREFIX='$PREFIX'
+export PATH='$PREFIX/bin':\$PATH
+exec '$PREFIX/bin/termux-starintel' boot
+EOF
+    chmod 0700 "$HOME/.termux/boot/20-starintel-services"
+    start
+    printf 'Ready. Install/open compatible-signature Termux:Boot once and review Android battery settings manually.\n'
+    ;;
+  collect)
+    shift
+    mkdir -p "$state" "$logs"
+    [[ ! -e "$state/paused" ]] || exit 0
+    exec 9>"$state/collector.lock"
+    flock -n -E 75 9 || exit 75
+    # The logger consumes until EOF; pipefail preserves timeout/collector failure.
+    { ready; timeout -k 10 240 "$collector" "$@"; } 2>&1 | svlogd -tt "$logs"
+    ;;
+  start)
+    mkdir -p "$state"
+    rm -f "$state/paused"
+    start
+    ;;
+  boot) start ;;
+  stop)
+    mkdir -p "$state"
+    touch "$state/paused"
+    printf 'Future archive collections paused; an in-flight run may finish. Other cron jobs continue.\n'
+    ;;
+  status)
+    ready
+    sv status "$SVDIR/crond" || true
+    if [[ -e "$state/paused" ]]; then printf 'Collector: paused\n'; else printf 'Collector: scheduled\n'; fi
+    printf 'Collector logs: %s/current\nCrontab backups: %s/crontab.*\n' "$logs" "$state"
+    if pgrep -x crond >/dev/null; then printf 'crond process: running\n'; else fail 'crond process: absent'; fi
+    ;;
+  logs) tail -n 80 "$logs/current" ;;
+  *) fail 'usage: termux-starintel {install|start|stop|status|logs|collect [collector arguments]}' ;;
+esac

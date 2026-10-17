@@ -166,3 +166,94 @@ Inspect =PAIRING.json= first.  It is the machine-readable statement of the APK
 set, expected package identities, hashes, shared user, and signing certificate.
 =SOURCE-LOCK.txt= answers the separate provenance question: exactly which
 upstream sources were built.
+
+* Archive collection at boot
+
+[[file:../../scripts/termux-starintel.org][scripts/termux-starintel.org]] owns the cron/runit integration and its generated
+=termux-starintel= command. The bootstrap installs =cronie=, =termux-services=,
+=coreutils= and =util-linux=, then invokes that helper. Existing setups can run
+=bash ~/.dotfiles/scripts/termux-starintel install= directly. The executable
+=~/.local/bin/election26=, =~/starintel/ops/archive-config.json= and
+=~/starintel/ops/archive/= are prerequisites. This repository has no verified
+source/build recipe for the phone's existing election26 executable; it reuses
+that installation and never replaces it with guessed code. Preserve its backup
+when provisioning a fresh phone.
+
+Installation backs up the crontab to =~/.local/state/termux-starintel/crontab.*=,
+wraps one recognized collector command without changing its schedule or
+arguments, and preserves unrelated lines. An absent collector entry receives
+one every-five-minute RSS entry. Ambiguous entries and an in-flight legacy
+collector abort with a diagnostic; allow that run to finish and retry. No archive
+initialization, migration, copy or cleanup is performed. =~/2026/= and the
+existing archive remain in place. The reported 246 stored objects / 247
+observations / zero errors are prior phone evidence, not results of this patch.
+
+The wrapper serializes runs with =flock= and applies a 240-second timeout with
+a ten-second kill grace. Failures retry on the next scheduled tick. Collector
+output goes to =$PREFIX/var/log/sv/election26/= through =svlogd=; collector and
+crond logs each retain a 1 MB current file and three rotated files. Existing
+shell redirections are preserved; historical output files are not deleted.
+Network availability is exercised by the collector's own request handling;
+there is no unrelated public-host ping or new collection source.
+
+| Command | Effect |
+|---------+--------|
+| =termux-starintel status= | Check config, supervisor and crond process; show pause state and log location. |
+| =termux-starintel logs= | Show the last 80 collector log lines. |
+| =termux-starintel stop= | Pause future wrapped collections; other cron entries continue, an in-flight run finishes. |
+| =termux-starintel start= | Resume collections and ensure cron startup. |
+| =sv status crond= | Inspect the packaged daemon service. |
+| =sv-disable crond= | Stop/disable supervised cron, affecting all its jobs. |
+
+If crond was started manually, installation retains it and does not launch a
+second daemon. The next boot starts the packaged runit service. A legacy
+external crond remains operator-owned; =sv-disable= cannot stop that process.
+The managed =~/.termux/boot/20-starintel-services= hook preserves a collector
+pause and starts only the service supervisor and cron. Rerunning install also
+preserves a pause. Existing boot hooks remain untouched; review any independently
+configured legacy cron launch hook to avoid competing startup owners.
+
+Install Termux:Boot from the same signed APK family as Termux, then tap its
+launcher icon once. Review Android battery optimization and vendor background
+startup settings manually for Termux and Termux:Boot. These app/permission steps
+cannot be performed by this shell bootstrap. Android may still suspend/kill
+background processes. =termux-wake-lock= is an optional manual power tradeoff;
+this hook does not acquire one automatically. See the official
+[[https://github.com/termux/termux-boot#how-to-use][Termux:Boot instructions]], [[https://github.com/termux/termux-services][termux-services commands]], and
+[[https://github.com/termux/termux-packages/blob/master/packages/cronie/build.sh][packaged crond service definition]]. No remote access service is enabled.
+
+** StarIntel runtime boundary
+
+The supported local workload here is the already-working RSS archive collector,
+using its existing private config. It is an archive host, not a complete local
+Star Server deployment. Optional remote destinations remain in user-owned
+configuration; no endpoint, credential, SSH access or tunnel is enabled by this
+patch. Keep credentials out of Git and restrict private config files to their
+owner. The collector's archive format is not asserted to be a live server DB.
+
+Source audit (2026-10-17):
+
+- [[https://github.com/lost-rob0t/starintel-edge/blob/0a75eb292b302368a6308b6f53fe2a0fdab34ee0/docs/DISTRIBUTION.md][Edge distribution]] describes Termux as an installer-plan target with service adapters
+  incomplete. =starintel-install plan --platform termux= renders a plan; it is
+  not a runnable Termux service entry point.
+- [[https://github.com/lost-rob0t/starintel-edge/blob/0a75eb292b302368a6308b6f53fe2a0fdab34ee0/docs/ANDROID-SERVICE-EVIDENCE.md][Edge Android evidence]] concerns a separate ECL/JNI Android host. Its local actor
+  core does not establish full Star Server or Android mesh availability.
+- [[https://github.com/lost-rob0t/starintel-server/blob/54a5f65f0fb3ecc286da6fe426213f015a255562/cli/star-cli.asd][Maintained star-cli]] is a Common Lisp ASDF program with entry point
+  =star-cli::main=, not a Python package or shell script. Its remote client
+  accepts a base URL and runtime =STAR_SERVER_TOKEN=/=STAR_SERVER_API_KEY=.
+  A separately built compatible client can use a remote server; this bootstrap
+  does not claim that Linux binary runs under Android or install it untested.
+- Full Star Server requires its maintained Lisp runtime and CouchDB/RabbitMQ
+  infrastructure. Native Termux SBCL and a full CouchDB/RabbitMQ stack are not
+  installed or claimed supported. The existing PRoot/Nix development guest is
+  also not evidence of a boot-ready server deployment.
+
+Host validation: =python3 tests/termux-services.py= checks temporary-HOME
+installation/reruns, literal source parity, preservation, duplicate prevention,
+logging, timeout and failure behavior with mocked Termux commands. These tests
+do not establish Android boot, battery survival, actual crond/runit startup,
+network collection, collector ABI compatibility or a new object count. On a
+test phone/emulator, verify those manually after install, pause/resume, and a
+reboot; compare archive/config and =~/2026/= checksums before/after the install
+while collection is paused. Do not use a production device as an automatic test
+target.

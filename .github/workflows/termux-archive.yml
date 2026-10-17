@@ -1,0 +1,23 @@
+name: Termux archive services
+on:
+  pull_request:
+    paths:
+      - 'bootstrap-termux.*'
+      - 'scripts/termux-starintel*'
+      - 'tests/termux-services.py'
+      - '.github/workflows/termux-archive.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'bootstrap-termux.*'
+      - 'scripts/termux-starintel*'
+      - 'tests/termux-services.py'
+permissions:
+  contents: read
+jobs:
+  host-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tests/termux-services.py
+      - run: python3 -m unittest discover -s android/tests -p test_termux_build.py -v

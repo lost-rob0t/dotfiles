@@ -24,6 +24,11 @@ normal Nix host.  The bootstrap exposes =nix=, =nix-shell=, =nix-env=,
 =nix-store=, and =nix-channel= as normal Termux commands which dispatch into the
 guest.  Flakes and =nix-command= are enabled.
 
+Archive boot integration is owned by [[file:scripts/termux-starintel.org][termux-starintel.org]]. Existing
+=election26=, archive and config are prerequisites; see the
+[[file:docs/wiki/termux.org::*Archive collection at boot][operations guide]] for manual Termux:Boot setup and runtime limitations.
+=STAR_DOTFILES_REF= selects a published review branch (default =master=).
+
 * Bootstrap
 
 #+begin_src sh :tangle bootstrap-termux.sh
@@ -31,6 +36,7 @@ guest.  Flakes and =nix-command= are enabled.
 set -euo pipefail
 
 readonly DOTFILES_REPO="https://github.com/lost-rob0t/dotfiles.git"
+readonly DOTFILES_REF="${STAR_DOTFILES_REF:-master}"
 readonly DOTFILES_DIR="${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}"
 readonly DISTRO="${STAR_TERMUX_DISTRO:-debian}"
 readonly DOOM_ROOT="${STAR_DOOM_ROOT:-$HOME/.config/emacs}"
@@ -71,6 +77,8 @@ DEBIAN_FRONTEND=noninteractive apt full-upgrade -y
 packages=(
   bash
   clang
+  coreutils
+  cronie
   curl
   emacs
   fd
@@ -82,6 +90,7 @@ packages=(
   nim
   openssh
   pkg-config
+  procps
   proot-distro
   python
   ripgrep
@@ -89,16 +98,9 @@ packages=(
   stow
   swi-prolog
   termux-api
+  termux-services
+  util-linux
 )
-
-case "$(dpkg --print-architecture 2>/dev/null || true)" in
-  aarch64|x86_64|amd64)
-    packages+=(sbcl)
-    ;;
-  *)
-    printf '==> SBCL skipped: native Termux SBCL is 64-bit only on Android\n' >&2
-    ;;
-esac
 
 note "Installing native Termux development stack"
 pkg install -y "${packages[@]}"
@@ -110,12 +112,12 @@ fi
 
 note "Bootstrapping dotfiles at $DOTFILES_DIR"
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
-  git -C "$DOTFILES_DIR" fetch origin master
-  git -C "$DOTFILES_DIR" merge --ff-only origin/master
+  git -C "$DOTFILES_DIR" fetch origin "$DOTFILES_REF"
+  git -C "$DOTFILES_DIR" merge --ff-only FETCH_HEAD
 elif [[ -e "$DOTFILES_DIR" ]]; then
   fail "$DOTFILES_DIR exists but is not a Git checkout"
 else
-  git clone --branch master --single-branch "$DOTFILES_REPO" "$DOTFILES_DIR"
+  git clone --branch "$DOTFILES_REF" --single-branch "$DOTFILES_REPO" "$DOTFILES_DIR"
 fi
 
 note "Installing platform-aware entry command"
@@ -429,6 +431,9 @@ else
   printf '==> Termux:Widget app not detected. Install the plugin from the same source/signing family as Termux, then add its widget.\n'
 fi
 
+note "Configuring archive collector and boot services"
+bash "$DOTFILES_DIR/scripts/termux-starintel" install
+
 note "Bootstrap complete"
 printf 'Platform:  '
 platform-enter --info | paste -sd ' ' -
@@ -440,8 +445,6 @@ printf 'Doom:      '
 doom-termux version 2>/dev/null | sed -n '1p' || true
 printf 'SWI:       '
 swipl --version 2>/dev/null || true
-printf 'SBCL:      '
-sbcl --version 2>/dev/null || true
 printf 'Nim:       '
 nim --version 2>/dev/null | sed -n '1p' || true
 printf 'Python:    '
