@@ -1,0 +1,22 @@
+name: Termux CouchDB probe contracts
+on:
+  pull_request:
+    paths:
+      - 'scripts/termux-couchdb-proof*'
+      - 'tests/termux-couchdb.py'
+      - '.github/workflows/termux-couchdb.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'scripts/termux-couchdb-proof*'
+      - 'tests/termux-couchdb.py'
+      - '.github/workflows/termux-couchdb.yml'
+permissions:
+  contents: read
+jobs:
+  couchdb-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tests/termux-couchdb.py

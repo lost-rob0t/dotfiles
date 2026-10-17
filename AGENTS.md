@@ -20,6 +20,7 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `scripts/dotfiles-sync.org` is the source of truth for `scripts/dotfiles-sync`.
 - `scripts/termux-remote.org` is the source of truth for `scripts/remote-gui-launch`, `scripts/agent-zero-tunnel`, and `scripts/install-termux-widgets`.
 - `scripts/termux-starintel-client.org` is the source of truth for `scripts/termux-starintel-client`.
+- `scripts/termux-couchdb-proof.org` is the source of truth for `scripts/termux-couchdb-proof`.
 - `scripts/termux-starintel.org` is the source of truth for `scripts/termux-starintel`.
 - `bootstrap-termux.org` is the source of truth for `bootstrap-termux.sh`.
 - `android/build.org` is the source of truth for `android/build.py`.

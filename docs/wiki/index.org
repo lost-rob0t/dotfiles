@@ -70,3 +70,5 @@ Do not copy large sections of configuration into this wiki merely to describe th
 
 - [[file:termux.org::*Archive collection at boot][Termux archive boot services and runtime support boundary]]
 - [[file:termux.org::*StarIntel remote operator client][Termux StarIntel remote client and local-runtime validation boundary]]
+
+- [[file:termux.org::*Local Server and CouchDB acceptance][Local Server/CouchDB PRoot acceptance and runtime matrix]]

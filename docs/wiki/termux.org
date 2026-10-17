@@ -371,3 +371,163 @@ starts an actor runtime, exercises real sensors, or implements a local server.
 The separate =tests/runtime.lisp= suite also needs the pinned Sento dependency
 closure; the Android ECL/APK lifecycle and full server portability gates remain
 open.
+
+* Local Server and CouchDB acceptance
+
+Issue [[https://github.com/lost-rob0t/dotfiles/issues/332][#332]] tracks the local Server slice. The chosen deployment candidate is
+same-architecture glibc userspace under unprivileged PRoot, with foreground
+processes supervised from Termux. It uses the real upstream CouchDB distribution;
+it does not substitute a JSON store or a remote Server client. No local Server
+service is enabled by the bootstrap yet.
+
+The canonical [[file:../../scripts/termux-couchdb-proof.org][CouchDB acceptance source]] generates
+=scripts/termux-couchdb-proof=. This experimental command only checks CouchDB.
+Install =proot-distro= 5.9.0 and =proot= in an isolated test environment. On Termux,
+=python= and =proot= are available through =pkg=; obtain the exact proot-distro
+version in a dedicated Python venv if the packaged version differs. Initial image
+installation requires network access and several hundred MB beyond the private
+probe data. Do not install over an existing guest. For x86_64:
+
+#+begin_src sh
+proot-distro install --name starintel-couchdb-proof --architecture x86_64 docker.io/library/couchdb@sha256:6785bd4bec3d406fbba8d60f8ec258e6ddec38bf0fbfd700916790b697f9ab8e
+python3 scripts/termux-couchdb-proof --guest starintel-couchdb-proof \
+  --manifest "$PREFIX/var/lib/proot-distro/containers/starintel-couchdb-proof/manifest.json" \
+  --state "$HOME/.local/state/starintel-couchdb-proof"
+#+end_src
+
+Linux proot-distro stores the manifest under
+=${XDG_DATA_HOME:-$HOME/.local/share}/proot-distro/containers/NAME/manifest.json=.
+An OCI archive exported with =docker image save= can replace the image argument
+for offline installation; retain its manifest/config digest. The installed guest
+and cache must already be present for offline reruns. The probe verifies the
+installed guest's recorded config digest, not a cryptographic attestation of a
+rootfs modified after extraction. Treat guest files as trusted executable code.
+
+The aarch64 candidate uses =--architecture aarch64= and manifest
+=sha256:5a1991c184104a164e1df74139989f0bd7c8cac320ac79de3e15cb3c194d3eb4=.
+Its config digest is pinned in the source, but it has not been executed here.
+No QEMU/cross-architecture runtime support is claimed. Other architectures fail
+closed. Both pins are upstream CouchDB 3.5.2 with embedded Erlang OTP 26.
+
+The command starts a dedicated loopback EPMD and CouchDB, waits up to 90 seconds
+for readiness, creates one fixture if absent, sends SIGTERM, restarts against the
+same private data directory, verifies readback, and stops its own process groups.
+SIGINT/SIGTERM also trigger cleanup. A separate live guardian pins each owned
+session/group ID even after PRoot exits. A closed pipe gate prevents guest launch
+until the guardian handshake, PID registration, and logger setup commit. INT/TERM
+are deferred across spawn/registration; constructor failures and interrupted
+handshakes reap the still child-free guardian and close startup descriptors. Cleanup sends TERM, allows 15 seconds
+for graceful shutdown, then kills the guardian and any remaining group members.
+If the guardian is unexpectedly lost, cleanup fails closed instead of signaling
+a possibly reused group. Remaining listeners also fail acceptance. The supported
+commands run in the foreground; detached processes that create new sessions are
+not covered by group supervision. Status is the foreground JSON result/exit status; logs are =couch.log=
+and =epmd.log= in the state directory. Re-execute the command to start another
+acceptance run. It does not create a detached service or PID-file control API.
+
+Ports 45984 (HTTP), 45969 (EPMD), and 45910 (Erlang distribution) must be free.
+All listeners bind to 127.0.0.1; PRoot shares the host network. This does not isolate
+other applications running under the same Android UID. A generated private admin
+password stays in a mode-0600 state file and HTTP memory; the CouchDB ini contains
+only its PBKDF2 verifier. The Erlang cookie is mode 0400. Neither is placed in
+source, command arguments, or logs. Managed outputs, rotated log targets and the
+lock must be private, regular, singly linked files owned by the current UID.
+Symlink/hardlink/nonregular targets fail before writing; descriptor checks and
+no-follow opens also protect the actual log/lock file. Logger failures fail
+acceptance rather than silently dropping evidence. State must be new or owned by this probe;
+existing state and fixture bytes are preserved on rerun.
+
+Each component log rotates at 1 MiB with two backups. The short acceptance run
+checks a 128 MiB state budget and 128 MiB free-space reserve at startup/readiness;
+these checks are not a hard aggregate filesystem quota. Erlang schedulers are
+limited to two. No compaction, backup, production capacity, battery survival, or
+Android background-lifecycle guarantees have been established. A production
+service needs storage policy, broker readiness and an Android lifecycle test.
+
+** Recorded evidence and blockers (2026-10-17)
+
+- Actual unprivileged Linux x86_64 PRoot, proot-distro 5.9.0, PRoot 5.1.0:
+  CouchDB 3.5.2 ready; fixture write; SIGTERM; restart; durable readback passed.
+  The checked-in command was run twice against the same state. This is Linux
+  execution evidence, not Android execution evidence.
+- =python3 tests/termux-couchdb.py= checks exact literate parity, create-once
+  state/data preservation, private credentials and digest rejection. These are
+  contract tests, not substitutes for runtime evidence.
+- Server baseline =54a5f65f0fb3ecc286da6fe426213f015a255562= has no published release
+  artifact and its flake selects =x86_64-linux=. The bounded Nix image build
+  (two CPUs, 3 GiB, max-jobs 1, 900-second deadline) failed fetching dependencies:
+  =https://cache.nixos.org/nix-cache-info=: =CONNECT tunnel failed, response 403=.
+  The host CA was supplied without disabling TLS. No compilation result is
+  claimed, and no source rebuild/retry loop was launched after this blocker.
+- The 403 is a rejection of =CONNECT cache.nixos.org:443= by the configured
+  =http://proxy:8080= HTTPS proxy, before an origin TLS connection/GET
+  =/nix-cache-info= was established. It is not an origin 404 or evidence of a
+  private Server artifact. The same log records rejection of
+  =CONNECT ftpmirror.gnu.org:443= for =/bash/bash-5.3.tar.gz=. This explains the
+  subsequent dependency failure. No proxy bypass, alternate mirror, TLS/auth
+  weakening, or repeated network probe was used to evade either denial.
+- Source-build route inspection at the same Server baseline: README's supported
+  reproducible route is Nix; its interactive example still runs =nix develop=
+  before =sbcl --load run.lisp=, but =run.lisp= is absent. =make -n build= does
+  expose the existing =sbcl= / =ql:quickload= / =save-lisp-and-die= recipe; it
+  does not provision Quicklisp/Qlot, native libraries, or a Debian dependency
+  closure. The Qlot cl-couch lock is =e3c8e7d1548c7814e49528869c098e5e03ccbe80=,
+  whereas the supported flake pins =a37150193b81fad16d24b42102353fcad9c649ad=.
+  No SBCL/Quicklisp/Qlot executable or preinstalled dependency closure exists
+  in this test environment. This is source-inspected deployment drift, not a
+  failed SBCL compilation or proof that ASDF cannot run on Debian. There is no
+  documented, self-contained non-Nix Debian deployment route yet. Implementing
+  that route is owned by [[https://github.com/lost-rob0t/starintel-server/issues/341][server #341]], separately from native ECL issue #318.
+  Missing setup is implementation work, not a reason to substitute another Server.
+- The permitted Debian source-build preflight subsequently tried the required
+  official Quicklisp bootstrap once at =https://beta.quicklisp.org/quicklisp.lisp=.
+  Curl returned exit 56, =http_code=000=, =connect_code=403= and
+  =CONNECT tunnel failed, response 403=; the proxy response identifies =envoy=.
+  No origin TLS/HTTP response or dependency bytes were obtained. This exact
+  unmet dependency now blocks source-build execution here, before any long
+  build. No mirror, tunnel, proxy bypass or weakened TLS/auth was attempted.
+  In an operator-owned environment where that official channel is permitted,
+  this read-only preflight can establish availability (not a working installer):
+
+  #+begin_src sh
+  curl --proto '=https' --fail --show-error --connect-timeout 10 --max-time 20 --retry 0 --output quicklisp.lisp https://beta.quicklisp.org/quicklisp.lisp
+  sha256sum quicklisp.lisp
+  command -v sbcl
+  sbcl --version
+  #+end_src
+
+- No Android emulator, ADB endpoint or authorized phone is available. No device
+  was deployed to or changed.
+
+The next required gate is an exact-source Server image plus real RabbitMQ, then
+Server =POST /api/v1/documents= / =GET /api/v1/documents/:id= using canonical
+0.10.1 documents, Server restart/readback, and one existing actor-protocol
+roundtrip. The real entry point is =/bin/star-server start -i /etc/starintel/init.lisp=.
+Readiness depends on CouchDB and RabbitMQ; it cannot be replaced by a successful
+TCP probe. Memory lease storage is available but does not establish durable leases.
+The CouchDB fixture in this PR does not establish canonical Server storage or
+any actor behavior. Do not activate a Server boot service before those gates.
+
+** Runtime matrix
+
+These are inspected source capabilities, not Android conformance claims. Keep
+one canonical actor runtime/protocol instead of creating seven parallel servers.
+The star-lang source inspection used commit
+=4c8d1e19249a5030b7d97f953f694c09849b9131= (including its reviewed/draft integration
+boundaries); that checkout is not a published Android runtime artifact.
+
+| Component | Existing implementation | Remaining acceptance |
+|-----------+-------------------------+----------------------|
+| Common Lisp / Server | Sento runtime and canonical Server HTTP at the pinned Server baseline | Server artifact, real broker, canonical HTTP/restart, actor roundtrip, Android |
+| StarLang | =starlang-runtime=, =starlang-compiler=, =star-actor-protocol=, =star-process-port= in star-lang | Compile/load with pinned Server, real shared-protocol integration, Android |
+| Nim | =star-zmq/nim/actor.nim= ready/echo/stop worker and =star-zmq/tests/actor_conformance.py= | Build exact worker and execute conformance; transport conformance alone is not Server integration |
+| Python | =star-zmq/python/star_zmq.py= byte transport client | Actual worker adapter and canonical actor roundtrip; Python package presence is insufficient |
+| JS / TS | Client/SDK sources exist; no concrete actor worker verified | Identify/implement the protocol worker, then conformance; SDK presence is insufficient |
+| Prolog | =star-logic-adapter-swi= exact-executable MQI and bounded relation primitive | Controlled logic boundary is not an actor runtime or general star.logic.query/1; Server integration and Android remain |
+
+The shared ZeroMQ/process-port work is an existing integration boundary, not an
+excuse to force seven independent AMQP clients. RabbitMQ remains a requirement
+of the current Server. Native SBCL package availability does not establish full
+Server/Bionic compatibility; full CouchDB/RabbitMQ native Termux support is not
+claimed. This probe leaves the collector, its crontab, =~/starintel/ops/archive=,
+=~/starintel/ops/archive-config.json= and =~/2026= untouched.
