@@ -6,11 +6,13 @@ on:
       - '.github/workflows/zara-workflows.yml'
       - 'tests/zara-workflows.sh'
       - 'tests/zara-lyria.py'
+      - 'tests/zara-starintel.py'
       - 'tests/zara-android-template.sh'
       - 'nix/home-manager/mods/default.nix'
       - 'nix/home-manager/mods/zara.nix'
       - 'nix/home-manager/mods/zara-workflows.nix'
       - 'nix/home-manager/systems/desktop/home.nix'
+      - 'nix/home-manager/systems/flake/home.nix'
       - 'flake.nix'
       - 'flake.lock'
       - 'nix/home-manager/files/zarathushtra/**'
@@ -27,11 +29,13 @@ on:
       - '.github/workflows/zara-workflows.yml'
       - 'tests/zara-workflows.sh'
       - 'tests/zara-lyria.py'
+      - 'tests/zara-starintel.py'
       - 'tests/zara-android-template.sh'
       - 'nix/home-manager/mods/default.nix'
       - 'nix/home-manager/mods/zara.nix'
       - 'nix/home-manager/mods/zara-workflows.nix'
       - 'nix/home-manager/systems/desktop/home.nix'
+      - 'nix/home-manager/systems/flake/home.nix'
       - 'flake.nix'
       - 'flake.lock'
       - 'nix/home-manager/files/zarathushtra/**'
@@ -63,5 +67,7 @@ jobs:
         run: bash tests/zara-workflows.sh
       - name: Check private OpenRouter Lyria plugin
         run: python3 tests/zara-lyria.py
+      - name: Check public StarIntel search tool
+        run: python3 tests/zara-starintel.py
       - name: Check Zara Android config template
         run: bash tests/zara-android-template.sh

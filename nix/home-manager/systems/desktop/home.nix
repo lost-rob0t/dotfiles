@@ -28,21 +28,23 @@
 
   hackmode.enable = true;
 
+  # Zara runtime is temporarily disabled while the stack is cleaned up.
+  # Keep the declarative values in place so re-enabling remains deliberate.
   zara = {
-    enable = true;
+    enable = false;
     nixManaged = false;
-    workflows.enable = true;
+    workflows.enable = false;
 
     server = {
-      enable = true;
+      enable = false;
       environmentFile = "-%h/.config/zarathushtra/secrets.env";
     };
 
-    desktop.enable = true;
-    wake.enable = true;
+    desktop.enable = false;
+    wake.enable = false;
 
     plugins = {
-      enableAll = true;
+      enableAll = false;
       discoveryFiles = {
         "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
         "lyria.py" = ../../files/zarathushtra/plugins/lyria.py;
@@ -50,16 +52,14 @@
     };
   };
 
-  # Qwen3-TTS runs the pinned upstream GGML server on Vulkan: /dev/dri render
-  # nodes only (no /dev/kfd), compute stays off the graphics queue, restarts
-  # are bounded, and the pinned image + sha256-verified GGUF models provision
-  # on first start. Validated live on the RX 5500 XT with zero kernel faults.
-  services.qwen3-tts = {
-    enable = true;
-    autoStart = true;
-    backend = "vulkan";
-    port = 7860;
-  };
+  # Qwen3-TTS is temporarily disabled because it may cause GPU crashes or
+  # wider UI/system instability. Reassess it before uncommenting this block.
+  # services.qwen3-tts = {
+  #   enable = true;
+  #   autoStart = true;
+  #   backend = "vulkan";
+  #   port = 7860;
+  # };
 
   # Local clients (wake listener, CLI, desktop) share Zara's owner-private
   # IPC endpoint; config.toml's [daemon] endpoint stays empty so the client

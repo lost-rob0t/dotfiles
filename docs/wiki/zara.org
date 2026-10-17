@@ -2,10 +2,19 @@
 #+AUTHOR: nsaspy
 #+STARTUP: overview
 
+* Runtime status
+
+The =unseen@flake= profile enables the local Zara daemon, desktop client,
+wake listener, workflows, and the Qwen3-TTS CPU service. Its existing private
+=config.toml= uses the =zara= clone voice. The shared desktop and hunter02
+profiles remain disabled. The GPU path remains out of the flake profile while
+the driver incident is unresolved.
+
 * Scope
-The desktop Home Manager profile enables =zara.workflows=.  That module installs
-non-secret operator workflow defaults and the bounded =zara-system-update=
-helper without taking ownership of Zara's mutable private overlay.
+When enabled, the desktop Home Manager profile's =zara.workflows= module
+installs non-secret operator workflow defaults and the bounded
+=zara-system-update= helper without taking ownership of Zara's mutable private
+overlay.
 
 * Configuration ownership
 - =.config/zarathushtra/config.pl= is the canonical tracked declarative base layer
@@ -68,13 +77,10 @@ test uses a fake provider stream, including base64 chunks split at arbitrary
 boundaries, so CI never spends OpenRouter credits.
 
 * Qwen3-TTS backend
-The desktop profile imports the =Qwen3-TTS_server= Home Manager flake module,
-installs its =qwen3-tts= command, and enables the Vulkan GPU service on
-=http://127.0.0.1:7860=.  The service runs the pinned upstream
-=qwentts.cpp= GGML image on =/dev/dri= render nodes only; =/dev/kfd= and the
-retired PyTorch/ROCm path are gone entirely.  Zara streams speech from it in
-real time (s16le 24 kHz PCM) instead of buffering whole WAV files.  Home
-Manager deliberately does not own =~/.config/zarathushtra/config.toml=.
+The =unseen@flake= profile runs the pinned Qwen3-TTS service on CPU at
+=http://127.0.0.1:7860=. Zara streams its speech output. Home Manager does
+not own =~/.config/zarathushtra/config.toml=, which still selects the =zara=
+clone voice from the user's private voice directory.
 
 Merge this table into that mutable file.  Replace its existing =[tts]= table if
 present; TOML does not allow two tables with the same name.
@@ -96,7 +102,7 @@ Apply and verify the services:
 
 #+begin_src shell
 home-manager switch --flake ~/.dotfiles#unseen@desktop
-qwen3-tts doctor vulkan
+qwen3-tts doctor cpu
 systemctl --user restart qwen3-tts zara-server
 qwen3-tts status
 sudo loginctl enable-linger "$USER"
@@ -128,13 +134,17 @@ voice falls back to the x-vector-only path.  After changing =voice= in
 =config.toml=, restart =zara-server=; adding or replacing the referenced clip
 itself does not require restarting Qwen.
 
-The Vulkan backend needs Docker access plus host =/dev/dri= with a render
-node (=renderD128=); it never touches =/dev/kfd=, and GGML keeps its compute
-queue off the graphics queue so the desktop session is not the failure
-surface.  Validated live on the RX 5500 XT (RDNA1): model load, 896 MB
-KV-cache allocation, synthesis, and realtime streaming all pass with zero
-kernel GPU faults.  On hosts without a usable Vulkan driver use
-=backend = "cpu";= as the explicit emergency mode.
+The CPU backend avoids the previously unstable GPU path. Runtime voice
+latency and speech quality still require a live check after activation.
+
+* StarIntel search tool
+The flake profile installs the dotfiles-owned Zara plugin from
+=nix/home-manager/files/zarathushtra/plugins/starintel.py=. It exposes only
+read-only =starintel_search= against the public =/api/v1/search= route at
+=ingest.starintel.actor=. The route answered during preparation, but a recent
+document was not found through text or ID queries; this is tracked in
+[[https://git.starintel.actor/starintel-labs/starintel-server/issues/20][server issue 20]]. Target submission and document writes are not exposed by
+this plugin while their operator workflow remains unverified.
 
 * Localhost pairing autosync
 =zara-pair= gives same-host clients (desktop copilot, CLI) authenticated CURVE
@@ -158,14 +168,11 @@ copilot still starts over IPC before pairing). Diagnostics:
 the device enrollment. Secrets live only in the keyring and the 0600 env
 file; neither Git nor Nix sees them.
 
-* Authenticated Android listener on flake
+* Local assistant on flake
 The =unseen@flake= Home Manager profile starts Zara with its owner-private IPC
-endpoint for local clients and an authenticated TCP listener on all IPv4
-interfaces at =tcp://0.0.0.0:6060= for Android. The phone connects to the host's
-LAN address, currently =tcp://10.50.50.28:6060=. Its existing CURVE/ZAP identity and client
-registry remain outside Nix and Git under
-=~/.local/state/zarathushtra/security=. Other desktop profiles retain only
-local IPC. The Zara flake input is pinned to the tested GitHub merge commit.
+endpoint for local clients. The Android TCP listener remains disabled until
+its remote client and security state are checked separately. The Zara flake
+input is pinned; the private =config.toml= stays out of Nix.
 
 Apply the flake user-service configuration with:
 
@@ -173,17 +180,16 @@ Apply the flake user-service configuration with:
 home-manager switch --flake ~/.dotfiles#unseen@flake
 #+end_src
 
-Verify the local listener with:
+Verify the local services with:
 
 #+begin_src shell
 systemctl --user status zara-server --no-pager
-ss -ltnp | grep ':6060'
+systemctl --user status zara-wake qwen3-tts --no-pager
 journalctl --user -u zara-server -n 100 --no-pager
 #+end_src
 
-The phone must pin this server's public key and its CLIENT PUBLIC KEY must be
-enrolled in the server registry. The service has no unauthenticated fallback.
-Port access from the phone still depends on the host and LAN firewall policy.
+Remote phone pairing is a separate operation and is not implied by these
+local service checks.
 
 * Operator workflows
 The canonical fact definitions live in
