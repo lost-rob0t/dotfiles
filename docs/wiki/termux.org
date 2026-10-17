@@ -413,7 +413,10 @@ The command starts a dedicated loopback EPMD and CouchDB, waits up to 90 seconds
 for readiness, creates one fixture if absent, sends SIGTERM, restarts against the
 same private data directory, verifies readback, and stops its own process groups.
 SIGINT/SIGTERM also trigger cleanup. A separate live guardian pins each owned
-session/group ID even after PRoot exits. Cleanup sends TERM, allows 15 seconds
+session/group ID even after PRoot exits. A closed pipe gate prevents guest launch
+until the guardian handshake, PID registration, and logger setup commit. INT/TERM
+are deferred across spawn/registration; constructor failures and interrupted
+handshakes reap the still child-free guardian and close startup descriptors. Cleanup sends TERM, allows 15 seconds
 for graceful shutdown, then kills the guardian and any remaining group members.
 If the guardian is unexpectedly lost, cleanup fails closed instead of signaling
 a possibly reused group. Remaining listeners also fail acceptance. The supported
@@ -473,8 +476,26 @@ service needs storage policy, broker readiness and an Android lifecycle test.
   No SBCL/Quicklisp/Qlot executable or preinstalled dependency closure exists
   in this test environment. This is source-inspected deployment drift, not a
   failed SBCL compilation or proof that ASDF cannot run on Debian. There is no
-  documented, self-contained non-Nix Debian deployment route to execute without
-  defining a new dependency/install path. No replacement Server was written.
+  documented, self-contained non-Nix Debian deployment route yet. Implementing
+  that route is owned by [[https://github.com/lost-rob0t/starintel-server/issues/341][server #341]], separately from native ECL issue #318.
+  Missing setup is implementation work, not a reason to substitute another Server.
+- The permitted Debian source-build preflight subsequently tried the required
+  official Quicklisp bootstrap once at =https://beta.quicklisp.org/quicklisp.lisp=.
+  Curl returned exit 56, =http_code=000=, =connect_code=403= and
+  =CONNECT tunnel failed, response 403=; the proxy response identifies =envoy=.
+  No origin TLS/HTTP response or dependency bytes were obtained. This exact
+  unmet dependency now blocks source-build execution here, before any long
+  build. No mirror, tunnel, proxy bypass or weakened TLS/auth was attempted.
+  In an operator-owned environment where that official channel is permitted,
+  this read-only preflight can establish availability (not a working installer):
+
+  #+begin_src sh
+  curl --proto '=https' --fail --show-error --connect-timeout 10 --max-time 20 --retry 0 --output quicklisp.lisp https://beta.quicklisp.org/quicklisp.lisp
+  sha256sum quicklisp.lisp
+  command -v sbcl
+  sbcl --version
+  #+end_src
+
 - No Android emulator, ADB endpoint or authorized phone is available. No device
   was deployed to or changed.
 

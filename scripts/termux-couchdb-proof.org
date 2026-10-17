@@ -17,6 +17,7 @@ See [[file:../docs/wiki/termux.org::*Local Server and CouchDB acceptance][the op
 """Explicit real CouchDB probe. No Server/actor/Android support is implied."""
 import argparse
 import base64
+import contextlib
 import fcntl
 import hashlib
 import json
@@ -170,14 +171,28 @@ class PrivateLogHandler(logging.handlers.RotatingFileHandler):
 # The guardian pins the session/group identity until cleanup sends SIGKILL.
 # A completed PRoot launcher therefore cannot let its group ID be reused while
 # its descendants still need cleanup. Caught signals reset to defaults on exec.
+@contextlib.contextmanager
+def startup_signals_blocked():
+    previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
+    try:
+        yield
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+
+
 GUARDIAN = r"""
 import os, signal, subprocess, sys
 signal.signal(signal.SIGTERM, lambda *_: None)
 signal.signal(signal.SIGINT, lambda *_: None)
-fd = int(sys.argv[1])
+signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT, signal.SIGTERM})
+fd, gate = int(sys.argv[1]), int(sys.argv[2])
 os.write(fd, b'R')
+committed = os.read(gate, 1) == b'G'
+os.close(gate)
+if not committed:
+    sys.exit(0)
 try:
-    status = subprocess.Popen(sys.argv[2:], stdin=subprocess.DEVNULL).wait()
+    status = subprocess.Popen(sys.argv[3:], stdin=subprocess.DEVNULL).wait()
 except OSError:
     status = 127
 os.write(fd, (str(status) + '\n').encode())
@@ -189,28 +204,54 @@ while True:
 
 class OwnedProcess:
     def __init__(self, argv, stdout):
-        read_fd, write_fd = os.pipe()
-        try:
-            self.guard = subprocess.Popen(
-                [sys.executable, '-I', '-S', '-c', GUARDIAN, str(write_fd)] + argv,
-                stdin=subprocess.DEVNULL, stdout=stdout, stderr=subprocess.STDOUT,
-                pass_fds=(write_fd,), start_new_session=True)
-        except BaseException:
-            os.close(read_fd)
-            raise
-        finally:
-            os.close(write_fd)
-        if not select.select([read_fd], [], [], 5)[0] or os.read(read_fd, 1) != b'R':
-            self.guard.kill()
-            self.guard.wait(timeout=5)
-            os.close(read_fd)
-            raise RuntimeError('guardian startup handshake failed')
-        self.status_fd = read_fd
-        os.set_blocking(read_fd, False)
-        self.stdout = self.guard.stdout
-        self.pid = self.guard.pid
+        self.guard = None
         self.status = None
         self.stopped = False
+        self.gate_fd = None
+        owned_fds = set()
+        try:
+            # Assignment of the new PID and descriptor ownership is atomic with
+            # respect to termination signals. No guest starts before start().
+            with startup_signals_blocked():
+                read_fd, write_fd = os.pipe()
+                owned_fds.update((read_fd, write_fd))
+                gate_read, gate_write = os.pipe()
+                owned_fds.update((gate_read, gate_write))
+                self.guard = subprocess.Popen(
+                    [sys.executable, '-I', '-S', '-c', GUARDIAN,
+                     str(write_fd), str(gate_read)] + argv,
+                    stdin=subprocess.DEVNULL, stdout=stdout, stderr=subprocess.STDOUT,
+                    pass_fds=(write_fd, gate_read), start_new_session=True)
+                for fd in (write_fd, gate_read):
+                    os.close(fd)
+                    owned_fds.remove(fd)
+            if not select.select([read_fd], [], [], 5)[0] or os.read(read_fd, 1) != b'R':
+                raise RuntimeError('guardian startup handshake failed')
+            self.status_fd = read_fd
+            self.gate_fd = gate_write
+            os.set_blocking(read_fd, False)
+            self.stdout = self.guard.stdout
+            self.pid = self.guard.pid
+        except BaseException:
+            # The commit gate is still closed: there cannot be guest children.
+            # Kill/reap only this Popen PID, never an unverified/reused group.
+            with startup_signals_blocked():
+                try:
+                    if self.guard is not None:
+                        self.guard.kill()
+                        self.guard.wait(timeout=5)
+                finally:
+                    if self.guard is not None and self.guard.stdout is not None:
+                        self.guard.stdout.close()
+                    for fd in owned_fds:
+                        os.close(fd)
+            raise
+
+    def start(self):
+        if self.gate_fd is not None:
+            os.write(self.gate_fd, b'G')
+            os.close(self.gate_fd)
+            self.gate_fd = None
 
     def poll(self):
         if self.status is None and not self.stopped:
@@ -235,7 +276,6 @@ class OwnedProcess:
     def stop(self, timeout=15):
         if self.stopped:
             return
-        # Never signal a group after losing the live guardian identity.
         if self.guard.poll() is not None:
             raise RuntimeError('lost guardian ownership; refusing to signal a possibly reused group')
         os.killpg(self.pid, signal.SIGTERM)
@@ -247,6 +287,9 @@ class OwnedProcess:
         os.killpg(self.pid, signal.SIGKILL)
         self.guard.wait(timeout=5)
         os.close(self.status_fd)
+        if self.gate_fd is not None:
+            os.close(self.gate_fd)
+            self.gate_fd = None
         self.stopped = True
 
 
@@ -292,27 +335,41 @@ class Probe:
         safe_outputs(self.root)
         handler = PrivateLogHandler(
             self.root / (name + '.log'), maxBytes=1024**2, backupCount=2)
+        proc = None
+        thread = None
         try:
-            proc = OwnedProcess(self.argv + args, stdout=subprocess.PIPE)
+            # Defer INT/TERM until PID registration, logger ownership, and the
+            # guest commit are complete. A pending signal then takes cleanup.
+            with startup_signals_blocked():
+                proc = OwnedProcess(self.argv + args, stdout=subprocess.PIPE)
+                self.children.append(proc)
+                def drain():
+                    try:
+                        while chunk := proc.stdout.read(4096):
+                            record = logging.LogRecord(name, logging.INFO, '', 0,
+                                                       chunk.decode('utf-8', 'replace'), (), None)
+                            handler.emit(record)
+                    except Exception:
+                        self.log_errors.append('private log writer failed')
+                    finally:
+                        proc.stdout.close()
+                        handler.close()
+                thread = threading.Thread(target=drain, daemon=True)
+                self.logs.append(thread)
+                thread.start()
+                proc.start()
+            return proc
         except BaseException:
-            handler.close()
+            with startup_signals_blocked():
+                if proc is not None:
+                    self.stop(proc)
+                if thread is None or thread.ident is None:
+                    handler.close()
+                    if proc is not None and proc.stdout is not None:
+                        proc.stdout.close()
+                else:
+                    thread.join(timeout=5)
             raise
-        self.children.append(proc)
-        def drain():
-            try:
-                while chunk := proc.stdout.read(4096):
-                    record = logging.LogRecord(name, logging.INFO, '', 0,
-                                               chunk.decode('utf-8', 'replace'), (), None)
-                    handler.emit(record)
-            except Exception:
-                self.log_errors.append('private log writer failed')
-            finally:
-                proc.stdout.close()
-                handler.close()
-        thread = threading.Thread(target=drain, daemon=True)
-        thread.start()
-        self.logs.append(thread)
-        return proc
 
     @staticmethod
     def stop(proc, timeout=15):
@@ -377,18 +434,19 @@ class Probe:
                 raise RuntimeError('restart readback mismatch')
 
         finally:
-            errors = []
-            for proc in reversed(self.children):
-                try:
-                    self.stop(proc)
-                except (OSError, RuntimeError) as error:
-                    errors.append(error)
-            for thread in self.logs:
-                thread.join(timeout=5)
-            if self.log_errors:
-                raise RuntimeError('private log writer failed')
-            if errors:
-                raise RuntimeError('cleanup failed: ' + str(errors[0]))
+            with startup_signals_blocked():
+                errors = []
+                for proc in reversed(self.children):
+                    try:
+                        self.stop(proc)
+                    except (OSError, RuntimeError) as error:
+                        errors.append(error)
+                for thread in self.logs:
+                    thread.join(timeout=5)
+                if self.log_errors:
+                    raise RuntimeError('private log writer failed')
+                if errors:
+                    raise RuntimeError('cleanup failed: ' + str(errors[0]))
         wait_ports_closed(PORTS)
         print(json.dumps({'couchdb': '3.5.2', 'restartReadback': 'pass',
                           'host': platform.system(), 'architecture': platform.machine(),

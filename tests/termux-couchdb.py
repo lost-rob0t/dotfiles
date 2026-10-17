@@ -85,6 +85,7 @@ class Contracts(unittest.TestCase):
             self.assertLessEqual(sum(p.stat().st_size for p in files), 3 * (1024**2 + 4096))
             # Stop only the separately created process group, without a PID file.
             child = probe.OwnedProcess([sys.executable, '-c', 'import time; time.sleep(60)'], stdout=subprocess.DEVNULL)
+            child.start()
             try:
                 runner.stop(child, timeout=.1)
                 self.assertTrue(child.stopped)
@@ -109,6 +110,7 @@ class Contracts(unittest.TestCase):
                       'Path(' + repr(str(ready)) + ').touch(); time.sleep(60)')
             launcher = 'import subprocess; subprocess.Popen(' + repr([sys.executable, '-c', worker]) + ')'
             proc = probe.OwnedProcess([sys.executable, '-c', launcher], stdout=subprocess.DEVNULL)
+            proc.start()
             try:
                 proc.wait(timeout=5)
                 deadline = time.monotonic() + 5
@@ -149,6 +151,7 @@ class Contracts(unittest.TestCase):
                       'Path(' + repr(str(ready)) + ').write_text(json.dumps(sock.getsockname()[1])); time.sleep(60)')
             launcher = 'import subprocess; subprocess.Popen(' + repr([sys.executable, '-c', worker]) + ')'
             proc = probe.OwnedProcess([sys.executable, '-c', launcher], stdout=subprocess.DEVNULL)
+            proc.start()
             try:
                 self.assertEqual(proc.wait(timeout=5), 0)
                 deadline = time.monotonic() + 5
@@ -174,6 +177,7 @@ class Contracts(unittest.TestCase):
 
     def test_dead_guardian_prevents_group_signals(self):
         proc = probe.OwnedProcess([sys.executable, '-c', 'pass'], stdout=subprocess.DEVNULL)
+        proc.start()
         proc.wait(timeout=5)
         proc.guard.kill()
         proc.guard.wait(timeout=5)
@@ -236,6 +240,63 @@ class Contracts(unittest.TestCase):
         finally:
             process.terminate()
             process.wait(timeout=5)
+
+    def test_failed_and_interrupted_handshakes_leave_no_processes(self):
+        for interrupted in (False, True):
+            with self.subTest(interrupted=interrupted), tempfile.TemporaryDirectory() as tmp:
+                ready = Path(tmp) / 'child-started'
+                worker = ('from pathlib import Path; import time; Path(' + repr(str(ready)) + ').touch(); time.sleep(60)')
+                created = []
+                before_fds = len(os.listdir('/proc/self/fd'))
+                popen = subprocess.Popen
+                def capture(*args, **kwargs):
+                    child = popen(*args, **kwargs)
+                    created.append(child)
+                    return child
+                def handshake(*args):
+                    deadline = time.monotonic() + .5
+                    while not ready.exists() and time.monotonic() < deadline: time.sleep(.01)
+                    if interrupted: raise KeyboardInterrupt
+                    return ([], [], [])
+                try:
+                    with mock.patch.object(probe.subprocess, 'Popen', side_effect=capture), mock.patch.object(probe.select, 'select', side_effect=handshake):
+                        with self.assertRaises(KeyboardInterrupt if interrupted else RuntimeError):
+                            probe.OwnedProcess([sys.executable, '-c', worker], stdout=subprocess.DEVNULL)
+                    self.assertFalse(ready.exists(), 'guest must wait for committed ownership')
+                    self.assertIsNotNone(created[0].poll(), 'guardian must be reaped')
+                    self.assertEqual(len(os.listdir('/proc/self/fd')), before_fds, 'startup pipes must close')
+                finally:
+                    for child in created:
+                        try: os.killpg(child.pid, signal.SIGKILL)
+                        except ProcessLookupError: pass
+                        child.wait(timeout=5)
+
+    def test_term_during_spawn_is_cleaned_after_registration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / 'proof'
+            probe.prepare(root)
+            runner = probe.Probe(root, 'unused', 'unused')
+            runner.argv = [sys.executable, '-c']
+            created = []
+            popen = subprocess.Popen
+            stop = probe.OwnedProcess.stop
+            previous = signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+            def spawn(*args, **kwargs):
+                child = popen(*args, **kwargs)
+                created.append(child)
+                os.kill(os.getpid(), signal.SIGTERM)
+                return child
+            try:
+                with mock.patch.object(probe.subprocess, 'Popen', side_effect=spawn), mock.patch.object(probe.OwnedProcess, 'stop', autospec=True, side_effect=lambda proc, timeout=15: stop(proc, timeout=.1)):
+                    with self.assertRaises(KeyboardInterrupt): runner.start(['import time; time.sleep(60)'], 'couch')
+                self.assertIsNotNone(created[0].poll(), 'interrupted startup must reap its guardian')
+            finally:
+                signal.signal(signal.SIGTERM, previous)
+                for child in created:
+                    try: os.killpg(child.pid, signal.SIGKILL)
+                    except ProcessLookupError: pass
+                    child.wait(timeout=5)
+                for thread in runner.logs: thread.join(timeout=5)
 
     def test_redirects_refused(self):
         self.assertIsNone(probe.NoRedirect().redirect_request(None, None, 302, '', {}, 'http://example.invalid'))
