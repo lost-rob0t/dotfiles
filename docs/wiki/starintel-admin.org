@@ -70,3 +70,11 @@ The Emacs layer never reads =~/.config/starintelinfra= itself. It launches the
 portable CLI, which owns runtime secret resolution and never returns API keys in
 normal dashboard JSON. Temporary generated user passwords are shown in a
 dedicated undo-disabled buffer only when the create operation returns one.
+
+* Termux remote client
+
+The [[file:termux.org::*StarIntel remote operator client][Termux client integration]] reuses this same tracked CLI through a native Bash
+launcher. Endpoint and credentials are explicitly supplied at runtime; install
+and the default doctor command do not connect. The opt-in connection diagnostic
+is read-only and bounded. This does not install a local Star Server or change
+the existing Android Org-workspace widget.

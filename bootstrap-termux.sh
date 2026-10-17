@@ -55,6 +55,7 @@ packages=(
   make
   nim
   openssh
+  openssl-tool
   pkg-config
   procps
   proot-distro
@@ -398,6 +399,9 @@ if command -v am >/dev/null 2>&1 && pm list packages 2>/dev/null | grep -q '^pac
 else
   printf '==> Termux:Widget app not detected. Install the plugin from the same source/signing family as Termux, then add its widget.\n'
 fi
+
+note "Installing optional StarIntel remote client commands"
+bash "$DOTFILES_DIR/scripts/termux-starintel-client" install
 
 note "Configuring archive collector and boot services"
 bash "$DOTFILES_DIR/scripts/termux-starintel" install

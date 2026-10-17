@@ -69,3 +69,4 @@ Do not copy large sections of configuration into this wiki merely to describe th
 - [[file:starintel-admin.org][StarIntel Admin Emacs UI]]
 
 - [[file:termux.org::*Archive collection at boot][Termux archive boot services and runtime support boundary]]
+- [[file:termux.org::*StarIntel remote operator client][Termux StarIntel remote client and local-runtime validation boundary]]
