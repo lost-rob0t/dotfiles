@@ -300,7 +300,8 @@ after installing its dependencies: Bash, coreutils, curl, jq, openssl-tool and
 Python. No Nix or Lisp runtime is needed for this client.
 
 Configure an endpoint only when wanted. The endpoint must be an explicit HTTPS
-base URL without embedded credentials, query or fragment. For example:
+base URL without embedded credentials, query, fragment or curl glob syntax.
+IPv6 literal authorities such as =https://[::1]:8443= remain valid. For example:
 
 #+begin_src sh
 export STARINTEL_ADMIN_URL='https://your-starintel-server.example'
@@ -320,7 +321,14 @@ and others, and outside the checkout and Nix store. The launcher requires an
 explicit credential source instead of scanning unrelated infrastructure files.
 No shell config or generated launcher stores an endpoint or token. Online CLI
 invocations isolate temporary curl credentials in a private directory removed on
-exit, including failure.
+exit, including failure. Both online launcher calls and connection diagnostics
+force a private curl adapter. It sets =--disable= first so default =~/.curlrc=
+files are not read, sets =--globoff= to prevent multi-host URL expansion, allows
+only HTTPS, and rejects redirects with a zero redirect budget. Existing curl
+configuration is preserved but its trace/output/extra-URL/redirect directives
+cannot alter these requests or bypass diagnostic output bounds. An inherited
+=STARINTEL_ADMIN_CURL= override is not used on this Termux surface. These curl
+semantics follow the [[https://curl.se/docs/manpage.html][official curl manual]].
 
 | Command | Effect |
 |---------+--------|

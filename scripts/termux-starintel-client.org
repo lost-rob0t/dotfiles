@@ -11,7 +11,8 @@ creates no endpoint/credential configuration, and changes no cron, boot or acces
 settings. Existing unrelated commands are refused rather than overwritten.
 
 Configure an endpoint explicitly through =STARINTEL_ADMIN_URL= or =STAR_SERVER_URL=.
-Use HTTPS with no URL credentials, query or fragment. Credentials come from the
+Use HTTPS with no URL credentials, query, fragment or curl glob syntax. IPv6
+authority brackets remain valid. Credentials come from the
 upstream-supported =STARINTEL_ADMIN_TOKEN=, =STAR_SERVER_TOKEN= or
 =STAR_SERVER_API_KEY= environment variables, or an explicit
 =STARINTEL_ADMIN_TOKEN_FILE= pointing to a private external file. The Termux
@@ -21,7 +22,13 @@ owner-private, owned by this UID, and outside this checkout and the Nix store.
 Credentials are never provisioned, copied, persisted or printed by this helper.
 The unchanged CLI uses an ephemeral mode-0600 curl configuration to avoid putting
 its bearer header in process arguments. Online invocations use a private temporary
-directory removed on exit, including CLI failure. Help/version stay entirely local.
+directory removed on exit, including CLI failure. Both online paths force a small
+private curl adapter: =--disable= is its first argument, =--globoff= prevents URL
+expansion, only HTTPS protocols are allowed, and redirects have a zero budget.
+User =~/.curlrc= is preserved but never loaded by these requests, so its trace,
+output, extra-URL and redirect options cannot change credential destinations or
+bypass diagnostic bounds. =STARINTEL_ADMIN_CURL= overrides are intentionally not
+inherited on the Termux surface. Help/version stay entirely local.
 
 =starintel-admin-doctor= checks local dependencies and optional endpoint syntax
 without connecting. Only =starintel-admin-doctor --connect= makes a request:
@@ -52,7 +59,7 @@ need_dependencies() {
 }
 endpoint() {
   python - <<'PY'
-import os, sys
+import ipaddress, os, re, sys
 from urllib.parse import urlsplit
 value = os.environ.get('STARINTEL_ADMIN_URL') or os.environ.get('STAR_SERVER_URL')
 try:
@@ -63,6 +70,12 @@ try:
             or parsed.password is not None or parsed.query or parsed.fragment):
         raise ValueError()
     parsed.port  # Validate the port without echoing a possibly sensitive URL.
+    if any(c in value for c in '{}') or any(c in parsed.path for c in '[]'):
+        raise ValueError()
+    if '[' in parsed.netloc or ']' in parsed.netloc:
+        if not re.fullmatch(r'\[[^\[\]]+\](?::[0-9]+)?', parsed.netloc):
+            raise ValueError()
+        ipaddress.IPv6Address(parsed.hostname)
 except ValueError:
     sys.exit('termux-starintel-client: configure an explicit HTTPS base URL without credentials, query or fragment')
 print(value.rstrip('/'))
@@ -99,6 +112,20 @@ private_temporary_directory() {
   trap 'rm -rf -- "$scratch"' EXIT
   trap 'exit 130' INT
   trap 'exit 143' TERM
+  python - "$scratch/curl" <<'PY'
+import sys
+from pathlib import Path
+# Disable default curlrc first. Explicit CLI --config carries only its private
+# bearer header. Reject redirects by enabling redirect handling with a zero budget.
+policy = ['curl', '--disable', '--globoff', '--proto', '=https',
+          '--proto-redir', '=https', '--location', '--max-redirs', '0']
+text = '#!' + sys.executable + '\nimport os, sys\n'
+text += 'os.execvp("curl", ' + repr(policy) + ' + sys.argv[1:])\n'
+path = Path(sys.argv[1])
+path.write_text(text)
+path.chmod(0o700)
+PY
+  export STARINTEL_ADMIN_CURL="$scratch/curl"
 }
 case "${1:-doctor}" in
   install)
@@ -167,7 +194,6 @@ PY
     STARINTEL_ADMIN_URL=$(endpoint)
     credentials
     private_temporary_directory starintel-doctor
-    export STARINTEL_ADMIN_CURL=curl
     set +e
     TMPDIR="$scratch" timeout -k 2 20 bash "$cli" key list 2>/dev/null |
       head -c 1048577 > "$scratch/response"

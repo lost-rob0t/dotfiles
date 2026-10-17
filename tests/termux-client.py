@@ -1,5 +1,10 @@
-"""Termux client contracts with temporary HOME and a local curl double only."""
+"""Termux client contracts: temporary HOME, curl doubles and loopback HTTPS fixtures."""
 import os
+import contextlib
+import http.server
+import ssl
+import socket
+import threading
 from pathlib import Path
 import subprocess
 import tempfile
@@ -7,6 +12,45 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'scripts/termux-starintel-client'
+
+@contextlib.contextmanager
+def local_https(home, ipv6=False):
+    """Real curl/TLS test target on loopback only; never uses an external server."""
+    certificate, key = home / 'fixture.crt', home / 'fixture.key'
+    subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
+                    '-keyout', str(key), '-out', str(certificate), '-days', '1',
+                    '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1,IP:::1'],
+                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    requests = []
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            requests.append((self.path, self.headers.get('Authorization')))
+            if self.server.redirect and self.path == '/auth/credentials':
+                self.send_response(302)
+                self.send_header('Location', f'https://localhost:{self.server.server_port}/unexpected-redirect')
+            else:
+                self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', '2')
+            self.end_headers()
+            self.wfile.write(b'[]')
+        def log_message(self, *args):
+            pass
+    class Server(http.server.ThreadingHTTPServer):
+        address_family = socket.AF_INET6 if ipv6 else socket.AF_INET
+    server = Server(('::1' if ipv6 else '127.0.0.1', 0), Handler)
+    server.redirect = False
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(certificate, key)
+    server.socket = context.wrap_socket(server.socket, server_side=True)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield server, requests, certificate
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 class ClientTests(unittest.TestCase):
     def setUp(self):
@@ -109,6 +153,79 @@ printf '[{"id":"fixture-key","status":"active"}]'
                 self.assertNotEqual(result.returncode, 0)
                 self.assertNotIn(url, result.stderr)
         self.assertFalse((self.home / 'requests').exists())
+
+    def test_curl_glob_endpoints_are_rejected_but_ipv6_is_valid(self):
+        for url in ('https://{one,two}.example', 'https://one.example/[1-3]',
+                    'https://one.example/{a,b}'):
+            with self.subTest(url=url):
+                self.assertNotEqual(self.run_helper('doctor', ok=False, STARINTEL_ADMIN_URL=url).returncode, 0)
+        self.run_helper('doctor', STARINTEL_ADMIN_URL='https://[::1]:8443')
+        self.assertFalse((self.home / 'requests').exists())
+
+    def test_both_online_paths_disable_curl_config_and_globbing(self):
+        for args in (('run', 'key', 'list'), ('doctor', '--connect')):
+            with self.subTest(args=args):
+                (self.home / 'requests').unlink(missing_ok=True)
+                self.online(*args)
+                flags = (self.home / 'requests').read_text().splitlines()
+                self.assertEqual(flags[0], '--disable')
+                self.assertIn('--globoff', flags)
+                self.assertIn('--location', flags)
+                self.assertEqual(flags[flags.index('--max-redirs') + 1], '0')
+
+    def test_real_curl_ignores_hostile_curlrc_for_both_online_paths(self):
+        (self.bin / 'curl').unlink()
+        with local_https(self.home) as (server, requests, certificate):
+            endpoint = f'https://localhost:{server.server_port}'
+            curlrc = self.home / '.curlrc'
+            contents = (f'trace-ascii = "{self.home / "trace"}"\n'
+                        f'output = "{self.home / "stolen-output"}"\n'
+                        'location-trusted\n'
+                        f'url = "{endpoint}/unexpected-extra-url"\n')
+            curlrc.write_text(contents)
+            for args in (('run', 'key', 'list'), ('doctor', '--connect')):
+                with self.subTest(args=args):
+                    self.run_helper(*args, STARINTEL_ADMIN_URL=endpoint,
+                        STARINTEL_ADMIN_TOKEN='fixture-secret', CURL_HOME=str(self.home),
+                        CURL_CA_BUNDLE=str(certificate), NO_PROXY='*', no_proxy='*')
+                    self.assertFalse((self.home / 'trace').exists())
+                    self.assertFalse((self.home / 'stolen-output').exists())
+                    self.assertEqual(curlrc.read_text(), contents)
+            self.assertEqual(requests, [('/auth/credentials', 'Bearer fixture-secret')] * 2)
+
+    def test_real_curl_redirects_are_blocked_without_forwarding_bearer(self):
+        (self.bin / 'curl').unlink()
+        with local_https(self.home) as (server, requests, certificate):
+            server.redirect = True
+            (self.home / '.curlrc').write_text('location-trusted\n')
+            for args in (('run', 'key', 'list'), ('doctor', '--connect')):
+                with self.subTest(args=args):
+                    result = self.run_helper(*args, ok=False,
+                        STARINTEL_ADMIN_URL=f'https://localhost:{server.server_port}',
+                        STARINTEL_ADMIN_TOKEN='fixture-secret', CURL_HOME=str(self.home),
+                        CURL_CA_BUNDLE=str(certificate), NO_PROXY='*', no_proxy='*')
+                    self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(requests, [('/auth/credentials', 'Bearer fixture-secret')] * 2)
+
+    def test_ipv6_literal_with_real_curl_when_loopback_is_available(self):
+        (self.bin / 'curl').unlink()
+        try:
+            with local_https(self.home, ipv6=True) as (server, requests, certificate):
+                self.run_helper('doctor', '--connect',
+                    STARINTEL_ADMIN_URL=f'https://[::1]:{server.server_port}',
+                    STARINTEL_ADMIN_TOKEN='fixture-secret', CURL_CA_BUNDLE=str(certificate),
+                    NO_PROXY='*', no_proxy='*')
+                self.assertEqual(requests, [('/auth/credentials', 'Bearer fixture-secret')])
+        except OSError as error:
+            self.skipTest(f'IPv6 loopback unavailable: {error.__class__.__name__}')
+
+    def test_external_curl_override_is_not_used_on_either_online_path(self):
+        other = self.bin / 'untrusted-curl'
+        other.write_text('#!/bin/bash\ntouch "$HOME/untrusted-used"\nexit 1\n')
+        other.chmod(0o755)
+        for args in (('run', 'key', 'list'), ('doctor', '--connect')):
+            self.online(*args, STARINTEL_ADMIN_CURL=str(other))
+        self.assertFalse((self.home / 'untrusted-used').exists())
 
     def test_supported_private_external_token_file(self):
         secret = self.home / 'external-token'
