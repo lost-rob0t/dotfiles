@@ -283,3 +283,8 @@ The archive boot integration and current StarIntel runtime limits are documented
 in [[file:../docs/wiki/termux.org::*Archive collection at boot][the Termux operations guide]]. Fresh setup calls the pinned upstream election26
 installer; existing collector/config/archive data is preserved. This does not
 install a full local server.
+
+The bootstrap also exposes the existing =starintel-admin= remote CLI and
+=starintel-admin-doctor=. Installation and offline diagnostics do not connect;
+endpoint and an existing credential source must be supplied explicitly. See
+[[file:../docs/wiki/termux.org::*StarIntel remote operator client][the Termux remote-client guide]]. No local Star Server or Lisp port is installed.

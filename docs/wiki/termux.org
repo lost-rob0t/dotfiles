@@ -286,3 +286,80 @@ test phone/emulator, verify those manually after install, pause/resume, and a
 reboot; compare archive/config and =~/2026/= checksums before/after the install
 while collection is paused. Do not use a production device as an automatic test
 target.
+
+* StarIntel remote operator client
+
+[[file:../../scripts/termux-starintel-client.org][termux-starintel-client.org]] owns the two Termux launchers. The bootstrap installs
+=openssl-tool= and exposes the existing tracked
+[[file:../../nix/packages/starintel-admin/bin/starintel-admin][starintel-admin CLI]] through Termux Bash. It does not copy or port the CLI.
+Installation configures no endpoint, credentials, background process or access
+settings and makes no request. An existing unrelated executable is refused;
+reruns preserve endpoint/credential environment and user-owned config files.
+Existing installations can run =bash ~/.dotfiles/scripts/termux-starintel-client install=
+after installing its dependencies: Bash, coreutils, curl, jq, openssl-tool and
+Python. No Nix or Lisp runtime is needed for this client.
+
+Configure an endpoint only when wanted. The endpoint must be an explicit HTTPS
+base URL without embedded credentials, query or fragment. For example:
+
+#+begin_src sh
+export STARINTEL_ADMIN_URL='https://your-starintel-server.example'
+# Set this to an existing owner-private external credential file; do not put a token here.
+export STARINTEL_ADMIN_TOKEN_FILE="$HOME/.config/private/starintel-token"
+starintel-admin-doctor
+# Explicit opt-in request; requires permission to list credential metadata:
+starintel-admin-doctor --connect
+#+end_src
+
+=STAR_SERVER_URL= is also supported. Credentials can instead come from the existing
+=STARINTEL_ADMIN_TOKEN=, =STAR_SERVER_TOKEN= or =STAR_SERVER_API_KEY= environment
+variables. Provision them separately through the existing secret-management
+workflow. This integration never creates, copies or writes credential values.
+An explicit token file must be regular, owned by this UID, inaccessible to group
+and others, and outside the checkout and Nix store. The launcher requires an
+explicit credential source instead of scanning unrelated infrastructure files.
+No shell config or generated launcher stores an endpoint or token. Online CLI
+invocations isolate temporary curl credentials in a private directory removed on
+exit, including failure.
+
+| Command | Effect |
+|---------+--------|
+| =starintel-admin --help= / =--version= | Local CLI information; no endpoint or credential needed. |
+| =starintel-admin-doctor= | Check dependencies and optional endpoint syntax; make no request. |
+| =starintel-admin-doctor --connect= | Invoke the CLI's read-only =key list= API; print success/failure without response bodies. |
+| =starintel-admin …= | Run the tracked operator command against the explicit endpoint; normal upstream authorization and command semantics apply. |
+
+The connection diagnostic has a 20-second deadline plus two-second kill grace
+and a 1 MiB response cap. Its private temporary directory, including the unchanged
+CLI's temporary mode-0600 curl credential config, is removed afterward, including
+failure. It changes no users, keys, policies, collection sources or cron jobs.
+The full CLI still exposes mutating commands when explicitly invoked; installing
+it does not grant server-side authority. See [[file:starintel-admin.org][the existing operator CLI guide]].
+The existing =01-StarIntel-Admin= widget continues to open the Org workspace; it
+is not redirected to a network request.
+
+This is a remote client. Local Star Server, Edge/Sento, CouchDB, RabbitMQ and
+native Lisp runtime installation remain separate work. Existing election26
+sources/config/data are untouched; fresh collector defaults remain empty until
+sources are selected explicitly.
+
+** Next local-runtime validation boundary
+
+Official Termux package recipes provide [[https://github.com/termux/termux-packages/blob/master/packages/sbcl/build.sh][SBCL on aarch64 and x86_64]] (arm/i686 excluded)
+and [[https://github.com/termux/termux-packages/blob/master/packages/ecl/build.sh][ECL on ARM]] (x86/i686 excluded). Package availability alone does not establish
+StarIntel compatibility. This client integration installs neither compiler.
+
+With a separately installed supported SBCL and an explicitly reviewed checkout
+of [[https://github.com/lost-rob0t/starintel-edge/tree/0a75eb292b302368a6308b6f53fe2a0fdab34ee0][Edge commit 0a75eb292b302368a6308b6f53fe2a0fdab34ee0]], the existing source documents this bounded
+system-API test entry point (run from that repository's root):
+
+#+begin_src sh
+sbcl --script tests/system_api.lisp
+#+end_src
+
+[[https://github.com/lost-rob0t/starintel-edge/blob/0a75eb292b302368a6308b6f53fe2a0fdab34ee0/runtime/starintel-edge.asd][The system-api ASDF definition]] has no external Lisp dependencies.
+This is a reproducible next test command, not a claim that it passed on Android,
+starts an actor runtime, exercises real sensors, or implements a local server.
+The separate =tests/runtime.lisp= suite also needs the pinned Sento dependency
+closure; the Android ECL/APK lifecycle and full server portability gates remain
+open.
