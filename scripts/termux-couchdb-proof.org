@@ -1,0 +1,265 @@
+#+title: Local CouchDB PRoot acceptance (experimental)
+#+property: header-args:python :comments no :mkdirp yes
+
+* Boundary
+
+This is a bounded foreground acceptance probe, not the Star Server installer.
+It runs the real CouchDB executable from a pinned same-architecture OCI guest,
+creates one private fixture, restarts CouchDB, and reads that fixture back.
+It does not use or migrate election26 archives, cron, or existing guest state.
+There is no boot activation or remote listener. Canonical Server HTTP and actor
+acceptance must pass separately before enabling a local Server service.
+
+See [[file:../docs/wiki/termux.org::*Local Server and CouchDB acceptance][the operating instructions and evidence matrix]].
+
+#+begin_src python :tangle termux-couchdb-proof
+#!/usr/bin/env python3
+"""Explicit real CouchDB probe. No Server/actor/Android support is implied."""
+import argparse
+import base64
+import fcntl
+import hashlib
+import json
+import logging.handlers
+import os
+from pathlib import Path
+import platform
+import secrets
+import shutil
+import signal
+import socket
+import subprocess
+import threading
+import time
+import urllib.error
+import urllib.request
+
+CONFIGS = {
+    'x86_64': 'sha256:43a86062d33a0a3d24538a13834983fe5ef147dc14ea68c3ab71c8667071d18b',
+    'aarch64': 'sha256:16f125595d0796bfdb8a1a791b59ae8742b8220c054e63f845c7c57b6a1664bc',
+}
+PORTS = (45984, 45969, 45910)
+MARKER = 'dotfiles-couchdb-proof-v1\n'
+
+
+def verify_manifest(manifest, machine):
+    arch = manifest.get('arch')
+    if arch != machine or arch not in CONFIGS:
+        raise RuntimeError('only same-architecture x86_64/aarch64 guests are supported')
+    if manifest.get('manifest', {}).get('config', {}).get('digest') != CONFIGS[arch]:
+        raise RuntimeError('guest config digest does not match the pinned CouchDB image')
+    return arch
+
+
+def prepare(root):
+    if root.is_symlink():
+        raise RuntimeError('state must not be a symlink')
+    if root.exists():
+        if root.stat().st_uid != os.getuid() or root.stat().st_mode & 0o077:
+            raise RuntimeError('state must be owned by this user and mode 0700')
+        required = ('owner', 'data', 'password', 'cookie', 'couch.ini', 'vm.args')
+        if any((root / name).is_symlink() or not (root / name).exists() for name in required):
+            raise RuntimeError('incomplete or symlinked state; inspect it manually')
+        if (root / 'owner').read_text() != MARKER:
+            raise RuntimeError('refusing state not created by this probe')
+        return
+    root.mkdir(mode=0o700, parents=True)
+    (root / 'data').mkdir(mode=0o700)
+    password = secrets.token_urlsafe(24)
+    salt = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac('sha1', password.encode(), salt.encode(), 100000).hex()
+    contents = {
+        'password': password + '\n', 'cookie': secrets.token_hex(32) + '\n',
+        'vm.args': '''-name couchdb@127.0.0.1
+-start_epmd false
+-kernel inet_dist_use_interface {127,0,0,1}
+-kernel inet_dist_listen_min 45910
+-kernel inet_dist_listen_max 45910
++S 2:2
++SDcpu 1
++SDio 1
++A 2
+''',
+        'couch.ini': f'''[couchdb]
+database_dir = /proof/data
+view_index_dir = /proof/data
+single_node = true
+max_document_size = 1048576
+[cluster]
+n = 1
+[chttpd]
+bind_address = 127.0.0.1
+port = 45984
+require_valid_user_except_for_up = true
+[httpd]
+bind_address = 127.0.0.1
+[admins]
+admin = -pbkdf2-{digest},{salt},100000
+[log]
+writer = stderr
+level = error
+''',
+    }
+    for name, value in contents.items():
+        path = root / name
+        with path.open('x') as stream:
+            stream.write(value)
+        path.chmod(0o400 if name == 'cookie' else 0o600)
+    (root / 'owner').write_text(MARKER)
+    (root / 'owner').chmod(0o600)
+
+
+def check_ports(ports):
+    for port in ports:
+        with socket.socket() as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(('127.0.0.1', port))
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, newurl):
+        return None
+
+
+class Probe:
+    def __init__(self, root, pd, guest):
+        self.root = root
+        self.argv = [pd, 'login', '--bind', str(root) + ':/proof',
+                     '--bind', str(root / 'cookie') + ':/root/.erlang.cookie',
+                     '--env', 'ERL_EPMD_PORT=45969', guest, '--']
+        self.children = []
+        self.logs = []
+        password = (root / 'password').read_text().strip()
+        self.auth = 'Basic ' + base64.b64encode(('admin:' + password).encode()).decode()
+        # Ignore ambient HTTP proxies; credentials are only sent to this loopback URL.
+        self.http = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+
+    def budget(self):
+        size = sum(p.stat().st_size for p in self.root.rglob('*') if p.is_file())
+        if size > 128 * 1024**2 or shutil.disk_usage(self.root).free < 128 * 1024**2:
+            raise RuntimeError('probe storage budget/reserve exceeded')
+
+    def start(self, args, name):
+        handler = logging.handlers.RotatingFileHandler(
+            self.root / (name + '.log'), maxBytes=1024**2, backupCount=2)
+        proc = subprocess.Popen(self.argv + args, stdin=subprocess.DEVNULL,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                start_new_session=True)
+        self.children.append(proc)
+        def drain():
+            try:
+                while chunk := proc.stdout.read(4096):
+                    record = logging.LogRecord(name, logging.INFO, '', 0,
+                                               chunk.decode('utf-8', 'replace'), (), None)
+                    handler.emit(record)
+            finally:
+                proc.stdout.close()
+                handler.close()
+        thread = threading.Thread(target=drain, daemon=True)
+        thread.start()
+        self.logs.append(thread)
+        return proc
+
+    @staticmethod
+    def stop(proc):
+        if proc.poll() is None:
+            os.killpg(proc.pid, signal.SIGTERM)
+            try:
+                proc.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                os.killpg(proc.pid, signal.SIGKILL)
+                proc.wait(timeout=5)
+
+    def request(self, path, method='GET', value=None):
+        request = urllib.request.Request('http://127.0.0.1:45984' + path, method=method,
+            data=json.dumps(value).encode() if value is not None else None,
+            headers={'Authorization': self.auth, 'Content-Type': 'application/json'})
+        with self.http.open(request, timeout=3) as response:
+            return json.load(response)
+
+    def couch(self):
+        return self.start(['/usr/bin/env', 'COUCHDB_ARGS_FILE=/proof/vm.args',
+            'COUCHDB_INI_FILES=/opt/couchdb/etc/default.ini /proof/couch.ini',
+            '/opt/couchdb/bin/couchdb', '-noshell', '-noinput'], 'couch')
+
+    def ready(self, proc):
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            self.budget()
+            if proc.poll() is not None or self.children[0].poll() is not None:
+                raise RuntimeError('CouchDB/epmd exited; inspect private logs')
+            try:
+                if self.request('/_up').get('status') == 'ok':
+                    return
+            except (OSError, urllib.error.URLError, ValueError):
+                pass
+            time.sleep(1)
+        raise RuntimeError('CouchDB readiness exceeded 90 seconds')
+
+    def run(self):
+        check_ports(PORTS)
+        self.budget()
+        try:
+            self.start(['/opt/couchdb/erts-14.2.5.15/bin/epmd', '-address',
+                        '127.0.0.1', '-port', '45969'], 'epmd')
+            couch = self.couch()
+            self.ready(couch)
+            if self.request('/').get('version') != '3.5.2':
+                raise RuntimeError('unexpected CouchDB version')
+            try:
+                self.request('/dotfiles_proof', 'PUT')
+            except urllib.error.HTTPError as error:
+                if error.code != 412:
+                    raise
+            # Reuse one fixture without revisions/writes accumulating on reruns.
+            try:
+                previous = self.request('/dotfiles_proof/preserved')
+            except urllib.error.HTTPError as error:
+                if error.code != 404:
+                    raise
+                previous = {'marker': secrets.token_hex(24)}
+                self.request('/dotfiles_proof/preserved', 'PUT', previous)
+            self.stop(couch)
+            couch = self.couch()
+            self.ready(couch)
+            if self.request('/dotfiles_proof/preserved')['marker'] != previous['marker']:
+                raise RuntimeError('restart readback mismatch')
+            print(json.dumps({'couchdb': '3.5.2', 'restartReadback': 'pass',
+                              'host': platform.system(), 'architecture': platform.machine(),
+                              'serverHttp': 'not-run', 'actor': 'not-run',
+                              'androidEvidence': 'not-established'}))
+        finally:
+            for proc in reversed(self.children):
+                self.stop(proc)
+            for thread in self.logs:
+                thread.join(timeout=5)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--state', type=Path, required=True, help='new private dedicated directory')
+    parser.add_argument('--manifest', type=Path, required=True, help='installed guest manifest.json')
+    parser.add_argument('--guest', default='starintel-couchdb-proof')
+    parser.add_argument('--proot-distro', default='proot-distro')
+    args = parser.parse_args()
+    os.umask(0o077)
+    verify_manifest(json.loads(args.manifest.read_text()), platform.machine())
+    if args.manifest.parent.name != args.guest:
+        raise RuntimeError('manifest directory must match the named installed guest')
+    prepare(args.state)
+    if (args.state / 'lock').is_symlink():
+        raise RuntimeError('lock must not be a symlink')
+    with (args.state / 'lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        Probe(args.state.resolve(), args.proot_distro, args.guest).run()
+
+
+if __name__ == '__main__':
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, interrupted)
+    try:
+        main()
+    except (RuntimeError, OSError, ValueError, KeyboardInterrupt) as error:
+        raise SystemExit('CouchDB proof stopped: ' + str(error))
+#+end_src
