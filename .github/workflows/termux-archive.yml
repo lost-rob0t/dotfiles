@@ -5,6 +5,7 @@ on:
       - 'bootstrap-termux.*'
       - 'scripts/termux-starintel*'
       - 'tests/termux-services.py'
+      - 'tests/termux-upstream.py'
       - '.github/workflows/termux-archive.yml'
   push:
     branches: [master]
@@ -12,6 +13,7 @@ on:
       - 'bootstrap-termux.*'
       - 'scripts/termux-starintel*'
       - 'tests/termux-services.py'
+      - 'tests/termux-upstream.py'
 permissions:
   contents: read
 jobs:
@@ -21,3 +23,11 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 tests/termux-services.py
       - run: python3 -m unittest discover -s android/tests -p test_termux_build.py -v
+      - uses: actions/checkout@v4
+        with:
+          repository: lost-rob0t/election26
+          ref: 5d8d9659acea6349adc6f264b35964ef7309f004
+          path: .test-election26
+          persist-credentials: false
+      - run: python3 tests/termux-upstream.py .test-election26
+      - run: python3 -m unittest discover -s .test-election26/tests -p test_termux_install.py -v

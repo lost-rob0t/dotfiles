@@ -280,5 +280,6 @@ wrapper then dispatches to =android/temple/init.el=.  Neither the native reader
 nor the Termux Doom profile removes Temple.
 
 The archive boot integration and current StarIntel runtime limits are documented
-in [[file:../docs/wiki/termux.org::*Archive collection at boot][the Termux operations guide]]. Existing election26/config/archive are prerequisites;
-the bootstrap preserves their data and does not install a full local server.
+in [[file:../docs/wiki/termux.org::*Archive collection at boot][the Termux operations guide]]. Fresh setup calls the pinned upstream election26
+installer; existing collector/config/archive data is preserved. This does not
+install a full local server.

@@ -172,27 +172,48 @@ upstream sources were built.
 [[file:../../scripts/termux-starintel.org][scripts/termux-starintel.org]] owns the cron/runit integration and its generated
 =termux-starintel= command. The bootstrap installs =cronie=, =termux-services=,
 =coreutils= and =util-linux=, then invokes that helper. Existing setups can run
-=bash ~/.dotfiles/scripts/termux-starintel install= directly. The executable
-=~/.local/bin/election26=, =~/starintel/ops/archive-config.json= and
-=~/starintel/ops/archive/= are prerequisites. This repository has no verified
-source/build recipe for the phone's existing election26 executable; it reuses
-that installation and never replaces it with guessed code. Preserve its backup
-when provisioning a fresh phone.
+=bash ~/.dotfiles/scripts/termux-starintel install= directly after installing the
+service dependencies. Fresh installs clone the pinned public
+[[https://github.com/lost-rob0t/election26/blob/5d8d9659acea6349adc6f264b35964ef7309f004/scripts/install-termux.sh][election26 Termux installer]] and invoke =--install --if-needed=. The upstream
+installer owns the managed venv/launcher, official package checks, and create-once
+private defaults. Dotfiles does not embed or fork its implementation.
+
+Fresh installs use =~/.config/election26/config.json= and
+=~/.local/share/election26/archive/=. The initial host allowlist and feed list
+are empty; configure selected sources before expecting stored objects. No paid
+API, Discord, media download or remote access is enabled. The existing phone's
+=~/starintel/ops/archive-config.json= and =~/starintel/ops/archive/= select the
+legacy profile. That pair and any existing collector executable are preserved;
+an incomplete legacy pair fails instead of creating an alternative archive.
+The selected profile is saved in =~/.local/state/termux-starintel/profile=.
+Upstream's standard Android HOME/PREFIX guard remains unchanged; relocated or
+nonstandard Termux installs are not supported by that installer.
 
 Installation backs up the crontab to =~/.local/state/termux-starintel/crontab.*=,
 wraps one recognized collector command without changing its schedule or
 arguments, and preserves unrelated lines. An absent collector entry receives
 one every-five-minute RSS entry. Ambiguous entries and an in-flight legacy
 collector abort with a diagnostic; allow that run to finish and retry. No archive
-initialization, migration, copy or cleanup is performed. =~/2026/= and the
-existing archive remain in place. The reported 246 stored objects / 247
+migration, copy or cleanup of an existing archive is performed. =~/2026/= and
+the existing archive remain in place. Fresh setup creates only the upstream
+standard empty archive and default config. The reported 246 stored objects / 247
 observations / zero errors are prior phone evidence, not results of this patch.
+
+During handoff the installer also holds the wrapper lock and an existing
+canonical archive =.writer.lock= read-only. It checks same-UID bare/absolute
+collector processes before and after changing cron. A migration marker keeps
+new wrappers blocked if handoff is interrupted; retry once the legacy run has
+finished. Process matching is observational, not a perfect lock for arbitrary
+old/manual invocations. The maintained collector has its own archive writer
+lock. Quiesce independent/manual launchers before migration; no old process is
+killed.
 
 The wrapper serializes runs with =flock= and applies a 240-second timeout with
 a ten-second kill grace. Failures retry on the next scheduled tick. Collector
 output goes to =$PREFIX/var/log/sv/election26/= through =svlogd=; collector and
-crond logs each retain a 1 MB current file and three rotated files. Existing
-shell redirections are preserved; historical output files are not deleted.
+crond logs each retain a 1 MB current file and three rotated files. An already
+running supervised cron logger receives a targeted HUP to apply its new config.
+Existing shell redirections are preserved; historical output files are not deleted.
 Network availability is exercised by the collector's own request handling;
 there is no unrelated public-host ping or new collection source.
 
@@ -203,10 +224,13 @@ there is no unrelated public-host ping or new collection source.
 | =termux-starintel stop= | Pause future wrapped collections; other cron entries continue, an in-flight run finishes. |
 | =termux-starintel start= | Resume collections and ensure cron startup. |
 | =sv status crond= | Inspect the packaged daemon service. |
-| =sv-disable crond= | Stop/disable supervised cron, affecting all its jobs. |
+| =sv-disable crond= | Stop supervised cron until this bootstrap starts/enables it again; affects all its jobs. |
 
 If crond was started manually, installation retains it and does not launch a
-second daemon. The next boot starts the packaged runit service. A legacy
+second daemon. The supervisor PID must also match the intended executable,
+UID and service directory; a reused PID is not trusted. Installer lock file
+descriptors are closed before daemon startup. The next boot starts the packaged
+runit service. A legacy
 external crond remains operator-owned; =sv-disable= cannot stop that process.
 The managed =~/.termux/boot/20-starintel-services= hook preserves a collector
 pause and starts only the service supervisor and cron. Rerunning install also
@@ -224,8 +248,8 @@ this hook does not acquire one automatically. See the official
 
 ** StarIntel runtime boundary
 
-The supported local workload here is the already-working RSS archive collector,
-using its existing private config. It is an archive host, not a complete local
+The supported local workload here is the RSS archive collector, freshly installed
+from its pinned upstream installer or reused with its existing private config. It is an archive host, not a complete local
 Star Server deployment. Optional remote destinations remain in user-owned
 configuration; no endpoint, credential, SSH access or tunnel is enabled by this
 patch. Keep credentials out of Git and restrict private config files to their
@@ -250,7 +274,12 @@ Source audit (2026-10-17):
 
 Host validation: =python3 tests/termux-services.py= checks temporary-HOME
 installation/reruns, literal source parity, preservation, duplicate prevention,
-logging, timeout and failure behavior with mocked Termux commands. These tests
+logging, timeout, stale PID and failure behavior with mocked Termux commands.
+=python3 tests/termux-upstream.py /path/to/pinned-election26= additionally executes
+the real upstream installer body, setup, receipt, config, launcher and status
+through controlled package/Git/venv/pip stubs. Only that test harness substitutes
+the hardcoded Android environment gate for a temporary HOME; production does
+not bypass it. Both fresh install and verified rerun are checked. These tests
 do not establish Android boot, battery survival, actual crond/runit startup,
 network collection, collector ABI compatibility or a new object count. On a
 test phone/emulator, verify those manually after install, pause/resume, and a

@@ -77,8 +77,10 @@ if command -v termux-setup-storage >/dev/null 2>&1; then
 fi
 
 note "Bootstrapping dotfiles at $DOTFILES_DIR"
+[[ "$DOTFILES_REF" != -* ]] || fail "invalid dotfiles branch ref"
+git check-ref-format --branch "$DOTFILES_REF" >/dev/null || fail "invalid dotfiles branch ref"
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
-  git -C "$DOTFILES_DIR" fetch origin "$DOTFILES_REF"
+  git -C "$DOTFILES_DIR" fetch "$DOTFILES_REPO" "$DOTFILES_REF"
   git -C "$DOTFILES_DIR" merge --ff-only FETCH_HEAD
 elif [[ -e "$DOTFILES_DIR" ]]; then
   fail "$DOTFILES_DIR exists but is not a Git checkout"

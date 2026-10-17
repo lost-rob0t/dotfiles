@@ -1,6 +1,7 @@
 """Disposable-HOME integration tests; never contact Android or run a collector."""
 import os
 import fcntl
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -53,6 +54,95 @@ class ServicesTests(unittest.TestCase):
         if ok:
             self.assertEqual(result.returncode, 0, result.stderr)
         return result
+
+    def fresh_home(self):
+        shutil.rmtree(self.home / 'starintel')
+        shutil.rmtree(self.home / '2026')
+        (self.home / '.local/bin/election26').unlink()
+        self.cron.write_text('')
+        self.fake('git', r'''case "$*" in
+          clone*)
+            target="${@: -1}"
+            mkdir -p "$target/.git" "$target/scripts"
+            cat > "$target/scripts/install-termux.sh" <<'INSTALL'
+#!/bin/bash
+set -euo pipefail
+[[ "$*" == '--install --if-needed' ]]
+echo install >> "$HOME/upstream-installs"
+[[ "${UPSTREAM_FAIL:-0}" == 0 ]] || exit 9
+mkdir -p "$HOME/.config/election26" "$HOME/.local/share/election26/archive" "$HOME/.local/bin"
+if [[ ! -e "$HOME/.config/election26/config.json" ]]; then
+  printf '{"allow_hosts": []}\n' > "$HOME/.config/election26/config.json"
+fi
+printf '#!/bin/bash\necho result\n' > "$HOME/.local/bin/election26"
+chmod 700 "$HOME/.local/bin/election26"
+INSTALL
+            ;;
+          *rev-parse*) echo 5d8d9659acea6349adc6f264b35964ef7309f004 ;;
+          *status*) : ;;
+          *) : ;;
+        esac''')
+
+    def test_empty_home_install_and_rerun(self):
+        self.fresh_home()
+        self.run_script('install')
+        config = self.home / '.config/election26/config.json'
+        config.write_text('{"allow_hosts": [], "operator_setting": 3}')
+        archive = self.home / '.local/share/election26/archive'
+        (archive / 'keep').write_bytes(b'raw archive')
+        cron = self.cron.read_bytes()
+        self.run_script('install')
+        self.assertEqual(config.read_text(), '{"allow_hosts": [], "operator_setting": 3}')
+        self.assertEqual((archive / 'keep').read_bytes(), b'raw archive')
+        self.assertEqual(cron, self.cron.read_bytes())
+        self.assertIn(str(config), self.cron.read_text())
+        self.assertEqual(self.cron.read_text().count(' collect '), 1)
+        self.assertFalse((self.home / 'starintel').exists())
+        self.assertEqual((self.home / '.local/state/termux-starintel/profile').read_text(), 'standard\n')
+
+    def test_upstream_failure_does_not_schedule_or_start(self):
+        self.fresh_home()
+        self.assertNotEqual(self.run_script('install', ok=False, UPSTREAM_FAIL='1').returncode, 0)
+        self.assertEqual(self.cron.read_text(), '')
+        self.assertFalse((self.home / 'actions').exists())
+        self.run_script('install')
+        self.assertEqual(self.cron.read_text().count(' collect '), 1)
+
+    def test_unreviewed_upstream_revision_is_not_executed(self):
+        self.fresh_home()
+        self.run_script('install')
+        installs = (self.home / 'upstream-installs').read_bytes()
+        cron = self.cron.read_bytes()
+        self.fake('git', 'if [[ "$*" == *rev-parse* ]]; then echo wrong-revision; fi')
+        self.assertNotEqual(self.run_script('install', ok=False).returncode, 0)
+        self.assertEqual(installs, (self.home / 'upstream-installs').read_bytes())
+        self.assertEqual(cron, self.cron.read_bytes())
+
+    def test_legacy_install_never_downloads_or_replaces_collector(self):
+        original = (self.home / '.local/bin/election26').read_bytes()
+        self.fake('git', 'exit 99')
+        self.run_script('install')
+        self.assertEqual(original, (self.home / '.local/bin/election26').read_bytes())
+        self.assertFalse((self.home / 'upstream-installs').exists())
+
+    def test_reused_supervisor_pid_starts_daemon(self):
+        run = self.prefix / 'var/run'
+        run.mkdir(parents=True)
+        (run / 'service-daemon.pid').write_text(str(os.getpid()) + '\n')
+        self.run_script('start')
+        self.assertIn('daemon', (self.home / 'actions').read_text())
+
+    def test_bare_legacy_collector_process_refuses_migration(self):
+        (self.bin / 'pgrep').unlink()
+        child = subprocess.Popen(['election26', '60'], executable=shutil.which('sleep'))
+        self.addCleanup(child.wait)
+        self.addCleanup(child.terminate)
+        before = self.cron.read_bytes()
+        result = self.run_script('install', ok=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('collector running', result.stderr)
+        self.assertEqual(before, self.cron.read_bytes())
+        self.assertIsNone(child.poll())
 
     def test_install_rerun_preserves_data_schedule_and_other_jobs(self):
         before = self.cron.read_text()
@@ -152,7 +242,12 @@ class ServicesTests(unittest.TestCase):
     def test_existing_supervisor_is_not_restarted(self):
         run = self.prefix / 'var/run'
         run.mkdir(parents=True)
-        (run / 'service-daemon.pid').write_text(str(os.getpid()) + '\n')
+        executable = self.bin / 'runsvdir'
+        executable.symlink_to(shutil.which('yes'))
+        child = subprocess.Popen([str(executable), str(self.prefix / 'var/service')], stdout=subprocess.DEVNULL)
+        self.addCleanup(child.wait)
+        self.addCleanup(child.terminate)
+        (run / 'service-daemon.pid').write_text(str(child.pid) + '\n')
         self.run_script('start')
         self.assertNotIn('daemon', (self.home / 'actions').read_text())
 
@@ -167,6 +262,53 @@ class ServicesTests(unittest.TestCase):
         self.assertEqual(cron, self.cron.read_bytes())
         self.run_script('start')
         self.assertFalse((self.home / '.local/state/termux-starintel/paused').exists())
+
+    def test_legacy_archive_lock_refuses_migration_even_without_process_match(self):
+        lock = open(self.home / 'starintel/ops/archive/.writer.lock', 'w')
+        self.addCleanup(lock.close)
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        before = self.cron.read_bytes()
+        result = self.run_script('install', ok=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('archive writer lock', result.stderr)
+        self.assertEqual(before, self.cron.read_bytes())
+
+    def test_running_cron_logger_gets_targeted_reload(self):
+        self.fake('sv', 'echo "$*" >> "$HOME/actions"; if [[ "$1" == status && "$2" == */crond/log ]]; then echo "run: logger: (pid 42)"; fi')
+        self.run_script('install')
+        self.assertIn('hup ' + str(self.prefix / 'var/service/crond/log'), (self.home / 'actions').read_text())
+
+    def test_daemon_does_not_inherit_installer_locks(self):
+        (self.home / 'starintel/ops/archive/.writer.lock').touch()
+        self.fake('service-daemon', '[[ ! -e /proc/self/fd/7 && ! -e /proc/self/fd/8 && ! -e /proc/self/fd/9 ]]')
+        self.run_script('install')
+        self.run_script('install')
+
+    def test_shell_metacharacter_paths_refused_before_writes(self):
+        path = self.home / "bad';touch injected;#"
+        path.mkdir()
+        result = self.run_script('install', ok=False, HOME=str(path))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(list(path.iterdir()), [])
+        self.assertFalse((self.home / 'injected').exists())
+
+    def test_managed_output_symlink_refused_without_truncation(self):
+        outside = self.home / 'outside'
+        outside.write_text('keep')
+        (self.bin / 'termux-starintel').symlink_to(outside)
+        self.assertNotEqual(self.run_script('install', ok=False).returncode, 0)
+        self.assertEqual(outside.read_text(), 'keep')
+
+    def test_mid_migration_legacy_run_keeps_new_wrapper_blocked(self):
+        self.fake('pgrep', 'if [[ "$*" == *election26* ]]; then if [[ -e "$HOME/checked" ]]; then exit 0; fi; touch "$HOME/checked"; fi; exit 1')
+        result = self.run_script('install', ok=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue((self.home / '.local/state/termux-starintel/migration-pending').exists())
+        self.assertEqual(self.run_script('collect', ok=False).returncode, 75)
+        self.assertFalse((self.home / 'calls').exists())
+        self.fake('pgrep', 'exit 1')
+        self.run_script('install')
+        self.assertFalse((self.home / '.local/state/termux-starintel/migration-pending').exists())
 
     def test_literate_parity_and_shell_syntax(self):
         for org, target in [('bootstrap-termux.org', 'bootstrap-termux.sh'),

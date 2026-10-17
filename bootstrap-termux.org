@@ -25,7 +25,7 @@ normal Nix host.  The bootstrap exposes =nix=, =nix-shell=, =nix-env=,
 guest.  Flakes and =nix-command= are enabled.
 
 Archive boot integration is owned by [[file:scripts/termux-starintel.org][termux-starintel.org]]. Existing
-=election26=, archive and config are prerequisites; see the
+installations are preserved; fresh installs use the pinned upstream installer. See the
 [[file:docs/wiki/termux.org::*Archive collection at boot][operations guide]] for manual Termux:Boot setup and runtime limitations.
 =STAR_DOTFILES_REF= selects a published review branch (default =master=).
 
@@ -111,8 +111,10 @@ if command -v termux-setup-storage >/dev/null 2>&1; then
 fi
 
 note "Bootstrapping dotfiles at $DOTFILES_DIR"
+[[ "$DOTFILES_REF" != -* ]] || fail "invalid dotfiles branch ref"
+git check-ref-format --branch "$DOTFILES_REF" >/dev/null || fail "invalid dotfiles branch ref"
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
-  git -C "$DOTFILES_DIR" fetch origin "$DOTFILES_REF"
+  git -C "$DOTFILES_DIR" fetch "$DOTFILES_REPO" "$DOTFILES_REF"
   git -C "$DOTFILES_DIR" merge --ff-only FETCH_HEAD
 elif [[ -e "$DOTFILES_DIR" ]]; then
   fail "$DOTFILES_DIR exists but is not a Git checkout"
