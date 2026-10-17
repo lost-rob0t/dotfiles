@@ -19,6 +19,7 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `scripts/gpt-todos-sync.org` is the source of truth for `scripts/gpt-todos-sync` and `scripts/install-gpt-todos-cron`.
 - `scripts/dotfiles-sync.org` is the source of truth for `scripts/dotfiles-sync`.
 - `scripts/termux-remote.org` is the source of truth for `scripts/remote-gui-launch`, `scripts/agent-zero-tunnel`, and `scripts/install-termux-widgets`.
+- `scripts/termux-starintel.org` is the source of truth for `scripts/termux-starintel`.
 - `bootstrap-termux.org` is the source of truth for `bootstrap-termux.sh`.
 - `android/build.org` is the source of truth for `android/build.py`.
 - `android/early-init.org` is the source of truth for `android/early-init.el`.
