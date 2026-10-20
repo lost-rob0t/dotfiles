@@ -1,5 +1,7 @@
 % Home Manager activation ownership facts.
 
+:- discontiguous repair/1.
+
 % Root cause (verified 2026-09-12):
 % `home-manager switch` aborted in checkLinkTargets because
 % ~/.config/systemd/user/qwen3-tts.service existed as a foreign
@@ -34,3 +36,19 @@ hm_owns_path('/.config/systemd/user/zara-server.service').
 % the profile.
 hm_runtime_mask_limitation(home_manager_user_unit, higher_priority_user_config_link).
 hm_temporary_disable_method(home_manager_user_unit, systemctl_user_disable).
+
+% home-manager-updater deploys from a disposable dedicated clone under
+% ~/.local/share/home-manager-updater/repo, never from the user's working
+% checkout. Root cause (verified 2026-10-20, host flake, Forgejo issue #146):
+% that clone carried local modifications to a tracked file from an older
+% layout (nix/home-manager/files/zarathushtra/config.pl), so
+% `git checkout -B master origin/master` aborted before reset/clean could
+% run and every timer run failed at stage=checkout. The failed oneshot
+% degrades the user manager (warning surfaces during later switches) while
+% interactive `home-manager switch` keeps succeeding.
+hm_updater_deploy_source('~/.local/share/home-manager-updater/repo', never_user_working_checkout).
+hm_updater_failure(dedicated_clone_dirty_worktree, stage('checkout')).
+hm_updater_invariant(dedicated_clone_is_disposable_force_checkout).
+hm_updater_observation(failed_unit_degrades_manager_warning, activation_unaffected).
+repair(hm_updater_failure(dedicated_clone_dirty_worktree, _)) :-
+    format("updater must force-checkout the fetched branch in the disposable clone~n").

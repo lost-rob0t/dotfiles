@@ -2,20 +2,10 @@
 #+AUTHOR: nsaspy
 #+STARTUP: overview
 
-* Temporary runtime disable
-
-The desktop, flake, and hunter02 Home Manager profiles currently leave the
-Zara runtime, workflow helpers, plugin projection, and user services disabled
-while the stack is cleaned up.  The Qwen3-TTS service is also commented out
-because its GPU path may contribute to GPU crashes or wider UI/system
-instability.  The dormant modules, expert sources, and user data remain intact
-so the runtime can be restored deliberately after review.
-
 * Scope
-When enabled, the desktop Home Manager profile's =zara.workflows= module
-installs non-secret operator workflow defaults and the bounded
-=zara-system-update= helper without taking ownership of Zara's mutable private
-overlay.
+The desktop Home Manager profile enables =zara.workflows=.  That module installs
+non-secret operator workflow defaults and the bounded =zara-system-update=
+helper without taking ownership of Zara's mutable private overlay.
 
 * Configuration ownership
 - =.config/zarathushtra/config.pl= is the canonical tracked declarative base layer
@@ -216,6 +206,24 @@ The 4chan mapping carries a
 small explicit alias set for common text/ASR forms; general edit-distance/fuzzy
 resolution belongs in Zara Core rather than being simulated by an unbounded
 alias list here.
+
+* Local development toggle
+=zara-dev= turns the Nix-managed Zara runtime off so a
+development instance owns the sockets, models, and audio path without the
+packaged services competing:
+
+#+begin_src shell
+zara-dev                 # stop + disable zara-server, zara-pair, zara-desktop, zara-wake
+zara-dev off --with-tts  # also stop + disable the Qwen3-TTS backend
+zara-dev on --with-tts   # enable + start everything again
+zara-dev status          # read-only enablement/activation report
+#+end_src
+
+Disablement is temporary by design: the next =home-manager switch= (manual or
+via the auto-updater) reconciles the units back into their declarative state.
+The helper lives in
+[[file:../../nix/home-manager/files/zarathushtra/bin/zara-dev][zarathushtra/bin/zara-dev]]
+and is packaged by the =zara.workflows= module.
 
 * System update boundary
 =update system= resolves to =zara-system-update=.  The helper performs the three

@@ -12,6 +12,7 @@ mkdir -p "$mockbin"
 cat >"$mockbin/git" <<'EOF'
 #!/usr/bin/env bash
 set -u
+printf '%s\n' "$*" >>"${MOCK_GIT_LOG:?}"
 if [[ "$*" == *"rev-parse HEAD"* ]]; then
   printf 'deadbeef\n'
 fi
@@ -115,9 +116,11 @@ reset_case() {
   export HM_UPDATER_DATA_DIR="$tmp/$name/data"
   export MOCK_GENERATION_STATE="$tmp/$name/generation"
   export MOCK_COUNTS="$tmp/$name/counts"
+  export MOCK_GIT_LOG="$tmp/$name/git.log"
   mkdir -p "$HM_UPDATER_DATA_DIR/repo/.git"
   printf '%s\n' "$MOCK_OLD_GENERATION" >"$MOCK_GENERATION_STATE"
   : >"$MOCK_COUNTS"
+  : >"$MOCK_GIT_LOG"
   export MOCK_NIX_RC=0
   export MOCK_GENERATIONS_RC=0
   export MOCK_SWITCH_RC=0
@@ -174,5 +177,12 @@ assert_count rollback 0
 [[ ! -e "$HM_UPDATER_DATA_DIR/failure.txt" ]] || fail_test "success did not clear failure marker"
 [[ ! -e "$HM_UPDATER_DATA_DIR/notification-id" ]] || fail_test "success did not clear notification id"
 [[ "$(cat "$MOCK_GENERATION_STATE")" == "$MOCK_NEW_GENERATION" ]] || fail_test "success did not advance generation"
+
+# The dedicated checkout is disposable: it may carry dirty state from older
+# layouts or interrupted runs, so the updater must force-checkout the fetched
+# branch instead of letting `git checkout -B` abort on local changes (the
+# 2026-10-19 flake failure, Forgejo issue #146).
+assert_contains "$MOCK_GIT_LOG" "checkout --force -B master origin/master"
+assert_contains "$MOCK_GIT_LOG" "clean -fdx"
 
 printf 'home-manager-updater tests: PASS\n'

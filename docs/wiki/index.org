@@ -19,7 +19,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:opencode-commands.org][Global OpenCode commands]] - declarative =/= commands, reusable skills, the =opencode-worker= Unix contract, model routing, and hosting workflows.
 - [[file:../../scripts/opencode-tmux.org][OpenCode tmux sessions and EZF]] - named sessions, fzf/Emacs selection, hardened completion transport, installation, and verification.
 - [[file:llm-log.org][llm-log telemetry]] - adjacent z.AI/GPT quota meters and the new accurate API grapher.
-- [[file:zara.org][Zara workflows]] - temporarily disabled runtime; retained declarative base config, private-overlay ownership, Qwen3-TTS safety note, desktop/voice workflows, and bounded system updates.
+- [[file:zara.org][Zara workflows]] - declarative Zara base config, private-overlay ownership, Qwen3-TTS voice service, desktop/voice workflows, and bounded system updates.
 - [[file:zara-android-automation.org][Zara Android Prolog automation]] - importable Git config template, typed automation DSL, permission acquisition, and YouTube/ReVanced demo.
 - [[file:screen-capture.org][Screen capture]] - stable screenshot/recording CLI, backends, Qtile bindings, Emacs picker, and Home Manager options.
 - [[file:../qtile-emacs-ui.org][Qtile and Emacs dropdown UI]] - shared popup lifecycle, widget-relative geometry, notification backends, and dashboard ownership.
@@ -54,7 +54,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Org ↔ Logseq sync | [[file:../../nix/home-manager/mods/org-logseq-sync.org][org-logseq-sync.org]] | Literate source for the Unison/inotify bridge, Home Manager module, and regression test. |
 | OpenCode | [[file:../../nix/home-manager/mods/opencode.org][opencode.org]] | Literate Home Manager source for global policy, commands, theme, routing, and the optional web workspace; tangles to =opencode.nix=. |
 | OpenCode tmux / EZF | [[file:../../scripts/opencode-tmux.org][scripts/opencode-tmux.org]] | Standalone session commands, private-file Emacs bridge, and optional Home Manager packaging. |
-| Zara workflows | [[file:../../nix/home-manager/mods/zara-workflows.nix][zara-workflows.nix]] | Runtime temporarily disabled; Home Manager-owned base workflows and Qwen3-TTS integration remain dormant, while private Zara runtime config stays unmanaged. |
+| Zara workflows | [[file:../../nix/home-manager/mods/zara-workflows.nix][zara-workflows.nix]] | Home Manager-owned base workflows plus the Qwen3-TTS service integration; private Zara runtime config remains unmanaged. |
 | Zara Android template | [[file:zara-android-automation.org][zara-android-automation.org]] | Git-importable Org source for deterministic Android automations and special-access policy. |
 | Agent verification | [[file:../../nix/home-manager/mods/agent-verification.nix][agent-verification.nix]] | Global Codex/OpenCode policy, durable Prolog gate, and Codex lifecycle hooks. |
 | NixOS | [[file:../../nix/nixos/][nix/nixos/]] | Hosts and installer definitions. |

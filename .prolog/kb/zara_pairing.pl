@@ -28,6 +28,12 @@ zara_pair_failure(pyzmq_curve_keypair_returns_bytes, fix(decode_ascii)).
 zara_pair_failure(secret_tool_attrs_are_alternating_pairs, fix(key_value_argv_elements)).
 zara_pair_failure(z85_values_break_bash_sourcing, fix(single_quote_env_values)).
 zara_pair_failure(daemon_restart_rotates_advertised_endpoint, fix(rerun_pair_before_client_start)).
+% Verified 2026-10-20 on flake: zara-pair.service ran while zara-server was
+% still starting; zara-control.sock did not exist yet and pair exited 1.
+% systemd After=/Wants= order the *start job*, not python-daemon readiness.
+zara_pair_failure(control_socket_absent_during_daemon_startup,
+    fix(systemctl_user_restart_zara_pair_once_control_socket_exists)).
+zara_pair_readiness_gate('$XDG_RUNTIME_DIR/zarathushtra/zara-control.sock', socket_existence_not_unit_ordering).
 
 %% Runtime facts observed on flake
 zara_pair_runtime(backend(freedesktop_secrets), provider(gnome_keyring)).

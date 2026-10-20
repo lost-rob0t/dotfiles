@@ -1,4 +1,9 @@
-{ lib, pkgs, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 
 let
   cfg = config.zara.workflows;
@@ -39,6 +44,11 @@ let
     text = ''
       exec ${pairPython}/bin/python3 ${../files/zarathushtra/bin/zara-adb-pair} "$@"
     '';
+  };
+  zaraDev = pkgs.writeShellApplication {
+    name = "zara-dev";
+    runtimeInputs = [ pkgs.systemd ];
+    text = builtins.readFile ../files/zarathushtra/bin/zara-dev;
   };
 in
 {
@@ -82,6 +92,11 @@ in
       Install.WantedBy = [ "graphical-session.target" ];
     };
 
-    home.packages = [ systemUpdate zaraPair adbPair ];
+    home.packages = [
+      systemUpdate
+      zaraPair
+      adbPair
+      zaraDev
+    ];
   };
 }
