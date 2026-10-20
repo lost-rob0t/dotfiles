@@ -16,6 +16,7 @@ In particular, keep literate Org sources and their tangled/generated outputs syn
 + [[./bootstrap-termux.org][Termux bootstrap]]
 + [[./docs/wiki/termux.org][Termux and Android companion apps]]
 + [[./scripts/termux-remote.org][Termux remote desktop workflows]]
++ [[./docs/wiki/termux.org::*Local Server and CouchDB acceptance][Experimental local CouchDB acceptance and Server blockers]]
 + [[./android/config.org][Native Android Org/Vim config]]
 + [[./android/doom/config.org][Termux Doom config]]
 + [[./android/README.org][Android Emacs profiles]]

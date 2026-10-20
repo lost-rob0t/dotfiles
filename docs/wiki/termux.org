@@ -166,3 +166,368 @@ Inspect =PAIRING.json= first.  It is the machine-readable statement of the APK
 set, expected package identities, hashes, shared user, and signing certificate.
 =SOURCE-LOCK.txt= answers the separate provenance question: exactly which
 upstream sources were built.
+
+* Archive collection at boot
+
+[[file:../../scripts/termux-starintel.org][scripts/termux-starintel.org]] owns the cron/runit integration and its generated
+=termux-starintel= command. The bootstrap installs =cronie=, =termux-services=,
+=coreutils= and =util-linux=, then invokes that helper. Existing setups can run
+=bash ~/.dotfiles/scripts/termux-starintel install= directly after installing the
+service dependencies. Fresh installs clone the pinned public
+[[https://github.com/lost-rob0t/election26/blob/5d8d9659acea6349adc6f264b35964ef7309f004/scripts/install-termux.sh][election26 Termux installer]] and invoke =--install --if-needed=. The upstream
+installer owns the managed venv/launcher, official package checks, and create-once
+private defaults. Dotfiles does not embed or fork its implementation.
+
+Fresh installs use =~/.config/election26/config.json= and
+=~/.local/share/election26/archive/=. The initial host allowlist and feed list
+are empty; configure selected sources before expecting stored objects. No paid
+API, Discord, media download or remote access is enabled. The existing phone's
+=~/starintel/ops/archive-config.json= and =~/starintel/ops/archive/= select the
+legacy profile. That pair and any existing collector executable are preserved;
+an incomplete legacy pair fails instead of creating an alternative archive.
+The selected profile is saved in =~/.local/state/termux-starintel/profile=.
+Upstream's standard Android HOME/PREFIX guard remains unchanged; relocated or
+nonstandard Termux installs are not supported by that installer.
+
+Installation backs up the crontab to =~/.local/state/termux-starintel/crontab.*=,
+wraps one recognized collector command without changing its schedule or
+arguments, and preserves unrelated lines. An absent collector entry receives
+one every-five-minute RSS entry. Ambiguous entries and an in-flight legacy
+collector abort with a diagnostic; allow that run to finish and retry. No archive
+migration, copy or cleanup of an existing archive is performed. =~/2026/= and
+the existing archive remain in place. Fresh setup creates only the upstream
+standard empty archive and default config. The reported 246 stored objects / 247
+observations / zero errors are prior phone evidence, not results of this patch.
+
+During handoff the installer also holds the wrapper lock and an existing
+canonical archive =.writer.lock= read-only. It checks same-UID bare/absolute
+collector processes before and after changing cron. A migration marker keeps
+new wrappers blocked if handoff is interrupted; retry once the legacy run has
+finished. Process matching is observational, not a perfect lock for arbitrary
+old/manual invocations. The maintained collector has its own archive writer
+lock. Quiesce independent/manual launchers before migration; no old process is
+killed.
+
+The wrapper serializes runs with =flock= and applies a 240-second timeout with
+a ten-second kill grace. Failures retry on the next scheduled tick. Collector
+output goes to =$PREFIX/var/log/sv/election26/= through =svlogd=; collector and
+crond logs each retain a 1 MB current file and three rotated files. An already
+running supervised cron logger receives a targeted HUP to apply its new config.
+Existing shell redirections are preserved; historical output files are not deleted.
+Network availability is exercised by the collector's own request handling;
+there is no unrelated public-host ping or new collection source.
+
+| Command | Effect |
+|---------+--------|
+| =termux-starintel status= | Check config, supervisor and crond process; show pause state and log location. |
+| =termux-starintel logs= | Show the last 80 collector log lines. |
+| =termux-starintel stop= | Pause future wrapped collections; other cron entries continue, an in-flight run finishes. |
+| =termux-starintel start= | Resume collections and ensure cron startup. |
+| =sv status crond= | Inspect the packaged daemon service. |
+| =sv-disable crond= | Stop supervised cron until this bootstrap starts/enables it again; affects all its jobs. |
+
+If crond was started manually, installation retains it and does not launch a
+second daemon. The supervisor PID must also match the intended executable,
+UID and service directory; a reused PID is not trusted. Installer lock file
+descriptors are closed before daemon startup. The next boot starts the packaged
+runit service. A legacy
+external crond remains operator-owned; =sv-disable= cannot stop that process.
+The managed =~/.termux/boot/20-starintel-services= hook preserves a collector
+pause and starts only the service supervisor and cron. Rerunning install also
+preserves a pause. Existing boot hooks remain untouched; review any independently
+configured legacy cron launch hook to avoid competing startup owners.
+
+Install Termux:Boot from the same signed APK family as Termux, then tap its
+launcher icon once. Review Android battery optimization and vendor background
+startup settings manually for Termux and Termux:Boot. These app/permission steps
+cannot be performed by this shell bootstrap. Android may still suspend/kill
+background processes. =termux-wake-lock= is an optional manual power tradeoff;
+this hook does not acquire one automatically. See the official
+[[https://github.com/termux/termux-boot#how-to-use][Termux:Boot instructions]], [[https://github.com/termux/termux-services][termux-services commands]], and
+[[https://github.com/termux/termux-packages/blob/master/packages/cronie/build.sh][packaged crond service definition]]. No remote access service is enabled.
+
+** StarIntel runtime boundary
+
+The supported local workload here is the RSS archive collector, freshly installed
+from its pinned upstream installer or reused with its existing private config. It is an archive host, not a complete local
+Star Server deployment. Optional remote destinations remain in user-owned
+configuration; no endpoint, credential, SSH access or tunnel is enabled by this
+patch. Keep credentials out of Git and restrict private config files to their
+owner. The collector's archive format is not asserted to be a live server DB.
+
+Source audit (2026-10-17):
+
+- [[https://github.com/lost-rob0t/starintel-edge/blob/0a75eb292b302368a6308b6f53fe2a0fdab34ee0/docs/DISTRIBUTION.md][Edge distribution]] describes Termux as an installer-plan target with service adapters
+  incomplete. =starintel-install plan --platform termux= renders a plan; it is
+  not a runnable Termux service entry point.
+- [[https://github.com/lost-rob0t/starintel-edge/blob/0a75eb292b302368a6308b6f53fe2a0fdab34ee0/docs/ANDROID-SERVICE-EVIDENCE.md][Edge Android evidence]] concerns a separate ECL/JNI Android host. Its local actor
+  core does not establish full Star Server or Android mesh availability.
+- [[https://github.com/lost-rob0t/starintel-server/blob/54a5f65f0fb3ecc286da6fe426213f015a255562/cli/star-cli.asd][Maintained star-cli]] is a Common Lisp ASDF program with entry point
+  =star-cli::main=, not a Python package or shell script. Its remote client
+  accepts a base URL and runtime =STAR_SERVER_TOKEN=/=STAR_SERVER_API_KEY=.
+  A separately built compatible client can use a remote server; this bootstrap
+  does not claim that Linux binary runs under Android or install it untested.
+- Full Star Server requires its maintained Lisp runtime and CouchDB/RabbitMQ
+  infrastructure. Native Termux SBCL and a full CouchDB/RabbitMQ stack are not
+  installed or claimed supported. The existing PRoot/Nix development guest is
+  also not evidence of a boot-ready server deployment.
+
+Host validation: =python3 tests/termux-services.py= checks temporary-HOME
+installation/reruns, literal source parity, preservation, duplicate prevention,
+logging, timeout, stale PID and failure behavior with mocked Termux commands.
+=python3 tests/termux-upstream.py /path/to/pinned-election26= additionally executes
+the real upstream installer body, setup, receipt, config, launcher and status
+through controlled package/Git/venv/pip stubs. Only that test harness substitutes
+the hardcoded Android environment gate for a temporary HOME; production does
+not bypass it. Both fresh install and verified rerun are checked. These tests
+do not establish Android boot, battery survival, actual crond/runit startup,
+network collection, collector ABI compatibility or a new object count. On a
+test phone/emulator, verify those manually after install, pause/resume, and a
+reboot; compare archive/config and =~/2026/= checksums before/after the install
+while collection is paused. Do not use a production device as an automatic test
+target.
+
+* StarIntel remote operator client
+
+[[file:../../scripts/termux-starintel-client.org][termux-starintel-client.org]] owns the two Termux launchers. The bootstrap installs
+=openssl-tool= and exposes the existing tracked
+[[file:../../nix/packages/starintel-admin/bin/starintel-admin][starintel-admin CLI]] through Termux Bash. It does not copy or port the CLI.
+Installation configures no endpoint, credentials, background process or access
+settings and makes no request. An existing unrelated executable is refused;
+reruns preserve endpoint/credential environment and user-owned config files.
+Existing installations can run =bash ~/.dotfiles/scripts/termux-starintel-client install=
+after installing its dependencies: Bash, coreutils, curl, jq, openssl-tool and
+Python. No Nix or Lisp runtime is needed for this client.
+
+Configure an endpoint only when wanted. The endpoint must be an explicit HTTPS
+base URL without embedded credentials, query, fragment or curl glob syntax.
+IPv6 literal authorities such as =https://[::1]:8443= remain valid. For example:
+
+#+begin_src sh
+export STARINTEL_ADMIN_URL='https://your-starintel-server.example'
+# Set this to an existing owner-private external credential file; do not put a token here.
+export STARINTEL_ADMIN_TOKEN_FILE="$HOME/.config/private/starintel-token"
+starintel-admin-doctor
+# Explicit opt-in request; requires permission to list credential metadata:
+starintel-admin-doctor --connect
+#+end_src
+
+=STAR_SERVER_URL= is also supported. Credentials can instead come from the existing
+=STARINTEL_ADMIN_TOKEN=, =STAR_SERVER_TOKEN= or =STAR_SERVER_API_KEY= environment
+variables. Provision them separately through the existing secret-management
+workflow. This integration never creates, copies or writes credential values.
+An explicit token file must be regular, owned by this UID, inaccessible to group
+and others, and outside the checkout and Nix store. The launcher requires an
+explicit credential source instead of scanning unrelated infrastructure files.
+No shell config or generated launcher stores an endpoint or token. Online CLI
+invocations isolate temporary curl credentials in a private directory removed on
+exit, including failure. Both online launcher calls and connection diagnostics
+force a private curl adapter. It sets =--disable= first so default =~/.curlrc=
+files are not read, sets =--globoff= to prevent multi-host URL expansion, allows
+only HTTPS, and rejects redirects with a zero redirect budget. Existing curl
+configuration is preserved but its trace/output/extra-URL/redirect directives
+cannot alter these requests or bypass diagnostic output bounds. An inherited
+=STARINTEL_ADMIN_CURL= override is not used on this Termux surface. These curl
+semantics follow the [[https://curl.se/docs/manpage.html][official curl manual]].
+
+| Command | Effect |
+|---------+--------|
+| =starintel-admin --help= / =--version= | Local CLI information; no endpoint or credential needed. |
+| =starintel-admin-doctor= | Check dependencies and optional endpoint syntax; make no request. |
+| =starintel-admin-doctor --connect= | Invoke the CLI's read-only =key list= API; print success/failure without response bodies. |
+| =starintel-admin …= | Run the tracked operator command against the explicit endpoint; normal upstream authorization and command semantics apply. |
+
+The connection diagnostic has a 20-second deadline plus two-second kill grace
+and a 1 MiB response cap. Its private temporary directory, including the unchanged
+CLI's temporary mode-0600 curl credential config, is removed afterward, including
+failure. It changes no users, keys, policies, collection sources or cron jobs.
+The full CLI still exposes mutating commands when explicitly invoked; installing
+it does not grant server-side authority. See [[file:starintel-admin.org][the existing operator CLI guide]].
+The existing =01-StarIntel-Admin= widget continues to open the Org workspace; it
+is not redirected to a network request.
+
+This is a remote client. Local Star Server, Edge/Sento, CouchDB, RabbitMQ and
+native Lisp runtime installation remain separate work. Existing election26
+sources/config/data are untouched; fresh collector defaults remain empty until
+sources are selected explicitly.
+
+** Next local-runtime validation boundary
+
+Official Termux package recipes provide [[https://github.com/termux/termux-packages/blob/master/packages/sbcl/build.sh][SBCL on aarch64 and x86_64]] (arm/i686 excluded)
+and [[https://github.com/termux/termux-packages/blob/master/packages/ecl/build.sh][ECL on ARM]] (x86/i686 excluded). Package availability alone does not establish
+StarIntel compatibility. This client integration installs neither compiler.
+
+With a separately installed supported SBCL and an explicitly reviewed checkout
+of [[https://github.com/lost-rob0t/starintel-edge/tree/0a75eb292b302368a6308b6f53fe2a0fdab34ee0][Edge commit 0a75eb292b302368a6308b6f53fe2a0fdab34ee0]], the existing source documents this bounded
+system-API test entry point (run from that repository's root):
+
+#+begin_src sh
+sbcl --script tests/system_api.lisp
+#+end_src
+
+[[https://github.com/lost-rob0t/starintel-edge/blob/0a75eb292b302368a6308b6f53fe2a0fdab34ee0/runtime/starintel-edge.asd][The system-api ASDF definition]] has no external Lisp dependencies.
+This is a reproducible next test command, not a claim that it passed on Android,
+starts an actor runtime, exercises real sensors, or implements a local server.
+The separate =tests/runtime.lisp= suite also needs the pinned Sento dependency
+closure; the Android ECL/APK lifecycle and full server portability gates remain
+open.
+
+* Local Server and CouchDB acceptance
+
+Issue [[https://github.com/lost-rob0t/dotfiles/issues/332][#332]] tracks the local Server slice. The chosen deployment candidate is
+same-architecture glibc userspace under unprivileged PRoot, with foreground
+processes supervised from Termux. It uses the real upstream CouchDB distribution;
+it does not substitute a JSON store or a remote Server client. No local Server
+service is enabled by the bootstrap yet.
+
+The canonical [[file:../../scripts/termux-couchdb-proof.org][CouchDB acceptance source]] generates
+=scripts/termux-couchdb-proof=. This experimental command only checks CouchDB.
+Install =proot-distro= 5.9.0 and =proot= in an isolated test environment. On Termux,
+=python= and =proot= are available through =pkg=; obtain the exact proot-distro
+version in a dedicated Python venv if the packaged version differs. Initial image
+installation requires network access and several hundred MB beyond the private
+probe data. Do not install over an existing guest. For x86_64:
+
+#+begin_src sh
+proot-distro install --name starintel-couchdb-proof --architecture x86_64 docker.io/library/couchdb@sha256:6785bd4bec3d406fbba8d60f8ec258e6ddec38bf0fbfd700916790b697f9ab8e
+python3 scripts/termux-couchdb-proof --guest starintel-couchdb-proof \
+  --manifest "$PREFIX/var/lib/proot-distro/containers/starintel-couchdb-proof/manifest.json" \
+  --state "$HOME/.local/state/starintel-couchdb-proof"
+#+end_src
+
+Linux proot-distro stores the manifest under
+=${XDG_DATA_HOME:-$HOME/.local/share}/proot-distro/containers/NAME/manifest.json=.
+An OCI archive exported with =docker image save= can replace the image argument
+for offline installation; retain its manifest/config digest. The installed guest
+and cache must already be present for offline reruns. The probe verifies the
+installed guest's recorded config digest, not a cryptographic attestation of a
+rootfs modified after extraction. Treat guest files as trusted executable code.
+
+The aarch64 candidate uses =--architecture aarch64= and manifest
+=sha256:5a1991c184104a164e1df74139989f0bd7c8cac320ac79de3e15cb3c194d3eb4=.
+Its config digest is pinned in the source, but it has not been executed here.
+No QEMU/cross-architecture runtime support is claimed. Other architectures fail
+closed. Both pins are upstream CouchDB 3.5.2 with embedded Erlang OTP 26.
+
+The command starts a dedicated loopback EPMD and CouchDB, waits up to 90 seconds
+for readiness, creates one fixture if absent, sends SIGTERM, restarts against the
+same private data directory, verifies readback, and stops its own process groups.
+SIGINT/SIGTERM also trigger cleanup. A separate live guardian pins each owned
+session/group ID even after PRoot exits. A closed pipe gate prevents guest launch
+until the guardian handshake, PID registration, and logger setup commit. INT/TERM
+are deferred across spawn/registration; constructor failures and interrupted
+handshakes reap the still child-free guardian and close startup descriptors. Cleanup sends TERM, allows 15 seconds
+for graceful shutdown, then kills the guardian and any remaining group members.
+If the guardian is unexpectedly lost, cleanup fails closed instead of signaling
+a possibly reused group. Remaining listeners also fail acceptance. The supported
+commands run in the foreground; detached processes that create new sessions are
+not covered by group supervision. Status is the foreground JSON result/exit status; logs are =couch.log=
+and =epmd.log= in the state directory. Re-execute the command to start another
+acceptance run. It does not create a detached service or PID-file control API.
+
+Ports 45984 (HTTP), 45969 (EPMD), and 45910 (Erlang distribution) must be free.
+All listeners bind to 127.0.0.1; PRoot shares the host network. This does not isolate
+other applications running under the same Android UID. A generated private admin
+password stays in a mode-0600 state file and HTTP memory; the CouchDB ini contains
+only its PBKDF2 verifier. The Erlang cookie is mode 0400. Neither is placed in
+source, command arguments, or logs. Managed outputs, rotated log targets and the
+lock must be private, regular, singly linked files owned by the current UID.
+Symlink/hardlink/nonregular targets fail before writing; descriptor checks and
+no-follow opens also protect the actual log/lock file. Logger failures fail
+acceptance rather than silently dropping evidence. State must be new or owned by this probe;
+existing state and fixture bytes are preserved on rerun.
+
+Each component log rotates at 1 MiB with two backups. The short acceptance run
+checks a 128 MiB state budget and 128 MiB free-space reserve at startup/readiness;
+these checks are not a hard aggregate filesystem quota. Erlang schedulers are
+limited to two. No compaction, backup, production capacity, battery survival, or
+Android background-lifecycle guarantees have been established. A production
+service needs storage policy, broker readiness and an Android lifecycle test.
+
+** Recorded evidence and blockers (2026-10-17)
+
+- Actual unprivileged Linux x86_64 PRoot, proot-distro 5.9.0, PRoot 5.1.0:
+  CouchDB 3.5.2 ready; fixture write; SIGTERM; restart; durable readback passed.
+  The checked-in command was run twice against the same state. This is Linux
+  execution evidence, not Android execution evidence.
+- =python3 tests/termux-couchdb.py= checks exact literate parity, create-once
+  state/data preservation, private credentials and digest rejection. These are
+  contract tests, not substitutes for runtime evidence.
+- Server baseline =54a5f65f0fb3ecc286da6fe426213f015a255562= has no published release
+  artifact and its flake selects =x86_64-linux=. The bounded Nix image build
+  (two CPUs, 3 GiB, max-jobs 1, 900-second deadline) failed fetching dependencies:
+  =https://cache.nixos.org/nix-cache-info=: =CONNECT tunnel failed, response 403=.
+  The host CA was supplied without disabling TLS. No compilation result is
+  claimed, and no source rebuild/retry loop was launched after this blocker.
+- The 403 is a rejection of =CONNECT cache.nixos.org:443= by the configured
+  =http://proxy:8080= HTTPS proxy, before an origin TLS connection/GET
+  =/nix-cache-info= was established. It is not an origin 404 or evidence of a
+  private Server artifact. The same log records rejection of
+  =CONNECT ftpmirror.gnu.org:443= for =/bash/bash-5.3.tar.gz=. This explains the
+  subsequent dependency failure. No proxy bypass, alternate mirror, TLS/auth
+  weakening, or repeated network probe was used to evade either denial.
+- Source-build route inspection at the same Server baseline: README's supported
+  reproducible route is Nix; its interactive example still runs =nix develop=
+  before =sbcl --load run.lisp=, but =run.lisp= is absent. =make -n build= does
+  expose the existing =sbcl= / =ql:quickload= / =save-lisp-and-die= recipe; it
+  does not provision Quicklisp/Qlot, native libraries, or a Debian dependency
+  closure. The Qlot cl-couch lock is =e3c8e7d1548c7814e49528869c098e5e03ccbe80=,
+  whereas the supported flake pins =a37150193b81fad16d24b42102353fcad9c649ad=.
+  No SBCL/Quicklisp/Qlot executable or preinstalled dependency closure exists
+  in this test environment. This is source-inspected deployment drift, not a
+  failed SBCL compilation or proof that ASDF cannot run on Debian. There is no
+  documented, self-contained non-Nix Debian deployment route yet. Implementing
+  that route is owned by [[https://github.com/lost-rob0t/starintel-server/issues/341][server #341]], separately from native ECL issue #318.
+  Missing setup is implementation work, not a reason to substitute another Server.
+- The permitted Debian source-build preflight subsequently tried the required
+  official Quicklisp bootstrap once at =https://beta.quicklisp.org/quicklisp.lisp=.
+  Curl returned exit 56, =http_code=000=, =connect_code=403= and
+  =CONNECT tunnel failed, response 403=; the proxy response identifies =envoy=.
+  No origin TLS/HTTP response or dependency bytes were obtained. This exact
+  unmet dependency now blocks source-build execution here, before any long
+  build. No mirror, tunnel, proxy bypass or weakened TLS/auth was attempted.
+  In an operator-owned environment where that official channel is permitted,
+  this read-only preflight can establish availability (not a working installer):
+
+  #+begin_src sh
+  curl --proto '=https' --fail --show-error --connect-timeout 10 --max-time 20 --retry 0 --output quicklisp.lisp https://beta.quicklisp.org/quicklisp.lisp
+  sha256sum quicklisp.lisp
+  command -v sbcl
+  sbcl --version
+  #+end_src
+
+- No Android emulator, ADB endpoint or authorized phone is available. No device
+  was deployed to or changed.
+
+The next required gate is an exact-source Server image plus real RabbitMQ, then
+Server =POST /api/v1/documents= / =GET /api/v1/documents/:id= using canonical
+0.10.1 documents, Server restart/readback, and one existing actor-protocol
+roundtrip. The real entry point is =/bin/star-server start -i /etc/starintel/init.lisp=.
+Readiness depends on CouchDB and RabbitMQ; it cannot be replaced by a successful
+TCP probe. Memory lease storage is available but does not establish durable leases.
+The CouchDB fixture in this PR does not establish canonical Server storage or
+any actor behavior. Do not activate a Server boot service before those gates.
+
+** Runtime matrix
+
+These are inspected source capabilities, not Android conformance claims. Keep
+one canonical actor runtime/protocol instead of creating seven parallel servers.
+The star-lang source inspection used commit
+=4c8d1e19249a5030b7d97f953f694c09849b9131= (including its reviewed/draft integration
+boundaries); that checkout is not a published Android runtime artifact.
+
+| Component | Existing implementation | Remaining acceptance |
+|-----------+-------------------------+----------------------|
+| Common Lisp / Server | Sento runtime and canonical Server HTTP at the pinned Server baseline | Server artifact, real broker, canonical HTTP/restart, actor roundtrip, Android |
+| StarLang | =starlang-runtime=, =starlang-compiler=, =star-actor-protocol=, =star-process-port= in star-lang | Compile/load with pinned Server, real shared-protocol integration, Android |
+| Nim | =star-zmq/nim/actor.nim= ready/echo/stop worker and =star-zmq/tests/actor_conformance.py= | Build exact worker and execute conformance; transport conformance alone is not Server integration |
+| Python | =star-zmq/python/star_zmq.py= byte transport client | Actual worker adapter and canonical actor roundtrip; Python package presence is insufficient |
+| JS / TS | Client/SDK sources exist; no concrete actor worker verified | Identify/implement the protocol worker, then conformance; SDK presence is insufficient |
+| Prolog | =star-logic-adapter-swi= exact-executable MQI and bounded relation primitive | Controlled logic boundary is not an actor runtime or general star.logic.query/1; Server integration and Android remain |
+
+The shared ZeroMQ/process-port work is an existing integration boundary, not an
+excuse to force seven independent AMQP clients. RabbitMQ remains a requirement
+of the current Server. Native SBCL package availability does not establish full
+Server/Bionic compatibility; full CouchDB/RabbitMQ native Termux support is not
+claimed. This probe leaves the collector, its crontab, =~/starintel/ops/archive=,
+=~/starintel/ops/archive-config.json= and =~/2026= untouched.

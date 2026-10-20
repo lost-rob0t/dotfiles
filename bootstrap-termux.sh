@@ -2,6 +2,7 @@
 set -euo pipefail
 
 readonly DOTFILES_REPO="https://github.com/lost-rob0t/dotfiles.git"
+readonly DOTFILES_REF="${STAR_DOTFILES_REF:-master}"
 readonly DOTFILES_DIR="${STAR_DOTFILES_ROOT:-$HOME/.dotfiles}"
 readonly DISTRO="${STAR_TERMUX_DISTRO:-debian}"
 readonly DOOM_ROOT="${STAR_DOOM_ROOT:-$HOME/.config/emacs}"
@@ -42,6 +43,8 @@ DEBIAN_FRONTEND=noninteractive apt full-upgrade -y
 packages=(
   bash
   clang
+  coreutils
+  cronie
   curl
   emacs
   fd
@@ -52,7 +55,9 @@ packages=(
   make
   nim
   openssh
+  openssl-tool
   pkg-config
+  procps
   proot-distro
   python
   ripgrep
@@ -60,16 +65,9 @@ packages=(
   stow
   swi-prolog
   termux-api
+  termux-services
+  util-linux
 )
-
-case "$(dpkg --print-architecture 2>/dev/null || true)" in
-  aarch64|x86_64|amd64)
-    packages+=(sbcl)
-    ;;
-  *)
-    printf '==> SBCL skipped: native Termux SBCL is 64-bit only on Android\n' >&2
-    ;;
-esac
 
 note "Installing native Termux development stack"
 pkg install -y "${packages[@]}"
@@ -80,13 +78,15 @@ if command -v termux-setup-storage >/dev/null 2>&1; then
 fi
 
 note "Bootstrapping dotfiles at $DOTFILES_DIR"
+[[ "$DOTFILES_REF" != -* ]] || fail "invalid dotfiles branch ref"
+git check-ref-format --branch "$DOTFILES_REF" >/dev/null || fail "invalid dotfiles branch ref"
 if [[ -d "$DOTFILES_DIR/.git" ]]; then
-  git -C "$DOTFILES_DIR" fetch origin master
-  git -C "$DOTFILES_DIR" merge --ff-only origin/master
+  git -C "$DOTFILES_DIR" fetch "$DOTFILES_REPO" "$DOTFILES_REF"
+  git -C "$DOTFILES_DIR" merge --ff-only FETCH_HEAD
 elif [[ -e "$DOTFILES_DIR" ]]; then
   fail "$DOTFILES_DIR exists but is not a Git checkout"
 else
-  git clone --branch master --single-branch "$DOTFILES_REPO" "$DOTFILES_DIR"
+  git clone --branch "$DOTFILES_REF" --single-branch "$DOTFILES_REPO" "$DOTFILES_DIR"
 fi
 
 note "Installing platform-aware entry command"
@@ -400,6 +400,12 @@ else
   printf '==> Termux:Widget app not detected. Install the plugin from the same source/signing family as Termux, then add its widget.\n'
 fi
 
+note "Installing optional StarIntel remote client commands"
+bash "$DOTFILES_DIR/scripts/termux-starintel-client" install
+
+note "Configuring archive collector and boot services"
+bash "$DOTFILES_DIR/scripts/termux-starintel" install
+
 note "Bootstrap complete"
 printf 'Platform:  '
 platform-enter --info | paste -sd ' ' -
@@ -411,8 +417,6 @@ printf 'Doom:      '
 doom-termux version 2>/dev/null | sed -n '1p' || true
 printf 'SWI:       '
 swipl --version 2>/dev/null || true
-printf 'SBCL:      '
-sbcl --version 2>/dev/null || true
 printf 'Nim:       '
 nim --version 2>/dev/null | sed -n '1p' || true
 printf 'Python:    '
