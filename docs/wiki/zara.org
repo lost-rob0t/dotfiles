@@ -192,6 +192,13 @@ Brave/search, Emacs scratch, org-roam daily followed by the existing
 =zara-dictate= path, Thunderbird, Tor Browser, Feishin, YouTube Music, GitHub PR
 compatibility, Magit project aliases, and =/pol/=.
 
+The Magit aliases target the live checkouts: Zara core at
+=~/Documents/Projects/Zarathushtra=, dotfiles at =~/.dotfiles=, and the
+StarIntel workspace at =~/starintel=.  =open starintel= opens the workspace
+root in Dired; =magit server= / =doc= / =starlang= / =consortium= / =quasar= /
+=tek9= open the corresponding StarIntel repositories.  StarIntel HTTP API
+tools are exposed separately by the =starintel.py= Zara plugin.
+
 The Doom Emacs agenda intents render and maintain the same durable agenda
 the editor uses:
 
