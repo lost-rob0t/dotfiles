@@ -32,6 +32,11 @@ The Home Manager tree is split into:
 - [[file:../../nix/home-manager/mods/][mods/]] - reusable modules;
 - [[file:../../nix/home-manager/systems/][systems/]] - host/profile composition.
 
+The desktop Home Manager profile fetches its exact Quasar and StarLang source
+pins from public Forgejo repositories so CI can build the same sources without
+private GitHub credentials. The pins and URLs live in
+[[file:../../nix/home-manager/systems/desktop/programs.nix][desktop/programs.nix]].
+
 The canonical skills input installs the shared skill catalog into the configured
 OpenCode, Claude, and generic Agent Skills user paths (including the
 =.agents/skills= path consumed by Codex-compatible clients).  Keep durable skill
