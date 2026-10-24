@@ -3,6 +3,9 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Keep the compatibility packages below on the last working nixpkgs
+    # revision until their upstreams support current nixos-unstable.
+    nixpkgs-compat.url = "github:NixOS/nixpkgs/e158d9ed9b51c98974c5e66e1ba1c9e0255fecaa";
     disko = {
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -37,7 +40,7 @@
     };
     bixby-studio = {
       url = "github:lost-rob0t/bixby-studio";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs-compat";
     };
     mousetrap = {
       url = "github:lost-rob0t/Mousetrap";
@@ -49,6 +52,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-compat,
       disko,
       home-manager,
       emacs-auto-research,
@@ -63,7 +67,10 @@
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
       prologMcp = pkgs.callPackage ./nix/packages/prolog-mcp.nix { };
       braveMcp = pkgs.callPackage ./nix/packages/brave-mcp { };
       starintelAdmin = pkgs.callPackage ./nix/packages/starintel-admin { };

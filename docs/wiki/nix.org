@@ -13,6 +13,12 @@ The flake provides:
 - checks;
 - a Nix formatter.
 
+The main =nixpkgs= input tracks nixos-unstable.  Bixby Studio and ActivityWatch
+temporarily use packages from =nixpkgs-compat=: Bixby Studio's upstream FHS
+package still requests the removed =openssl_3= alias, and current ActivityWatch
+packaging requires Peewee 3 while nixos-unstable supplies Peewee 4.  Move these
+packages back to the main input after their upstreams support it.
+
 * NixOS outputs
 | Output | Source | Purpose |
 |--------+--------+---------|

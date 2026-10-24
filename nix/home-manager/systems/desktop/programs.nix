@@ -13,6 +13,8 @@ let
     rev = starLangPin;
   };
 
+  activitywatch = inputs.nixpkgs-compat.legacyPackages.${pkgs.stdenv.hostPlatform.system}.activitywatch;
+
   quasarRuntimeLibs = with pkgs; [
     openssl
     rabbitmq-c
