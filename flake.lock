@@ -28,11 +28,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790384678,
-        "narHash": "sha256-7wChh3bz4gaRWNkcHLRCUV9tHOPBXypIA0E7/EUkgCY=",
+        "lastModified": 1792863297,
+        "narHash": "sha256-b/ixgRSmVByDyQwr6PVsuYq6cnUl66AC6eDwEazonXc=",
         "owner": "lost-rob0t",
         "repo": "chatgpt-desktop",
-        "rev": "f60a365bd5bbc7b14d141225d0667363ad267985",
+        "rev": "c3a8f60b847c209845b44a7ebad875aa430fb342",
         "type": "github"
       },
       "original": {
@@ -148,11 +148,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1686189635,
-        "narHash": "sha256-vTXwxAVvsN234DV7sFuVlZtfkTVilfOQ/YkAvEXYtBM=",
+        "lastModified": 1792863593,
+        "narHash": "sha256-f29kWm94JLd1lhRUrdyqd21PycwZ5zTKOffF1i0q9lM=",
         "owner": "lost-rob0t",
         "repo": "Mousetrap",
-        "rev": "2f465c823c39a7f73715765faaa5108b4c3a2348",
+        "rev": "93bf04ed36d6651427bb1de38405f0c3deeb4569",
         "type": "github"
       },
       "original": {

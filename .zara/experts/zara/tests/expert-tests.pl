@@ -3,7 +3,7 @@
 
 :- begin_tests(dotfiles_zara_expert).
 test(deployment_services_are_preserved) :-
-    services(['zara-server.service', 'zara-wake.service', 'zara-desktop.service']).
+    services(['zara-server.service', 'zara-pair.service', 'zara-wake.service', 'zara-desktop.service']).
 test(home_manager_owns_deployment) :- deployment_owner(home_manager, 'unseen@flake').
 test(real_voice_requires_real_speech) :-
     voice_stage(voice_input, requires_real_speech_not_tone_fixtures).

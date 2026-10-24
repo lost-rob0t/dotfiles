@@ -32,6 +32,11 @@ The Home Manager tree is split into:
 - [[file:../../nix/home-manager/mods/][mods/]] - reusable modules;
 - [[file:../../nix/home-manager/systems/][systems/]] - host/profile composition.
 
+The desktop Home Manager profile fetches its exact Quasar and StarLang source
+pins from public Forgejo repositories so CI can build the same sources without
+private GitHub credentials. The pins and URLs live in
+[[file:../../nix/home-manager/systems/desktop/programs.nix][desktop/programs.nix]].
+
 The canonical skills input installs the shared skill catalog into the configured
 OpenCode, Claude, and generic Agent Skills user paths (including the
 =.agents/skills= path consumed by Codex-compatible clients).  Keep durable skill
@@ -57,6 +62,8 @@ so the nixpkgs FHS package is used instead).  Steam-distributed titles such as
 Terraria and War Thunder install through the Steam client rather than as
 nixpkgs packages.  The =unseen@flake= host enables it with
 =gaming.enable = true=.
+The Mousetrap package comes from the pinned upstream flake's
+=packages.x86_64-linux.default= output.
 
 * GPT TODO synchronization
 [[file:../../nix/home-manager/mods/gpt-todos.nix][gpt-todos.nix]] installs the
