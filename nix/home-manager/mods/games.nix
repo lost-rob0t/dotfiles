@@ -43,7 +43,7 @@
             qjoypad
             sunshine
           ]
-          ++ [ inputs.mousetrap.defaultPackage.x86_64-linux ];
+          ++ [ inputs.mousetrap.packages.x86_64-linux.default ];
       })
 
       (mkIf (config.gaming.enable && config.gaming.moonlight.enable) {

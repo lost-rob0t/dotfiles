@@ -57,6 +57,8 @@ so the nixpkgs FHS package is used instead).  Steam-distributed titles such as
 Terraria and War Thunder install through the Steam client rather than as
 nixpkgs packages.  The =unseen@flake= host enables it with
 =gaming.enable = true=.
+The Mousetrap package comes from the pinned upstream flake's
+=packages.x86_64-linux.default= output.
 
 * GPT TODO synchronization
 [[file:../../nix/home-manager/mods/gpt-todos.nix][gpt-todos.nix]] installs the
