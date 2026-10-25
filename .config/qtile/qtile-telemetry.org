@@ -6,8 +6,7 @@ This is the canonical source for =qtile_telemetry.py=. Existing WM/key telemetry
 and OpenRouter installation are unchanged. The adjacent z.AI/GPT pair is added
 after the old telemetry installer so desktop-control bar setup runs first.
 See [[file:qtile-llm-log.org][llm-log quota widgets]] for their behavior and settings.
-The [[file:qtile-llm-log-graph.org][new llm-log API grapher]] is installed directly after GPT.
-
+The [[file:qtile-llm-log-graph.org][new llm-log API grapher]] is installed directly after GPT.\nThe [[file:qtile-donations.org][Zara donation widget]] is installed before the quota pair and delegates totals to Zara's canonical CLI.\n
 #+begin_src python :tangle qtile_telemetry.py
 import json
 import os
@@ -177,6 +176,10 @@ def install_telemetry(config_globals):
     from qtile_openrouter import install_openrouter_widget
 
     install_openrouter_widget(config_globals)
+
+    from qtile_donations import install_donation_widget
+
+    install_donation_widget(config_globals)
 
     from qtile_llm_log import install_llm_log_widgets
 
