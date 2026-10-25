@@ -1,0 +1,62 @@
+{
+  "schema": "zara-feature-lab.v1",
+  "runtime": "prolog-rlm",
+  "worker_count": 5,
+  "workers": [
+    {
+      "id": "symbolic-runtime",
+      "role": "symbolic-runtime",
+      "symbolic_policy": "zero-model-expert-first",
+      "expert_file": ".zara/experts/prolog/kb/expert.pl",
+      "expert_module": "dotfiles_prolog_expert",
+      "promotion_path": "plugins/zara-expert",
+      "target_plugin": "zara-expert",
+      "test_dir": "plugins/zara-expert/test",
+      "goal": "Improve Zara's Prolog-first expert/runtime adapter without inventing a second registry, provider runtime, scheduler, or reasoning-mode contract. Consume the public Prolog-RLM runtime and preserve exact zero-model expert evidence."
+    },
+    {
+      "id": "music-mpris",
+      "role": "music-mpris",
+      "symbolic_policy": "zero-model-expert-first",
+      "expert_file": ".zara/experts/music/kb/expert.pl",
+      "expert_module": "dotfiles_music_expert",
+      "promotion_path": "plugins/zara-media",
+      "target_plugin": "zara-media",
+      "test_dir": "plugins/zara-media/test",
+      "goal": "Add Linux MPRIS/playerctl playback and now-playing context to Zara media, then make current track, artist, album, player and playback facts available for natural conversation. Keep playback effects typed and keep discussion/recommendation separate from effect authority."
+    },
+    {
+      "id": "bash",
+      "role": "bash",
+      "symbolic_policy": "zero-model-expert-first",
+      "expert_file": ".zara/experts/bash/kb/expert.pl",
+      "expert_module": "dotfiles_bash_expert",
+      "promotion_path": "plugins/zara-shell",
+      "target_plugin": "zara-shell",
+      "test_dir": "plugins/zara-shell/test",
+      "goal": "Extend Zara shell with Bash-aware deterministic inspection, bash -n/shellcheck evidence, quoting and startup-file reasoning. Never source inspected shell text and never bypass zara-shell's argv/approval boundary."
+    },
+    {
+      "id": "proxmox",
+      "role": "proxmox",
+      "symbolic_policy": "zero-model-expert-first",
+      "expert_file": ".zara/experts/proxmox/kb/expert.pl",
+      "expert_module": "dotfiles_proxmox_expert",
+      "promotion_path": "plugins/zara-sysadmin",
+      "target_plugin": "zara-sysadmin",
+      "test_dir": "plugins/zara-sysadmin/test",
+      "goal": "Add a typed Proxmox tool surface to Zara sysadmin using the existing Dotfiles Proxmox infrastructure. Inventory/status are read-only; guest mutations require approval and fresh postcondition evidence; destructive operations are explicit-operator-only. Secrets may come only from environment, wallet/keyring, or auth-source."
+    },
+    {
+      "id": "nix",
+      "role": "nix",
+      "symbolic_policy": "zero-model-expert-first",
+      "expert_file": ".zara/experts/nix/kb/expert.pl",
+      "expert_module": "dotfiles_nix_expert",
+      "promotion_path": "plugins/zara-sysadmin",
+      "target_plugin": "zara-sysadmin",
+      "test_dir": "plugins/zara-sysadmin/test",
+      "goal": "Extend Zara sysadmin with Nix/NixOS/Home Manager typed checks, builds and generation reasoning. Inspection must not evaluate or build; evaluation/build/switch stay explicit capabilities with fresh verification evidence."
+    }
+  ]
+}
