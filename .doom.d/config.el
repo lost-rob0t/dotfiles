@@ -274,6 +274,20 @@ The optional argument NEW-WINDOW is not used."
         (org-agenda nil "a")
         (get-buffer "*Org Agenda*")))
 
+(autoload #'skill-lab-auto-improve "skill-lab" nil t)
+(autoload #'skill-lab-improve "skill-lab" nil t)
+(autoload #'skill-lab-show-diff "skill-lab" nil t)
+(autoload #'skill-lab-open-magit "skill-lab" nil t)
+(autoload #'skill-lab-reject "skill-lab" nil t)
+
+(map! :leader
+      (:prefix ("y s" . "skill lab")
+       :desc "Auto improve skill" "a" #'skill-lab-auto-improve
+       :desc "Improve skill" "i" #'skill-lab-improve
+       :desc "Show skill diff" "d" #'skill-lab-show-diff
+       :desc "Open skill candidate in Magit" "m" #'skill-lab-open-magit
+       :desc "Reject skill candidate" "x" #'skill-lab-reject))
+
 (map! :leader
       :desc "Tangle a file"
       "b t" #'org-babel-tangle)
