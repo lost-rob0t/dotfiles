@@ -23,3 +23,4 @@
 :- consult("zara_deployment").
 :- consult("zara_voice_validation").
 :- consult("zara_pairing").
+:- consult("zara_symbolic_chat").

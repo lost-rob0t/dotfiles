@@ -27,6 +27,7 @@ semantics by `lost-rob0t/zara#1249`.
 - `git/` — symbolic Git operation/effect/precondition reasoning.
 - `home-manager/` — adapter over the existing durable Home Manager ownership KB.
 - `zara/` — adapter over existing Zara deployment and voice-validation KB facts.
+- `symbolic-chat/` — deterministic Zara app help answers with source provenance and zero model/provider usage; unknown or ambiguous questions fail closed.
 - `sysadmin/` — symptom → hypothesis → diagnostic → verification rules.
 - `javascript/` / `typescript/` — canonical JS/TS language semantics.
 - `java/` / `kotlin/` — canonical JVM language semantics.
