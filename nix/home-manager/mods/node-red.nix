@@ -15,6 +15,12 @@ in
       description = "Node-RED userDir holding flows, settings and installed palettes.";
     };
 
+    host = lib.mkOption {
+      type = lib.types.str;
+      default = "127.0.0.1";
+      description = "Address on which Node-RED listens; loopback by default.";
+    };
+
     port = lib.mkOption {
       type = lib.types.port;
       default = 1880;
@@ -35,11 +41,10 @@ in
       Unit = {
         Description = "Node-RED flow runtime";
         After = [ "network-online.target" ];
-        WantedBy = [ "default.target" ];
       };
 
       Service = {
-        ExecStart = "${lib.getExe' cfg.package "node-red"} --userDir ${lib.escapeShellArg cfg.userDir} --port ${toString cfg.port}";
+        ExecStart = "${lib.getExe' cfg.package "node-red"} --userDir ${lib.escapeShellArg cfg.userDir} --port ${toString cfg.port} --define uiHost=${lib.escapeShellArg cfg.host}";
         EnvironmentFile = "-${config.home.homeDirectory}/.config/node-red/env";
         Restart = "on-failure";
       };
