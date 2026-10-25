@@ -108,7 +108,7 @@ Generate a compact JSON report for LLM analysis with:
 python ~/.config/qtile/scripts/qtile-telemetry-summary.py > ~/qtile-telemetry-report.json
 #+end_src
 
-The report ranks keybind use, focused and managed applications, unmatched applications, common group destinations, layout changes, automatic routes, and group or screen usage.
+The report ranks keybind use, focused and managed applications, unmatched applications, common group destinations, layout changes, automatic routes, and group or screen usage. It also reports JSONL integrity. Malformed historical rotations are counted and skipped so older good telemetry remains usable; malformed records in the active log are reported separately. Use =--fail-on-active-corruption= when an active-writer integrity failure should produce exit status 2.
 
 The raw telemetry includes window titles. Browser page names, document names, terminal titles, and other private information may therefore appear in the JSONL files. Review the raw log or generated report before sharing it.
 

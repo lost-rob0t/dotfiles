@@ -171,6 +171,10 @@ def install_telemetry(config_globals):
 
     install_llm_log_widgets(config_globals)
 
+    from qtile_consortium import install_consortium_widgets
+
+    install_consortium_widgets(config_globals)
+
     from qtile_llm_log_graph import install_llm_log_graph
 
     install_llm_log_graph(config_globals)
