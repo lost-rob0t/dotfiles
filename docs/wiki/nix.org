@@ -53,6 +53,17 @@ because the literate Doom UI delegates control-plane operations to the CLI on
 operator regression test and verifies profile membership plus the expected
 ingest administration command surface.
 
+* Node-RED
+The reusable [[file:../../nix/home-manager/mods/node-red.nix][Node-RED module]] installs the pinned nixpkgs package and runs
+a systemd user service. The =unseen@flake= profile enables it for =unseen=
+on the current laptop. The default listener is =http://127.0.0.1:1880/=;
+=node-red.host= and =node-red.port= configure the address and port. The
+service explicitly overrides =uiHost= while preserving existing settings
+and flows in =~/.node-red= (configurable with =node-red.userDir=).
+
+Restart with =systemctl --user restart node-red= and inspect logs with
+=journalctl --user -u node-red -f=. No firewall or system service is needed.
+
 * Gaming
 [[file:../../nix/home-manager/mods/games.nix][games.nix]] provides the
 =gaming= module: Lutris, Wine, Sunshine (stream host), Moonlight Qt (stream
