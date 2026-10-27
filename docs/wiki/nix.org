@@ -32,6 +32,11 @@ The Home Manager tree is split into:
 - [[file:../../nix/home-manager/mods/][mods/]] - reusable modules;
 - [[file:../../nix/home-manager/systems/][systems/]] - host/profile composition.
 
+The desktop Home Manager profile fetches its exact Quasar and StarLang source
+pins from public Forgejo repositories so CI can build the same sources without
+private GitHub credentials. The pins and URLs live in
+[[file:../../nix/home-manager/systems/desktop/programs.nix][desktop/programs.nix]].
+
 The canonical skills input installs the shared skill catalog into the configured
 OpenCode, Claude, and generic Agent Skills user paths (including the
 =.agents/skills= path consumed by Codex-compatible clients).  Keep durable skill
@@ -48,6 +53,17 @@ because the literate Doom UI delegates control-plane operations to the CLI on
 operator regression test and verifies profile membership plus the expected
 ingest administration command surface.
 
+* Node-RED
+The reusable [[file:../../nix/home-manager/mods/node-red.nix][Node-RED module]] installs the pinned nixpkgs package and runs
+a systemd user service. The =unseen@flake= profile enables it for =unseen=
+on the current laptop. The default listener is =http://127.0.0.1:1880/=;
+=node-red.host= and =node-red.port= configure the address and port. The
+service explicitly overrides =uiHost= while preserving existing settings
+and flows in =~/.node-red= (configurable with =node-red.userDir=).
+
+Restart with =systemctl --user restart node-red= and inspect logs with
+=journalctl --user -u node-red -f=. No firewall or system service is needed.
+
 * Gaming
 [[file:../../nix/home-manager/mods/games.nix][games.nix]] provides the
 =gaming= module: Lutris, Wine, Sunshine (stream host), Moonlight Qt (stream
@@ -57,6 +73,8 @@ so the nixpkgs FHS package is used instead).  Steam-distributed titles such as
 Terraria and War Thunder install through the Steam client rather than as
 nixpkgs packages.  The =unseen@flake= host enables it with
 =gaming.enable = true=.
+The Mousetrap package comes from the pinned upstream flake's
+=packages.x86_64-linux.default= output.
 
 * GPT TODO synchronization
 [[file:../../nix/home-manager/mods/gpt-todos.nix][gpt-todos.nix]] installs the

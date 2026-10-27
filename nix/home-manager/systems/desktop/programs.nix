@@ -3,13 +3,13 @@
 let
   quasarPin = "80553699fa6c9dec227d4ddff629c3ab3a8b8010";
   quasarSource = builtins.fetchGit {
-    url = "https://github.com/lost-rob0t/quasar.git";
+    url = "https://git.starintel.actor/nsaspy/quasar.git";
     rev = quasarPin;
   };
 
   starLangPin = "0472ed8f4472252038b62bb19a17aa09d2ddf1b4";
   starLangSource = builtins.fetchGit {
-    url = "https://github.com/lost-rob0t/star-lang.git";
+    url = "https://git.starintel.actor/nsaspy/star-lang.git";
     rev = starLangPin;
   };
 

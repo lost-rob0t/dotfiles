@@ -16,7 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: devops-actions/actionlint@f9ec6b423d04a7f7a9f6872b1a16fd8313a7db62
+      - name: Check Actions workflows
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          curl -fsSL --retry 3 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            -o "$tmp/actionlint.tar.gz"
+          printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 "$tmp/actionlint.tar.gz" | sha256sum -c -
+          tar -xzf "$tmp/actionlint.tar.gz" -C "$tmp" actionlint
+          "$tmp/actionlint"
       - name: Install shell and Qtile test tooling
         run: sudo apt-get update && sudo apt-get install -y emacs-nox shellcheck python3-psutil
       - name: Check shell scripts
