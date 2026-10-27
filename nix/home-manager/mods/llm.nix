@@ -124,7 +124,7 @@ in
       # (mmproj, -c 8192), and bge-m3 the embeddings tier. Limits mirror the
       # deployed llama-swap per-model server flags.
       starintelLlm = {
-        enable = true;
+        enable = false;
         models = {
           qwen3-8b = {
             name = "Qwen3 8B Q4_K_M (StarIntel)";

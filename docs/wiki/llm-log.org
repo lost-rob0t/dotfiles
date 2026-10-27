@@ -81,7 +81,11 @@ sources the file as shell code. Secret contents are not serialized into the
 generated harness JSON or Nix store configuration.
 
 * StarIntel local inference upstream
-The capture plane also fronts the StarIntel llama-swap service: the =starintel=
+The optional StarIntel OpenCode provider is disabled by default until its private
+bearer key is provisioned. Enable =opencode.starintelLlm.enable= in
+=llm.nix= after installing the key described below.
+
+When enabled, the capture plane also fronts the StarIntel llama-swap service: the =starintel=
 upstream maps =<proxy>/starintel/*= to =https://llm.starintel.actor/*=, which is
 bearer-key-only on every endpoint. OpenCode consumes it through the
 =starintel-llm= provider (=starintel-llm/<model>= references); the served model
