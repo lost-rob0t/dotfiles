@@ -13,15 +13,9 @@
     ./programs.nix
   ];
 
-  nixpkgs = {
-
-    config = {
-      # Disable if you don't want unfree packages
-      allowUnfree = true;
-      # Workaround for https://github.com/nix-community/home-manager/issues/2942
-      allowUnfreePredicate = (_: true);
-    };
-  };
+  # Unfree packages: granted via the flake-level pkgs for standalone profiles
+  # and via nix/nixos/mods for the logos host (useGlobalPkgs forbids nixpkgs
+  # options here).
 
   llm = {
     enable = true;

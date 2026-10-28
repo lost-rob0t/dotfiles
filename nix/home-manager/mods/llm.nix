@@ -1,7 +1,9 @@
 { lib, pkgs, inputs, config, ... }:
 
 let
-  comfyui = pkgs.comfyui.override { withManager = true; };
+  comfyui = pkgs.comfyui.override {
+    extraPackages = ps: [ ps.comfyui-manager ];
+  };
   llmLogRevision = "692d3820f638c011fc248a7694ecabd72a6e2895";
   llmLogFlake = builtins.getFlake "github:lost-rob0t/llm-log/${llmLogRevision}";
   llmLogPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.default;

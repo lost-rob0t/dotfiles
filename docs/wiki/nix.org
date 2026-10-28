@@ -32,6 +32,14 @@ The Home Manager tree is split into:
 - [[file:../../nix/home-manager/mods/][mods/]] - reusable modules;
 - [[file:../../nix/home-manager/systems/][systems/]] - host/profile composition.
 
+Standalone profiles receive the flake-level =pkgs= directly and Home Manager
+(current 25.11+ line) rejects =nixpkgs= options inside modules, so unfree
+permission is granted by the =pkgs= import in =flake.nix=; the =logos= NixOS
+host instead uses =useGlobalPkgs= with the NixOS-side
+=nix/nixos/mods/default.nix= unfree config. Never add a =nixpkgs.config=
+block to a Home Manager module reachable from both paths (=desktop/home.nix=
+is imported by =logos/home.nix=).
+
 The desktop Home Manager profile fetches its exact Quasar and StarLang source
 pins from public Forgejo repositories so CI can build the same sources without
 private GitHub credentials. The pins and URLs live in

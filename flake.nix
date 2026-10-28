@@ -69,7 +69,12 @@
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
-      pkgs = nixpkgs.legacyPackages.${system};
+      # Standalone home-manager profiles receive this pkgs directly; HM 25.11+
+      # rejects nixpkgs options inside modules, so unfree is granted here.
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      };
       prologMcp = pkgs.callPackage ./nix/packages/prolog-mcp.nix { };
       braveMcp = pkgs.callPackage ./nix/packages/brave-mcp { };
       starintelAdmin = pkgs.callPackage ./nix/packages/starintel-admin { };
