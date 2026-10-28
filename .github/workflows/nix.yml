@@ -96,6 +96,8 @@ jobs:
           -f ert-run-tests-batch-and-exit
       - name: Run Brave MCP protocol tests
         run: python3 tests/brave-mcp.py
+      - name: Run OpenCode session resume tests
+        run: python3 tests/opencode-ses.py
       - name: Run Termux remote workflow tests
         run: |
           bash tests/agent-zero-tunnel.sh
