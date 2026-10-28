@@ -51,14 +51,14 @@
     };
   };
 
-  # Qwen3-TTS runs the pinned upstream GGML server on Vulkan: /dev/dri render
-  # nodes only (no /dev/kfd), compute stays off the graphics queue, restarts
-  # are bounded, and the pinned image + sha256-verified GGUF models provision
-  # on first start. Validated live on the RX 5500 XT with zero kernel faults.
+  # Qwen3-TTS runs the pinned upstream GGML server on the CPU backend:
+  # Vulkan stays enabled system-wide for graphics, but TTS compute stays off
+  # the GPU entirely. The pinned image + sha256-verified GGUF models provision
+  # on first start.
   services.qwen3-tts = {
     enable = true;
     autoStart = true;
-    backend = "vulkan";
+    backend = "cpu";
     port = 7860;
   };
 

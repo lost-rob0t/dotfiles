@@ -69,12 +69,13 @@ boundaries, so CI never spends OpenRouter credits.
 
 * Qwen3-TTS backend
 The desktop profile imports the =Qwen3-TTS_server= Home Manager flake module,
-installs its =qwen3-tts= command, and enables the Vulkan GPU service on
-=http://127.0.0.1:7860=.  The service runs the pinned upstream
-=qwentts.cpp= GGML image on =/dev/dri= render nodes only; =/dev/kfd= and the
-retired PyTorch/ROCm path are gone entirely.  Zara streams speech from it in
-real time (s16le 24 kHz PCM) instead of buffering whole WAV files.  Home
-Manager deliberately does not own =~/.config/zarathushtra/config.toml=.
+installs its =qwen3-tts= command, and enables the CPU-backed service on
+=http://127.0.0.1:7860=.  The service runs the pinned upstream =qwentts.cpp=
+GGML image with =backend = "cpu";= so TTS compute stays off the GPU entirely;
+Vulkan itself stays enabled system-wide for graphics, and the retired
+PyTorch/ROCm path is gone.  Zara streams speech from it in real time (s16le
+24 kHz PCM) instead of buffering whole WAV files.  Home Manager deliberately
+does not own =~/.config/zarathushtra/config.toml=.
 
 Merge this table into that mutable file.  Replace its existing =[tts]= table if
 present; TOML does not allow two tables with the same name.
@@ -96,7 +97,7 @@ Apply and verify the services:
 
 #+begin_src shell
 home-manager switch --flake ~/.dotfiles#unseen@desktop
-qwen3-tts doctor vulkan
+qwen3-tts doctor cpu
 systemctl --user restart qwen3-tts zara-server
 qwen3-tts status
 sudo loginctl enable-linger "$USER"
@@ -128,13 +129,12 @@ voice falls back to the x-vector-only path.  After changing =voice= in
 =config.toml=, restart =zara-server=; adding or replacing the referenced clip
 itself does not require restarting Qwen.
 
-The Vulkan backend needs Docker access plus host =/dev/dri= with a render
-node (=renderD128=); it never touches =/dev/kfd=, and GGML keeps its compute
-queue off the graphics queue so the desktop session is not the failure
-surface.  Validated live on the RX 5500 XT (RDNA1): model load, 896 MB
-KV-cache allocation, synthesis, and realtime streaming all pass with zero
-kernel GPU faults.  On hosts without a usable Vulkan driver use
-=backend = "cpu";= as the explicit emergency mode.
+The CPU backend needs Docker access only; it touches no GPU devices, so
+Vulkan stays enabled for graphics and the desktop session is never the
+failure surface.  To move TTS compute back to the GPU later, set
+=backend = "vulkan";= (needs host =/dev/dri= with a render node such as
+=renderD128=; validated live on the RX 5500 XT with zero kernel faults) and
+re-run the apply steps above.
 
 * Localhost pairing autosync
 =zara-pair= gives same-host clients (desktop copilot, CLI) authenticated CURVE
