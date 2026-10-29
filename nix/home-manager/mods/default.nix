@@ -13,6 +13,7 @@
     ./outrun-theme.nix
     ./opencode.nix
     ./opencode-tmux.nix
+    ./opencode-ses.nix
     ./codex.nix
     ./agent-verification.nix
     ./chatgpt-desktop.nix
