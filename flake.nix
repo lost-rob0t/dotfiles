@@ -74,6 +74,23 @@
       pkgs = import nixpkgs {
         inherit system;
         config.allowUnfree = true;
+        overlays = [
+          # nixpkgs bumped peewee to 4.x but aw-core still requires peewee==3.*;
+          # pin aw-core back to peewee_3 until upstream ActivityWatch moves on.
+          (final: prev: {
+            python314 = prev.python314.override (old: {
+              packageOverrides = prev.lib.composeExtensions
+                (old.packageOverrides or (_: prev': { }))
+                (pyFinal: pyPrev: {
+                  aw-core = pyPrev.aw-core.overridePythonAttrs (oldAttrs: {
+                    propagatedBuildInputs = map
+                      (p: if p.pname or null == "peewee" then pyFinal.peewee_3 else p)
+                      oldAttrs.propagatedBuildInputs;
+                  });
+                });
+            });
+          })
+        ];
       };
       prologMcp = pkgs.callPackage ./nix/packages/prolog-mcp.nix { };
       braveMcp = pkgs.callPackage ./nix/packages/brave-mcp { };
@@ -196,19 +213,24 @@
       zaraPluginRegistry = (builtins.fromJSON (builtins.readFile "${zara-plugins}/plugins.json")).plugins;
       zaraPluginNames = map (entry: entry.name) zaraPluginRegistry;
       zaraAllPluginsCheck =
-        assert desktopHome.config.zara.plugins.enableAll;
-        assert lib.all (
-          name: lib.elem zara-plugins.packages.${system}.${name} desktopHome.config.home.packages
-        ) zaraPluginNames;
-        assert lib.all (
-          entry:
-          builtins.hasAttr ".zarathushtra/plugins/${builtins.baseNameOf entry.entrypoint}" desktopHome.config.home.file
-          && builtins.hasAttr ".config/zarathushtra/plugins/${entry.name}/lib" desktopHome.config.home.file
-        ) zaraPluginRegistry;
-        pkgs.runCommand "zara-all-plugins-check" { } ''
-          test "${toString (builtins.length zaraPluginNames)}" -gt 0
-          touch "$out"
-        '';
+        # Zara is disabled on the desktop profile pending the crash
+        # investigation; assert plugin wiring only while it is enabled.
+        if !desktopHome.config.zara.enable then
+          pkgs.runCommand "zara-all-plugins-check" { } "touch $out"
+        else
+          assert desktopHome.config.zara.plugins.enableAll;
+          assert lib.all (
+            name: lib.elem zara-plugins.packages.${system}.${name} desktopHome.config.home.packages
+          ) zaraPluginNames;
+          assert lib.all (
+            entry:
+            builtins.hasAttr ".zarathushtra/plugins/${builtins.baseNameOf entry.entrypoint}" desktopHome.config.home.file
+            && builtins.hasAttr ".config/zarathushtra/plugins/${entry.name}/lib" desktopHome.config.home.file
+          ) zaraPluginRegistry;
+          pkgs.runCommand "zara-all-plugins-check" { } ''
+            test "${toString (builtins.length zaraPluginNames)}" -gt 0
+            touch "$out"
+          '';
       aiClientThemeCheck =
         assert !builtins.hasAttr ".codex/config.toml" desktopHome.config.home.file;
         assert !builtins.hasAttr ".codex/config.yaml" desktopHome.config.home.file;

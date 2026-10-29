@@ -68,6 +68,15 @@ test uses a fake provider stream, including base64 chunks split at arbitrary
 boundaries, so CI never spends OpenRouter credits.
 
 * Qwen3-TTS backend
+:PROPERTIES:
+:CUSTOM_ID: qwen3-tts-backend
+:END:
+*Status 2026-10-28:* Zara and the Qwen3-TTS backend are fully disabled on the
+desktop profile (=zara.enable = false;=, =services.qwen3-tts.enable = false;=)
+pending the machine-crash investigation; the runtime services were also
+stopped and disabled on =flake=.  The sections below describe the enabled
+state to restore afterwards.
+
 The desktop profile imports the =Qwen3-TTS_server= Home Manager flake module,
 installs its =qwen3-tts= command, and enables the CPU-backed service on
 =http://127.0.0.1:7860=.  The service runs the pinned upstream =qwentts.cpp=

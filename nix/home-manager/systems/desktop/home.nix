@@ -30,20 +30,23 @@
   hackmode.enable = true;
 
   zara = {
-    enable = true;
+    # Disabled 2026-10-28: suspected in repeated machine crashes (zara-server
+    # container and the qwen3-tts Vulkan container both exited 255). Re-enable
+    # deliberately after the stability investigation.
+    enable = false;
     nixManaged = false;
-    workflows.enable = true;
+    workflows.enable = false;
 
     server = {
-      enable = true;
+      enable = false;
       environmentFile = "-%h/.config/zarathushtra/secrets.env";
     };
 
-    desktop.enable = true;
-    wake.enable = true;
+    desktop.enable = false;
+    wake.enable = false;
 
     plugins = {
-      enableAll = true;
+      enableAll = false;
       discoveryFiles = {
         "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
         "lyria.py" = ../../files/zarathushtra/plugins/lyria.py;
@@ -51,13 +54,12 @@
     };
   };
 
-  # Qwen3-TTS runs the pinned upstream GGML server on the CPU backend:
-  # Vulkan stays enabled system-wide for graphics, but TTS compute stays off
-  # the GPU entirely. The pinned image + sha256-verified GGUF models provision
-  # on first start.
+  # Qwen3-TTS (Zara's voice backend) is disabled with Zara while the machine
+  # crashes are investigated. The pinned image + sha256-verified GGUF models
+  # live under ~/.local/share/qwen3-tts and are untouched.
   services.qwen3-tts = {
-    enable = true;
-    autoStart = true;
+    enable = false;
+    autoStart = false;
     backend = "cpu";
     port = 7860;
   };
