@@ -75,8 +75,12 @@
         inherit system;
         config.allowUnfree = true;
         overlays = [
-          # nixpkgs bumped peewee to 4.x but aw-core still requires peewee==3.*;
-          # pin aw-core back to peewee_3 until upstream ActivityWatch moves on.
+          # Two ActivityWatch fixes against the current nixpkgs pin:
+          # 1. nixpkgs bumped peewee to 4.x but aw-core still requires
+          #    peewee==3.*; pin aw-core back to peewee_3.
+          # 2. aw-qt passes "--suffix PATH : ..." as one makeWrapperArgs
+          #    element; the binary wrapper generator needs separate argv
+          #    items or it fails with "Unknown argument --suffix".
           (final: prev: {
             python314 = prev.python314.override (old: {
               packageOverrides = prev.lib.composeExtensions
@@ -89,6 +93,16 @@
                   });
                 });
             });
+            activitywatch = prev.activitywatch.override {
+              aw-qt = prev.aw-qt.overrideAttrs (old: {
+                makeWrapperArgs = [
+                  "--suffix"
+                  "PATH"
+                  ":"
+                  (prev.lib.makeBinPath [ prev.xdg-utils ])
+                ];
+              });
+            };
           })
         ];
       };
