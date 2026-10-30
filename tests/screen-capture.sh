@@ -149,22 +149,24 @@ if SCREEN_CAPTURE_TEST_EMPTY=1 "$subject" record-window "$empty"; then
 fi
 [[ ! -e "$empty" ]]
 
-if "$timeout_bin" --signal=TERM --kill-after=1s 4s \
-  env SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE="$tmp/never-start-timeout" \
-  "$subject" record-window "$tmp/custom/not-started.mp4" >"$tmp/startup-failure.out" 2>&1; then
-  fail "recorder supervisor unexpectedly started"
-fi
-grep -Fq "recorder supervisor failed to start" "$tmp/startup-failure.out" ||
-  fail "recorder startup failure was not reported"
-[[ ! -e "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" ]] || fail "failed startup left active PID state"
-
 video="$tmp/custom/final.mp4"
 $timeout_bin --signal=TERM --kill-after=1s 8s \
   env SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE="$tmp/start-recorder" \
   "$subject" record-window "$video" > "$tmp/record.out" &
 runner=$!
 sleep 0.05
-[[ ! -e "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" ]] || fail "published recorder PID before timeout started its child"
+if [[ -e "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" ]]; then
+  "$subject" stop
+  : > "$tmp/start-recorder"
+  for _ in {1..250}; do
+    job_is_running "$runner" || break
+    sleep 0.02
+  done
+  job_is_running "$runner" && fail "stop during timeout startup was lost"
+  wait "$runner" || true
+  runner=
+  fail "published recorder PID before timeout started its child"
+fi
 "$subject" stop
 : > "$tmp/start-recorder"
 wait_for_file "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" "active recorder PID"
@@ -191,6 +193,15 @@ fi
 [[ "$(cat "$SCREEN_CAPTURE_TEST_SIGNAL")" == INT ]] || fail "stop did not deliver SIGINT"
 [[ "$(cat "$SCREEN_CAPTURE_TEST_CLIPBOARD")" == "$video" ]]
 [[ "$($subject status 2>/dev/null || true)" == idle ]]
+
+if "$timeout_bin" --signal=TERM --kill-after=1s 4s \
+  env SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE="$tmp/never-start-timeout" \
+  "$subject" record-window "$tmp/custom/not-started.mp4" >"$tmp/startup-failure.out" 2>&1; then
+  fail "recorder supervisor unexpectedly started"
+fi
+grep -Fq "recorder supervisor failed to start" "$tmp/startup-failure.out" ||
+  fail "recorder startup failure was not reported"
+[[ ! -e "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" ]] || fail "failed startup left active PID state"
 
 [[ -r "$qtile_capture_org" ]] || fail "missing canonical Qtile capture source"
 [[ -r "$qtile_capture_py" ]] || fail "missing generated Qtile capture module"

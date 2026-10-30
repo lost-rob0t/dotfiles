@@ -212,7 +212,12 @@ run_recorder() {
     # Publish the stop PID only after timeout has started its child. A stop
     # during timeout's startup could otherwise be lost before the recorder runs.
     rm -f -- "$ready_file"
-    timeout --preserve-status 0 "$BASH" -c '
+    "$BASH" -c '
+        # Bash ignores SIGINT for asynchronous jobs; restore the default before
+        # exec so GNU timeout can catch the stop request and forward it.
+        trap - INT
+        exec timeout --preserve-status 0 "$@"
+    ' screen-capture-supervisor "$BASH" -c '
         ready_file=$1
         shift
         : > "$ready_file" || exit
