@@ -181,7 +181,6 @@ run_recorder() {
     shift
     ensure_dirs
     have flock || die "flock is required for recorder locking"
-    have timeout || die "GNU timeout is required for recorder signal supervision"
 
     local lock_fd
     exec {lock_fd}>"$lock_file"
@@ -193,13 +192,15 @@ run_recorder() {
     fi
     mkdir -p -- "$(dirname -- "$output")"
 
-    local recorder_pid=""
+    local recorder_pid="" launcher_pid=""
+    local ready_file="$runtime_dir/recorder-starting-$$"
     cleanup_recording() {
         local current=""
         [[ -f "$pid_file" ]] && current="$(<"$pid_file")"
         if [[ -n "${recorder_pid:-}" && "$current" == "$recorder_pid" ]]; then
             rm -f -- "$pid_file" "$path_file"
         fi
+        rm -f -- "$ready_file"
     }
     forward_signal() {
         [[ -n "${recorder_pid:-}" ]] && kill -INT "$recorder_pid" 2>/dev/null || true
@@ -207,19 +208,56 @@ run_recorder() {
     trap forward_signal INT TERM HUP
     trap cleanup_recording EXIT
 
-    # Bash starts asynchronous commands with SIGINT ignored when this wrapper is
-    # itself backgrounded. GNU timeout is used only as a signal-forwarding
-    # supervisor (duration 0 means no timeout), so the actual recorder receives
-    # SIGINT and can finalize its container correctly.
-    timeout --preserve-status 0 "$@" &
-    recorder_pid=$!
+    # Bash ignores SIGINT for asynchronous jobs. GNU env restores the default
+    # disposition before exec so stop can signal the recorder directly.
+    rm -f -- "$ready_file"
+    env --default-signal=INT "$BASH" -c '
+        ready_file=$1
+        shift
+        printf "%s\\n" "$BASHPID" > "$ready_file" || exit
+        exec "$@"
+    ' screen-capture-recorder "$ready_file" "$@" &
+    launcher_pid=$!
 
+    local started=0 start_rc=0
+    for _ in {1..100}; do
+        if [[ -s "$ready_file" ]]; then
+            started=1
+            break
+        fi
+        if ! kill -0 "$launcher_pid" 2>/dev/null; then
+            break
+        fi
+        sleep 0.02
+    done
+    if (( ! started )); then
+        kill -TERM -- "-$launcher_pid" 2>/dev/null || kill -TERM "$launcher_pid" 2>/dev/null || true
+        for _ in {1..50}; do
+            local job running=0
+            while read -r job; do
+                [[ "$job" == "$launcher_pid" ]] && running=1 && break
+            done < <(jobs -pr)
+            (( running )) || break
+            sleep 0.02
+        done
+        if (( running )); then
+            kill -KILL -- "-$launcher_pid" 2>/dev/null || true
+            kill -KILL "$launcher_pid" 2>/dev/null || true
+        fi
+        wait "$launcher_pid" || start_rc=$?
+        cleanup_recording
+        trap - EXIT INT TERM HUP
+        die "recorder command failed to start (status $start_rc)"
+    fi
+
+    recorder_pid="$(<"$ready_file")"
+    [[ "$recorder_pid" =~ ^[0-9]+$ ]] || die "recorder command returned an invalid PID"
     printf '%s\n' "$recorder_pid" > "$pid_file"
     printf '%s\n' "$output" > "$path_file"
     notify "Recording started" "$output"
 
     local rc=0
-    wait "$recorder_pid" || rc=$?
+    wait "$launcher_pid" || rc=$?
     cleanup_recording
     trap - EXIT INT TERM HUP
 
