@@ -3,13 +3,14 @@ set -Eeuo pipefail
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 subject="${SUBJECT:-$repo_root/.local/bin/screen-capture}"
+timeout_bin="$(command -v timeout)"
 qtile_capture_org="$repo_root/.config/qtile/qtile-capture.org"
 qtile_capture_py="$repo_root/.config/qtile/qtile_capture.py"
 qtile_docs="$repo_root/.config/qtile/qtile.org"
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
 fake="$tmp/bin"
 mkdir -p "$fake" "$tmp/home"
+runner=
 
 export HOME="$tmp/home"
 export SCREEN_CAPTURE_SESSION=x11
@@ -18,11 +19,42 @@ export SCREEN_CAPTURE_SCREENSHOT_DIR="$tmp/shots"
 export SCREEN_CAPTURE_VIDEO_DIR="$tmp/videos"
 export SCREEN_CAPTURE_TEST_CLIPBOARD="$tmp/clipboard"
 export SCREEN_CAPTURE_TEST_SIGNAL="$tmp/signal"
+export SCREEN_CAPTURE_TEST_RECORDER_READY="$tmp/recorder-ready"
+export SCREEN_CAPTURE_TEST_REAL_TIMEOUT="$timeout_bin"
 export PATH="$fake:/usr/bin:/bin"
 
 fail() {
   printf 'screen-capture: %s\n' "$*" >&2
   exit 1
+}
+
+cleanup_test() {
+  local status=$?
+  trap - EXIT INT TERM
+  if [[ -n "$runner" ]]; then
+    kill -TERM "$runner" 2>/dev/null || true
+    wait "$runner" 2>/dev/null || true
+  fi
+  rm -rf -- "$tmp"
+  return "$status"
+}
+trap cleanup_test EXIT
+
+wait_for_file() {
+  local path="$1" description="$2"
+  for _ in {1..250}; do
+    [[ -e "$path" ]] && return 0
+    sleep 0.02
+  done
+  fail "timed out waiting for $description"
+}
+
+job_is_running() {
+  local target="$1" job
+  while read -r job; do
+    [[ "$job" == "$target" ]] && return 0
+  done < <(jobs -pr)
+  return 1
 }
 
 cat > "$fake/maim" <<'SH'
@@ -74,12 +106,21 @@ finish() {
 }
 trap 'finish INT' INT
 trap 'finish TERM' TERM
+printf 'ready\n' > "${SCREEN_CAPTURE_TEST_RECORDER_READY:?}"
 while :; do sleep 0.05; done
 SH
 
 cat > "$fake/notify-send" <<'SH'
 #!/usr/bin/env bash
 exit 0
+SH
+
+cat > "$fake/timeout" <<'SH'
+#!/usr/bin/env bash
+if [[ -n "${SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE:-}" ]]; then
+  while [[ ! -e "$SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE" ]]; do :; done
+fi
+exec "$SCREEN_CAPTURE_TEST_REAL_TIMEOUT" "$@"
 SH
 
 chmod +x "$fake"/*
@@ -108,20 +149,44 @@ if SCREEN_CAPTURE_TEST_EMPTY=1 "$subject" record-window "$empty"; then
 fi
 [[ ! -e "$empty" ]]
 
+if "$timeout_bin" --signal=TERM --kill-after=1s 4s \
+  env SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE="$tmp/never-start-timeout" \
+  "$subject" record-window "$tmp/custom/not-started.mp4" >"$tmp/startup-failure.out" 2>&1; then
+  fail "recorder supervisor unexpectedly started"
+fi
+grep -Fq "recorder supervisor failed to start" "$tmp/startup-failure.out" ||
+  fail "recorder startup failure was not reported"
+[[ ! -e "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" ]] || fail "failed startup left active PID state"
+
 video="$tmp/custom/final.mp4"
-$subject record-window "$video" > "$tmp/record.out" &
+$timeout_bin --signal=TERM --kill-after=1s 8s \
+  env SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE="$tmp/start-recorder" \
+  "$subject" record-window "$video" > "$tmp/record.out" &
 runner=$!
-for _ in $(seq 1 100); do
-  [[ -f "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" ]] && break
-  sleep 0.02
-done
+sleep 0.05
+[[ ! -e "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" ]] || fail "published recorder PID before timeout started its child"
+"$subject" stop
+: > "$tmp/start-recorder"
+wait_for_file "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" "active recorder PID"
+wait_for_file "$SCREEN_CAPTURE_TEST_RECORDER_READY" "recorder signal handler"
 
 [[ "$($subject status)" == recording$'\t'*"$video" ]]
 if "$subject" record-window "$tmp/custom/second.mp4" >/dev/null 2>&1; then
   fail "second recorder started while one was active"
 fi
-$subject stop
-wait "$runner"
+"$subject" stop
+for _ in {1..250}; do
+  job_is_running "$runner" || break
+  sleep 0.02
+done
+job_is_running "$runner" && fail "recorder did not exit after stop within 5 seconds"
+if wait "$runner"; then
+  runner=
+else
+  rc=$?
+  runner=
+  fail "recording command exited with status $rc"
+fi
 [[ -s "$video" ]]
 [[ "$(cat "$SCREEN_CAPTURE_TEST_SIGNAL")" == INT ]] || fail "stop did not deliver SIGINT"
 [[ "$(cat "$SCREEN_CAPTURE_TEST_CLIPBOARD")" == "$video" ]]

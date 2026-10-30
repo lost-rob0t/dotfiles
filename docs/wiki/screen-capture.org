@@ -26,7 +26,8 @@ Canonical integration points:
 Only one recorder may be active. Recorder startup is lock-protected, runtime
 state lives below =$XDG_RUNTIME_DIR= when available, and =stop= delivers
 =SIGINT= so FFmpeg/wf-recorder can finalize the output rather than being killed
-blindly.
+blindly. The stop PID is published only after the signal supervisor has started
+its child, preventing a stop during supervisor startup from being lost.
 
 * Defaults
 - Screenshots: =~/Pictures/screen-shots=.
@@ -90,6 +91,7 @@ bash tests/screen-capture.sh
 #+end_src
 
 It covers screenshot/clipboard behavior, rapid path uniqueness, failed-capture
-cleanup, empty recorder output, single-recorder enforcement, SIGINT stop
-finalization, Qtile command coverage, retirement of the old capture frontend,
-and literate/generated parity for the Qtile capture module.
+cleanup, empty recorder output, bounded supervisor startup/cleanup, stop during
+supervisor startup, single-recorder enforcement, SIGINT stop finalization,
+Qtile command coverage, retirement of the old capture frontend, and
+literate/generated parity for the Qtile capture module.
