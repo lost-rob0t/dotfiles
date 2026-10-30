@@ -43,6 +43,12 @@ Otherwise
 ** Install dotfiles
 Clone the repo to =~/.dotfiles= and run GNU Stow from the checkout.
 
+The =archive-prolog= command is installed by Home Manager and is also available
+from =.local/bin= with Stow. It creates a timestamped archive in
+=~/share/AI/files/= containing every regular =*.prolog= file under the home
+directory, preserving home-relative paths and excluding that output directory.
+Run =archive-prolog= after updating the dotfiles checkout or Home Manager profile.
+
 ** Android / Termux
 Android has a Doom-free, Org-first native Emacs profile and a separate full Doom
 profile for Termux development.  The native profile uses Evil/Vim bindings,

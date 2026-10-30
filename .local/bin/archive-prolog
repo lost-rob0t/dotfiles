@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+fail() {
+  printf 'archive-prolog: %s\n' "$*" >&2
+  exit 1
+}
+
+home=$(cd -- "${HOME:?HOME is not set}" && pwd -P) || fail "cannot access HOME"
+output_dir="$home/share/AI/files"
+mkdir -p -- "$output_dir" || fail "cannot create output directory: $output_dir"
+output_dir=$(cd -- "$output_dir" && pwd -P) || fail "cannot access output directory"
+
+list=$(mktemp) || fail "cannot create temporary file list"
+archive_tmp=
+cleanup() {
+  rm -f -- "$list"
+  if [[ -n "$archive_tmp" ]]; then
+    rm -f -- "$archive_tmp"
+  fi
+}
+trap cleanup EXIT
+
+cd -- "$home" || fail "cannot enter HOME"
+if ! find . \
+  -path './share/AI/files' -prune -o \
+  -type f -name '*.prolog' -print0 >"$list"; then
+  fail "scan failed under $home"
+fi
+
+[[ -s "$list" ]] || fail "no .prolog files found under $home"
+
+stamp=$(date '+%Y%m%d-%H%M%S') || fail "cannot generate timestamp"
+base="$output_dir/prolog-$stamp"
+archive_tmp=$(mktemp "$output_dir/.archive-prolog.XXXXXX") || fail "cannot create temporary archive"
+if ! tar -czf "$archive_tmp" --null -T "$list"; then
+  fail "archive creation failed; no archive was published"
+fi
+
+archive="$base.tar.gz"
+suffix=1
+while :; do
+  if ln -- "$archive_tmp" "$archive" 2>/dev/null; then
+    break
+  fi
+  if [[ -e "$archive" || -L "$archive" ]]; then
+    archive="$base-$suffix.tar.gz"
+    suffix=$((suffix + 1))
+  else
+    fail "cannot publish archive: $archive"
+  fi
+done
+
+printf 'Created %s\n' "$archive"
