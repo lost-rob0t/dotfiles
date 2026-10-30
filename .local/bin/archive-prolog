@@ -24,6 +24,7 @@ trap cleanup EXIT
 cd -- "$home" || fail "cannot enter HOME"
 if ! find . \
   -path './share/AI/files' -prune -o \
+  -type d -samefile "$output_dir" -prune -o \
   -type f -name '*.prolog' -print0 >"$list"; then
   fail "scan failed under $home"
 fi
