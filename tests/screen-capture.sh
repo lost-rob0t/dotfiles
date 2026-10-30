@@ -20,7 +20,6 @@ export SCREEN_CAPTURE_VIDEO_DIR="$tmp/videos"
 export SCREEN_CAPTURE_TEST_CLIPBOARD="$tmp/clipboard"
 export SCREEN_CAPTURE_TEST_SIGNAL="$tmp/signal"
 export SCREEN_CAPTURE_TEST_RECORDER_READY="$tmp/recorder-ready"
-export SCREEN_CAPTURE_TEST_REAL_TIMEOUT="$timeout_bin"
 export PATH="$fake:/usr/bin:/bin"
 
 fail() {
@@ -99,6 +98,9 @@ out="${@: -1}"
 if [[ "${SCREEN_CAPTURE_TEST_EMPTY:-0}" == "1" ]]; then
   exit 0
 fi
+if [[ -n "${SCREEN_CAPTURE_TEST_RECORDER_START_GATE:-}" ]]; then
+  while [[ ! -e "$SCREEN_CAPTURE_TEST_RECORDER_START_GATE" ]]; do :; done
+fi
 finish() {
   printf '%s\n' "$1" > "${SCREEN_CAPTURE_TEST_SIGNAL:?}"
   printf 'video' > "$out"
@@ -113,14 +115,6 @@ SH
 cat > "$fake/notify-send" <<'SH'
 #!/usr/bin/env bash
 exit 0
-SH
-
-cat > "$fake/timeout" <<'SH'
-#!/usr/bin/env bash
-if [[ -n "${SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE:-}" ]]; then
-  while [[ ! -e "$SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE" ]]; do :; done
-fi
-exec "$SCREEN_CAPTURE_TEST_REAL_TIMEOUT" "$@"
 SH
 
 chmod +x "$fake"/*
@@ -149,26 +143,39 @@ if SCREEN_CAPTURE_TEST_EMPTY=1 "$subject" record-window "$empty"; then
 fi
 [[ ! -e "$empty" ]]
 
-video="$tmp/custom/final.mp4"
+startup_video="$tmp/custom/startup.mp4"
 $timeout_bin --signal=TERM --kill-after=1s 8s \
-  env SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE="$tmp/start-recorder" \
-  "$subject" record-window "$video" > "$tmp/record.out" &
+  env SCREEN_CAPTURE_TEST_RECORDER_START_GATE="$tmp/start-recorder" \
+  "$subject" record-window "$startup_video" > "$tmp/startup-record.out" 2>&1 &
 runner=$!
-sleep 0.05
-if [[ -e "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" ]]; then
-  "$subject" stop
-  : > "$tmp/start-recorder"
-  for _ in {1..250}; do
-    job_is_running "$runner" || break
-    sleep 0.02
-  done
-  job_is_running "$runner" && fail "stop during timeout startup was lost"
-  wait "$runner" || true
-  runner=
-  fail "published recorder PID before timeout started its child"
-fi
+wait_for_file "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" "recorder PID during startup"
+[[ ! -e "$SCREEN_CAPTURE_TEST_RECORDER_READY" ]] || fail "recorder passed startup gate too early"
 "$subject" stop
 : > "$tmp/start-recorder"
+for _ in {1..250}; do
+  job_is_running "$runner" || break
+  sleep 0.02
+done
+if job_is_running "$runner"; then
+  pid="$(<"$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid")"
+  printf 'screen-capture: startup stop diagnostic pid=%s runner=%s\n' "$pid" "$runner" >&2
+  ps -o pid,ppid,pgid,sid,stat,cmd -p "$pid" --ppid "$pid" >&2 || true
+  [[ -r "/proc/$pid/status" ]] && grep -E '^(SigIgn|SigCgt|SigBlk):' "/proc/$pid/status" >&2 || true
+  fail "stop during recorder startup was lost"
+fi
+if wait "$runner"; then
+  runner=
+  fail "startup stop unexpectedly completed a recording"
+fi
+runner=
+[[ ! -e "$startup_video" ]] || fail "startup stop left a partial recording"
+[[ ! -e "$SCREEN_CAPTURE_TEST_SIGNAL" ]] || fail "startup stop ran the recorder finalizer"
+[[ "$($subject status 2>/dev/null || true)" == idle ]]
+
+video="$tmp/custom/final.mp4"
+$timeout_bin --signal=TERM --kill-after=1s 8s \
+  "$subject" record-window "$video" > "$tmp/record.out" 2>&1 &
+runner=$!
 wait_for_file "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" "active recorder PID"
 wait_for_file "$SCREEN_CAPTURE_TEST_RECORDER_READY" "recorder signal handler"
 
@@ -193,15 +200,6 @@ fi
 [[ "$(cat "$SCREEN_CAPTURE_TEST_SIGNAL")" == INT ]] || fail "stop did not deliver SIGINT"
 [[ "$(cat "$SCREEN_CAPTURE_TEST_CLIPBOARD")" == "$video" ]]
 [[ "$($subject status 2>/dev/null || true)" == idle ]]
-
-if "$timeout_bin" --signal=TERM --kill-after=1s 4s \
-  env SCREEN_CAPTURE_TEST_TIMEOUT_START_GATE="$tmp/never-start-timeout" \
-  "$subject" record-window "$tmp/custom/not-started.mp4" >"$tmp/startup-failure.out" 2>&1; then
-  fail "recorder supervisor unexpectedly started"
-fi
-grep -Fq "recorder supervisor failed to start" "$tmp/startup-failure.out" ||
-  fail "recorder startup failure was not reported"
-[[ ! -e "$SCREEN_CAPTURE_RUNTIME_DIR/recorder.pid" ]] || fail "failed startup left active PID state"
 
 [[ -r "$qtile_capture_org" ]] || fail "missing canonical Qtile capture source"
 [[ -r "$qtile_capture_py" ]] || fail "missing generated Qtile capture module"
