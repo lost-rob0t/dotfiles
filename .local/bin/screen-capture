@@ -193,7 +193,7 @@ run_recorder() {
     fi
     mkdir -p -- "$(dirname -- "$output")"
 
-    local recorder_pid=""
+    local recorder_pid="" supervisor_pid=""
     local ready_file="$runtime_dir/recorder-starting-$$"
     cleanup_recording() {
         local current=""
@@ -209,8 +209,9 @@ run_recorder() {
     trap forward_signal INT TERM HUP
     trap cleanup_recording EXIT
 
-    # Publish the stop PID only after timeout has started its child. A stop
-    # during timeout's startup could otherwise be lost before the recorder runs.
+    # Publish the recorder PID only after the command wrapper has started. This
+    # lets stop signal the recorder directly instead of relying on timeout's
+    # signal forwarding from an asynchronous job.
     rm -f -- "$ready_file"
     "$BASH" -c '
         # Bash ignores SIGINT for asynchronous jobs; restore the default before
@@ -220,48 +221,50 @@ run_recorder() {
     ' screen-capture-supervisor "$BASH" -c '
         ready_file=$1
         shift
-        : > "$ready_file" || exit
+        printf "%s\\n" "$$" > "$ready_file" || exit
         exec "$@"
     ' screen-capture-recorder "$ready_file" "$@" &
-    recorder_pid=$!
+    supervisor_pid=$!
 
     local started=0 start_rc=0
     for _ in {1..100}; do
-        if [[ -e "$ready_file" ]]; then
+        if [[ -s "$ready_file" ]]; then
             started=1
             break
         fi
-        if ! kill -0 "$recorder_pid" 2>/dev/null; then
+        if ! kill -0 "$supervisor_pid" 2>/dev/null; then
             break
         fi
         sleep 0.02
     done
     if (( ! started )); then
-        kill -TERM -- "-$recorder_pid" 2>/dev/null || kill -TERM "$recorder_pid" 2>/dev/null || true
+        kill -TERM -- "-$supervisor_pid" 2>/dev/null || kill -TERM "$supervisor_pid" 2>/dev/null || true
         for _ in {1..50}; do
             local job running=0
             while read -r job; do
-                [[ "$job" == "$recorder_pid" ]] && running=1 && break
+                [[ "$job" == "$supervisor_pid" ]] && running=1 && break
             done < <(jobs -pr)
             (( running )) || break
             sleep 0.02
         done
         if (( running )); then
-            kill -KILL -- "-$recorder_pid" 2>/dev/null || true
-            kill -KILL "$recorder_pid" 2>/dev/null || true
+            kill -KILL -- "-$supervisor_pid" 2>/dev/null || true
+            kill -KILL "$supervisor_pid" 2>/dev/null || true
         fi
-        wait "$recorder_pid" || start_rc=$?
+        wait "$supervisor_pid" || start_rc=$?
         cleanup_recording
         trap - EXIT INT TERM HUP
         die "recorder supervisor failed to start (status $start_rc)"
     fi
 
+    recorder_pid="$(<"$ready_file")"
+    [[ "$recorder_pid" =~ ^[0-9]+$ ]] || die "recorder supervisor returned an invalid PID"
     printf '%s\n' "$recorder_pid" > "$pid_file"
     printf '%s\n' "$output" > "$path_file"
     notify "Recording started" "$output"
 
     local rc=0
-    wait "$recorder_pid" || rc=$?
+    wait "$supervisor_pid" || rc=$?
     cleanup_recording
     trap - EXIT INT TERM HUP
 

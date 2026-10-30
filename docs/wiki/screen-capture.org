@@ -26,8 +26,9 @@ Canonical integration points:
 Only one recorder may be active. Recorder startup is lock-protected, runtime
 state lives below =$XDG_RUNTIME_DIR= when available, and =stop= delivers
 =SIGINT= so FFmpeg/wf-recorder can finalize the output rather than being killed
-blindly. The stop PID is published only after the signal supervisor has started
-its child, preventing a stop during supervisor startup from being lost.
+blindly. The stop PID is the recorder process, published only after its command
+wrapper starts; =stop= signals it directly so the supervisor's asynchronous
+signal handling cannot swallow the stop request.
 
 * Defaults
 - Screenshots: =~/Pictures/screen-shots=.
