@@ -14,6 +14,7 @@
     ./opencode.nix
     ./opencode-tmux.nix
     ./opencode-ses.nix
+    ./cloudflare.nix
     ./codex.nix
     ./agent-verification.nix
     ./chatgpt-desktop.nix

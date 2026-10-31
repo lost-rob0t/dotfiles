@@ -18,6 +18,10 @@
       url = "github:lost-rob0t/emacs-auto-research/8f69c306a07bbf63998755ee6d5d759913289168";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    cloudflare-skills = {
+      url = "github:cloudflare/skills/e44f580f9c4fa3bf268e284ae7706c7954ba31fd";
+      flake = false;
+    };
     skills.url = "github:lost-rob0t/skills";
     chatgpt-desktop = {
       url = "github:lost-rob0t/chatgpt-desktop";
@@ -59,6 +63,7 @@
       home-manager,
       emacs-auto-research,
       skills,
+      cloudflare-skills,
       chatgpt-desktop,
       zara,
       qwen3-tts,
@@ -442,6 +447,10 @@
         unseen-hunter02-home = homeConfigurations."unseen@hunter02".activationPackage;
         ai-client-theme = aiClientThemeCheck;
         codex-config-patch = codexConfigPatchCheck;
+        cloudflare-agent-setup = import ./tests/cloudflare-agent-setup.nix {
+          inherit home-manager lib pkgs;
+          inputs = { inherit skills cloudflare-skills; };
+        };
         opencode-commands = opencodeCommandsCheck;
         starintel-admin = starintelAdminCheck;
         zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };

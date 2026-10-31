@@ -179,6 +179,28 @@ interactive Emacs path and the standalone skill share one output implementation.
 | [[file:../../nix/home-manager/mods/chatgpt-desktop.nix][chatgpt-desktop.nix]] | =programs.chatgpt-desktop=: package plus dark/light appearance, code-theme, font-size, smoothing, cursor, and diff-marker settings | The desktop application's native =[desktop]= configuration |
 | [[file:../../nix/home-manager/mods/starintel-llm-harness.org][starintel-llm-harness.org]] | =llm.starintelHarness=: main/reviewer profiles, llm-log proxy routing, Prolog-RLM GLM wrapper, and subscription pacing | =~/.config/starintel/llm-harness.json= plus the =starintel-prolog-rlm-glm= runtime wrapper |
 
+** Cloudflare agent setup
+[[file:../../nix/home-manager/mods/cloudflare.nix][cloudflare.nix]] owns =cloudflare.enable=, enabled by default with =llm.enable=.
+The non-flake =cloudflare-skills= input pins the official [[https://github.com/cloudflare/skills][Cloudflare skills]];
+Home Manager links every upstream skill into =~/.agents/skills=, =~/.codex/skills=,
+and =~/.config/opencode/skills=. Update this input deliberately through =flake.nix=
+and =flake.lock= rather than installing a second mutable copy with npm.
+
+Following [[https://developers.cloudflare.com/agent-setup/prompt.md][Cloudflare's agent setup instructions]], the shared MCP registry uses
+=https://mcp.cloudflare.com/mcp=. OpenCode imports it with OAuth enabled.
+With =codex.manageConfig = false=, activation applies the narrow
+[[file:../../nix/home-manager/files/cloudflare-codex-mcp.json][Cloudflare MCP patch]] through the existing TOML updater, preserving unrelated
+servers, settings, and comments. Managed Codex configurations import the shared
+registry instead. OAuth credentials remain client-owned runtime state outside Git
+and the Nix store.
+
+After activation, run =codex mcp login cloudflare= and =opencode mcp auth cloudflare=
+and approve each browser authorization. Restart the agents to load their new
+skills and MCP registration. The optional beta =cf= CLI is not installed.
+GitHub CI builds =checks.x86_64-linux.cloudflare-agent-setup= to validate both
+Codex ownership modes, disabled setup, OpenCode OAuth, every skill link, and
+idempotent patching that preserves existing configuration.
+
 ** Global Prolog verification
 [[file:../../nix/home-manager/mods/agent-verification.nix][agent-verification.nix]] installs the pinned =prolog-verification= skill's =prolog-verify= executable with Python, Git, SWI-Prolog, and Brave Search CLI in its runtime.  When enabled it gives both client modules the same global policy: Codex writes =~/.codex/AGENTS.md= and OpenCode writes =~/.config/opencode/AGENTS.md=.  This is explicit module behavior through =codex.globalAgentsFile= and =opencode.globalAgentsFile=, not a generated copy hidden in mutable client configuration.
 
