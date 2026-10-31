@@ -143,6 +143,8 @@ jobs:
           git diff --exit-code -- flake.lock
       - name: Evaluate flake checks without building system closures
         run: nix flake check --no-build --show-trace
+      - name: Check Cloudflare agent skills and MCP integration
+        run: nix build .#checks.x86_64-linux.cloudflare-agent-setup --no-link
       - name: Build and test Zara expert library
         run: nix build .#checks.x86_64-linux.zara-expert-library --no-link
       - name: Build and test Zara Emacs expert

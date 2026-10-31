@@ -25,3 +25,5 @@
 :- consult("zara_pairing").
 
 :- consult('qtile_monitors.pl').
+
+:- consult('cloudflare_agents.pl').

@@ -72,6 +72,8 @@ in
   };
 
   config = with lib; mkIf config.llm.enable {
+    cloudflare.enable = mkDefault true;
+
     # All supported LLM clients use one local, transparent capture plane.
     # The reusable module defaults to XDG_DATA_HOME/llm-log; this machine keeps
     # its long-lived corpus with the rest of the user's AI data instead.

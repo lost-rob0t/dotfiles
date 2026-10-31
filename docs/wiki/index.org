@@ -58,6 +58,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | OpenCode session resume | [[file:../../scripts/opencode-ses.org][scripts/opencode-ses.org]] | fzf session picker over the supported list/resume interfaces; tangles to the =opencode-ses= command and module. |
 | Zara workflows | [[file:../../nix/home-manager/mods/zara-workflows.nix][zara-workflows.nix]] | Home Manager-owned base workflows plus the Qwen3-TTS service integration; private Zara runtime config remains unmanaged. |
 | Zara Android template | [[file:zara-android-automation.org][zara-android-automation.org]] | Git-importable Org source for deterministic Android automations and special-access policy. |
+| Cloudflare agent setup | [[file:../../nix/home-manager/mods/cloudflare.nix][cloudflare.nix]] | Pinned official skills, shared OAuth MCP, and mutable Codex integration; see [[file:nix.org::*Cloudflare agent setup][setup and authentication]]. |
 | Agent verification | [[file:../../nix/home-manager/mods/agent-verification.nix][agent-verification.nix]] | Global Codex/OpenCode policy, durable Prolog gate, and Codex lifecycle hooks. |
 | NixOS | [[file:../../nix/nixos/][nix/nixos/]] | Hosts and installer definitions. |
 | Scripts | [[file:../../scripts/][scripts/]] | Provisioning/install/maintenance helpers. |

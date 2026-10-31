@@ -41,6 +41,23 @@
         "type": "github"
       }
     },
+    "cloudflare-skills": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1793397467,
+        "narHash": "sha256-CiJElxcIcnIGQjbkExTy/Ssf81Fmyq4bVr5X1X3X3lc=",
+        "owner": "cloudflare",
+        "repo": "skills",
+        "rev": "e44f580f9c4fa3bf268e284ae7706c7954ba31fd",
+        "type": "github"
+      },
+      "original": {
+        "owner": "cloudflare",
+        "repo": "skills",
+        "rev": "e44f580f9c4fa3bf268e284ae7706c7954ba31fd",
+        "type": "github"
+      }
+    },
     "disko": {
       "inputs": {
         "nixpkgs": [
@@ -249,6 +266,7 @@
       "inputs": {
         "bixby-studio": "bixby-studio",
         "chatgpt-desktop": "chatgpt-desktop",
+        "cloudflare-skills": "cloudflare-skills",
         "disko": "disko",
         "emacs-auto-research": "emacs-auto-research",
         "home-manager": "home-manager",
