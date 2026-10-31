@@ -6,6 +6,8 @@ let
     {
       src = ../..;
       nativeBuildInputs = [
+        pkgs.python3
+        pkgs.git
         pkgs.swi-prolog
         pkgs.bash
         pkgs.nix
@@ -19,6 +21,9 @@ let
       chmod -R u+w source
       cd source
 
+      python3 -m unittest discover -s .zara/experts/auto-research/tests -p 'test_*.py' -v
+      swipl -q -f none -s .zara/experts/auto-research/tests/conformance-tests.pl
+      swipl -q -f none -s .zara/experts/auto-research/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/git/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/home-manager/tests/expert-tests.pl
       swipl -q -f none -s .zara/experts/dotfiles/tests/expert-tests.pl

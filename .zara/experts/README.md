@@ -23,6 +23,8 @@ semantics by `lost-rob0t/zara#1249`.
 
 ## Current experts
 
+- `auto-research/` — tracked Org-to-Prolog projection and source-backed design/implementation advice; see its README for refresh and freshness checks.
+
 - `emacs/` — reproducible Emacs self-documentation corpus plus bounded queries.
 - `git/` — symbolic Git operation/effect/precondition reasoning.
 - `home-manager/` — adapter over the existing durable Home Manager ownership KB.
