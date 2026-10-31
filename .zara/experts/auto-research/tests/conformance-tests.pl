@@ -13,6 +13,9 @@ test(satisfying_complete_projection, [setup(spec(P,H)), cleanup(delete_file(P))]
 test(missing_requirement_is_unknown, [setup(spec(P,H)), cleanup(delete_file(P))]) :-
     verify(P,candidate(demo,H,[],[]),report(unknown,F)),
     assertion(member(unknown(owner,missing(fact(core,owner,server))),F)).
+test(unmodeled_output_claim_is_unknown, [setup(spec(P,H)), cleanup(delete_file(P))]) :-
+    verify(P,candidate(demo,H,[fact(core,owner,server),fact(core,new_feature,telemetry)],[scope(core,owner),scope('*',calls)]),report(unknown,F)),
+    assertion(member(unknown(proposal_vocabulary,unmodeled(fact(core,new_feature,telemetry))),F)).
 test(explicit_wrong_owner_conflicts, [setup(spec(P,H)), cleanup(delete_file(P))]) :-
     verify(P,candidate(demo,H,[fact(core,owner,client)],[scope(core,owner)]),report(conflict,F)),
     assertion(member(conflict(owner,missing_required(fact(core,owner,server))),F)).

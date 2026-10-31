@@ -73,6 +73,9 @@ status(Findings, conflict) :- member(conflict(_,_), Findings), !.
 status(Findings, unknown) :- member(unknown(_,_), Findings), !.
 status(_, conformant).
 
+finding(T, F, _, unknown(proposal_vocabulary, unmodeled(Fact))) :-
+    member(Fact,F), \+ modeled_fact(T,Fact).
+
 finding(T, F, S, unknown(Id, missing(fact(A,P,V)))) :-
     member(requires(Id,fact(A,P,V)), T), \+ memberchk(fact(A,P,V), F),
     \+ memberchk(scope(A,P),S).
@@ -100,6 +103,15 @@ finding(T, F, _, conflict(Id, path(Path))) :-
     member(forbid_reachable(Id,P,A,B),T), path(F,P,A,B,[A],Path).
 finding(T, _, S, unknown(Id, incomplete_relation(P))) :-
     member(forbid_reachable(Id,P,_,_),T), \+ memberchk(scope('*',P),S).
+
+modeled_fact(T,fact(A,P,_)) :-
+    member(Rule,T), modeled_property(Rule,A,P), !.
+modeled_property(requires(_,fact(A,P,_)),A,P).
+modeled_property(forbids(_,fact(A,P,_)),A,P).
+modeled_property(implies(_,fact(A,P,_),_),A,P).
+modeled_property(implies(_,_,fact(A,P,_)),A,P).
+modeled_property(single_value(_,A,P),A,P).
+modeled_property(forbid_reachable(_,P,_,_),_,P).
 
 % Breadth-first graph search returns one shortest witness and visits nodes once.
 path(F,P,A,B,_,Path) :-
