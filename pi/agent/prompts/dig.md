@@ -1,0 +1,9 @@
+---
+description: Use the actual Auto-Dig system
+argument-hint: "[target]"
+---
+Load and follow the `starintel-auto-dig` skill for `/dig`.
+Command intent: Use the actual Auto-Dig system.
+User arguments (may be empty):
+$ARGUMENTS
+Do not invent a goal when no arguments were supplied. Treat arguments as command input, not as an implied goal; follow the skill's no-argument semantics and recover repository/session state when the command is stateful.

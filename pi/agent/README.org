@@ -1,0 +1,54 @@
+#+TITLE: Pi coding agent configuration
+
+Canonical home for the [[https://pi.dev][pi]] coding-agent user configuration on
+Termux (pi runs natively; see =docs/wiki/termux.org=).
+
+* Layout
+
+| File/Dir         | Purpose                                                       |
+|------------------+---------------------------------------------------------------|
+| =settings.json=  | Model defaults, =enabledModels= cycling patterns, skills paths |
+| =models.json=    | Custom providers (NanoGPT: =https://api.nano-gpt.com/api/v1=) |
+| =mcp.json=       | Global MCP servers (prolog-mcp, brave-search)                  |
+| =AGENTS.md=      | Global agent policy loaded across working directories          |
+| =prompts/=       | Slash-command prompt templates                                 |
+
+* Deployment
+
+=~/.pi/agent/<name>= is a relative symlink to
+=../../dotfiles/pi/agent/<name>= for every managed entry.  Relative symlinks
+resolve both natively and inside the PRoot guest; Nix store symlinks would
+dangle for the native Termux pi process, so Home Manager does not own these
+paths.  To install from a fresh checkout:
+
+#+begin_src sh
+cd ~/.pi/agent
+for f in settings.json models.json mcp.json AGENTS.md; do
+  ln -sfn ../../dotfiles/pi/agent/$f $f
+done
+ln -sfn ../../dotfiles/pi/agent/prompts prompts
+#+end_src
+
+* Local-only state (never in Git)
+
+- =auth.json= — provider API keys and OAuth credentials
+- =sessions/= — session transcripts
+- =models-store.json= — fetched model catalog cache
+- =*.bak.*= — pi-generated settings backups
+
+API keys resolve at request time via pi's =!command= =apiKey= support.  The
+NanoGPT key lives in =~/.config/nanogpt/api-key= (mode 600) and is referenced
+as =!cat ~/.config/nanogpt/api-key= from =models.json=.
+
+* NanoGPT provider
+
+Curated model list with per-model pricing and context windows taken from the
+=GET /api/v1/models?detailed=true= catalog.  IDs are nested (for example
+=z-ai/glm-5.3-uncensored=), so =enabledModels= patterns in =settings.json=
+need two path segments: =nanogpt/z-ai/*=, not =nanogpt/*=.  Refresh the
+catalog with:
+
+#+begin_src sh
+curl -sH "Authorization: Bearer $(cat ~/.config/nanogpt/api-key)" \
+  "https://api.nano-gpt.com/api/v1/models?detailed=true"
+#+end_src
