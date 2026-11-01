@@ -44,7 +44,8 @@ class LiterateConfigParityTests(unittest.TestCase):
         self.assertIn('name = "git-sync";', source)
         self.assertIn('name = "dotfiles-sync";', source)
         self.assertIn(f"builtins.readFile {helper_path}", source)
-        self.assertIn("]) ++ [ gitSync dotfilesSync ];", source)
+        self.assertIn("]) ++ [ gitSync dotfilesSync archiveProlog ];", source)
+        self.assertIn('name = "archive-prolog";', source)
 
     def test_tangled_bashrc_is_valid_bash(self):
         completed = subprocess.run(
