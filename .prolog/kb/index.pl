@@ -25,3 +25,4 @@
 :- consult("zara_pairing").
 
 :- consult('qtile_monitors.pl').
+:- consult("writers").
