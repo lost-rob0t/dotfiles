@@ -348,12 +348,12 @@ let
       "prolog-project-kb"
     ];
     handoff = [
-      "Create a machine-useful Org handoff"
-      "opencode-orchestrate"
+      "Write the machine-useful .prolog handoff (last-write-wins)"
+      "prolog-project-kb"
     ];
     resume = [
-      "Resume from verified handoff state"
-      "opencode-orchestrate"
+      "Resume from enforced .prolog handoff state"
+      "project-resume"
     ];
     logs = [
       "Gather and analyze relevant logs"
