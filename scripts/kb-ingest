@@ -38,8 +38,10 @@ done
 [[ -z "$body_file" || -z "$body" ]] || { printf 'kb-ingest: choose --body or --body-file\n' >&2; exit 2; }
 
 tmp=
+tmp_form=
 cleanup() {
   [[ -z "$tmp" ]] || rm -f -- "$tmp"
+  [[ -z "$tmp_form" ]] || rm -f -- "$tmp_form"
 }
 trap cleanup EXIT
 
@@ -62,9 +64,37 @@ export KB_ROAM_SOURCE="$source"
 export KB_ROAM_VISIBILITY="$visibility"
 export KB_ROAM_AI="$ai"
 
-form='(progn (load-file (getenv "KB_ROAM_ELISP")) (princ (kb-roam-cli-ingest)))'
+# emacsclient --eval does not forward the client environment to the server,
+# so the sent form may not rely on (getenv ...).  Instead, generate a form
+# file that setenv's every KB_ROAM_* variable server-side, loads kb-roam.el,
+# and runs the ingestion.
+lisp_str() {
+  local s=${1//\\/\\\\}
+  s=${s//\"/\\\"}
+  printf '"%s"' "$s"
+}
+
+tmp_form=$(mktemp "${TMPDIR:-/tmp}/kb-ingest-form-XXXXXX.el")
+{
+  while IFS='=' read -r name value; do
+    case "$name" in
+      KB_ROAM_*) printf '(setenv %s %s)\n' "$(lisp_str "$name")" "$(lisp_str "$value")" ;;
+    esac
+  done < <(env | sort)
+  printf '(setenv "KB_ROAM_TITLE" %s)\n' "$(lisp_str "$title")"
+  printf '(setenv "KB_ROAM_TAGS" %s)\n' "$(lisp_str "$tags")"
+  printf '(setenv "KB_ROAM_BODY_FILE" %s)\n' "$(lisp_str "$body_file")"
+  printf '(setenv "KB_ROAM_KIND" %s)\n' "$(lisp_str "$kind")"
+  printf '(setenv "KB_ROAM_SOURCE" %s)\n' "$(lisp_str "$source")"
+  printf '(setenv "KB_ROAM_VISIBILITY" %s)\n' "$(lisp_str "$visibility")"
+  printf '(setenv "KB_ROAM_AI" %s)\n' "$(lisp_str "$ai")"
+  printf '(load-file %s)\n' "$(lisp_str "$KB_ROAM_ELISP")"
+  printf '(princ (kb-roam-cli-ingest))\n'
+} >"$tmp_form"
+
 if emacsclient --eval t >/dev/null 2>&1; then
-  emacsclient --eval "$form" | sed -e 's/^"//' -e 's/"$//' -e 's/\\n/\n/g'
+  emacsclient --eval "(progn (load-file $(lisp_str "$tmp_form")) t)" \
+    | sed -e 's/^"//' -e 's/"$//' -e 's/\\n/\n/g'
 else
-  emacs -Q --batch --eval "$form"
+  emacs -Q --batch --load "$tmp_form"
 fi
