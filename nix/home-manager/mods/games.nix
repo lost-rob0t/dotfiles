@@ -35,7 +35,11 @@ let
         > "''${XDG_RUNTIME_DIR:-/tmp}/qtile-gaming-pointer-$group" 2>/dev/null || true
       xy=$("$qt" cmd-obj -o screen 0 -f info 2>/dev/null \
         | jq -r '.rect | "\(.x + .width / 2 | floor) \(.y + .height / 2 | floor)"')
-      xdotool mousemove $xy
+      # xy is intentionally two words: "<x> <y>"
+      read -r mx my <<EOF
+$xy
+EOF
+      [ -n "''${mx:-}" ] && [ -n "''${my:-}" ] && xdotool mousemove "$mx" "$my"
     '';
   };
 
