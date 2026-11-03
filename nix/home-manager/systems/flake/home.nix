@@ -4,6 +4,8 @@
 
   node-red.enable = true;
 
+  starintelBackup.enable = true;
+
   gaming.enable = true;
 
   homeManagerUpdater = {
