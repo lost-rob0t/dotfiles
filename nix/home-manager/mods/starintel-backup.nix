@@ -30,7 +30,7 @@ let
       ${pkgs.util-linux}/bin/flock -n 9 || exit 0
       mkdir -p "$DEST"
       exec ${pkgs.rsync}/bin/rsync \
-        -a --delete --delete-excluded --delay-updates \
+        -a --delete --delete-excluded --delay-updates --safe-links \
         --exclude='__pycache__/' \
         --exclude='node_modules/' \
         --exclude='.venv/' \
