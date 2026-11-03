@@ -27,6 +27,17 @@ sunshine_x11_capture_selects_display(output_name).
 sunshine_rdna1_encoders([h264, hevc]).
 sunshine_benign_log_noise(['Failed to gain CAP_SYS_ADMIN', 'av1_vaapi', 'Daemon not running']).
 
+% CSRF guard (added in sunshine 2026.516, PR #4645): only localhost
+% origins (https://localhost, https://127.0.0.1, https://[::1]) may
+% perform state-changing Web UI actions (PIN entry, config saves,
+% credential setup).  Any other origin — including this host's LAN IP —
+% is blocked with "CSRF protection blocked request from origin" and
+% generic 400 responses.  Remedy is the comma-separated
+% csrf_allowed_origins option (https:// prefixes; port optional); it
+% cannot be set through the blocked Web UI itself — edit the conf.
+sunshine_csrf_defaults_localhost_only.
+sunshine_csrf_fix(csrf_allowed_origins, 'https://<host-ip>,https://<host-ip>:47990').
+
 % Home Manager owns ~/.config/sunshine/{sunshine.conf,apps.json}; Sunshine's
 % sample files must be removed once before the first switch or activation
 % aborts with a clobber warning (see home_manager_ownership.pl repair rule).

@@ -74,6 +74,11 @@ let
     # Encode on the AMD GPU rather than falling back to software.
     encoder = vaapi
 
+    # CSRF guard (Sunshine 2026.516+): only localhost is allowed by
+    # default, so opening the web UI via the LAN IP (even on this host)
+    # blocks every PIN/save action.  Allowlist the LAN address.
+    csrf_allowed_origins = https://10.50.50.28,https://10.50.50.28:47990
+
     # The host is a LAN service; no router hole punching.
     origin_web_ui_allowed = lan
     upnp = off
