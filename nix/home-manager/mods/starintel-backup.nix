@@ -33,6 +33,7 @@ let
         -a --delete --delete-excluded --delay-updates \
         --exclude='__pycache__/' \
         --exclude='node_modules/' \
+        --exclude='.venv/' \
         --exclude='.cache/' \
         --exclude='*.sqlite3-wal' \
         --exclude='*.sqlite3-shm' \
