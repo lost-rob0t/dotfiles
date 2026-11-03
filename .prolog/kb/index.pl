@@ -26,3 +26,4 @@
 
 :- consult('qtile_monitors.pl').
 :- consult("writers").
+:- consult("sunshine_streaming").
