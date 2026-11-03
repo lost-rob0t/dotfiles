@@ -9,10 +9,14 @@ let
   # Qtile IPC helpers for streaming.  The qtile client must match the
   # system qtile server, so /usr/bin/qtile is called by absolute path.
   # prep: ensure the game's group exists, focus the streamed screen,
-  # switch it to the group, and evict any other windows from it.
+  # switch it to the group, evict any other windows from it, and warp
+  # the pointer onto the streamed screen — qtile maps new windows on
+  # whichever screen owns the pointer, so without the warp the game
+  # follows the user's mouse into their working group.  The original
+  # pointer position is saved for the stream-end restore.
   qtileGamingPrep = pkgs.writeShellApplication {
     name = "qtile-gaming-prep";
-    runtimeInputs = [ pkgs.jq ];
+    runtimeInputs = [ pkgs.jq pkgs.xdotool ];
     text = ''
       group="''${1:?usage: qtile-gaming-prep GROUP}"
       qt=/usr/bin/qtile
@@ -26,6 +30,30 @@ let
         | while read -r wid; do
             "$qt" cmd-obj -o window "$wid" -f kill >/dev/null 2>&1 || true
           done
+
+      xdotool getmouselocation --shell \
+        > "''${XDG_RUNTIME_DIR:-/tmp}/qtile-gaming-pointer-$group" 2>/dev/null || true
+      xy=$("$qt" cmd-obj -o screen 0 -f info 2>/dev/null \
+        | jq -r '.rect | "\(.x + .width / 2 | floor) \(.y + .height / 2 | floor)"')
+      xdotool mousemove $xy
+    '';
+  };
+
+  # Stream-end undo: put the pointer back where the user had it before
+  # the prep warp so local work is not disturbed.
+  qtileGamingPointerRestore = pkgs.writeShellApplication {
+    name = "qtile-gaming-pointer-restore";
+    runtimeInputs = [ pkgs.jq pkgs.xdotool ];
+    text = ''
+      group="''${1:?usage: qtile-gaming-pointer-restore GROUP}"
+      state="''${XDG_RUNTIME_DIR:-/tmp}/qtile-gaming-pointer-$group"
+      if [ -f "$state" ]; then
+        x=$(grep '^X=' "$state" | cut -d= -f2)
+        y=$(grep '^Y=' "$state" | cut -d= -f2)
+        [ -n "$x" ] && [ -n "$y" ] && xdotool mousemove "$x" "$y"
+        rm -f "$state"
+      fi
+      exit 0
     '';
   };
 
@@ -77,7 +105,7 @@ let
         prep-cmd = [
           {
             do = "${qtileGamingPrep}/bin/qtile-gaming-prep game-steam";
-            undo = "setsid steam steam://close/bigpicture";
+            undo = "setsid steam steam://close/bigpicture; ${qtileGamingPointerRestore}/bin/qtile-gaming-pointer-restore game-steam";
           }
         ];
         image-path = "steam.png";
@@ -91,7 +119,7 @@ let
         prep-cmd = [
           {
             do = "${qtileGamingPrep}/bin/qtile-gaming-prep game-warthunder";
-            undo = "";
+            undo = "${qtileGamingPointerRestore}/bin/qtile-gaming-pointer-restore game-warthunder";
           }
         ];
       }
@@ -104,7 +132,7 @@ let
         prep-cmd = [
           {
             do = "${qtileGamingPrep}/bin/qtile-gaming-prep game-bmc4";
-            undo = "";
+            undo = "${qtileGamingPointerRestore}/bin/qtile-gaming-pointer-restore game-bmc4";
           }
         ];
       }
@@ -117,7 +145,7 @@ let
         prep-cmd = [
           {
             do = "${qtileGamingPrep}/bin/qtile-gaming-prep game-main";
-            undo = "";
+            undo = "${qtileGamingPointerRestore}/bin/qtile-gaming-pointer-restore game-main";
           }
         ];
       }
@@ -130,7 +158,7 @@ let
         prep-cmd = [
           {
             do = "${qtileGamingPrep}/bin/qtile-gaming-prep game-rlcraft";
-            undo = "";
+            undo = "${qtileGamingPointerRestore}/bin/qtile-gaming-pointer-restore game-rlcraft";
           }
         ];
       }
