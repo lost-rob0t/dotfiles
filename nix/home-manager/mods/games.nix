@@ -6,10 +6,59 @@
   ...
 }:
 let
+  # Qtile IPC helpers for streaming.  The qtile client must match the
+  # system qtile server, so /usr/bin/qtile is called by absolute path.
+  # prep: ensure the game's group exists, focus the streamed screen,
+  # switch it to the group, and evict any other windows from it.
+  qtileGamingPrep = pkgs.writeShellApplication {
+    name = "qtile-gaming-prep";
+    runtimeInputs = [ pkgs.jq ];
+    text = ''
+      group="''${1:?usage: qtile-gaming-prep GROUP}"
+      qt=/usr/bin/qtile
+
+      "$qt" cmd-obj -o cmd -f addgroup -a "$group" >/dev/null 2>&1 || true
+      "$qt" cmd-obj -o cmd -f to_screen -a 0 >/dev/null 2>&1 || true
+      "$qt" cmd-obj -o cmd -f switchgroup -a "$group" >/dev/null 2>&1 || true
+
+      "$qt" cmd-obj -o cmd -f windows \
+        | jq -r --arg g "$group" '.[] | select(.group == $g) | .id' \
+        | while read -r wid; do
+            "$qt" cmd-obj -o window "$wid" -f kill >/dev/null 2>&1 || true
+          done
+    '';
+  };
+
+  # Runs detached next to the game and polls until its window maps on
+  # the group, then true-fullscreens it (bar-free).  Never fatal: a game
+  # that refuses fullscreen just stays windowed-maximized.
+  qtileGamingFullscreen = pkgs.writeShellApplication {
+    name = "qtile-gaming-fullscreen";
+    runtimeInputs = [ pkgs.jq ];
+    text = ''
+      group="''${1:?usage: qtile-gaming-fullscreen GROUP}"
+      qt=/usr/bin/qtile
+
+      deadline=$((SECONDS + 90))
+      while [ "$SECONDS" -lt "$deadline" ]; do
+        wid=$("$qt" cmd-obj -o cmd -f windows 2>/dev/null \
+          | jq -r --arg g "$group" '.[] | select(.group == $g) | .id' | head -1)
+        if [ -n "$wid" ]; then
+          sleep 2
+          "$qt" cmd-obj -o window "$wid" -f enable_fullscreen >/dev/null 2>&1 && exit 0
+        fi
+        sleep 2
+      done
+      exit 0
+    '';
+  };
+
   # App launcher list shown in Moonlight.  Steam titles launch through
   # steam:// URLs so they share the running Steam client and its Proton
   # setup; Sunshine kills a stream's children on exit, so every game is
   # started detached and keeps running when the phone disconnects.
+  # Each game gets its own qtile group: prep moves the streamed screen
+  # to it and clears it, the watcher fullscreens the game once it maps.
   sunshineAppsJson = builtins.toJSON {
     env = {
       PATH = "$(PATH):$(HOME)/.local/bin:/usr/bin";
@@ -21,10 +70,13 @@ let
       }
       {
         name = "Steam Big Picture";
-        detached = [ "setsid steam steam://open/bigpicture" ];
+        detached = [
+          "setsid steam steam://open/bigpicture"
+          "${qtileGamingFullscreen}/bin/qtile-gaming-fullscreen game-steam"
+        ];
         prep-cmd = [
           {
-            do = "";
+            do = "${qtileGamingPrep}/bin/qtile-gaming-prep game-steam";
             undo = "setsid steam steam://close/bigpicture";
           }
         ];
@@ -32,19 +84,55 @@ let
       }
       {
         name = "War Thunder";
-        detached = [ "setsid steam steam://rungameid/236390" ];
+        detached = [
+          "setsid steam steam://rungameid/236390"
+          "${qtileGamingFullscreen}/bin/qtile-gaming-fullscreen game-warthunder"
+        ];
+        prep-cmd = [
+          {
+            do = "${qtileGamingPrep}/bin/qtile-gaming-prep game-warthunder";
+            undo = "";
+          }
+        ];
       }
       {
         name = "Minecraft (Better MC BMC4)";
-        detached = [ "setsid prismlauncher --launch 'Better MC [FORGE] BMC4'" ];
+        detached = [
+          "setsid prismlauncher --launch 'Better MC [FORGE] BMC4'"
+          "${qtileGamingFullscreen}/bin/qtile-gaming-fullscreen game-bmc4"
+        ];
+        prep-cmd = [
+          {
+            do = "${qtileGamingPrep}/bin/qtile-gaming-prep game-bmc4";
+            undo = "";
+          }
+        ];
       }
       {
         name = "Minecraft (Main)";
-        detached = [ "setsid prismlauncher --launch 'Main'" ];
+        detached = [
+          "setsid prismlauncher --launch 'Main'"
+          "${qtileGamingFullscreen}/bin/qtile-gaming-fullscreen game-main"
+        ];
+        prep-cmd = [
+          {
+            do = "${qtileGamingPrep}/bin/qtile-gaming-prep game-main";
+            undo = "";
+          }
+        ];
       }
       {
         name = "Minecraft (RLCraft)";
-        detached = [ "setsid prismlauncher --launch 'RLCraft'" ];
+        detached = [
+          "setsid prismlauncher --launch 'RLCraft'"
+          "${qtileGamingFullscreen}/bin/qtile-gaming-fullscreen game-rlcraft"
+        ];
+        prep-cmd = [
+          {
+            do = "${qtileGamingPrep}/bin/qtile-gaming-prep game-rlcraft";
+            undo = "";
+          }
+        ];
       }
     ];
   };

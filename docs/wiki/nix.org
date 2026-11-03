@@ -98,7 +98,12 @@ module declaratively manages Sunshine on the =unseen@flake= desktop:
 - =~/.config/sunshine/apps.json=: Desktop, Steam Big Picture, War Thunder
   (steam://rungameid/236390), and the three Prism Launcher Minecraft
   instances (Better MC BMC4, Main, RLCraft).  Games start detached so
-  they keep running when the stream ends.
+  they keep running when the stream ends.  Every game tile also runs
+  =qtile-gaming-prep= (via Sunshine =prep-cmd=) which moves the streamed
+  screen's view to a dedicated qtile group (=game-*=, created over the
+  qtile IPC socket) and evicts other windows from it, plus a detached
+  =qtile-gaming-fullscreen= watcher that true-fullscreens the game
+  window once it maps.
 - a =sunshine.service= systemd user unit bound to
   =graphical-session.target= (=systemctl --user status sunshine=).
 
