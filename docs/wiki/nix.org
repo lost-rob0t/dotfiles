@@ -84,6 +84,32 @@ nixpkgs packages.  The =unseen@flake= host enables it with
 The Mousetrap package comes from the pinned upstream flake's
 =packages.x86_64-linux.default= output.
 
+** Sunshine streaming host
+With =gaming.sunshine.enable= (default =true= under =gaming.enable=) the
+module declaratively manages Sunshine on the =unseen@flake= desktop:
+
+- =~/.config/sunshine/sunshine.conf= tuned for this host: =capture = x11=
+  with =output_name = DisplayPort-1= so Moonlight streams the primary
+  monitor instead of the whole 5760x1080 virtual desktop, and
+  =encoder = vaapi= to encode on the AMD RX 5500 (RDNA1: H.264/HEVC only,
+  no AV1).  =capture = kms= would be lower latency but hard-fails without
+  =CAP_SYS_ADMIN= on the sunshine binary, and a =setcap= capability does
+  not survive the nix store updates made by home-manager-updater.
+- =~/.config/sunshine/apps.json=: Desktop, Steam Big Picture, War Thunder
+  (steam://rungameid/236390), and the three Prism Launcher Minecraft
+  instances (Better MC BMC4, Main, RLCraft).  Games start detached so
+  they keep running when the stream ends.
+- a =sunshine.service= systemd user unit bound to
+  =graphical-session.target= (=systemctl --user status sunshine=).
+
+The first activation fails with a clobber warning if Sunshine's default
+sample =~/.config/sunshine/{sunshine.conf,apps.json}= are still present;
+remove them once before switching.  Afterwards Home Manager owns both
+files and web UI edits are reset at the next activation — change
+games.nix instead.  Sunshine's Web manager is at =https://<host-ip>:47990=
+(LAN only, =origin_web_ui_allowed = lan=); set the manager credentials
+there on first use, then pair Moonlight clients with the PIN dialog.
+
 * GPT TODO synchronization
 [[file:../../nix/home-manager/mods/gpt-todos.nix][gpt-todos.nix]] installs the
 shared =gpt-todos-sync= command and enables a systemd user timer by default when
