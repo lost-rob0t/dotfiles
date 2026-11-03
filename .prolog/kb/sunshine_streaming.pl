@@ -52,3 +52,13 @@ hm_owns_path('/.config/sunshine/apps.json').
 live_generation_built_from(dirty_main_checkout, 99).
 deploy_rule(flake, land_module_in_main_checkout_then_switch).
 deploy_exception(flake, home_manager_updater_masked).  % branch merge does not deploy
+
+% Qtile IPC streaming hack (verified live 2026-11-03, visually confirmed
+% via screenshot: War Thunder true-fullscreened on the streamed screen):
+% cmd-obj drives everything — addgroup (single-arg only; extra positional
+% args with None/"" silently fail), to_screen, switchgroup, windows
+% (JSON with id/group/name; jq needs .["prep-cmd"] quoting for dashes),
+% window <id> enable_fullscreen / kill.
+% Client must be the system qtile (/usr/bin/qtile) to match the server.
+qtile_ipc_verified([addgroup, to_screen, switchgroup, windows, enable_fullscreen, kill]).
+qtile_group_arg_quirk(addgroup, single_positional_only).
