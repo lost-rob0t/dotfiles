@@ -24,6 +24,7 @@
     ./fonts.nix
     ./emacs.nix
     ./gpt-todos.nix
+    ./starintel-backup.nix
     ./org-logseq-sync.nix
     ./kb-roam.nix
     ./hackmode.nix
