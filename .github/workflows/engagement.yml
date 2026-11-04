@@ -1,0 +1,35 @@
+name: Engagement documents
+
+on:
+  pull_request:
+    paths:
+      - 'lisp/engagement.el'
+      - '.doom.d/tests/engagement-test.el'
+      - '.doom.d/config.org'
+      - '.doom.d/config.el'
+      - '.github/workflows/engagement.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'lisp/engagement.el'
+      - '.doom.d/tests/engagement-test.el'
+      - '.doom.d/config.org'
+      - '.doom.d/config.el'
+      - '.github/workflows/engagement.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Emacs
+        run: sudo apt-get update && sudo apt-get install -y emacs-nox
+      - name: Run engagement tests
+        run: >-
+          emacs -Q --batch
+          -L lisp
+          -l .doom.d/tests/engagement-test.el
+          -f ert-run-tests-batch-and-exit
