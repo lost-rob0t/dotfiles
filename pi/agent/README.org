@@ -12,6 +12,9 @@ Termux (pi runs natively; see =docs/wiki/termux.org=).
 | =mcp.json=       | Global MCP servers (prolog-mcp, brave-search)                  |
 | =AGENTS.md=      | Global agent policy loaded across working directories          |
 | =prompts/=       | Slash-command prompt templates                                 |
+| =extensions/=    | pi extensions (=rlm-ops=: background processes, sub-agents,    |
+|                  | shared Prolog blackboard, enforced symbolic verification,      |
+|                  | Prolog-RLM frontend)                                           |
 
 * Deployment
 
@@ -27,6 +30,7 @@ for f in settings.json models.json mcp.json AGENTS.md; do
   ln -sfn ../../dotfiles/pi/agent/$f $f
 done
 ln -sfn ../../dotfiles/pi/agent/prompts prompts
+ln -sfn ../../dotfiles/pi/agent/extensions extensions
 #+end_src
 
 * Local-only state (never in Git)
@@ -52,3 +56,85 @@ catalog with:
 curl -sH "Authorization: Bearer $(cat ~/.config/nanogpt/api-key)" \
   "https://api.nano-gpt.com/api/v1/models?detailed=true"
 #+end_src
+
+* rlm-ops extension
+
+=extensions/rlm-ops/= is the operations extension for the agent itself: it
+gives pi background processes with finish events, sub-agents that share a
+Prolog blackboard, an enforced symbolic verification mode, and a frontend to
+the Prolog-RLM runtime. It loads for every pi session (including headless
+=-p= children spawned by =agent_spawn=, which is how sub-agents share the
+same toolset).
+
+** Background processes and finish events
+
+- =bg_run= starts a shell command detached from the turn and returns a task
+  id immediately. When the process exits, the extension delivers an event
+  message into the session (status, exit code, duration, output tail), which
+  triggers the next agent run — the agent receives the event without
+  polling. =bg_wait= blocks on a task synchronously when that is more
+  convenient (for example inside codemode scripts).
+- =bg_list=, =bg_logs=, =bg_kill= inspect and control tasks; =/bg= lists
+  them for the user. Tasks are children of the pi process and are killed at
+  session shutdown.
+
+** Sub-agents and the shared Prolog blackboard
+
+- =agent_spawn <prompt>= runs a headless =pi --print --no-mcp= child with
+  the given task. Children load this same extension; nesting is capped at
+  depth 1 — grandchildren must coordinate through the blackboard instead.
+- All agents in one orchestration share a blackboard file
+  (<session-home>/=shared.pl=, created under =~/.cache/pi-rlm-ops/= unless
+  =PI_RLM_OPS_HOME= is set). Children inherit it via =PI_RLM_OPS_KB=.
+- =kb_post= / =kb_take= are mailboxes (=msg(From, To, Kind, Payload, Seq,
+  Stamp)= facts); =kb_query= / =kb_assert= / =kb_retract= share arbitrary
+  facts. Every operation is a flock-guarded one-shot =swipl= run against
+  =extensions/rlm-ops/kb_driver.pl=, so state is shared across processes
+  and survives agent restarts within the session.
+
+** Symbolic mode (/symbolic)
+
+=/symbolic on|off|status= (or =pi --symbolic=) enables:
+
+- *Observation hooks*: every meaningful tool execution is appended as
+  =obs(N, tool(Tool), summary(Text), ok(Bool), stamp(Ms)).= to
+  <session-home>/=observations.pl=. Observations are machine-written only.
+- *Enforced verification*: at settle time a fail-closed gate
+  (=extensions/rlm-ops/gate_driver.pl=) evaluates every declared
+  =requirement(Name, Goal)= against recorded observations plus
+  agent-declared derivation rules. Unproven requirements block settling
+  with a continuation describing exactly what failed (max 4 rejections,
+  then it settles and reports failure). =verify_require= declares
+  requirements, =verify_rules= adds derivation clauses (validated
+  fail-closed: directives and DCG rules are rejected), =verify_drop=
+  removes a requirement, =verify_status= runs the gate on demand.
+- The agent prompt gets the Prolog-RLM loop contract injected (query →
+  hypothesize → observe → record → re-query).
+
+** Prolog-RLM frontend
+
+=rlm_ask= / =rlm_status= drive =lisp/llm/prolog-rlm-bridge.pl= (the same
+trusted bridge the Emacs gptel tool uses): the inner runtime does bounded
+recursive context inspection with OpenRouter subcalls without loading the
+context into the outer conversation. Configuration:
+
+- =PI_RLM_ROOT= — prolog-rlm checkout containing =prolog/rlm.pl=
+  (candidates: =~/Documents/Projects/prolog-rlm=,
+  =~/dev/lost-rob0t/prolog-rlm=).
+- =OPENROUTER_API_KEY= (or =~/.config/openrouter/api-key=) and optional
+  =PI_RLM_MODEL= (default =openrouter/auto=).
+- =PI_SWIPL=, =PI_RLM_BRIDGE= override the interpreter and bridge path.
+
+** Termux/SWI-Prolog quirks honored here
+
+- =predicate_property/2= misreports Name/Arity indicators on the
+  arm64-android build, so the kb driver tracks shared predicates in a
+  =board_pred/2= registry instead.
+- =call_with_time_limit/2= breaks =findall/3= backtracking on this build;
+  timeouts are enforced by killing the swipl process.
+- =swipl script.pl other.pl= *consults* trailing =.pl= arguments, so all
+  driver arguments travel as JSON in the =KB_ARGS= / =GATE_ARGS=
+  environment variables, never as positional argv.
+
+Contract tests: =tests/pi-rlm-ops.sh= (drivers, TS modules, extension load
+smoke) runs in CI (see =.github/workflows/nix.yml=).
