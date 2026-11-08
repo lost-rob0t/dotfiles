@@ -27,6 +27,7 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `android/early-init.org` is the source of truth for `android/early-init.el`.
 - `android/config.org` is the source of truth for `android/lisp/star-android-modern.el`, the `android/stow/android-emacs/` wrapper, `android/bin/install-native-profile`, and `android/tests/star-android-modern-test.el`.
 - `nix/home-manager/mods/opencode.org` is the source of truth for `nix/home-manager/mods/opencode.nix`.
+- `scripts/opencode.org` is the source of truth for the standalone OpenCode commands: `.local/bin/opencode-tmux`, `.local/bin/opencode-pick`, `.local/bin/ezf`, `.local/bin/ezf.sh`, `.local/bin/opencode-ses`, `.local/lib/dotfiles/opencode_tmux.py`, `.local/lib/dotfiles/opencode_ses.py`, `.local/lib/dotfiles/ezf.el`, `nix/home-manager/mods/opencode-tmux.nix`, and `nix/home-manager/mods/opencode-ses.nix`.
 - `nix/home-manager/mods/starintel-llm-harness.org` is the source of truth for `nix/home-manager/mods/starintel-llm-harness.nix`.
 - `android/doom/config.org` is the source of truth for `android/doom/init.el`, `android/doom/packages.el`, and `android/doom/config.el`.
 - `emacs/profiles.org` is the source of truth for `.emacs-profiles.el`.
