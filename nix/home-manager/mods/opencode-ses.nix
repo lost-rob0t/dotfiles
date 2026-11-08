@@ -1,4 +1,4 @@
-# Generated from scripts/opencode-ses.org.
+# Generated from scripts/opencode.org.
 { config, lib, pkgs, ... }:
 let
   cfg = config.opencode.ses;

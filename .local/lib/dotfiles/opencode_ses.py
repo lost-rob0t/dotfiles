@@ -1,4 +1,4 @@
-"""Generated from scripts/opencode-ses.org.  Python 3.10+, standard library only."""
+"""Generated from scripts/opencode.org.  Python 3.10+, standard library only."""
 from __future__ import annotations
 
 import argparse
