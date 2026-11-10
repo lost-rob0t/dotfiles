@@ -14,3 +14,7 @@ workflow_fix('Nix / workflows', pinned_actionlint_binary).
 % URLs let an unauthenticated runner fetch the exact commits.
 ci_source_fetch('Nix / logos', quasar, public_forgejo).
 ci_source_fetch('Nix / logos', star_lang, public_forgejo).
+
+% Nix logos setup fails before checkout when Cachix resolves against the
+% runner default data.forgejo.org; that host has no Cachix repositories.
+workflow_fix('Nix / logos', fetch_versioned_upstream_cachix_as_local_actions).

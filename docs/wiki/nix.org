@@ -252,3 +252,11 @@ After Nix changes, run at minimum:
 #+end_src
 
 If the formatter invocation differs on the installed Nix version, run =nix fmt= and inspect the resulting diff before committing.
+
+** Forgejo CI action sources
+The Nix workflow checks out the versioned Cachix actions from their explicit
+GitHub upstream URLs, then invokes them as local actions.  This preserves
+GitHub Actions compatibility and actionlint validation while avoiding Forgejo's
+default action host, which does not mirror those repositories.  Unqualified
+=cachix/install-nix-action= fails before checkout, preventing the Home Manager
+and desktop MCP checks from running.
