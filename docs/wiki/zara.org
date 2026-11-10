@@ -3,7 +3,10 @@
 #+STARTUP: overview
 
 * Scope
-The desktop Home Manager profile enables =zara.workflows=.  That module installs
+The desktop Home Manager profile currently disables =zara.workflows=, Zara,
+and Qwen3-TTS pending the machine-crash investigation.  The workflow contract
+tests enforce that disabled state and the CPU backend configured for a future
+restore.  When deliberately enabled, the workflow module installs
 non-secret operator workflow defaults and the bounded =zara-system-update=
 helper without taking ownership of Zara's mutable private overlay.
 

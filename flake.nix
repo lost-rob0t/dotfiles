@@ -441,6 +441,9 @@
         unseen-desktop-home = homeConfigurations."unseen@desktop".activationPackage;
         unseen-hunter02-home = homeConfigurations."unseen@hunter02".activationPackage;
         ai-client-theme = aiClientThemeCheck;
+        chatgpt-desktop-launcher = import ./tests/chatgpt-desktop.nix {
+          inherit home-manager lib pkgs;
+        };
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
         starintel-admin = starintelAdminCheck;

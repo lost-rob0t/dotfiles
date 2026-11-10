@@ -131,8 +131,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
-      - uses: cachix/cachix-action@v16
+      - name: Fetch Nix setup actions from upstream
+        run: |
+          git clone --depth 1 --branch v31 https://github.com/cachix/install-nix-action .github/ci-actions/install-nix
+          git clone --depth 1 --branch v16 https://github.com/cachix/cachix-action .github/ci-actions/cachix
+      - uses: ./.github/ci-actions/install-nix
+      - uses: ./.github/ci-actions/cachix
         with:
           name: nix-community
       - name: Check flake lock is current
@@ -141,8 +145,20 @@ jobs:
           nix flake lock
           git diff -- flake.lock
           git diff --exit-code -- flake.lock
-      - name: Evaluate flake checks without building system closures
-        run: nix flake check --no-build --show-trace
+      - name: Evaluate flake outputs in separate processes
+        run: |
+          set -euo pipefail
+          for output in checks packages; do
+            names=$(nix eval --json ".#$output.x86_64-linux" --apply builtins.attrNames)
+            while IFS= read -r name; do
+              printf 'Evaluating %s.%s\n' "$output" "$name"
+              nix eval --raw ".#$output.x86_64-linux.$name.drvPath"
+            done < <(jq -r '.[]' <<< "$names")
+          done
+          nix eval --raw '.#formatter.x86_64-linux.drvPath'
+          nix eval --json '.#apps.x86_64-linux' | jq -e 'all(.[]; .type == "app" and (.program | startswith("/nix/store/")))'
+      - name: Test desktop MCP Node launcher
+        run: nix build .#checks.x86_64-linux.chatgpt-desktop-launcher --no-link
       - name: Build and test Zara expert library
         run: nix build .#checks.x86_64-linux.zara-expert-library --no-link
       - name: Build and test Zara Emacs expert

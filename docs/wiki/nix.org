@@ -192,11 +192,22 @@ When =llm.enable= is enabled, all three clients and =outrunTheme= are enabled.  
 
 Codex CLI receives =~/.codex/themes/outrun.tmTheme= and selects it through =[tui].theme=.  ChatGPT Desktop receives the same palette through its native dark chrome theme, with Hack Nerd Font for code and Noto Sans for UI text.  By default, both settings are applied by a narrow, idempotent TOML updater that preserves every unrelated Codex setting and comment.  It refuses to replace a symlinked Home Manager-owned =config.toml=.  Set =codex.manageConfig = true= only after migrating the complete file into =programs.codex=; that opt-in makes Home Manager own =config.toml= and enables shared MCP import.  Restart ChatGPT Desktop after switching the profile so the running app reloads its appearance.
 
+The desktop module replaces the package's =cua_node/bin/node= executable with
+a symlink to the flake-pinned =nodejs_24= runtime during its Nix build.  The
+packaged executable was observed to segfault in the ELF loader before the Data
+MCP server could start.  An inherited =CODEX_MCP_NODE_PATH= alone does not fix
+this: the desktop backend overwrites it with the bundled runtime path.  Both
+command and application menu launches therefore use the corrected package.
+Switch the Home Manager profile and fully quit and reopen the desktop app to
+use it.  This fixes the observed plugin startup crash, while the workstation's
+hard lockups remain a separate investigation.
+
 The generated desktop payload at =~/.codex/themes/outrun-desktop.json= is an inspectable record of the managed appearance values.  Authentication, provider credentials, and other runtime state remain outside these theme files and outside the Nix store.
 
 The focused checks are:
 
 #+begin_src shell
+  nix build '.#checks.x86_64-linux.chatgpt-desktop-launcher'
   nix build '.#checks.x86_64-linux.ai-client-theme'
   nix build '.#checks.x86_64-linux.codex-config-patch'
   nix build '.#checks.x86_64-linux.opencode-commands'
@@ -241,3 +252,20 @@ After Nix changes, run at minimum:
 #+end_src
 
 If the formatter invocation differs on the installed Nix version, run =nix fmt= and inspect the resulting diff before committing.
+
+** Forgejo CI action sources
+The Nix workflow checks out the versioned Cachix actions from their explicit
+GitHub upstream URLs, then invokes them as local actions.  This preserves
+GitHub Actions compatibility and actionlint validation while avoiding Forgejo's
+default action host, which does not mirror those repositories.  Unqualified
+=cachix/install-nix-action= fails before checkout, preventing the Home Manager
+and desktop MCP checks from running.
+
+The =logos= CI job evaluates each check and package in its own Nix process,
+then validates the formatter and app entries.  The Home Manager and NixOS
+closures are among those checks; Hydra re-exports those same checks and the ISO
+package.  A single full flake evaluation retained about 6 GiB and was killed by
+the runner's 2 GiB container cap.  Separate processes release the evaluator heap
+between outputs.  The full local =nix flake check --no-build= remains required.
+The runner cap cannot be raised by a workflow's =container.options=; see the
+[[https://forgejo.org/docs/v15.0/user/actions/reference/#jobsjob_idcontaineroptions][Forgejo action reference]].
