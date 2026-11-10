@@ -14,6 +14,20 @@ let
     types
     ;
   cfg = config.programs.chatgpt-desktop;
+  desktopPackage = pkgs.symlinkJoin {
+    name = "${lib.getName cfg.package}-mcp-node";
+    paths = [ cfg.package ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      wrapProgram "$out/bin/chatgpt" \
+        --set CODEX_MCP_NODE_PATH ${lib.getExe pkgs.nodejs_24}
+      cp --remove-destination ${cfg.package}/share/applications/chatgpt.desktop \
+        "$out/share/applications/chatgpt.desktop"
+      substituteInPlace "$out/share/applications/chatgpt.desktop" \
+        --replace-fail '${cfg.package}/bin/chatgpt' "$out/bin/chatgpt"
+    '';
+    meta = cfg.package.meta;
+  };
   outrun = config.outrunTheme;
   p = outrun.palette;
   codexHome =
@@ -165,7 +179,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    home.packages = [ cfg.package ];
+    home.packages = [ desktopPackage ];
 
     programs.codex.settings = mkIf (config.codex.manageConfig && cfg.appearance.enable) {
       desktop = appearancePayload;
