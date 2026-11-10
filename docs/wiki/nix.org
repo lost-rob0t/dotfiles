@@ -260,3 +260,12 @@ GitHub Actions compatibility and actionlint validation while avoiding Forgejo's
 default action host, which does not mirror those repositories.  Unqualified
 =cachix/install-nix-action= fails before checkout, preventing the Home Manager
 and desktop MCP checks from running.
+
+The =logos= CI job evaluates each check and package in its own Nix process,
+then validates the formatter and app entries.  The Home Manager and NixOS
+closures are among those checks; Hydra re-exports those same checks and the ISO
+package.  A single full flake evaluation retained about 6 GiB and was killed by
+the runner's 2 GiB container cap.  Separate processes release the evaluator heap
+between outputs.  The full local =nix flake check --no-build= remains required.
+The runner cap cannot be raised by a workflow's =container.options=; see the
+[[https://forgejo.org/docs/v15.0/user/actions/reference/#jobsjob_idcontaineroptions][Forgejo action reference]].

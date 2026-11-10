@@ -18,3 +18,6 @@ ci_source_fetch('Nix / logos', star_lang, public_forgejo).
 % Nix logos setup fails before checkout when Cachix resolves against the
 % runner default data.forgejo.org; that host has no Cachix repositories.
 workflow_fix('Nix / logos', fetch_versioned_upstream_cachix_as_local_actions).
+
+workflow_failure('Nix / logos', monolithic_flake_evaluation_exceeds_2_gib_container_cap).
+workflow_fix('Nix / logos', evaluate_each_check_and_package_in_separate_process).

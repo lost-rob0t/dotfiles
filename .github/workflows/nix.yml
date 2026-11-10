@@ -145,8 +145,18 @@ jobs:
           nix flake lock
           git diff -- flake.lock
           git diff --exit-code -- flake.lock
-      - name: Evaluate flake checks without building system closures
-        run: nix flake check --no-build --show-trace
+      - name: Evaluate flake outputs in separate processes
+        run: |
+          set -euo pipefail
+          for output in checks packages; do
+            names=$(nix eval --json ".#$output.x86_64-linux" --apply builtins.attrNames)
+            while IFS= read -r name; do
+              printf 'Evaluating %s.%s\n' "$output" "$name"
+              nix eval --raw ".#$output.x86_64-linux.$name.drvPath"
+            done < <(jq -r '.[]' <<< "$names")
+          done
+          nix eval --raw '.#formatter.x86_64-linux.drvPath'
+          nix eval --json '.#apps.x86_64-linux' | jq -e 'all(.[]; .type == "app" and (.program | startswith("/nix/store/")))'
       - name: Test desktop MCP Node launcher
         run: nix build .#checks.x86_64-linux.chatgpt-desktop-launcher --no-link
       - name: Build and test Zara expert library
