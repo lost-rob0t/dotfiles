@@ -14,20 +14,12 @@ let
     types
     ;
   cfg = config.programs.chatgpt-desktop;
-  desktopPackage = pkgs.symlinkJoin {
-    name = "${lib.getName cfg.package}-mcp-node";
-    paths = [ cfg.package ];
-    nativeBuildInputs = [ pkgs.makeWrapper ];
-    postBuild = ''
-      wrapProgram "$out/bin/chatgpt" \
-        --set CODEX_MCP_NODE_PATH ${lib.getExe pkgs.nodejs_24}
-      cp --remove-destination ${cfg.package}/share/applications/chatgpt.desktop \
-        "$out/share/applications/chatgpt.desktop"
-      substituteInPlace "$out/share/applications/chatgpt.desktop" \
-        --replace-fail '${cfg.package}/bin/chatgpt' "$out/bin/chatgpt"
+  desktopPackage = cfg.package.overrideAttrs (old: {
+    postFixup = (old.postFixup or "") + ''
+      # The desktop backend overrides CODEX_MCP_NODE_PATH with this bundled path.
+      ln -sfn ${lib.getExe pkgs.nodejs_24} "$out/lib/chatgpt/resources/cua_node/bin/node"
     '';
-    meta = cfg.package.meta;
-  };
+  });
   outrun = config.outrunTheme;
   p = outrun.palette;
   codexHome =
