@@ -230,6 +230,21 @@ Prefer =bx config set-key= without putting the key on the command line so it doe
 
 The MCP adapter exposes bounded, typed search tools rather than arbitrary =bx= argv or shell execution.  Its package lives at [[file:../../nix/packages/brave-mcp/][nix/packages/brave-mcp/]] and its protocol regression test is [[file:../../tests/brave-mcp.py][tests/brave-mcp.py]].
 
+* Vendored Brave browser
+:PROPERTIES:
+:CUSTOM_ID: vendored-brave
+:END:
+
+nixos-unstable removed =pkgs.brave= on 2026-11-03 (no committers to unblock security issues), so this repository maintains the Brave binary repack itself at [[file:../../nix/packages/brave/][nix/packages/brave/]].  The flake overlays it back as =pkgs.brave=, so every existing reference (Home Manager desktop module, NixOS hosts, firejail profile) keeps working unchanged.
+
+To bump Brave to a new upstream release:
+
+#+begin_src shell
+  ./nix/packages/brave/update.sh <version>
+#+end_src
+
+The script prefetches both Linux =.deb= archives and rewrites =release.nix=.  The same overlay also carries a temporary =codex= fix (missing =zstd=, =aws-lc=, =oniguruma=, and =sqlite= build inputs in nixpkgs 0.167.0); drop it once nixpkgs fixes the expression upstream.
+
 * Editing rule
 Host-specific composition belongs under =nix/home-manager/systems/= or =nix/nixos/hosts/=.  Reusable behavior belongs in modules rather than being copied between hosts.  Keep =flake.nix= focused on wiring outputs together.
 
