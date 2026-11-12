@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root=$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")
+target="${XDG_DATA_HOME:-$HOME/.local/share}/starintel-conky/mq-python"
+mkdir -p "$(dirname "$target")"
+export STARINTEL_DOTFILES_ROOT="$root"
+nix build --impure --out-link "$target" --expr '
+  let
+    flake = builtins.getFlake (builtins.getEnv "STARINTEL_DOTFILES_ROOT");
+    pkgs = import flake.inputs.nixpkgs { system = builtins.currentSystem; };
+  in pkgs.python3.withPackages (ps: [ ps.pika ])
+'
+printf '%s/bin/python3\n' "$target"

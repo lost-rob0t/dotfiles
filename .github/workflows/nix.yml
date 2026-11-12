@@ -38,7 +38,7 @@ jobs:
       - name: Check StarIntel desktop deployment
         run: |
           python3 -m unittest discover -s tests -p test_starintel_conky_deploy.py
-          bash -n scripts/install-starintel-conky .local/bin/starintel-conky .config/qtile/scripts/autostart.sh
+          bash -n scripts/install-starintel-conky scripts/install-starintel-mq-python .local/bin/starintel-conky .config/qtile/scripts/autostart.sh
       - name: Run Nix deprecation contract
         run: bash tests/nix-deprecations.sh
       - name: Run llm-log expert consumer contract
