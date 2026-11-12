@@ -20,13 +20,26 @@ Runtime: =~/.local/share/starintel-conky/current=. Config overrides:
 =STARINTEL_TUNNELS=, API/Rabbit/Couch URL and =*_PASSWORD_FILE= keys.
 Use =starintel-conky status=, =restart= or =stop=. Queue stats use HTTP GET
 only; optional Markdown message bodies come from an existing passive JSONL
-observation source. Nothing is dequeued, requeued, acknowledged or purged.
+observation source. No production queue is dequeued, requeued or purged.
+
+The document feed defaults to public metadata SSE. An explicit private
+=STARINTEL_FEED_SOURCE="rabbitmq"= selects its own bounded, exclusive,
+auto-deleting queue for copies of post-persistence document events. Only that
+subscription's copies are acknowledged; production queues remain untouched.
+The persistent worker renders a cache; Conky reads it through Lua every 100ms,
+without a process fork per frame. =_changes= is only a labeled history fallback.
+
+Private MQ mode needs Python with pika. Run =scripts/install-starintel-mq-python=
+for a GC-rooted environment from this flake's pinned nixpkgs, without Home
+Manager activation. Set =STARINTEL_MQ_PYTHON= to the printed interpreter path.
+The private configuration also selects its AMQP port and localhost SSH forward;
+no credentials or private MQ defaults are committed here.
 
 * Pin
 #+begin_src json :tangle ../.config/starintel-conky-release.json :mkdirp yes
 {
   "repository": "ssh://forgejo@git.starintel.actor/nsaspy/starintel-conky.git",
-  "revision": "2e68e22098e7834312fd1f1a21a68429c33d1559"
+  "revision": "1db7caf2247c2f82f54a46a75e852606197a6ad1"
 }
 #+end_src
 
@@ -67,4 +80,21 @@ if [[ ! -L "$target" ]]; then
 fi
 "$target" start
 printf 'Runtime installed. Qtile login startup is owned by .config/qtile/scripts/autostart.sh.\n'
+#+end_src
+
+* Optional private-MQ Python environment
+#+begin_src bash :tangle install-starintel-mq-python :tangle-mode (identity #o755) :mkdirp yes
+#!/usr/bin/env bash
+set -euo pipefail
+root=$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")
+target="${XDG_DATA_HOME:-$HOME/.local/share}/starintel-conky/mq-python"
+mkdir -p "$(dirname "$target")"
+export STARINTEL_DOTFILES_ROOT="$root"
+nix build --impure --out-link "$target" --expr '
+  let
+    flake = builtins.getFlake (builtins.getEnv "STARINTEL_DOTFILES_ROOT");
+    pkgs = import flake.inputs.nixpkgs { system = builtins.currentSystem; };
+  in pkgs.python3.withPackages (ps: [ ps.pika ])
+'
+printf '%s/bin/python3\n' "$target"
 #+end_src

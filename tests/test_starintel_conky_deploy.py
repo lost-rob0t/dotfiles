@@ -13,7 +13,7 @@ class DeploymentTests(unittest.TestCase):
     def test_literate_parity(self):
         source = (ROOT / 'scripts/starintel-conky.org').read_text()
         blocks = re.findall(r'^#\+begin_src \S+ :tangle (\S+)[^\n]*\n(.*?)^#\+end_src', source, re.M | re.S | re.I)
-        self.assertEqual(len(blocks), 3)
+        self.assertEqual(len(blocks), 4)
         for target, content in blocks:
             self.assertEqual((ROOT / 'scripts' / target).resolve().read_text(), content, target)
 
@@ -38,6 +38,13 @@ class DeploymentTests(unittest.TestCase):
         self.assertIn('"$HOME/.local/bin/starintel-conky" start >/dev/null 2>&1 &', source)
         self.assertNotIn('conky-rotate" --all', source)
         self.assertEqual(source.count('# BEGIN StarIntel desktop'), 1)
+
+    def test_optional_mq_python_uses_pinned_nixpkgs_without_activation(self):
+        text = (ROOT / 'scripts/install-starintel-mq-python').read_text()
+        self.assertIn('flake.inputs.nixpkgs', text)
+        self.assertIn('ps.pika', text)
+        self.assertIn('--out-link "$target"', text)
+        self.assertNotIn('home-manager', text)
 
 
 if __name__ == '__main__':
