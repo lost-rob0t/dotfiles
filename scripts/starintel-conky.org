@@ -1,0 +1,70 @@
+#+title: StarIntel desktop deployment
+
+* Ownership and deployment
+The [[https://git.starintel.actor/nsaspy/starintel-conky][starintel-conky repository]] owns the dashboard implementation. Dotfiles
+owns only its immutable revision pin, launcher and Qtile login autostart.
+The UI uses one selectable screen, behind all applications, with configurable
+synthwave/outrun colors. Private credentials and local tunnel configuration
+stay in =~/.config/starintel-conky/config= and are never committed here.
+
+Run =scripts/install-starintel-conky /path/to/starintel-conky-checkout= to
+install the pinned tracked runtime (not arbitrary checkout modifications).
+Then deploy the standalone Qtile =scripts/autostart.sh= through the usual
+Stow workflow. This task's targeted deployment updates only the StarIntel
+startup stanza when the live script contains unrelated changes. No Qtile
+reload or full Home Manager activation is necessary. The login startup command
+is idempotent and detached; it does not block Qtile on network I/O.
+
+Runtime: =~/.local/share/starintel-conky/current=. Config overrides:
+=STARINTEL_CONKY_HEAD=, =STARINTEL_THEME_FILE=, =STARINTEL_COLOR_*=,
+=STARINTEL_TUNNELS=, API/Rabbit/Couch URL and =*_PASSWORD_FILE= keys.
+Use =starintel-conky status=, =restart= or =stop=. Queue stats use HTTP GET
+only; optional Markdown message bodies come from an existing passive JSONL
+observation source. Nothing is dequeued, requeued, acknowledged or purged.
+
+* Pin
+#+begin_src json :tangle ../.config/starintel-conky-release.json :mkdirp yes
+{
+  "repository": "ssh://forgejo@git.starintel.actor/nsaspy/starintel-conky.git",
+  "revision": "2e68e22098e7834312fd1f1a21a68429c33d1559"
+}
+#+end_src
+
+* Launcher
+#+begin_src bash :tangle ../.local/bin/starintel-conky :tangle-mode (identity #o755) :mkdirp yes
+#!/usr/bin/env bash
+set -euo pipefail
+runtime="${XDG_DATA_HOME:-$HOME/.local/share}/starintel-conky/current/bin/starintel-conky"
+if [[ ! -x "$runtime" ]]; then
+    printf 'StarIntel desktop is not installed. Run dotfiles/scripts/install-starintel-conky with its source checkout.\n' >&2
+    exit 1
+fi
+exec "$runtime" "$@"
+#+end_src
+
+* Installer
+#+begin_src bash :tangle install-starintel-conky :tangle-mode (identity #o755) :mkdirp yes
+#!/usr/bin/env bash
+set -euo pipefail
+root=$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")
+source_repo=${1:?usage: install-starintel-conky /path/to/starintel-conky-checkout}
+revision=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["revision"])' "$root/.config/starintel-conky-release.json")
+[[ "$revision" =~ ^[0-9a-f]{40}$ ]] || { printf 'Invalid runtime pin\n' >&2; exit 1; }
+git -C "$source_repo" cat-file -e "$revision^{commit}"
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/starintel-desktop-install.XXXXXXXX")
+trap 'rm -rf -- "$scratch"' EXIT
+git -C "$source_repo" archive "$revision" bin conky etc | tar -xf - -C "$scratch"
+python3 "$scratch/bin/install-starintel-desktop"
+target="$HOME/.local/bin/starintel-conky"
+mkdir -p "$(dirname "$target")"
+if [[ -L "$target" ]]; then
+    cmp -s "$root/.local/bin/starintel-conky" "$target" || { printf 'Refusing to replace managed launcher link: %s\n' "$target" >&2; exit 1; }
+elif [[ -e "$target" ]] && ! cmp -s "$root/.local/bin/starintel-conky" "$target"; then
+    cp -p "$target" "$target.before-starintel-$(date +%s)"
+fi
+if [[ ! -L "$target" ]]; then
+    install -m 755 "$root/.local/bin/starintel-conky" "$target"
+fi
+"$target" start
+printf 'Runtime installed. Qtile login startup is owned by .config/qtile/scripts/autostart.sh.\n'
+#+end_src

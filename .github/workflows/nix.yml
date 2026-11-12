@@ -35,6 +35,10 @@ jobs:
           shellcheck --severity=warning scripts/*.sh scripts/org-logseq-sync tests/home-manager-updater.sh tests/gpt-todos-sync.sh tests/org-logseq-sync.sh tests/llm-log-expert-consumer.sh tests/skill-sync.sh tests/variety-home-manager.sh .bash_profile .config/bash/git-sync.sh .local/bin/screen-capture tests/screen-capture.sh scripts/agent-zero-tunnel scripts/remote-gui-launch scripts/install-termux-widgets scripts/starintel-tunnel tests/agent-zero-tunnel.sh tests/remote-gui-launch.sh tests/starintel-tunnel.sh
       - name: Run StarIntel tunnel tests
         run: bash tests/starintel-tunnel.sh
+      - name: Check StarIntel desktop deployment
+        run: |
+          python3 -m unittest discover -s tests -p test_starintel_conky_deploy.py
+          bash -n scripts/install-starintel-conky .local/bin/starintel-conky .config/qtile/scripts/autostart.sh
       - name: Run Nix deprecation contract
         run: bash tests/nix-deprecations.sh
       - name: Run llm-log expert consumer contract

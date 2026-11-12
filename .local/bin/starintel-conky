@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+runtime="${XDG_DATA_HOME:-$HOME/.local/share}/starintel-conky/current/bin/starintel-conky"
+if [[ ! -x "$runtime" ]]; then
+    printf 'StarIntel desktop is not installed. Run dotfiles/scripts/install-starintel-conky with its source checkout.\n' >&2
+    exit 1
+fi
+exec "$runtime" "$@"
