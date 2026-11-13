@@ -34,3 +34,8 @@ repair_recipe(agentprolog_stale_input,
 
 % Verified against agentProlog head df67f42fdb (branch feat/prolog-config-crud-e2e,
 % pending merge as PR #55) and prolog-rlm 4716ba8aa0bbf3fa1b96d80e8ed8e91d99973c85.
+
+deployment_path(agentprolog_main_workspace,
+    'mods/agentprolog.nix mainWorkspaceConfig -> xdg.dataFile agentprolog/main-workspace/.agentprolog/config.pl (deepseek/deepseek-v4.1-flash provider layer)').
+invariant(agentprolog_operator_no_provider,
+    'Operator options never carry runtime_options/provider; the provider lives in the trusted project .agentprolog/config.pl layer, so agentprolog-main defaults --project to the main-workspace').
