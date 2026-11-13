@@ -20,6 +20,7 @@
 :- consult("opencode_commands").
 :- consult("opencode_worker").
 :- consult("emacs_entrypoint").
+:- consult("android_doom_reuse").
 :- consult("zara_deployment").
 :- consult("zara_voice_validation").
 :- consult("zara_pairing").
