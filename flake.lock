@@ -266,17 +266,17 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1793579241,
-        "narHash": "sha256-o2ZsZ+wVfS1RfClQpnrUauwqabtAFCf0CNTJsDF2KvQ=",
-        "owner": "lost-rob0t",
-        "repo": "skills",
-        "rev": "11dd171575704ea62c783b4c0d6701eda1848822",
-        "type": "github"
+        "lastModified": 1794548353,
+        "narHash": "sha256-VBHD6UwyzmRUZVnR/NBMMsvVuJySBQmtXP7XZ6Yw+m4=",
+        "ref": "refs/heads/main",
+        "rev": "4b51593eee1b59ce94f1a7bb84b9a1393414906a",
+        "revCount": 110,
+        "type": "git",
+        "url": "https://git.starintel.actor/nsaspy/skills"
       },
       "original": {
-        "owner": "lost-rob0t",
-        "repo": "skills",
-        "type": "github"
+        "type": "git",
+        "url": "https://git.starintel.actor/nsaspy/skills"
       }
     },
     "systems": {

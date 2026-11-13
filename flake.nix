@@ -18,7 +18,11 @@
       url = "github:lost-rob0t/emacs-auto-research/8f69c306a07bbf63998755ee6d5d759913289168";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    skills.url = "github:lost-rob0t/skills";
+    skills = {
+      # Forgejo is the primary remote (github is a mirror); fetch directly
+      # from git.starintel.actor like the agentprolog input.
+      url = "git+https://git.starintel.actor/nsaspy/skills";
+    };
     chatgpt-desktop = {
       url = "github:lost-rob0t/chatgpt-desktop";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -281,6 +285,29 @@
         assert builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/cli.json"
           desktopHome.config.home.file;
         assert builtins.hasAttr "opencodeLegacyDebris" desktopHome.config.home.activation;
+        assert builtins.hasAttr "opencodeSkillsDebris" desktopHome.config.home.activation;
+        # The formerly stranded skills (ported in skills 4b51593e) plus the new
+        # project-resume registration must resolve through the pinned skills
+        # input and be installed as managed entries.
+        assert builtins.all
+          (name: desktopHome.config.programs.opencode.skills ? name)
+          [
+            "a0-live-debug"
+            "node-red-starintel"
+            "zara-phone-pair"
+            "project-resume"
+          ];
+        assert builtins.all
+          (name:
+            builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/skills/${name}"
+            desktopHome.config.home.file
+          )
+          [
+            "a0-live-debug"
+            "node-red-starintel"
+            "zara-phone-pair"
+            "project-resume"
+          ];
         assert
           desktopHome.config.programs.opencode.settings.provider.openai.options.baseURL
           == "http://127.0.0.1:8787/openai/v1";
