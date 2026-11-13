@@ -25,6 +25,8 @@
 :- consult("zara_pairing").
 
 :- consult('qtile_monitors.pl').
+:- consult('termux_swipl_quirks.pl').
+:- consult('pi_extensions.pl').
 :- consult("writers").
 
 :- consult("chatgpt_desktop").
