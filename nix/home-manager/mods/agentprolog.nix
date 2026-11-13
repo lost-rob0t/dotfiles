@@ -46,9 +46,28 @@ let
     ]).
   '';
 
+  # Main workspace project: the provider layer for the main profile. The
+  # operator file (main.pl) carries trust/caps/budget; the provider lives in
+  # the project config per AgentProlog's trust model (operator options never
+  # carry runtime_options). Deployed under XDG data home.
+  mainWorkspaceConfig = ''
+    % AgentProlog main daily-driver workspace: DeepSeek V4.1 Flash via OpenRouter.
+    % Credential resolved at runtime from OPENROUTER_API_KEY (agentprolog-main wrapper).
+    :- module(agentprolog_main_workspace, [agentprolog_config/1]).
+
+    :- use_module(library(rlm_chain), []).
+
+    agentprolog_config(_{
+        profile:main,
+        mode:direct,
+        runtime_options:[provider(Provider), provider_name(openrouter)]
+    }) :-
+        rlm_chain:openrouter_provider('deepseek/deepseek-v4.1-flash', Provider).
+  '';
+
   # Wrapper: resolve OPENROUTER_API_KEY from the private key file (never from
-  # Nix store or Git), inject the main profile config/state defaults, and exec
-  # the client. Mirrors the starintel-prolog-rlm-glm credential pattern.
+  # Nix store or Git), inject the main profile config/state/project defaults,
+  # and exec the client. Mirrors the starintel-prolog-rlm-glm credential pattern.
   agentprologMain = pkgs.writeShellApplication {
     name = "agentprolog-main";
     runtimeInputs = [ cfg.package ];
@@ -70,13 +89,16 @@ let
       fi
       main_config=${lib.escapeShellArg "${config.xdg.configHome}/agentprolog/main.pl"}
       main_state=${lib.escapeShellArg "${config.xdg.stateHome}/agentprolog/main"}
+      main_project=${lib.escapeShellArg "${config.xdg.dataHome}/agentprolog/main-workspace"}
       args=()
       has_config=0
       has_state=0
+      has_project=0
       for arg in "$@"; do
         case "$arg" in
           --config|--config=*) has_config=1 ;;
           --state|--state=*) has_state=1 ;;
+          --project|--project=*) has_project=1 ;;
         esac
       done
       if [ "$has_config" -eq 0 ]; then
@@ -85,6 +107,10 @@ let
       if [ "$has_state" -eq 0 ]; then
         mkdir -p "$main_state"
         args+=("--state" "$main_state")
+      fi
+      if [ "$has_project" -eq 0 ]; then
+        mkdir -p "$main_project"
+        args+=("--project" "$main_project")
       fi
       exec agentProlog "''${args[@]}" "$@"
     '';
@@ -157,6 +183,8 @@ in
       ]
       ++ lib.optional (cfg.zaraRuntimePackage != null) cfg.zaraRuntimePackage;
 
+    xdg.dataFile."agentprolog/main-workspace/.agentprolog/config.pl".text = mainWorkspaceConfig;
+
     xdg.configFile = {
       "agentprolog/operator.pl".text = operatorTemplate;
       "agentprolog/main.pl".text = mainOperatorConfig;
@@ -172,7 +200,10 @@ in
         =agentprolog-main= wrapper, which resolves the unlimited
         =agentprolog-main= OpenRouter key from
         =~/.config/openrouter/agentprolog-main-key= (0600, never in Git) into
-        =OPENROUTER_API_KEY= and defaults =--config= / =--state= accordingly.
+        =OPENROUTER_API_KEY= and defaults =--config=, =--state= and =--project=
+        accordingly. The default project (=main-workspace=) supplies the
+        DeepSeek V4.1 Flash OpenRouter provider; operator options deliberately
+        carry no provider, so pass =--project= to point at another workspace.
 
         Durable session state defaults to
         =~/.local/state/agentprolog/<sha256-of-project>=; use an explicit
