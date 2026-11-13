@@ -65,7 +65,7 @@ jobs:
             android/doom/config.el
 
       - name: Run Android build-system regression tests
-        run: python3 -m unittest discover -s android/tests -p 'test_termux_build.py' -v
+        run: python3 -m unittest discover -s android/tests -p 'test_*.py' -v
 
       - name: Check Elisp structure
         run: |
