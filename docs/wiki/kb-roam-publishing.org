@@ -1,6 +1,23 @@
+:PROPERTIES:
+:ID: dotfiles-kb-roam-publishing
+:END:
 #+title: KB Roam ingestion and publishing
 #+startup: overview
+#+FILETAGS: :ai:ai_709c3dbc6b586f24:org_roam:publishing:emacs:
+#+ROAM_KIND: documentation
 
+
+#+AI_GENERATED: t
+
+#+AI_TAG: ai_709c3dbc6b586f24
+
+#+ROAM_SCHEMA: org-roam-meta/v1
+
+#+ROAM_VISIBILITY: private
+
+#+CENSOR_PROFILE: strict
+
+#+SOURCE: conversation:authorized-repository-writer-2026-11-11
 * Contract
 =kb-roam= is the audited write/publish layer for the synchronized Org workspace.
 Emacs owns Org parsing and file mutation. Prolog owns publication policy. OpenCode
@@ -29,6 +46,41 @@ private subtrees before Org HTML export and excludes them.
 - =roam-censor build=: rebuild =~/.cache/kb-roam/roam-mega-kb.pl=.
 - =roam-publish=: censor first, then export public notes and dailies.
 - =check-roam-publish=: local CI equivalent.
+
+
+* Exact repository documents
+
+For an existing repository layout, use the same audited writer in complete-document mode:
+
+#+begin_src sh
+kb-ingest --root /path/to/repo/roam --path research/project/note.org \
+  --document-file /path/to/reviewed-draft.txt --source conversation:research-request \
+  --expected-sha256 absent
+#+end_src
+
+For updates, replace =absent= with the SHA256 of the previous UTF-8 document.
+The draft contains the complete Org document, a stable file ID, title and at least
+two topical tags. Existing file IDs and AI tags cannot be changed. Legacy documents
+without an ID receive one in the reviewed draft. The writer stamps AI provenance,
+preserves an existing AI tag and defaults missing visibility to private. Explicit
+public metadata is still necessary for publication. Existing source provenance is
+retained when adding the new write source. Do not mix note-mode options with
+complete-document options.
+
+The writer rejects absolute paths, parent traversal, symlink components, stale
+content, conflicting unsaved editor buffers and duplicate security metadata. It
+uses a cooperative Emacs file lock and same-directory atomic replacement. This
+is a local same-user cooperative writer, not a defense against hostile same-user
+filesystem races. Production publication still requires the Prolog censor gate;
+writing a file does not approve its content or deploy it.
+
+Regression checks:
+
+#+begin_src sh
+emacs -Q --batch -l lisp/wiki/kb-roam.el -l tests/kb-roam-repository.el \
+  -f ert-run-tests-batch-and-exit
+bash tests/kb-roam.sh
+#+end_src
 
 * Website
 The site uses a dark Outrun-ish design: deep background, hot-pink provenance,

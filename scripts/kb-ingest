@@ -5,6 +5,9 @@ usage() {
   cat <<'EOF'
 usage: kb-ingest --title TITLE --tags TAG1,TAG2 [--body TEXT|--body-file FILE]
                  [--kind KIND] [--source SOURCE] [--public] [--ai]
+       kb-ingest --root DIR --path RELATIVE.org --document-file FILE
+                 --source PROVENANCE --expected-sha256 HASH_OR_absent
+Complete-document mode preserves file identity and stamps audited AI metadata.
 EOF
 }
 
@@ -16,6 +19,9 @@ kind=note
 source=
 visibility=private
 ai=false
+document_file=
+document_path=
+expected_sha256=
 
 while (($#)); do
   case "$1" in
@@ -28,13 +34,26 @@ while (($#)); do
     --public) visibility=public; shift ;;
     --private) visibility=private; shift ;;
     --ai) ai=true; shift ;;
+    --root) export KB_ROAM_ROOT=$2; shift 2 ;;
+    --path) document_path=$2; shift 2 ;;
+    --document-file) document_file=$2; shift 2 ;;
+    --expected-sha256) expected_sha256=$2; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'kb-ingest: unknown argument: %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
 done
 
-[[ -n "$title" ]] || { printf 'kb-ingest: --title is required\n' >&2; exit 2; }
-[[ -n "$tags" ]] || { printf 'kb-ingest: --tags is required\n' >&2; exit 2; }
+if [[ -n "$document_file$document_path$expected_sha256" ]]; then
+  [[ -r "$document_file" && -n "$document_path" && -n "$expected_sha256" && -n "$source" ]] || {
+    printf 'kb-ingest: document mode requires readable --document-file, --path, --source and --expected-sha256\n' >&2; exit 2;
+  }
+  [[ -z "$title$tags$body$body_file" && "$visibility" == private && "$ai" == false ]] || {
+    printf 'kb-ingest: do not mix note and complete-document options\n' >&2; exit 2;
+  }
+else
+  [[ -n "$title" ]] || { printf 'kb-ingest: --title is required\n' >&2; exit 2; }
+  [[ -n "$tags" ]] || { printf 'kb-ingest: --tags is required\n' >&2; exit 2; }
+fi
 [[ -z "$body_file" || -z "$body" ]] || { printf 'kb-ingest: choose --body or --body-file\n' >&2; exit 2; }
 
 tmp=
@@ -63,6 +82,9 @@ export KB_ROAM_KIND="$kind"
 export KB_ROAM_SOURCE="$source"
 export KB_ROAM_VISIBILITY="$visibility"
 export KB_ROAM_AI="$ai"
+export KB_ROAM_DOCUMENT_FILE="$document_file"
+export KB_ROAM_PATH="$document_path"
+export KB_ROAM_EXPECTED_SHA256="$expected_sha256"
 
 # emacsclient --eval does not forward the client environment to the server,
 # so the sent form may not rely on (getenv ...).  Instead, generate a form
@@ -89,7 +111,11 @@ tmp_form=$(mktemp "${TMPDIR:-/tmp}/kb-ingest-form-XXXXXX.el")
   printf '(setenv "KB_ROAM_VISIBILITY" %s)\n' "$(lisp_str "$visibility")"
   printf '(setenv "KB_ROAM_AI" %s)\n' "$(lisp_str "$ai")"
   printf '(load-file %s)\n' "$(lisp_str "$KB_ROAM_ELISP")"
-  printf '(princ (kb-roam-cli-ingest))\n'
+  if [[ -n "$document_file" ]]; then
+    printf '(princ (kb-roam-cli-write-document))\n'
+  else
+    printf '(princ (kb-roam-cli-ingest))\n'
+  fi
 } >"$tmp_form"
 
 if emacsclient --eval t >/dev/null 2>&1; then
