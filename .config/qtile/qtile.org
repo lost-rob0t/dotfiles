@@ -36,13 +36,21 @@ which may change after a boot. It places them left to right at 1920x1080 with
 the middle monitor primary. If an expected monitor is absent, it leaves the
 current layout unchanged.
 
-* Emacs popup server
-The Qtile startup script checks the named =qtile= Emacs server with
-=emacsclient -s qtile -a false=.  If it is absent, it starts
-=emacs --daemon=qtile= after the X session has supplied =DISPLAY= and
-=XAUTHORITY=.  Popup requests carry the live display to the shared Elisp frame
-creator, so a headless daemon can create a GUI frame without starting a second
-interactive Emacs window.
+* Emacs server
+There is exactly one Emacs daemon, on the default server socket. The Qtile
+startup script probes it with =timeout 5 emacsclient -a false --eval t=: a
+healthy daemon short-circuits, an absent daemon is started headlessly via
+the Doom wrapper =~/.local/bin/emacs --daemon= after the X session has
+supplied =DISPLAY= and =XAUTHORITY=, and a socket that listens but never
+completes a handshake is reported as wedged rather than papered over with a
+second daemon. Interactive =Mod+e+e=, Qtile popups, and the scratchpad
+=eclient= / =org-capture= helpers all share it; =QTILE_EMACS_SERVER= still
+overrides the socket for popup clients if isolation is ever needed. Never
+start the daemon with a raw =emacs --daemon=: without the wrapper it boots
+vanilla =~/.emacs.d= emacs, which squats the socket and hangs every client
+handshake. Popup requests carry the live display to the shared Elisp frame
+creator, so a headless daemon can create a GUI frame without starting a
+second interactive Emacs window.
 
 * Keybindings
 Qtile owns the complete active keymap. The former SXHKD configuration was
