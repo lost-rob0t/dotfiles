@@ -706,6 +706,33 @@ in
       fi
     '';
 
+    # One-time migration: the global skills directory historically held real
+    # copied directories instead of Home Manager symlinks. Remove only REAL
+    # directories that the pinned skills input does not manage (symlinks and
+    # anything the current generation installs are never touched), logging
+    # each removal so the cleanup stays auditable.
+    home.activation.opencodeSkillsDebris = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+      skillsDir='${config.xdg.configHome}/opencode/skills'
+      if [ -d "$skillsDir" ]; then
+        for entry in "$skillsDir"/*; do
+          name="$(basename "$entry")"
+          if [ -d "$entry" ] && [ ! -L "$entry" ]; then
+            managed=0
+            for managedName in ${lib.concatStringsSep " " inputs.skills.lib.skillNames}; do
+              if [ "$name" = "$managedName" ]; then
+                managed=1
+                break
+              fi
+            done
+            if [ "$managed" = 0 ]; then
+              echo "opencodeSkillsDebris: removing unmanaged skill directory $entry"
+              $DRY_RUN_CMD rm -rf -- "$entry"
+            fi
+          fi
+        done
+      fi
+    '';
+
     xdg.desktopEntries.opencode-web = mkIf cfg.web.enable {
       name = "OpenCode Web";
       genericName = "AI Coding Workspace";
