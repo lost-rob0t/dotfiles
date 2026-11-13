@@ -274,7 +274,13 @@
         assert desktopHome.config.programs.opencode.enableMcpIntegration;
         assert builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/AGENTS.md"
           desktopHome.config.home.file;
-        assert desktopHome.config.programs.opencode.tui.theme == "outrun";
+        assert desktopHome.config.programs.opencode.tui == { };
+        assert desktopHome.config.programs.opencode.cli.theme.name == "outrun";
+        assert
+          !builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/tui.json" desktopHome.config.home.file;
+        assert builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/cli.json"
+          desktopHome.config.home.file;
+        assert builtins.hasAttr "opencodeLegacyDebris" desktopHome.config.home.activation;
         assert
           desktopHome.config.programs.opencode.settings.provider.openai.options.baseURL
           == "http://127.0.0.1:8787/openai/v1";
@@ -290,6 +296,8 @@
             nativeBuildInputs = [ pkgs.jq ];
             opencodeTheme =
               desktopHome.config.home.file."${desktopHome.config.xdg.configHome}/opencode/themes/outrun.json".source;
+            opencodeCli =
+              desktopHome.config.home.file."${desktopHome.config.xdg.configHome}/opencode/cli.json".source;
             codexTheme = desktopHome.config.home.file.".codex/themes/outrun.tmTheme".source;
             chatgptTheme = desktopHome.config.home.file.".codex/themes/outrun-desktop.json".source;
             globalAgents = desktopHome.config.home.file.".codex/AGENTS.md".source;
@@ -306,6 +314,16 @@
               .theme.primary == "pink" and
               .theme.background == "deepBackground"
             ' "$opencodeTheme" >/dev/null
+
+            jq -e '
+              ."$schema" == "https://opencode.ai/v2/cli.json" and
+              .theme.name == "outrun" and
+              .diffs.wrap == "word" and
+              .session.sidebar == "auto" and
+              .session.scrollbar == false and
+              .session.thinking == "hide" and
+              .animations == true
+            ' "$opencodeCli" >/dev/null
 
             grep -Fq '<string>#170c32</string>' "$codexTheme"
             grep -Fq '<string>#f6019d</string>' "$codexTheme"
@@ -464,6 +482,10 @@
         };
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
+        opencode-prolog = import ./tests/opencode-prolog.nix {
+          inherit home-manager lib pkgs;
+          inputs = { inherit skills; };
+        };
         starintel-admin = starintelAdminCheck;
         zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
         zara-all-plugins = zaraAllPluginsCheck;

@@ -685,6 +685,27 @@ in
       source = cfg.globalAgentsFile;
     };
 
+    # Legacy OpenCode config-root npm debris (V1-era plugin installs and a
+    # superseded jsonc stub): each file is removed only when it is a regular
+    # foreign file, never a symlink; node_modules only when it is a real
+    # directory carrying an npm (.package-lock.json) or pnpm (.modules.yaml)
+    # installation marker. Plugin dependencies now belong in the OpenCode
+    # settings plugins list with npm version pins; anything else in the
+    # config root is left for the operator.
+    home.activation.opencodeLegacyDebris = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+      opencodeDir='${config.xdg.configHome}/opencode'
+      for name in package.json bun.lock opencode.jsonc; do
+        path="$opencodeDir/$name"
+        if [ -e "$path" ] && [ ! -L "$path" ]; then
+          $DRY_RUN_CMD rm -f -- "$path"
+        fi
+      done
+      modules="$opencodeDir/node_modules"
+      if [ -d "$modules" ] && [ ! -L "$modules" ] && { [ -f "$modules/.package-lock.json" ] || [ -f "$modules/.modules.yaml" ]; }; then
+        $DRY_RUN_CMD rm -rf -- "$modules"
+      fi
+    '';
+
     xdg.desktopEntries.opencode-web = mkIf cfg.web.enable {
       name = "OpenCode Web";
       genericName = "AI Coding Workspace";
@@ -729,7 +750,16 @@ in
         ];
       };
       themes.${outrun.name} = mkIf outrun.enable theme;
-      tui.theme = mkIf outrun.enable outrun.name;
+      cli = {
+        diffs.wrap = "word";
+        session = {
+          sidebar = "auto";
+          scrollbar = false;
+          thinking = "hide";
+        };
+        animations = true;
+        theme = mkIf outrun.enable { name = outrun.name; };
+      };
     };
   };
 }

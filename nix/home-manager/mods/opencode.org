@@ -32,6 +32,23 @@ The module also owns the optional =opencode.web= persistent web workspace:
 service support plus the =opencode-attach= and =opencode-web-open= helpers; see
 the desktop wiki page for the deployed workspace.
 
+OpenCode 2 keeps terminal-client preferences in a single global =cli.json=
+and no longer reads =tui.json=.  The module therefore declares the user's V2
+CLI preferences through upstream Home Manager's =programs.opencode.cli=,
+which writes =~/.config/opencode/cli.json= (=$schema= included) with the
+Outrun theme selected via =theme.name= plus the stable diffs, session, and
+animation preferences.  The file becomes a Home Manager link: move an
+existing app-owned =cli.json= aside once before switching, and note that
+OpenCode rewrites =cli.json= when settings change inside the TUI, so
+declarative values win again on the next activation.  A fail-safe
+activation step also removes legacy config-root npm debris from the retired
+plugin-install layout: =package.json=, =bun.lock=, and =opencode.jsonc= are
+deleted only as regular foreign files (never symlinks), and =node_modules=
+only when it is a real directory carrying an npm (=.package-lock.json=) or
+pnpm (=.modules.yaml=) installation marker.  Plugin dependencies belong in
+the OpenCode =settings= =plugins= list with npm version pins now; anything
+else in the config root is left for the operator.
+
 The optional =opencode.starintelLlm= provider publishes the StarIntel local
 inference service (llama-swap behind =llm.starintel.actor=) as a first-class
 OpenCode provider.  Requests follow the same llm-log capture plane as every
@@ -758,6 +775,27 @@ shared worker skill, never in command metadata.
         source = cfg.globalAgentsFile;
       };
 
+      # Legacy OpenCode config-root npm debris (V1-era plugin installs and a
+      # superseded jsonc stub): each file is removed only when it is a regular
+      # foreign file, never a symlink; node_modules only when it is a real
+      # directory carrying an npm (.package-lock.json) or pnpm (.modules.yaml)
+      # installation marker. Plugin dependencies now belong in the OpenCode
+      # settings plugins list with npm version pins; anything else in the
+      # config root is left for the operator.
+      home.activation.opencodeLegacyDebris = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+        opencodeDir='${config.xdg.configHome}/opencode'
+        for name in package.json bun.lock opencode.jsonc; do
+          path="$opencodeDir/$name"
+          if [ -e "$path" ] && [ ! -L "$path" ]; then
+            $DRY_RUN_CMD rm -f -- "$path"
+          fi
+        done
+        modules="$opencodeDir/node_modules"
+        if [ -d "$modules" ] && [ ! -L "$modules" ] && { [ -f "$modules/.package-lock.json" ] || [ -f "$modules/.modules.yaml" ]; }; then
+          $DRY_RUN_CMD rm -rf -- "$modules"
+        fi
+      '';
+
       xdg.desktopEntries.opencode-web = mkIf cfg.web.enable {
         name = "OpenCode Web";
         genericName = "AI Coding Workspace";
@@ -802,7 +840,16 @@ shared worker skill, never in command metadata.
           ];
         };
         themes.${outrun.name} = mkIf outrun.enable theme;
-        tui.theme = mkIf outrun.enable outrun.name;
+        cli = {
+          diffs.wrap = "word";
+          session = {
+            sidebar = "auto";
+            scrollbar = false;
+            thinking = "hide";
+          };
+          animations = true;
+          theme = mkIf outrun.enable { name = outrun.name; };
+        };
       };
     };
   }

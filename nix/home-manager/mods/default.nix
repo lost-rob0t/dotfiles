@@ -16,6 +16,7 @@
     ./opencode-ses.nix
     ./codex.nix
     ./agent-verification.nix
+    ./opencode-prolog.nix
     ./chatgpt-desktop.nix
     ./base.nix
     ./starintel-tunnel.nix
