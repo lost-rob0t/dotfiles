@@ -19,6 +19,22 @@ boundary.  Qtile computes the triggering widget's physical geometry and
 Emacs renders the dashboard; callers do not provide fixed monitor coordinates.
 
 * Important invariants
+The [[file:../../scripts/starintel-conky.org][StarIntel Conky deployment source]] owns the thin =starintel-conky=
+launcher and immutable upstream revision pin. The separate =starintel-conky=
+repository owns the three-column UI: one configurable monitor, explicitly
+below application windows, synthwave/outrun defaults, live read-only stats,
+RabbitMQ queue monitoring and bounded Markdown previews. Runtime settings and
+credential-file references live in =~/.config/starintel-conky/config=, never
+in Git. SSH forwards are configurable and localhost-only. Qtile autostart
+starts this dashboard rather than the obsolete multi-screen generic deck.
+Use =scripts/install-starintel-conky <source-checkout>= for a targeted runtime
+install; =starintel-conky status|restart|stop= controls it without reloading Qtile.
+Live documents default to public metadata SSE. Private configuration may select
+a dedicated transient RabbitMQ subscription (never an existing worker queue).
+The local feed renders through Lua every 100ms; database =_changes= is only a
+labeled fallback. =scripts/install-starintel-mq-python= provides the optional
+GC-rooted pika environment from pinned nixpkgs, without a full activation.
+
 The repository editing rules require Qtile sync/reload behavior to:
 - use the shared =git-sync= implementation;
 - avoid blocking Qtile's event loop while Git runs;

@@ -10,6 +10,7 @@ tmp/
 .config/starintel/*.ini
 .config/starintel/
 .local/bin/starintel-*
+!.local/bin/starintel-conky
 .config/qtile/private.env
 .config/zarathushtra/secrets.env
 .config/zarathushtra/config.local.pl

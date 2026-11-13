@@ -18,6 +18,7 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `.doom.d/autoload/gpt-todos.org` is the source of truth for `.doom.d/autoload/gpt-todos.el`.
 - `scripts/gpt-todos-sync.org` is the source of truth for `scripts/gpt-todos-sync` and `scripts/install-gpt-todos-cron`.
 - `scripts/dotfiles-sync.org` is the source of truth for `scripts/dotfiles-sync`.
+- `scripts/starintel-conky.org` is the source of truth for `.local/bin/starintel-conky`, `.config/starintel-conky-release.json`, `scripts/install-starintel-conky`, and `scripts/install-starintel-mq-python`.
 - `scripts/termux-remote.org` is the source of truth for `scripts/remote-gui-launch`, `scripts/agent-zero-tunnel`, and `scripts/install-termux-widgets`.
 - `scripts/termux-starintel-client.org` is the source of truth for `scripts/termux-starintel-client`.
 - `scripts/termux-couchdb-proof.org` is the source of truth for `scripts/termux-couchdb-proof`.

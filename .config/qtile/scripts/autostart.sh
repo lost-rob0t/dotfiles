@@ -91,9 +91,12 @@ fi
 # Some ways to set your wallpaper besides variety or nitrogen
 # feh --bg-fill /usr/share/backgrounds/archlinux-tweak-tool/data/wallpaper/wallpaper.png &
 
-# Monitor-aware Conky deck. The launcher owns per-head PIDs and assigns
-# SYSTEM/AI/WORK/NET across however many active monitors are present.
-"$HOME/.local/bin/conky-rotate" --all >/dev/null 2>&1 || true
+# BEGIN StarIntel desktop
+# One selected screen, below all application windows; idempotent and detached.
+if [[ -x "$HOME/.local/bin/starintel-conky" ]]; then
+    "$HOME/.local/bin/starintel-conky" start >/dev/null 2>&1 &
+fi
+# END StarIntel desktop
 
 # Qtile popups use a separate Emacs server so the user's interactive Emacs is
 # never taken over. Qtile has already inherited DISPLAY and XAUTHORITY here,

@@ -26,5 +26,6 @@
 
 :- consult('qtile_monitors.pl').
 :- consult("writers").
+:- consult("starintel_conky").
 
 :- consult("chatgpt_desktop").
