@@ -1,0 +1,39 @@
+name: GPTel Devlog
+
+on:
+  pull_request:
+    paths:
+      - 'lisp/llm/ai-devlog.el'
+      - 'lisp/llm/devlog-kb.pl'
+      - 'lisp/llm/ai-devlog-test.el'
+      - 'lisp/llm/ai-init.el'
+      - '.github/workflows/devlog.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'lisp/llm/ai-devlog.el'
+      - 'lisp/llm/devlog-kb.pl'
+      - 'lisp/llm/ai-devlog-test.el'
+      - 'lisp/llm/ai-init.el'
+      - '.github/workflows/devlog.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Emacs and SWI-Prolog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y emacs-nox swi-prolog
+      - name: Check Prolog rules
+        run: swipl -q -f none -t halt -s lisp/llm/devlog-kb.pl
+      - name: Run ERT
+        run: >-
+          emacs -Q --batch
+          -L lisp/llm
+          -l lisp/llm/ai-devlog-test.el
+          -f ert-run-tests-batch-and-exit
