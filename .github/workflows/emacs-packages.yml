@@ -1,0 +1,71 @@
+name: Emacs package overrides
+
+on:
+  pull_request:
+    paths:
+      - 'nix/home-manager/mods/emacs.nix'
+      - 'nix/home-manager/mods/gpt-todos.nix'
+      - 'tests/emacs-packages.nix'
+      - '.github/workflows/emacs-packages.yml'
+      - 'flake.nix'
+      - 'flake.lock'
+  push:
+    branches: [master]
+    paths:
+      - 'nix/home-manager/mods/emacs.nix'
+      - 'nix/home-manager/mods/gpt-todos.nix'
+      - 'tests/emacs-packages.nix'
+      - '.github/workflows/emacs-packages.yml'
+      - 'flake.nix'
+      - 'flake.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-overrides:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: cachix/install-nix-action@v31
+      - name: Evaluate package override regression
+        run: |
+          nix eval --impure --json --show-trace --expr '
+            import ./tests/emacs-packages.nix {
+              flake = builtins.getFlake (toString ./.);
+            }
+          '
+      - name: Prove the regression detects the original omission
+        shell: bash
+        run: |
+          set -euo pipefail
+          negative=nix/home-manager/mods/.emacs-package-negative.nix
+          error=$(mktemp)
+          trap 'rm -f "$negative" "$error"' EXIT
+          python3 - <<'PY'
+          from pathlib import Path
+          source = Path("nix/home-manager/mods/emacs.nix").read_text()
+          needle = "] ++ config.emacs.extraPackages;"
+          if source.count(needle) != 1:
+              raise SystemExit("Expected exactly one package-override append")
+          Path("nix/home-manager/mods/.emacs-package-negative.nix").write_text(
+              source.replace(needle, "];")
+          )
+          PY
+          if nix eval --impure --json --expr '
+            import ./tests/emacs-packages.nix {
+              flake = builtins.getFlake (toString ./.);
+              emacsModule = ./nix/home-manager/mods/.emacs-package-negative.nix;
+            }
+          ' 2>"$error"; then
+            echo '::error::The regression accepted disconnected extraPackages'
+            exit 1
+          fi
+          grep -Fq 'emacs.extraPackages must extend the base package list' "$error"
+      - name: Verify the lock file stayed unchanged
+        run: git diff --exit-code -- flake.lock
