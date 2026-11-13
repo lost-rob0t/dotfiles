@@ -91,23 +91,39 @@ fi
 # Some ways to set your wallpaper besides variety or nitrogen
 # feh --bg-fill /usr/share/backgrounds/archlinux-tweak-tool/data/wallpaper/wallpaper.png &
 
-# Monitor-aware Conky deck. The launcher owns per-head PIDs and assigns
-# SYSTEM/AI/WORK/NET across however many active monitors are present.
-"$HOME/.local/bin/conky-rotate" --all >/dev/null 2>&1 || true
+# BEGIN StarIntel desktop
+# One selected screen, below all application windows; idempotent and detached.
+if [[ -x "$HOME/.local/bin/starintel-conky" ]]; then
+    "$HOME/.local/bin/starintel-conky" start >/dev/null 2>&1 &
+fi
+# END StarIntel desktop
 
-# Qtile popups use a separate Emacs server so the user's interactive Emacs is
-# never taken over. Qtile has already inherited DISPLAY and XAUTHORITY here,
-# so popup clients can create frames on the live X display.
-start_qtile_emacs_server() {
-    if command -v emacsclient >/dev/null 2>&1 && \
-        emacsclient -s qtile -a false --eval t >/dev/null 2>&1; then
-        return 0
-    fi
-    command -v emacs >/dev/null 2>&1 || return 0
-    setsid emacs --daemon=qtile >/dev/null 2>&1 &
+# One shared Emacs daemon on the default server socket: interactive
+# Mod+e+e, Qtile popups, and the scratchpad clients all target it, and no
+# second named daemon is started. Qtile has already inherited DISPLAY and
+# XAUTHORITY here, so clients can create frames on the live X display.
+# The probe is time-limited; a listening socket that never completes a
+# handshake means the daemon is wedged (usually a bare `emacs --daemon`
+# running vanilla ~/.emacs.d emacs), so report it instead of stacking
+# another daemon or silently killing the user's Emacs.
+start_emacs_server() {
+    command -v emacsclient >/dev/null 2>&1 || return 0
+    timeout 5 emacsclient -a false --eval t >/dev/null 2>&1
+    case $? in
+        0) return 0 ;;
+        124)
+            command -v notify-send >/dev/null 2>&1 && \
+                notify-send -a Qtile "Emacs server not responding" \
+                    "The default Emacs daemon is wedged; restart it to fix emacsclient."
+            return 0
+            ;;
+    esac
+    emacs_bin="$HOME/.local/bin/emacs"
+    [ -x "$emacs_bin" ] || emacs_bin="$(command -v emacs 2>/dev/null)" || return 0
+    setsid "$emacs_bin" --daemon >/dev/null 2>&1 &
 }
 
-start_qtile_emacs_server
+start_emacs_server
 
 # starting utility applications at boot time
 run variety
