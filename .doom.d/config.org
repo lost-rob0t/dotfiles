@@ -3,7 +3,8 @@
 #+property: header-args :emacs-lisp tangle: ./config.el :tangle yes :results none
 #+startup: org-startup-folded: show2levels
 #+disable_spellchecker: t
-#+begin_src emacs-lisp;; -*- lexical-binding: t -*-
+#+begin_src emacs-lisp
+;;; -*- lexical-binding: t; -*-
 #+end_src
 * About
 This is my personal doom emacs config, you can find package related stuff in packages.org [[file:./packages.org][packages.org]]
@@ -124,7 +125,7 @@ This section tangles the init file
                                         ;taskrunner        ; taskrunner for all your projects
                                         ;terraform         ; infrastructure as code
                                         ;tmux              ; an API for interacting with tmux
-      ;tree-sitter       ; syntax and parsing, sitting in a tree...
+       tree-sitter       ; syntax and parsing, sitting in a tree...
        upload            ; map local to remote projects via ssh/ftp
 
        :os
@@ -172,7 +173,7 @@ This section tangles the init file
        (nim +lsp)               ; python + lisp at the speed of c
        nix               ; I hereby declare "nix geht mehr!"
        ;;ocaml             ; an objective camel
-       (org +roam2)               ; organize your plain life in plain text
+       (org +roam)               ; organize your plain life in plain text
        php               ; perl's insecure younger brother
        ;;plantuml          ; diagrams for confusing people more
        ;;purescript        ; javascript, but functional
@@ -342,14 +343,14 @@ Manage virtual machines from emacs
 * Org Mode
 Setting org dir
 #+begin_src emacs-lisp
-(setq! org-directory "~/Documents/Notes/org")
+(setopt org-directory "~/Documents/Notes/org")
 #+end_src
 
 Source: https://org-roam.discourse.group/t/update-a-field-last-modified-at-save/321
 i needed this to keep track of when i modify an org roam file so when i export it the times are correct.
 
 #+begin_src emacs-lisp
-(setq! time-stamp-active t
+(setopt time-stamp-active t
       time-stamp-start "#\\+LAST_MODIFIED:[ \t]*"
       time-stamp-end "$"
       time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
@@ -496,7 +497,7 @@ I prefer being able to have different views within org agenda, so i can see what
   ;; Turn it on for all agendas
   (org-super-agenda-mode)
 
-  (setq! org-super-agenda-groups
+  (setopt org-super-agenda-groups
          '(
            ;; ---------------- URGENCY / TIME ----------------
            (:name "⚠ Overdue"
@@ -869,7 +870,7 @@ Eyes off my doccuments
   (after! alert
     (use-package! org-alert
       :config
-      (setq! org-alert-interval 300
+      (setopt org-alert-interval 300
              org-alert-notify-cutoff 10
              org-alert-notify-after-event-cutoff 25)))
   (after! org-alert
@@ -901,7 +902,7 @@ Config, mostly defaults since it looks good enough.
 (after! org
   (use-package! org-modern
     :config
-    (setq!
+    (setopt
      ;; Edit settings
      org-auto-align-tags nil
      org-tags-column 0
@@ -1020,7 +1021,7 @@ I store my stuff in ~/Documents/Projects
 (use-package! projectile
   :after projectile
   :config
-  (setq! projectile-project-search-path
+  (setopt projectile-project-search-path
          '(("~/Documents/Projects" . 1))))
 #+end_src
 ** RSS (Elfeed)
@@ -1029,7 +1030,7 @@ I store my stuff in ~/Documents/Projects
 (after! elfeed
   (use-package! elfeed-org
     :config
-    (setq!
+    (setopt
      elfeed-db-directory "~/Documents/Emacs/elfeed/db"
      rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
   (elfeed-org)
@@ -1043,7 +1044,7 @@ Web-paste allows you to paste text to pastebin like web services
   :commands (webpaste-paste-region webpaste-paste-buffer)
   :config
 
-  (setq!
+  (setopt
    webpaste-provider-priority '("ix.io" "dpaste.org"
                                 "dpaste.com" "clbin.com"
                                 "0x0.st" "bpa.st"
@@ -1198,7 +1199,7 @@ I want it to open a new frame
 (use-package! atomic-chrome
   :commands (atomic-chrome-start-server)
   :config
-  (setq! atomic-chrome-buffer-open-style 'frame))
+  (setopt atomic-chrome-buffer-open-style 'frame))
 #+end_src
 Make sure to start atomic chrome at emacs startup.
 #+begin_src emacs-lisp
@@ -1221,7 +1222,7 @@ Set the aliases file. Doom already sets this but i will do so again incase i wan
 (use-package! eshell
   :after eshell
   :config
-  (setq! eshell-aliases-file "~/.doom.d/eshell/aliases")
+  (setopt eshell-aliases-file "~/.doom.d/eshell/aliases")
   (set-company-backend! 'eshell-mode
     '(company-files))
   (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
@@ -1276,7 +1277,7 @@ Skeletor is a project template package.
 (use-package! skeletor
   :commands (skeletor-create-project skeletor-define-template)
   :config
-  (setq! skeletor-user-directory "~/Templates/")
+  (setopt skeletor-user-directory "~/Templates/")
 
 
   (add-to-list 'skeletor-global-substitutions
@@ -1326,7 +1327,7 @@ Skeletor is a project template package.
                     openai/gpt-5.6-terra
                     openai/gpt-5.6-sol)))
 
-  (setq! gptel-model 'z-ai/glm-5.2
+  (setopt gptel-model 'z-ai/glm-5.2
          gptel-backend
          (gptel-make-openai "OpenRouter GLM"
            :host "openrouter.ai"
@@ -1453,7 +1454,7 @@ Gptel keys, could add more commands though.[fn:6]
 *** Ispell
 #+begin_src emacs-lisp
 ;; (after! ispell
-;;   (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
+;;   (setopt ispell-program-name "/run/current-system/sw/bin/aspell"
 ;;          ispell-extra-args '("--sug-mode=ultra")))
 
 #+end_src
@@ -1676,7 +1677,7 @@ Sets PATH
 #+end_src
 ** Bookmarks
 #+begin_src emacs-lisp
-(setq bookmark-file "~/Documents/Emacs/bookmarks")
+(setq bookmark-default-file "~/Documents/Emacs/bookmarks")
 #+end_src
 ** Activity Watch
 #+begin_src emacs-lisp
@@ -1711,7 +1712,7 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
                                 (elfeed-update)))
   (midnight-delay-set 'midnight-delay "07:00am")
 
-  (setq! clean-buffer-list-kill-predicate
+  (setopt clean-buffer-list-kill-predicate
          (lambda (buffer)
            (let ((proc (get-buffer-process buffer)))
              (and
@@ -1719,7 +1720,7 @@ Ensure a desktop notification is made indicating that the buffers will be cleare
               (not (buffer-local-value 'server-buffer-clients buffer))
               (not (and proc (process-live-p proc)))))))
 
-  (setq!
+  (setopt
    clean-buffer-list-kill-never-regexps
    (list
    ;; REPLs and terminals

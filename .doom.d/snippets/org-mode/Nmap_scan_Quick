@@ -1,7 +1,7 @@
 # -*- mode: snippet -*-
 # name: Nmap scan (Quick)
 # uuid: quick_nmap_scan
-# key: trigger-key
+# key: nmap-quick
 # condition: t
 # --
 

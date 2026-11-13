@@ -1,3 +1,5 @@
+;;; -*- lexical-binding: t; -*-
+
 (setq user-mail-address "nsaspy@airmail.cc")
 
 (defvar nsa/lisp-directory (expand-file-name "~/.dotfiles/lisp/"))
@@ -79,9 +81,9 @@ The optional argument NEW-WINDOW is not used."
 (use-package! libvirt
   :commands (libvirt))
 
-(setq! org-directory "~/Documents/Notes/org")
+(setopt org-directory "~/Documents/Notes/org")
 
-(setq! time-stamp-active t
+(setopt time-stamp-active t
       time-stamp-start "#\\+LAST_MODIFIED:[ \t]*"
       time-stamp-end "$"
       time-stamp-format "\[%Y-%02m-%02d %3a %02H:%02M\]")
@@ -200,7 +202,7 @@ The optional argument NEW-WINDOW is not used."
   ;; Turn it on for all agendas
   (org-super-agenda-mode)
 
-  (setq! org-super-agenda-groups
+  (setopt org-super-agenda-groups
          '(
            ;; ---------------- URGENCY / TIME ----------------
            (:name "⚠ Overdue"
@@ -509,7 +511,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   (after! alert
     (use-package! org-alert
       :config
-      (setq! org-alert-interval 300
+      (setopt org-alert-interval 300
              org-alert-notify-cutoff 10
              org-alert-notify-after-event-cutoff 25)))
   (after! org-alert
@@ -535,7 +537,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (after! org
   (use-package! org-modern
     :config
-    (setq!
+    (setopt
      ;; Edit settings
      org-auto-align-tags nil
      org-tags-column 0
@@ -620,13 +622,13 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (use-package! projectile
   :after projectile
   :config
-  (setq! projectile-project-search-path
+  (setopt projectile-project-search-path
          '(("~/Documents/Projects" . 1))))
 
 (after! elfeed
   (use-package! elfeed-org
     :config
-    (setq!
+    (setopt
      elfeed-db-directory "~/Documents/Emacs/elfeed/db"
      rmh-elfeed-org-files '("~/Documents/Notes/org/rss.org")))
   (elfeed-org)
@@ -637,7 +639,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
   :commands (webpaste-paste-region webpaste-paste-buffer)
   :config
 
-  (setq!
+  (setopt
    webpaste-provider-priority '("ix.io" "dpaste.org"
                                 "dpaste.com" "clbin.com"
                                 "0x0.st" "bpa.st"
@@ -763,7 +765,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (use-package! atomic-chrome
   :commands (atomic-chrome-start-server)
   :config
-  (setq! atomic-chrome-buffer-open-style 'frame))
+  (setopt atomic-chrome-buffer-open-style 'frame))
 
 (after! atomic-chrome
   (run-with-idle-timer 5 nil #'atomic-chrome-start-server))
@@ -773,7 +775,7 @@ LANGUAGE is a string referring to one of orb-babel's supported languages.
 (use-package! eshell
   :after eshell
   :config
-  (setq! eshell-aliases-file "~/.doom.d/eshell/aliases")
+  (setopt eshell-aliases-file "~/.doom.d/eshell/aliases")
   (set-company-backend! 'eshell-mode
     '(company-files))
   (add-hook 'eshell-mode-hook #'eshell-cmpl-initialize))
@@ -814,7 +816,7 @@ strings."
 (use-package! skeletor
   :commands (skeletor-create-project skeletor-define-template)
   :config
-  (setq! skeletor-user-directory "~/Templates/")
+  (setopt skeletor-user-directory "~/Templates/")
 
 
   (add-to-list 'skeletor-global-substitutions
@@ -860,7 +862,7 @@ strings."
                     openai/gpt-5.6-terra
                     openai/gpt-5.6-sol)))
 
-  (setq! gptel-model 'z-ai/glm-5.2
+  (setopt gptel-model 'z-ai/glm-5.2
          gptel-backend
          (gptel-make-openai "OpenRouter GLM"
            :host "openrouter.ai"
@@ -944,7 +946,7 @@ strings."
   :commands (org-gptel-generate-flashcards))
 
 ;; (after! ispell
-;;   (setq! ispell-program-name "/run/current-system/sw/bin/aspell"
+;;   (setopt ispell-program-name "/run/current-system/sw/bin/aspell"
 ;;          ispell-extra-args '("--sug-mode=ultra")))
 
 ;; Disabled with Doom's spell module for faster startup.
@@ -1080,7 +1082,7 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
       :desc "Cheat sheet"
       "s c" #'cheat-sh)
 
-(setq bookmark-file "~/Documents/Emacs/bookmarks")
+(setq bookmark-default-file "~/Documents/Emacs/bookmarks")
 
 (run-with-idle-timer 10 nil #'global-activity-watch-mode)
 
@@ -1100,7 +1102,7 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
                                 (elfeed-update)))
   (midnight-delay-set 'midnight-delay "07:00am")
 
-  (setq! clean-buffer-list-kill-predicate
+  (setopt clean-buffer-list-kill-predicate
          (lambda (buffer)
            (let ((proc (get-buffer-process buffer)))
              (and
@@ -1108,7 +1110,7 @@ GD o c u m e n t s d <backspace> / N o t e s / p r o g r a m m i n g / <backspac
               (not (buffer-local-value 'server-buffer-clients buffer))
               (not (and proc (process-live-p proc)))))))
 
-  (setq!
+  (setopt
    clean-buffer-list-kill-never-regexps
    (list
    ;; REPLs and terminals
