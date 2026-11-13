@@ -45,10 +45,13 @@ Otherwise
 Clone the repo to =~/.dotfiles= and run GNU Stow from the checkout.
 
 ** Android / Termux
-Android has a Doom-free, Org-first native Emacs profile and a separate full Doom
-profile for Termux development.  The native profile uses Evil/Vim bindings,
-=org-modern=, native touch behavior, and an Org-centric bottom toolbar.  The
-Doom profiles keep the existing desktop/Termux feature set intact.
+Android has a Doom-free, Org-first native Emacs profile and a Doom profile for
+Termux development that reuses the desktop Doom configuration.  The native
+profile uses Evil/Vim bindings, =org-modern=, native touch behavior, and an
+Org-centric bottom toolbar.  The Termux Doom profile reuses the desktop
+=.doom.d= modules, packages, and config read-only from the checkout and applies
+Android overrides; it only launches on Termux and never touches the desktop
+tree.
 
 For a fresh Termux install:
 

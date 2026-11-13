@@ -43,7 +43,83 @@
               (directory-files-recursively agenda-root "\\.org\\'")
             (directory-files-recursively star/termux-org-root "\\.org\\'")))))
 
+(defconst star/termux-desktop-doomdir nil
+  "Desktop Doom configuration directory reused by this profile, or nil.")
+
+(defun star/termux-load-desktop-config ()
+  "Load the desktop Doom config.el from the dotfiles checkout.
+
+The desktop tree is only ever read.  Loading happens before the Android
+overrides below, so those always win on the phone.  A desktop config that
+fails to load on Android must not take down the whole startup."
+  (let ((dir (or (getenv "STAR_DESKTOP_DOOMDIR")
+                 (and (boundp 'doom-private-dir)
+                      doom-private-dir
+                      (let ((sibling
+                             (expand-file-name "../../.doom.d" doom-private-dir)))
+                        (and (file-regular-p (expand-file-name "config.el" sibling))
+                             sibling)))
+                 (seq-find (lambda (candidate)
+                             (file-regular-p
+                              (expand-file-name "config.el" candidate)))
+                           '("~/.dotfiles/.doom.d" "~/dotfiles/.doom.d")))))
+    (if (not dir)
+        (message "Termux Doom: no desktop config found; running Termux-only setup")
+      (setq star/termux-desktop-doomdir (directory-file-name dir))
+      ;; The desktop config adds its personal lisp tree to `load-path'
+      ;; through `nsa/lisp-directory', defaulting to ~/.dotfiles/lisp.  The
+      ;; checkout may live elsewhere (e.g. ~/dotfiles), so pre-bind it from
+      ;; the resolved checkout root; the desktop `defvar' keeps our value.
+      ;; Without this the desktop config aborts before anything loads.
+      (let ((checkout
+             (directory-file-name
+              (file-name-directory (directory-file-name dir)))))
+        (when (file-directory-p (expand-file-name "lisp" checkout))
+          (defvar nsa/lisp-directory (expand-file-name "lisp/" checkout))))
+      (condition-case err
+          (load (expand-file-name "config.el" dir) nil 'nomessage)
+        (error (message "Termux Doom: desktop config failed to load: %S"
+                        err))))))
+
+(star/termux-load-desktop-config)
+
+;;; Android overrides -- applied after the desktop config, always win.
+
+;; Org roots follow the Termux Org root, not the desktop literals.
+(setq org-directory star/termux-org-root)
+(setq org-roam-directory (expand-file-name "roam" star/termux-org-root))
 (star/termux-refresh-agenda-files)
+
+;; Desktop config sync and Eshell aliases point at the reused checkout.
+(when star/termux-desktop-doomdir
+  (setq org-configs-list
+        (list (expand-file-name "config.org" star/termux-desktop-doomdir)
+              (expand-file-name "packages.org" star/termux-desktop-doomdir)))
+  (after! eshell
+    (setq eshell-aliases-file
+          (expand-file-name "eshell/aliases" star/termux-desktop-doomdir))))
+
+;; No dunst/dbus on Android: alert falls back to the echo area.
+(after! alert
+  (setq alert-default-style 'message))
+
+;; No Brave on Android: termux-open-url hands URLs to the Android browser,
+;; eww stays available for Wikipedia-style reading.
+(defun star/termux-browse-url (url &optional _new-window)
+  "Open URL with termux-open-url, falling back to eww."
+  (if (and (executable-find "termux-open-url")
+           (eq (call-process "termux-open-url" nil nil nil url) 0))
+      url
+    (eww-browse-url url)))
+
+(setq browse-url-handlers
+      '(("wikipedia\\.org" . eww-browse-url)
+        ("." . star/termux-browse-url)))
+
+;; Boot into the phone TODO list, not the desktop agenda.
+(setq initial-buffer-choice #'star/termux-open-todos)
+
+;;; Termux-native Org and languages.
 
 (after! org
   (setq org-startup-indented t
@@ -133,5 +209,3 @@
 (add-hook! 'org-mode-hook
   (visual-line-mode 1)
   (org-indent-mode 1))
-
-(setq initial-buffer-choice #'star/termux-open-todos)

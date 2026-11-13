@@ -3,12 +3,37 @@
 
 * Purpose
 
-This is the Android/Termux development profile.  It is separate from both the
-desktop =~/.doom.d= configuration and the lightweight =android/= research
-reader.
+This is the Android/Termux development profile.  It reuses the desktop Doom
+configuration in =.doom.d/= as its base -- the same modules, packages, and
+config behavior -- instead of keeping a second parallel feature set.  The
+desktop tree is only ever read from the dotfiles checkout, never modified, so
+desktop Doom usage is unchanged.  The profile launches only on Termux, through
+the Chemacs =termux-doom= profile (see =../../emacs/profiles.org=) or the
+=emacs-termux= / =doom-termux= wrappers from the bootstrap.
 
 The canonical source is [[file:config.org][config.org]].  Tangling it produces =init.el=,
 =packages.el=, and =config.el=.
+
+* Desktop reuse and Android adaptations
+
+=config.org= structures each tangled file as: Termux base definitions, then a
+read-only load of the desktop =.doom.d= output, then Android overrides that
+always win on the phone.
+
+- =init.el= mirrors the desktop =doom!= selection.  The only deviations are
+  Android-hostile native builds: =vterm= (libvterm), =pdf= (poppler), and the
+  =+tree-sitter= flags on =json= and =javascript= (grammar compilation).
+- =packages.el= loads the desktop =.doom.d/packages.el= as-is.  Nothing is
+  redeclared or disabled; desktop packages whose external binaries do not
+  exist on Android simply stay dormant.
+- =config.el= locates the desktop directory through
+  =$STAR_DESKTOP_DOOMDIR=, the =.doom.d= sibling of =doom-private-dir= in
+  the checkout, or =~/.dotfiles/.doom.d= / =~/dotfiles/.doom.d=.  It also
+  pre-binds =nsa/lisp-directory= from the checkout root so the desktop
+  load-path setup works from any checkout location.  Desktop paths that must
+  differ on the phone (org root, =org-roam-directory=, =org-configs-list=,
+  Eshell aliases, browser handling, alert backend, startup buffer) are
+  re-asserted afterwards.
 
 * Focus
 
@@ -42,9 +67,12 @@ The profile checks these locations in order:
 3. =~/storage/shared/Documents/Notes/org=;
 4. =~/.local/share/org=.
 
-The StarIntel admin command checks =$STARINTEL_ADMIN_ORG= first, then common
-locations under the Org root and =~/src/starintel-server=.  If none exist it
-creates =starintel-admin.org= in the selected Org root.
+The desktop configuration's org directories are redirected under the selected
+Termux root, and agenda files are refreshed recursively, preferring the
+=agenda/= subtree when it exists.  The StarIntel admin command checks
+=$STARINTEL_ADMIN_ORG= first, then common locations under the Org root and
+=~/src/starintel-server=.  If none exist it creates =starintel-admin.org= in
+the selected Org root.
 
 * Termux:Widget
 
