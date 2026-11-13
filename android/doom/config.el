@@ -34,6 +34,13 @@
 (make-directory star/termux-org-root t)
 (setq org-directory star/termux-org-root)
 
+;; The desktop config runs its agenda updater while loading (after!
+;; org-agenda), scanning nsa/org-agenda-directory.  Pre-bind it to the
+;; phone's agenda directory so the same code path works here; the desktop
+;; defvar keeps our value.
+(make-directory (expand-file-name "agenda" star/termux-org-root) t)
+(defvar nsa/org-agenda-directory (expand-file-name "agenda/" star/termux-org-root))
+
 (defun star/termux-refresh-agenda-files ()
   "Refresh `org-agenda-files' from the Termux Org root."
   (interactive)
@@ -45,6 +52,27 @@
 
 (defconst star/termux-desktop-doomdir nil
   "Desktop Doom configuration directory reused by this profile, or nil.")
+
+(defun star/termux--prune-uninstalled-babel (args)
+  "Drop babel languages from ARGS whose ob-* library is not installed.
+
+The desktop config enables languages such as graphql and ffuf whose ob-
+libraries were never declared in .doom.d/packages.el; they exist on the
+desktop only as old straight leftovers.  org-babel-do-load-languages
+\=`require's each library, which would abort the whole desktop config
+load on a fresh Android checkout."
+  (cl-destructuring-bind (sym alist) args
+    (list sym
+          (mapcar (lambda (entry)
+                    (if (and (cdr entry)
+                             (not (locate-library
+                                   (format "ob-%s" (car entry)))))
+                        (cons (car entry) nil)
+                      entry))
+                  alist))))
+
+(advice-add 'org-babel-do-load-languages :filter-args
+            #'star/termux--prune-uninstalled-babel)
 
 (defun star/termux-load-desktop-config ()
   "Load the desktop Doom config.el from the dotfiles checkout.
@@ -117,7 +145,14 @@ fails to load on Android must not take down the whole startup."
         ("." . star/termux-browse-url)))
 
 ;; Boot into the phone TODO list, not the desktop agenda.
-(setq initial-buffer-choice #'star/termux-open-todos)
+;; `initial-buffer-choice' must return a live buffer; `org-todo-list'
+;; only returns t.
+(defun star/termux--startup-buffer ()
+  "Open the Termux TODO list as the startup buffer."
+  (star/termux-open-todos)
+  (get-buffer "*Org Agenda*"))
+
+(setq initial-buffer-choice #'star/termux--startup-buffer)
 
 ;;; Termux-native Org and languages.
 
