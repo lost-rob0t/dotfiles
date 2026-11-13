@@ -167,6 +167,10 @@ def install_telemetry(config_globals):
 
     install_openrouter_widget(config_globals)
 
+    from qtile_donations import install_donation_widget
+
+    install_donation_widget(config_globals)
+
     from qtile_llm_log import install_llm_log_widgets
 
     install_llm_log_widgets(config_globals)
