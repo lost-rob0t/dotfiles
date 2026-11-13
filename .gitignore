@@ -52,4 +52,5 @@ tmp/
 /.prolog/*
 !/.prolog/kb/
 !/.prolog/kb/**
+!/.prolog/handoff.pl
 /result

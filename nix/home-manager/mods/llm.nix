@@ -151,6 +151,10 @@ in
         baseUrl = proxyBase;
       };
     };
+    # Same client family as opencode/codex, mirroring their setup pattern:
+    # pinned flake input, explicit packages, no ambient trust. The operator
+    # template in ~/.config/agentprolog/ stays inert until passed via --config.
+    agentprolog.enable = true;
     agentVerification.enable = true;
     programs.chatgpt-desktop.enable = true;
 

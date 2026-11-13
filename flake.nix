@@ -48,6 +48,12 @@
       url = "github:lost-rob0t/Mousetrap";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    agentprolog = {
+      # Canonical Forgejo host (the GitHub remote is the mirror). The lock pins
+      # the exact reviewed rev; update deliberately like any other input.
+      url = "git+https://git.starintel.actor/nsaspy/agentProlog";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -65,6 +71,7 @@
       zara-plugins,
       bixby-studio,
       mousetrap,
+      agentprolog,
     }:
     let
       system = "x86_64-linux";
