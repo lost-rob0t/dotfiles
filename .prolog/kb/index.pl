@@ -18,6 +18,7 @@
 :- consult("gpt_todos_sync").
 :- consult("forgejo_ci").
 :- consult("opencode_commands").
+:- consult("agentprolog").
 :- consult("opencode_worker").
 :- consult("emacs_entrypoint").
 :- consult("zara_deployment").
