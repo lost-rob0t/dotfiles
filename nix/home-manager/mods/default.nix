@@ -15,6 +15,7 @@
     ./opencode-tmux.nix
     ./opencode-ses.nix
     ./codex.nix
+    ./agentprolog.nix
     ./agent-verification.nix
     ./chatgpt-desktop.nix
     ./base.nix
