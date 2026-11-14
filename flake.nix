@@ -76,16 +76,14 @@
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
-      # Standalone home-manager profiles receive this pkgs directly; HM 25.11+
-      # rejects nixpkgs options inside modules, so unfree is granted here.
-      pkgs = import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-        overlays = [
-          # Brave was removed from nixos-unstable on 2026-11-03 (no committers
-          # to unblock security issues); we maintain the binary repack
-          # ourselves under nix/packages/brave. Bump it with its update.sh.
-          (final: prev: {
+      # Overlays shared by the standalone profiles below AND the NixOS hosts
+      # (hosts get them through specialArgs -> nixpkgs.overlays; without them
+      # logos evaluated raw nixpkgs and died on the removed brave attr).
+      sharedOverlays = [
+        # Brave was removed from nixos-unstable on 2026-11-03 (no committers
+        # to unblock security issues); we maintain the binary repack
+        # ourselves under nix/packages/brave. Bump it with its update.sh.
+        (final: prev: {
             brave = final.callPackage ./nix/packages/brave { };
             # nixpkgs' codex 0.167.0 links zstd-sys and aws-lc-sys through
             # pkg-config but does not add those libraries to its build
@@ -130,6 +128,10 @@
             };
           })
         ];
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+        overlays = sharedOverlays;
       };
       prologMcp = pkgs.callPackage ./nix/packages/prolog-mcp.nix { };
       braveMcp = pkgs.callPackage ./nix/packages/brave-mcp { };
@@ -137,7 +139,7 @@
       zaraExperts = import ./.zara/experts { inherit pkgs; };
 
       sharedArgs = {
-        inherit self disko;
+        inherit self disko sharedOverlays;
       };
       homeArgs = {
         inherit self;
@@ -186,6 +188,9 @@
         modules = [
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
+          # The host's pkgs must see the same vendored/fixed packages as the
+          # standalone profiles (raw nixpkgs no longer has brave at all).
+          { nixpkgs.overlays = sharedOverlays; }
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
