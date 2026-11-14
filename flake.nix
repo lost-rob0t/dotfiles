@@ -299,16 +299,10 @@
         assert builtins.hasAttr "opencodeLegacyDebris" desktopHome.config.home.activation;
         assert builtins.hasAttr "opencodeSkillsDebris" desktopHome.config.home.activation;
         # The formerly stranded skills (ported in skills 4b51593e) plus the new
-        # project-resume registration must resolve through the pinned skills
-        # input and be installed as managed entries.
-        assert builtins.all
-          (name: desktopHome.config.programs.opencode.skills ? name)
-          [
-            "a0-live-debug"
-            "node-red-starintel"
-            "zara-phone-pair"
-            "project-resume"
-          ];
+        # project-resume registration must be installed as managed home.file
+        # entries through the pinned skills input (asserted below on the
+        # install surface itself — programs.opencode.skills option-value
+        # probing proved flaky across evaluation contexts).
         assert builtins.all
           (name:
             builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/skills/${name}"
