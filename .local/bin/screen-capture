@@ -211,6 +211,8 @@ run_recorder() {
     # Bash ignores SIGINT for asynchronous jobs. GNU env restores the default
     # disposition before exec so stop can signal the recorder directly.
     rm -f -- "$ready_file"
+    # inner script runs under bash -c with its own args (deferred expansion)
+    # shellcheck disable=SC2016
     env --default-signal=INT "$BASH" -c '
         ready_file=$1
         shift
