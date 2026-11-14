@@ -348,11 +348,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1793579241,
-        "narHash": "sha256-o2ZsZ+wVfS1RfClQpnrUauwqabtAFCf0CNTJsDF2KvQ=",
+        "lastModified": 1794619660,
+        "narHash": "sha256-MZGpMQ/3Zewy0GYKwwooOxLhPpuohW5bxZbTaWETf+U=",
         "owner": "lost-rob0t",
         "repo": "skills",
-        "rev": "11dd171575704ea62c783b4c0d6701eda1848822",
+        "rev": "0b279c0ec1059baaf8d92685938bc061ec3f617f",
         "type": "github"
       },
       "original": {
