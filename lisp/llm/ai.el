@@ -24,7 +24,7 @@ for explicit manual selection."
                  (const :tag "StarIntel local" starintel))
   :group 'ai/llm)
 
-(defcustom ai/llm-model 'z-ai/glm-5.2
+(defcustom ai/llm-model 'openai/gpt-5.6-luna
   "Default OpenRouter model used by gptel and custom workflows."
   :type 'symbol
   :group 'ai/llm)
@@ -121,8 +121,6 @@ model, so it is deliberately not listed."
      :capabilities (media tool-use json)
      :context-window 1000)
     (openai/gpt-5.2-codex
-     :capabilities (reasoning media tool-use json url))
-    (openai/gpt-5-mini
      :capabilities (reasoning media tool-use json url))
     (moonshotai/kimi-k2.5
      :capabilities (reasoning tool-use json)))
