@@ -29,6 +29,9 @@
 :- consult("forgejo_remotes").
 :- consult("kb_hygiene").
 :- consult("zara_experts_opencode").
+:- consult("agent_rules").
+:- consult("qtile_rules").
+:- consult("distro_release").
 
 :- consult('qtile_monitors.pl').
 :- consult("writers").

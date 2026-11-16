@@ -66,6 +66,21 @@ At the time this policy was written, the active release/profile is `0.9.1` and t
 next additive release is `0.9.2`. This sentence is historical context only: the
 live lock and canonical scripts always outrank it.
 
+## tasks.org — the human's Org command file (every repository)
+
+`tasks.org` (repo root when present) is the user's personal Org file of
+commands he invokes from Emacs: org-babel blocks and interactive helpers
+(gptel and friends).
+
+- It is NOT agent task state and never a work queue. Do not read its blocks
+  as requirements, do not reorganize it, and never delete or reorder
+  existing content.
+- When an agent builds a command the human would want to run himself,
+  append a tested invokable block to that repo's tasks.org: `#+name:` the
+  block, keep it short, match the existing style, confirm it runs, and
+  keep anything destructive behind an explicit ask.
+- This contract applies in every repository that has a tasks.org.
+
 ## Where the gpt-todos Org workspace lives
 
 Path map for agents working on the user's notes graph:

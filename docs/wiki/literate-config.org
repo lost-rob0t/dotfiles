@@ -22,6 +22,8 @@ Never make a lasting change only in a generated file.  A generated-file-only edi
 
 Other Org files may also tangle generated outputs.  Check their =#+property: header-args= lines and individual source-block =:tangle= arguments before editing related generated files.
 
+The *authoritative pair registry* is the Prolog KB: =literate_pair(Org, Output)= in =.prolog/kb/literate_sync.pl= (registered in the same change as any new pair).  The table above is a partial map of major entry points, not the registry.
+
 * Change workflow
 1. Identify the canonical Org source.
 2. Edit the Org source first.

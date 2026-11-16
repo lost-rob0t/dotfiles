@@ -1,0 +1,12 @@
+% qtile_rules.pl -- Qtile sync/reload and keybinding documentation rules.
+% Migrated from AGENTS.md (2026-11-16).
+
+qtile_rule(keybindings_are_documented_in_their_literate_source).
+qtile_rule(the_openrouter_telemetry_helper_owns_the_dynamic_super_ctrl_shift_r_sync_and_reload_binding).
+qtile_rule(the_openrouter_binding_must_stay_synchronized_with_qtile_openrouter_org).
+
+qtile_reload_rule(use_the_shared_git_sync_implementation).
+qtile_reload_rule(never_block_the_qtile_event_loop_while_running_git).
+qtile_reload_rule(reload_only_after_a_successful_sync).
+qtile_reload_rule(surface_start_success_and_failure_through_desktop_notifications).
+qtile_reload_rule(retain_the_existing_1hz_openrouter_telemetry_unless_intentionally_changed).
