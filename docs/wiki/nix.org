@@ -32,11 +32,57 @@ The Home Manager tree is split into:
 - [[file:../../nix/home-manager/mods/][mods/]] - reusable modules;
 - [[file:../../nix/home-manager/systems/][systems/]] - host/profile composition.
 
+Standalone profiles receive the flake-level =pkgs= directly and Home Manager
+(current 25.11+ line) rejects =nixpkgs= options inside modules, so unfree
+permission is granted by the =pkgs= import in =flake.nix=; the =logos= NixOS
+host instead uses =useGlobalPkgs= with the NixOS-side
+=nix/nixos/mods/default.nix= unfree config. Never add a =nixpkgs.config=
+block to a Home Manager module reachable from both paths (=desktop/home.nix=
+is imported by =logos/home.nix=).
+
+The desktop Home Manager profile fetches its exact Quasar and StarLang source
+pins from public Forgejo repositories so CI can build the same sources without
+private GitHub credentials. The pins and URLs live in
+[[file:../../nix/home-manager/systems/desktop/programs.nix][desktop/programs.nix]].
+
 The canonical skills input installs the shared skill catalog into the configured
 OpenCode, Claude, and generic Agent Skills user paths (including the
 =.agents/skills= path consumed by Codex-compatible clients).  Keep durable skill
 changes in the skills repository; this dotfiles repository only selects the input
 revision and enables the client adapters.
+
+The local =starintel-admin= package is an exact, provenance-marked snapshot of
+the private =starintel-labs/starintel-admin= CLI.  Keeping the pinned source in
+the dotfiles package tree lets anonymous flake evaluation and CI remain
+reproducible without publishing or injecting repository credentials.  The
+shared Emacs Home Manager module installs that package into the user profile
+because the literate Doom UI delegates control-plane operations to the CLI on
+=PATH=.  The =checks.x86_64-linux.starintel-admin= output runs the upstream
+operator regression test and verifies profile membership plus the expected
+ingest administration command surface.
+
+* Node-RED
+The reusable [[file:../../nix/home-manager/mods/node-red.nix][Node-RED module]] installs the pinned nixpkgs package and runs
+a systemd user service. The =unseen@flake= profile enables it for =unseen=
+on the current laptop. The default listener is =http://127.0.0.1:1880/=;
+=node-red.host= and =node-red.port= configure the address and port. The
+service explicitly overrides =uiHost= while preserving existing settings
+and flows in =~/.node-red= (configurable with =node-red.userDir=).
+
+Restart with =systemctl --user restart node-red= and inspect logs with
+=journalctl --user -u node-red -f=. No firewall or system service is needed.
+
+* Gaming
+[[file:../../nix/home-manager/mods/games.nix][games.nix]] provides the
+=gaming= module: Lutris, Wine, Sunshine (stream host), Moonlight Qt (stream
+client, =gaming.moonlight.enable=), and the Steam client
+(=gaming.steam.enable=, unfree; Home Manager master removed =programs.steam=,
+so the nixpkgs FHS package is used instead).  Steam-distributed titles such as
+Terraria and War Thunder install through the Steam client rather than as
+nixpkgs packages.  The =unseen@flake= host enables it with
+=gaming.enable = true=.
+The Mousetrap package comes from the pinned upstream flake's
+=packages.x86_64-linux.default= output.
 
 * GPT TODO synchronization
 [[file:../../nix/home-manager/mods/gpt-todos.nix][gpt-todos.nix]] installs the
@@ -128,7 +174,7 @@ interactive Emacs path and the standalone skill share one output implementation.
 
 | Module | Local options | Complete client configuration |
 |--------+---------------+-------------------------------|
-| [[file:../../nix/home-manager/mods/opencode.org][opencode.org]] | =opencode.enable=, package, declarative global commands, explicit global-skill source metadata, llm-log routing, and the optional =opencode.web= workspace; tangles to =opencode.nix= | Home Manager's =programs.opencode=: settings, TUI, web service, context, commands, agents, skills, themes, tools, extra packages, and shared MCP integration |
+| [[file:../../nix/home-manager/mods/opencode.org][opencode.org]] | =opencode.enable=, package, declarative global commands, explicit global-skill source metadata, llm-log routing, and the optional =opencode.web= workspace; tangles to =opencode.nix= | Home Manager's =programs.opencode=: settings, CLI, web service, context, commands, agents, skills, themes, tools, extra packages, and shared MCP integration |
 | [[file:../../nix/home-manager/mods/codex.nix][codex.nix]] | =codex.enable=, package, pinned skills, llm-log routing, and explicit =manageConfig= ownership | Home Manager's =programs.codex=: settings, profiles, context, hooks, plugins, marketplaces, skills, rules, and shared MCP integration |
 | [[file:../../nix/home-manager/mods/chatgpt-desktop.nix][chatgpt-desktop.nix]] | =programs.chatgpt-desktop=: package plus dark/light appearance, code-theme, font-size, smoothing, cursor, and diff-marker settings | The desktop application's native =[desktop]= configuration |
 | [[file:../../nix/home-manager/mods/starintel-llm-harness.org][starintel-llm-harness.org]] | =llm.starintelHarness=: main/reviewer profiles, llm-log proxy routing, Prolog-RLM GLM wrapper, and subscription pacing | =~/.config/starintel/llm-harness.json= plus the =starintel-prolog-rlm-glm= runtime wrapper |
@@ -142,15 +188,26 @@ The shared global contract also requires agents to remove dead or redundant code
 
 [[file:../../nix/home-manager/mods/outrun-theme.nix][outrun-theme.nix]] is the single palette definition.  Its defaults are the Doom/Qtile Outrun colors: deep =#170c32= and raised =#202146= backgrounds, =#f3f4f5= foreground, neon pink =#f6019d=, cyan =#2de2e6=, green =#62ff00=, orange =#fba922=, red =#dd546e=, purple =#9700cc=, and the extended Qtile accents.  Applications consume =outrunTheme.palette= rather than copying color literals.
 
-When =llm.enable= is enabled, all three clients and =outrunTheme= are enabled.  Home Manager writes the user-wide OpenCode JSON theme to =~/.config/opencode/themes/outrun.json= and selects it in =tui.json=.  A project can still override it with =.opencode/themes/outrun.json=, following OpenCode's normal theme precedence.
+When =llm.enable= is enabled, all three clients and =outrunTheme= are enabled.  Home Manager writes the user-wide OpenCode JSON theme to =~/.config/opencode/themes/outrun.json= and selects it through =theme.name= in the OpenCode 2 CLI preferences at =~/.config/opencode/cli.json= (OpenCode 2 no longer reads =tui.json=).  The same file carries the stable diffs, session, and animation preferences, and a fail-safe activation step removes legacy config-root npm debris (=package.json=, =bun.lock=, =opencode.jsonc=, =node_modules/= with an npm marker) left by the retired plugin-install layout.  A project can still override the theme with =.opencode/themes/outrun.json=, following OpenCode's normal theme precedence.
 
 Codex CLI receives =~/.codex/themes/outrun.tmTheme= and selects it through =[tui].theme=.  ChatGPT Desktop receives the same palette through its native dark chrome theme, with Hack Nerd Font for code and Noto Sans for UI text.  By default, both settings are applied by a narrow, idempotent TOML updater that preserves every unrelated Codex setting and comment.  It refuses to replace a symlinked Home Manager-owned =config.toml=.  Set =codex.manageConfig = true= only after migrating the complete file into =programs.codex=; that opt-in makes Home Manager own =config.toml= and enables shared MCP import.  Restart ChatGPT Desktop after switching the profile so the running app reloads its appearance.
+
+The desktop module replaces the package's =cua_node/bin/node= executable with
+a symlink to the flake-pinned =nodejs_24= runtime during its Nix build.  The
+packaged executable was observed to segfault in the ELF loader before the Data
+MCP server could start.  An inherited =CODEX_MCP_NODE_PATH= alone does not fix
+this: the desktop backend overwrites it with the bundled runtime path.  Both
+command and application menu launches therefore use the corrected package.
+Switch the Home Manager profile and fully quit and reopen the desktop app to
+use it.  This fixes the observed plugin startup crash, while the workstation's
+hard lockups remain a separate investigation.
 
 The generated desktop payload at =~/.codex/themes/outrun-desktop.json= is an inspectable record of the managed appearance values.  Authentication, provider credentials, and other runtime state remain outside these theme files and outside the Nix store.
 
 The focused checks are:
 
 #+begin_src shell
+  nix build '.#checks.x86_64-linux.chatgpt-desktop-launcher'
   nix build '.#checks.x86_64-linux.ai-client-theme'
   nix build '.#checks.x86_64-linux.codex-config-patch'
   nix build '.#checks.x86_64-linux.opencode-commands'
@@ -184,6 +241,21 @@ Prefer =bx config set-key= without putting the key on the command line so it doe
 
 The MCP adapter exposes bounded, typed search tools rather than arbitrary =bx= argv or shell execution.  Its package lives at [[file:../../nix/packages/brave-mcp/][nix/packages/brave-mcp/]] and its protocol regression test is [[file:../../tests/brave-mcp.py][tests/brave-mcp.py]].
 
+* Vendored Brave browser
+:PROPERTIES:
+:CUSTOM_ID: vendored-brave
+:END:
+
+nixos-unstable removed =pkgs.brave= on 2026-11-03 (no committers to unblock security issues), so this repository maintains the Brave binary repack itself at [[file:../../nix/packages/brave/][nix/packages/brave/]].  The flake overlays it back as =pkgs.brave=, so every existing reference (Home Manager desktop module, NixOS hosts, firejail profile) keeps working unchanged.
+
+To bump Brave to a new upstream release:
+
+#+begin_src shell
+  ./nix/packages/brave/update.sh <version>
+#+end_src
+
+The script prefetches both Linux =.deb= archives and rewrites =release.nix=.  The same overlay also carries a temporary =codex= fix (missing =zstd=, =aws-lc=, =oniguruma=, and =sqlite= build inputs in nixpkgs 0.167.0); drop it once nixpkgs fixes the expression upstream.
+
 * Editing rule
 Host-specific composition belongs under =nix/home-manager/systems/= or =nix/nixos/hosts/=.  Reusable behavior belongs in modules rather than being copied between hosts.  Keep =flake.nix= focused on wiring outputs together.
 
@@ -195,3 +267,20 @@ After Nix changes, run at minimum:
 #+end_src
 
 If the formatter invocation differs on the installed Nix version, run =nix fmt= and inspect the resulting diff before committing.
+
+** Forgejo CI action sources
+The Nix workflow checks out the versioned Cachix actions from their explicit
+GitHub upstream URLs, then invokes them as local actions.  This preserves
+GitHub Actions compatibility and actionlint validation while avoiding Forgejo's
+default action host, which does not mirror those repositories.  Unqualified
+=cachix/install-nix-action= fails before checkout, preventing the Home Manager
+and desktop MCP checks from running.
+
+The =logos= CI job evaluates each check and package in its own Nix process,
+then validates the formatter and app entries.  The Home Manager and NixOS
+closures are among those checks; Hydra re-exports those same checks and the ISO
+package.  A single full flake evaluation retained about 6 GiB and was killed by
+the runner's 2 GiB container cap.  Separate processes release the evaluator heap
+between outputs.  The full local =nix flake check --no-build= remains required.
+The runner cap cannot be raised by a workflow's =container.options=; see the
+[[https://forgejo.org/docs/v15.0/user/actions/reference/#jobsjob_idcontaineroptions][Forgejo action reference]].

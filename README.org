@@ -8,6 +8,7 @@ In particular, keep literate Org sources and their tangled/generated outputs syn
 * Index
 + [[./docs/wiki/index.org][Dotfiles wiki]]
 + [[./docs/wiki/nix.org::*AI client modules and Outrun theme][OpenCode, Codex, and ChatGPT Desktop modules]]
++ [[./pi/agent/README.org][Pi coding agent config]]
 + [[./docs/wiki/nix.org::*Global Prolog verification][Global Prolog verification policy and hooks]]
 + [[./AGENTS.md][Agent instructions]]
 + [[./bash.org][Bash]]
@@ -16,6 +17,7 @@ In particular, keep literate Org sources and their tangled/generated outputs syn
 + [[./bootstrap-termux.org][Termux bootstrap]]
 + [[./docs/wiki/termux.org][Termux and Android companion apps]]
 + [[./scripts/termux-remote.org][Termux remote desktop workflows]]
++ [[./docs/wiki/termux.org::*Local Server and CouchDB acceptance][Experimental local CouchDB acceptance and Server blockers]]
 + [[./android/config.org][Native Android Org/Vim config]]
 + [[./android/doom/config.org][Termux Doom config]]
 + [[./android/README.org][Android Emacs profiles]]
@@ -41,6 +43,12 @@ Otherwise
 
 ** Install dotfiles
 Clone the repo to =~/.dotfiles= and run GNU Stow from the checkout.
+
+The =archive-prolog= command is installed by Home Manager and is also available
+from =.local/bin= with Stow. It creates a timestamped archive in
+=~/share/AI/files/= containing every regular =*.prolog= file under the home
+directory, preserving home-relative paths and excluding that output directory.
+Run =archive-prolog= after updating the dotfiles checkout or Home Manager profile.
 
 ** Android / Termux
 Android has a Doom-free, Org-first native Emacs profile and a separate full Doom

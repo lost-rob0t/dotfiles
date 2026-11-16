@@ -1,0 +1,41 @@
+#+title: KB Roam ingestion and publishing
+#+startup: overview
+
+* Contract
+=kb-roam= is the audited write/publish layer for the synchronized Org workspace.
+Emacs owns Org parsing and file mutation. Prolog owns publication policy. OpenCode
+gets two global subagents: =kb-ingest= and =kb-audit=.
+
+* Metadata protocol v1
+Managed files use =ROAM_SCHEMA= =org-roam-meta/v1=, =ROAM_KIND=,
+=ROAM_VISIBILITY=, =CENSOR_PROFILE=, provenance, and topical =FILETAGS=.
+Publication is opt-in; missing visibility means private.
+
+AI-authored files additionally require =AI_GENERATED: t= and one globally unique
+=AI_TAG: ai_<id>=. The same unique tag must also be in =FILETAGS= next to the
+generic =ai= provenance tag. At least two non-generic topical tags are required.
+
+* Privacy
+A whole file is private with =#+ROAM_VISIBILITY: private=.
+
+A headline and its whole subtree are private with =:private:=, =:PRIVATE: t=, or
+=:VISIBILITY: private=. Private ancestors dominate descendants. The exporter marks
+private subtrees before Org HTML export and excludes them.
+
+* Commands
+- =kb-ingest=: Emacs-backed note writer; private by default.
+- =opencode-session-to-org [SESSION]=: sanitized OpenCode session export -> private Org.
+- =roam-censor check=: Emacs manifest -> Prolog policy gate and generated mega KB.
+- =roam-censor build=: rebuild =~/.cache/kb-roam/roam-mega-kb.pl=.
+- =roam-publish=: censor first, then export public notes and dailies.
+- =check-roam-publish=: local CI equivalent.
+
+* Website
+The site uses a dark Outrun-ish design: deep background, hot-pink provenance,
+cyan links, oversized typography, and note cards. It generates =index.html=,
+=daily/index.html=, preserved note paths, and =assets/roam.css=. Private filenames
+are not put in public indexes.
+
+* CI
+=.github/workflows/kb-roam.yml= exercises shell lint, Emacs loading, Prolog policy,
+AI tag provenance, sanitized session export, and private-subtree leak fixtures.

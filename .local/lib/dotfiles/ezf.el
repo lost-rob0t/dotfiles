@@ -1,5 +1,5 @@
 ;;; ezf.el --- Private-file completion bridge -*- lexical-binding: t; -*-
-;; Generated from scripts/opencode-tmux.org; no Doom dependency.
+;; Generated from scripts/opencode.org; no Doom dependency.
 (require 'cl-lib)
 (require 'json)
 (define-error 'dotfiles-ezf-unavailable "No visible Emacs frame")

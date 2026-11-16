@@ -38,5 +38,19 @@ command_check('nix build .#checks.x86_64-linux.opencode-commands').
 command_check('bash scripts/check-literate-sync').
 command_name_regex('^[A-Za-z0-9][A-Za-z0-9._-]*$').
 
+% OpenCode 2 CLI config migration (verified 2026-11-13, slice S2a).
+opencode_cli_option('programs.opencode.cli', upstream_home_manager).
+opencode_cli_file('~/.config/opencode/cli.json').
+opencode_cli_schema('https://opencode.ai/v2/cli.json').  % auto-added by the upstream option
+opencode_tui_retired('OpenCode 2 ignores tui.json; setting programs.opencode.tui with a v2 package triggers an upstream warning').
+opencode_cli_theme_gate('gate the whole theme attr with mkIf outrun.enable; a leaf-level theme.name = mkIf ... leaks theme = {} into the merged option value').
+opencode_cli_migration(app_owned_file_collides, 'move an unmanaged regular cli.json aside once before the first switch; OpenCode also rewrites cli.json from the TUI so declarative values win on each activation').
+opencode_debris_cleanup(home_activation, 'opencodeLegacyDebris').
+opencode_debris_cleanup(removes, ['package.json', 'bun.lock', 'opencode.jsonc']).
+opencode_debris_cleanup(guard, 'regular foreign files only; never symlinks').
+opencode_debris_cleanup(node_modules, 'real directory with npm .package-lock.json or pnpm .modules.yaml marker only').
+opencode_debris_cleanup(known_leftover, 'package-lock.json exists live but is outside the approved removal set; operator decides').
+command_check('nix build .#checks.x86_64-linux.ai-client-theme --no-link').
+
 % Skills-repo verification entry point: hermetic pytest suite.
 skills_repo_tests('python3 -m pytest tests/ -q').

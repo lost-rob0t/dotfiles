@@ -9,7 +9,9 @@ The existing recursive agenda tree remains mapped to =gpt-todos/agenda/= for
 Todo Manager compatibility.  The rest of =~/Documents/Notes/org/= is mirrored
 under =gpt-todos/notes/=, including Org-roam dailies, ordinary notes, inventory,
 shared agent memory, arbitrary subdirectories, and user-owned attachments.
-Derived Org-roam/Org-ID caches and editor lock files are excluded.
+Derived Org-roam/Org-ID caches, editor lock files, editor project markers,
+Python bytecode caches, and credential files (=.env=, =.envrc=) are excluded:
+secrets and machine-local state never enter the durable repository.
 
 The durable checkout's current =HEAD= is the synchronization baseline: the helper
 fetches the upstream ref, compares Git blob identities, and only copies a side
@@ -151,10 +153,10 @@ ignored_notes_rel() {
   local rel="$1" base
   base="${rel##*/}"
   case "/$rel/" in
-    */.git/*|*/.cache/*) return 0 ;;
+    */.git/*|*/.cache/*|*/__pycache__/*) return 0 ;;
   esac
   case "$base" in
-    .#*|\#*#|*~|org-roam.db|.org-roam.db|org-id-locations|.org-id-locations) return 0 ;;
+    .#*|\#*#|*~|org-roam.db|.org-roam.db|org-id-locations|.org-id-locations|.env|.envrc|.orgids|.projectile) return 0 ;;
   esac
   return 1
 }

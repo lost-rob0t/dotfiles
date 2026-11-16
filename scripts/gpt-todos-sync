@@ -98,10 +98,10 @@ ignored_notes_rel() {
   local rel="$1" base
   base="${rel##*/}"
   case "/$rel/" in
-    */.git/*|*/.cache/*) return 0 ;;
+    */.git/*|*/.cache/*|*/__pycache__/*) return 0 ;;
   esac
   case "$base" in
-    .#*|\#*#|*~|org-roam.db|.org-roam.db|org-id-locations|.org-id-locations) return 0 ;;
+    .#*|\#*#|*~|org-roam.db|.org-roam.db|org-id-locations|.org-id-locations|.env|.envrc|.orgids|.projectile) return 0 ;;
   esac
   return 1
 }

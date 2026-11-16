@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "prolog-mcp": {
+      "command": "nix-guest",
+      "args": [
+        "/bin/bash",
+        "-c",
+        "PATH=/usr/local/bin:/usr/bin:/bin exec prolog-mcp"
+      ],
+      "description": "Isolated SWI-Prolog sessions over stdio (pinned PrologMCP 4ae536f, Debian PRoot guest, glibc swipl)",
+      "timeout": 120
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@brave/brave-search-mcp-server@2.1.4"
+      ],
+      "env": {
+        "BRAVE_API_KEY_FILE": "/data/data/com.termux/files/home/.config/brave/api_key"
+      },
+      "description": "Brave Search web/local/news/image search (official @brave MCP, v2.1.4)",
+      "timeout": 120
+    }
+  }
+}

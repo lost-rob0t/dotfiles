@@ -16,7 +16,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: devops-actions/actionlint@f9ec6b423d04a7f7a9f6872b1a16fd8313a7db62
+      - name: Check Actions workflows
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          curl -fsSL --retry 3 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            -o "$tmp/actionlint.tar.gz"
+          printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 "$tmp/actionlint.tar.gz" | sha256sum -c -
+          tar -xzf "$tmp/actionlint.tar.gz" -C "$tmp" actionlint
+          "$tmp/actionlint"
       - name: Install shell and Qtile test tooling
         run: sudo apt-get update && sudo apt-get install -y emacs-nox shellcheck python3-psutil
       - name: Check shell scripts
@@ -79,8 +88,16 @@ jobs:
           -L lisp/llm
           -l lisp/llm/ai-dashboard-test.el
           -f ert-run-tests-batch-and-exit
+      - name: Run StarIntel admin ERT tests
+        run: >-
+          emacs -Q --batch
+          -L .doom.d/autoload
+          -l .doom.d/tests/starintel-admin-test.el
+          -f ert-run-tests-batch-and-exit
       - name: Run Brave MCP protocol tests
         run: python3 tests/brave-mcp.py
+      - name: Run OpenCode command tests
+        run: python3 tests/opencode.py
       - name: Run Termux remote workflow tests
         run: |
           bash tests/agent-zero-tunnel.sh
@@ -114,8 +131,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
-      - uses: cachix/cachix-action@v16
+      - name: Fetch Nix setup actions from upstream
+        run: |
+          git clone --depth 1 --branch v31 https://github.com/cachix/install-nix-action .github/ci-actions/install-nix
+          git clone --depth 1 --branch v16 https://github.com/cachix/cachix-action .github/ci-actions/cachix
+      - uses: ./.github/ci-actions/install-nix
+      - uses: ./.github/ci-actions/cachix
         with:
           name: nix-community
       - name: Check flake lock is current
@@ -124,8 +145,24 @@ jobs:
           nix flake lock
           git diff -- flake.lock
           git diff --exit-code -- flake.lock
-      - name: Evaluate flake checks without building system closures
-        run: nix flake check --no-build --show-trace
+      - name: Evaluate flake outputs in separate processes
+        run: |
+          set -euo pipefail
+          for output in checks packages; do
+            names=$(nix eval --json ".#$output.x86_64-linux" --apply builtins.attrNames)
+            while IFS= read -r name; do
+              printf 'Evaluating %s.%s\n' "$output" "$name"
+              nix eval --raw ".#$output.x86_64-linux.$name.drvPath"
+            done < <(jq -r '.[]' <<< "$names")
+          done
+          nix eval --raw '.#formatter.x86_64-linux.drvPath'
+          nix eval --json '.#apps.x86_64-linux' | jq -e 'all(.[]; .type == "app" and (.program | startswith("/nix/store/")))'
+      - name: Test desktop MCP Node launcher
+        run: nix build .#checks.x86_64-linux.chatgpt-desktop-launcher --no-link
+      - name: Build and test Zara expert library
+        run: nix build .#checks.x86_64-linux.zara-expert-library --no-link
+      - name: Build and test Zara Emacs expert
+        run: nix build .#checks.x86_64-linux.zara-emacs-expert --no-link
       - name: Build and test Prolog MCP package
         run: nix build .#checks.x86_64-linux.prolog-mcp --no-link
       - name: Build Brave MCP package

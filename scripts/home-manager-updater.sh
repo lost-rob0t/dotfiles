@@ -178,11 +178,10 @@ fi
 if ! git -C "$CHECKOUT" fetch --prune origin "$HM_UPDATER_BRANCH"; then
   fail_update "fetch" "Could not fetch origin/$HM_UPDATER_BRANCH."
 fi
-if ! git -C "$CHECKOUT" checkout -B "$HM_UPDATER_BRANCH" "origin/$HM_UPDATER_BRANCH"; then
-  fail_update "checkout" "Could not reset the dedicated checkout to origin/$HM_UPDATER_BRANCH."
-fi
-if ! git -C "$CHECKOUT" reset --hard "origin/$HM_UPDATER_BRANCH"; then
-  fail_update "checkout" "Could not hard-reset the dedicated updater checkout."
+# The dedicated checkout is disposable: dirty state from older layouts or
+# interrupted runs must never block the update, so the branch switch is forced.
+if ! git -C "$CHECKOUT" checkout --force -B "$HM_UPDATER_BRANCH" "origin/$HM_UPDATER_BRANCH"; then
+  fail_update "checkout" "Could not force-reset the dedicated checkout to origin/$HM_UPDATER_BRANCH."
 fi
 if ! git -C "$CHECKOUT" clean -fdx; then
   fail_update "checkout" "Could not clean the dedicated updater checkout."

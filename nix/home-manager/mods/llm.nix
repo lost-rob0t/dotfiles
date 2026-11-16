@@ -1,7 +1,9 @@
 { lib, pkgs, inputs, config, ... }:
 
 let
-  comfyui = pkgs.comfyui.override { withManager = true; };
+  comfyui = pkgs.comfyui.override {
+    extraPackages = ps: [ ps.comfyui-manager ];
+  };
   llmLogRevision = "692d3820f638c011fc248a7694ecabd72a6e2895";
   llmLogFlake = builtins.getFlake "github:lost-rob0t/llm-log/${llmLogRevision}";
   llmLogPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.default;
@@ -46,8 +48,13 @@ let
   opencodePackage = pkgs.opencode.overrideAttrs (oldAttrs: {
     postPatch = (oldAttrs.postPatch or "") + ''
       # Bun 1.4.x regression: compiled executable code splitting breaks OpenCode.
-      substituteInPlace packages/opencode/script/build.ts \
-        --replace-fail 'splitting: true,' 'splitting: false,'
+      # Upstream NixOS/nixpkgs#564101 fixes this in nixpkgs; once the pinned
+      # nixpkgs carries the fix (or the build script changes shape) the
+      # pattern is absent, so guard instead of failing the build.
+      if grep -qF 'splitting: true,' packages/opencode/script/build.ts 2>/dev/null; then
+        substituteInPlace packages/opencode/script/build.ts \
+          --replace-fail 'splitting: true,' 'splitting: false,'
+      fi
     '';
     passthru = (oldAttrs.passthru or { }) // {
       promptSendWorkaround = "NixOS/nixpkgs#564101";
@@ -126,6 +133,9 @@ in
         openrouter = "https://openrouter.ai";
         anthropic = "https://api.anthropic.com";
         chatgpt = "https://chatgpt.com";
+        # StarIntel local inference (llama-swap); consumed by the OpenCode
+        # starintel-llm provider at <proxy>/starintel/v1.
+        starintel = mkIf config.opencode.starintelLlm.enable "https://llm.starintel.actor";
       };
     };
 
@@ -184,6 +194,28 @@ in
         enable = true;
         baseUrl = proxyBase;
       };
+      # StarIntel local inference (llama-swap behind llm.starintel.actor):
+      # qwen3-8b is the chat tier (-c 4096), qwen38-27b the heavy vision tier
+      # (mmproj, -c 8192), and bge-m3 the embeddings tier. Limits mirror the
+      # deployed llama-swap per-model server flags.
+      starintelLlm = {
+        enable = true;
+        models = {
+          qwen3-8b = {
+            name = "Qwen3 8B Q4_K_M (StarIntel)";
+            context = 4096;
+          };
+          qwen38-27b = {
+            name = "Qwen3.8 27B Q4_K_M vision (StarIntel)";
+            context = 8192;
+            attachment = true;
+          };
+          bge-m3 = {
+            name = "bge-m3 embeddings (StarIntel)";
+            context = 8192;
+          };
+        };
+      };
       commands = {
         llm-log-query = {
           description = "Run a bounded read-only llm-log expert query";
@@ -225,6 +257,10 @@ in
         baseUrl = proxyBase;
       };
     };
+    # Same client family as opencode/codex, mirroring their setup pattern:
+    # pinned flake input, explicit packages, no ambient trust. The operator
+    # template in ~/.config/agentprolog/ stays inert until passed via --config.
+    agentprolog.enable = true;
     agentVerification.enable = true;
     programs.chatgpt-desktop.enable = true;
 

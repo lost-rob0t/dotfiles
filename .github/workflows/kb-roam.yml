@@ -1,0 +1,45 @@
+name: KB Roam
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kb-roam.yml'
+      - 'lisp/wiki/kb-roam.el'
+      - 'lisp/wiki/roam-censor.pl'
+      - 'lisp/wiki/assets/roam.css'
+      - 'scripts/kb-ingest'
+      - 'scripts/opencode-session-to-org'
+      - 'scripts/roam-censor'
+      - 'scripts/roam-publish'
+      - 'scripts/check-roam-publish'
+      - 'tests/kb-roam.sh'
+      - 'nix/home-manager/mods/kb-roam.nix'
+      - 'nix/home-manager/files/opencode-agents/**'
+  push:
+    branches: [master]
+    paths:
+      - 'lisp/wiki/kb-roam.el'
+      - 'lisp/wiki/roam-censor.pl'
+      - 'scripts/kb-ingest'
+      - 'scripts/opencode-session-to-org'
+      - 'scripts/roam-censor'
+      - 'scripts/roam-publish'
+      - 'scripts/check-roam-publish'
+      - 'tests/kb-roam.sh'
+      - 'nix/home-manager/mods/kb-roam.nix'
+      - 'nix/home-manager/files/opencode-agents/**'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y emacs-nox swi-prolog jq shellcheck
+      - name: Run KB Roam gate
+        run: bash scripts/check-roam-publish

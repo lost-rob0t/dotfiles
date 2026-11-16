@@ -1,0 +1,310 @@
+#+title: Termux StarIntel archive services
+#+property: header-args:sh :comments no :mkdirp yes
+
+* Ownership
+
+This helper composes the published election26 installer at reviewed commit
+=5d8d9659acea6349adc6f264b35964ef7309f004=. A fresh installation clones that
+revision below =~/.local/share/termux-starintel/= and runs its
+=scripts/install-termux.sh --install --if-needed=. That installer owns official
+Termux package checks, the managed venv/launcher, and create-once defaults.
+It never schedules or starts a collector. No upstream implementation is copied
+into dotfiles. Its standard-Android HOME/PREFIX/getprop guard remains intact.
+
+Fresh installs use =~/.config/election26/config.json= and
+=~/.local/share/election26/archive/=. Defaults have empty source/host lists and
+leave paid APIs, Discord, media downloads and remote access disabled. Edit the
+private config to select sources. Existing =~/starintel/ops/archive-config.json=
+and =~/starintel/ops/archive/= select the legacy profile and are never replaced
+or moved. The chosen profile is saved in =~/.local/state/termux-starintel/profile=.
+An incomplete legacy pair fails rather than initializing an alternative archive.
+Existing executables are preserved; a previously created managed source checkout
+allows the upstream installer to repair an interrupted managed installation.
+
+=bootstrap-termux.org= installs the service dependencies and calls =install=.
+The standalone helper also works after those packages are installed.
+
+Cron remains the only scheduler. A single recognized election26 command is
+wrapped in place, preserving its schedule, arguments and shell redirections.
+Other lines remain byte-for-byte unchanged. Multiple or unfamiliar collector
+entries fail before cron is changed. A missing entry gets the known five-minute
+RSS command. A private snapshot is saved before replacement; concurrent cron
+changes detected before replacement abort installation.
+
+The wrapper uses an advisory lock and a four-minute deadline, pipes output into
+svlogd (1 MB per file, three rotated files), and returns collector failures.
+Failures retry on the next five-minute cron tick. Before installation, allow an
+old in-flight collector to finish. Installation holds the wrapper lock, checks
+same-UID processes using both bare and absolute executable forms, and holds an
+existing canonical =.writer.lock= read-only during handoff. A migration marker
+keeps new wrappers blocked after an interrupted or detected unsafe handoff.
+Process matching is observational and may conservatively refuse a command that
+mentions election26; it is not a perfect lock for arbitrary old/manual commands.
+The maintained collector additionally enforces its own archive writer lock.
+No old process is killed. Quiesce any independent/manual launchers before migration.
+
+Only the packaged crond runit service is used. An existing external crond keeps
+running until the next reboot; =start= reports that and does not launch a second
+daemon. The supervisor PID is checked against its UID, executable and intended
+service directory, so a PID reused by an unrelated process is not trusted.
+Installer locks are closed before starting the long-lived daemon. A running cron
+logger receives targeted =sv hup= after its bounded-log config is written.
+On reboot the hook starts the service-daemon, then enables crond.
+=sv-disable crond= disables supervised cron; an external daemon remains
+operator-owned. =stop= pauses future collections, preserving other jobs and
+allowing an in-flight run to finish. Boot preserves this pause. No SSH, tunnel
+or remote listener is enabled. Run =status= to distinguish daemon availability from
+collector readiness; supervisor status is not proof a collection succeeded.
+
+#+begin_src sh :tangle termux-starintel
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+umask 077
+: "${PREFIX:?Run inside Termux (PREFIX is required)}"
+export PATH="$PREFIX/bin:$HOME/.local/bin:$PATH"
+export SVDIR="$PREFIX/var/service" LOGDIR="$PREFIX/var/log"
+state="$HOME/.local/state/termux-starintel"
+collector="$HOME/.local/bin/election26"
+readonly election_commit='5d8d9659acea6349adc6f264b35964ef7309f004'
+source_root="$HOME/.local/share/termux-starintel/election26-$election_commit"
+logs="$PREFIX/var/log/sv/election26"
+fail() { printf 'termux-starintel: %s\n' "$*" >&2; exit 1; }
+# These paths are written into cron and a boot script; refuse shell/cron syntax.
+for path in "$HOME" "$PREFIX"; do
+  [[ "$path" =~ ^/[A-Za-z0-9_./-]+$ && "/$path/" != *'/../'* && "/$path/" != *'/./'* ]] || fail 'unsupported HOME/PREFIX path'
+done
+profile='standard'
+if [[ -e "$state/profile" || -L "$state/profile" ]]; then
+  [[ -f "$state/profile" && ! -L "$state/profile" ]] || fail 'invalid saved profile file'
+  read -r profile < "$state/profile"
+elif [[ -e "$HOME/starintel/ops/archive-config.json" || -e "$HOME/starintel/ops/archive" ]]; then
+  profile='legacy'
+fi
+case "$profile" in
+  legacy) config="$HOME/starintel/ops/archive-config.json"; archive="$HOME/starintel/ops/archive" ;;
+  standard) config="$HOME/.config/election26/config.json"; archive="$HOME/.local/share/election26/archive" ;;
+  *) fail 'invalid saved archive profile' ;;
+esac
+collector_running() {
+  # Includes PATH-launched argv[0]=election26 as well as absolute/script paths.
+  # This is an observational guard, not a lock held by legacy/manual invocations.
+  pgrep -u "$(id -u)" -f '(^|[[:space:]/])election26([[:space:]]|$)' >/dev/null
+}
+validate_managed_paths() {
+  python - "$state" "$source_root" "$state/profile" "$state/install.lock" "$state/collector.lock" "$state/paused" "$state/migration-pending" "$PREFIX/bin/termux-starintel" "$HOME/.termux/boot/20-starintel-services" "$logs/config" "$PREFIX/var/log/sv/crond/config" <<'PY'
+import os, sys
+from pathlib import Path
+for index, value in enumerate(sys.argv[1:]):
+    path = Path(value)
+    if index >= 2 and path.exists() and not path.is_file():
+        sys.exit('termux-starintel: managed output must be an ordinary file')
+    for item in (path, *path.parents):
+        if item.is_symlink():
+            sys.exit('termux-starintel: symlink in a managed installation path')
+    if path.is_file() and path.stat().st_nlink != 1:
+        sys.exit('termux-starintel: hardlinked managed file')
+PY
+}
+ensure_collector() {
+  # Existing unmanaged/legacy executables remain operator-owned. A source directory
+  # created by us also identifies a possibly interrupted managed installation.
+  if [[ -x "$collector" && ! -e "$source_root" ]]; then
+    return
+  fi
+  if [[ ! -x "$collector" && ( -e "$collector" || -L "$collector" ) ]]; then
+    fail 'preexisting collector launcher is not executable; refusing replacement'
+  fi
+  if [[ "$profile" == legacy && ( ! -r "$config" || ! -d "$archive" ) ]]; then
+    fail 'legacy archive/config is incomplete; restore it before installation'
+  fi
+  if [[ ! -e "$source_root" ]]; then
+    mkdir -p "$(dirname "$source_root")"
+    git clone --no-checkout https://github.com/lost-rob0t/election26.git "$source_root"
+    git -C "$source_root" checkout --detach "$election_commit"
+  fi
+  [[ "$(git -C "$source_root" rev-parse HEAD)" == "$election_commit" ]] || fail 'collector source revision mismatch'
+  [[ -z "$(git -C "$source_root" status --porcelain --untracked-files=all)" ]] || fail 'collector source has local changes; refusing to run installer'
+  # The upstream installer owns package/venv setup and create-once defaults.
+  # It does not schedule or start a collector. Its Android guard stays intact.
+  bash "$source_root/scripts/install-termux.sh" --install --if-needed
+}
+supervisor_running() {
+  python - "$PREFIX/var/run/service-daemon.pid" "$PREFIX/bin/runsvdir" "$SVDIR" <<'PY'
+import os, sys
+from pathlib import Path
+try:
+    text = Path(sys.argv[1]).read_text().strip()
+    if not text.isascii() or not text.isdecimal() or int(text) <= 0:
+        sys.exit(1)
+    process = Path('/proc') / text
+    args = (process / 'cmdline').read_bytes().rstrip(b'\0').split(b'\0')
+    valid = (process.stat().st_uid == os.getuid()
+             and os.path.realpath(process / 'exe') == os.path.realpath(sys.argv[2])
+             and len(args) == 2 and os.path.basename(args[0]) == b'runsvdir'
+             and args[1] == os.fsencode(sys.argv[3]))
+    sys.exit(0 if valid else 1)
+except (OSError, ValueError):
+    sys.exit(1)
+PY
+}
+ready() {
+  [[ -x "$collector" ]] || fail "missing executable $collector; restore the existing collector first"
+  [[ -r "$config" && -d "$archive" ]] || fail "existing archive/config is not ready; no data was created or replaced"
+  python - "$config" <<'PY'
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        json.load(f)
+except (OSError, ValueError):
+    sys.exit('termux-starintel: archive config is not readable JSON')
+PY
+}
+start() {
+  if ! supervisor_running; then
+    # termux-services uses start-stop-daemon with both PID and executable checks;
+    # a stale PID belonging to an unrelated executable is not killed or trusted.
+    service-daemon start 7>&- 8>&- 9>&-
+  fi
+  if pgrep -u "$(id -u)" -x crond >/dev/null; then
+    printf 'crond already running; retaining it until reboot (no second daemon started)\n'
+  else
+    # runsvdir discovers new services asynchronously (normally within five seconds).
+    local attempt
+    for attempt in {1..15}; do
+      [[ -p "$SVDIR/crond/supervise/ok" ]] && break
+      sleep 1
+    done
+    sv-enable crond
+    sv -w 15 up "$SVDIR/crond"
+  fi
+}
+case "${1:-status}" in
+  install)
+    validate_managed_paths
+    for command in python git pgrep crontab flock timeout svlogd service-daemon sv-enable sv; do
+      command -v "$command" >/dev/null || fail "missing dependency: $command"
+    done
+    [[ -f "$SVDIR/crond/run" ]] || fail 'packaged crond service missing; install cronie and termux-services'
+    mkdir -p "$state" "$logs" "$PREFIX/var/log/sv/crond" "$HOME/.termux/boot"
+    exec 9>"$state/install.lock"
+    flock -n 9 || fail 'another installation is running'
+    exec 8>"$state/collector.lock"
+    flock -n 8 || fail 'collector running; retry after it finishes'
+    collector_running && fail 'collector running; retry after it finishes'
+    # Cooperate with the maintained collector's archive lock without changing data.
+    if [[ -e "$archive/.writer.lock" || -L "$archive/.writer.lock" ]]; then
+      [[ -f "$archive/.writer.lock" && ! -L "$archive/.writer.lock" ]] || fail 'invalid archive writer lock'
+      exec 7<"$archive/.writer.lock"
+      flock -n 7 || fail 'collector running (archive writer lock); retry after it finishes'
+    fi
+    ensure_collector
+    ready
+    # New wrappers stay paused if migration is interrupted or a legacy run is detected.
+    touch "$state/migration-pending"
+    # Install this exact reviewed helper; reruns from its installed location are valid.
+    if [[ "$(readlink -f "${BASH_SOURCE[0]}")" != "$PREFIX/bin/termux-starintel" ]]; then
+      install -m 0755 "${BASH_SOURCE[0]}" "$PREFIX/bin/termux-starintel"
+    fi
+    python - "$PREFIX/bin/termux-starintel" "$collector" "$config" "$archive" "$state" <<'PY'
+import os, re, subprocess, sys, tempfile
+from pathlib import Path
+helper, collector, config, archive, state = sys.argv[1:]
+def read_cron():
+    result = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
+    if result.returncode and 'no crontab for' not in result.stderr.lower():
+        sys.exit('termux-starintel: cannot read crontab; refusing replacement')
+    return result.stdout if result.returncode == 0 else ''
+# Cron paths cannot contain its unescaped percent syntax or shell metacharacters.
+for value in (helper, collector, config, archive):
+    if not re.fullmatch(r'/[A-Za-z0-9_./-]+', value):
+        sys.exit('termux-starintel: unsupported path characters; crontab unchanged')
+before = read_cron()
+lines = before.splitlines(keepends=True)
+found = []
+for i, line in enumerate(lines):
+    if line.lstrip().startswith('#') or not re.search(r'\belection26\b|\btermux-starintel\s+collect\b', line):
+        continue
+    match = re.match(r'((?:\S+\s+){5})(.*)', line.rstrip('\n'))
+    if not match:
+        sys.exit('termux-starintel: unfamiliar collector entry; crontab unchanged')
+    prefix, cmd = match.groups()
+    wrapped = helper + ' collect'
+    executable = next((name for name in (collector, 'election26', '~/.local/bin/election26', '$HOME/.local/bin/election26') if cmd.startswith(name + ' ')), None)
+    if executable:
+        found.append(i)
+        lines[i] = prefix + wrapped + cmd[len(executable):] + ('\n' if line.endswith('\n') else '')
+    elif cmd.startswith(wrapped + ' '):
+        found.append(i)
+    else:
+        sys.exit('termux-starintel: unfamiliar collector command; crontab unchanged')
+if len(found) > 1:
+    sys.exit('termux-starintel: multiple collector entries; crontab unchanged')
+if not found:
+    if lines and not lines[-1].endswith('\n'):
+        lines[-1] += '\n'
+    lines.append(f'*/5 * * * * {helper} collect --config {config} --archive {archive} run --mode rss\n')
+after = ''.join(lines)
+if after != before:
+    fd, backup = tempfile.mkstemp(prefix='crontab.', dir=state)
+    with os.fdopen(fd, 'w') as f:
+        f.write(before)
+    fd, candidate = tempfile.mkstemp(prefix='candidate.', dir=state)
+    try:
+        with os.fdopen(fd, 'w') as f:
+            f.write(after)
+        if read_cron() != before:
+            sys.exit('termux-starintel: concurrent crontab change; retry installation')
+        subprocess.run(['crontab', candidate], check=True)
+    finally:
+        Path(candidate).unlink(missing_ok=True)
+PY
+    printf 's1000000\nn3\n' > "$logs/config"
+    printf 's1000000\nn3\n' > "$PREFIX/var/log/sv/crond/config"
+    if [[ "$(sv status "$SVDIR/crond/log" 2>/dev/null || true)" == run:* ]]; then
+      sv hup "$SVDIR/crond/log"
+    fi
+    collector_running && fail 'collector running after cron update; migration remains paused, retry after it finishes'
+    printf '%s\n' "$profile" > "$state/profile"
+    rm -f "$state/migration-pending"
+    cat > "$HOME/.termux/boot/20-starintel-services" <<EOF
+#!$PREFIX/bin/bash
+export PREFIX='$PREFIX'
+export PATH='$PREFIX/bin':\$PATH
+exec '$PREFIX/bin/termux-starintel' boot
+EOF
+    chmod 0700 "$HOME/.termux/boot/20-starintel-services"
+    start
+    printf 'Ready. Install/open compatible-signature Termux:Boot once and review Android battery settings manually.\n'
+    ;;
+  collect)
+    shift
+    mkdir -p "$state" "$logs"
+    [[ ! -e "$state/paused" ]] || exit 0
+    [[ ! -e "$state/migration-pending" ]] || exit 75
+    exec 9>"$state/collector.lock"
+    flock -n -E 75 9 || exit 75
+    # The logger consumes until EOF; pipefail preserves timeout/collector failure.
+    { ready; timeout -k 10 240 "$collector" "$@"; } 2>&1 | svlogd -tt "$logs"
+    ;;
+  start)
+    mkdir -p "$state"
+    rm -f "$state/paused"
+    start
+    ;;
+  boot) start ;;
+  stop)
+    mkdir -p "$state"
+    touch "$state/paused"
+    printf 'Future archive collections paused; an in-flight run may finish. Other cron jobs continue.\n'
+    ;;
+  status)
+    ready
+    sv status "$SVDIR/crond" || true
+    if [[ -e "$state/paused" ]]; then printf 'Collector: paused\n'; else printf 'Collector: scheduled\n'; fi
+    printf 'Collector logs: %s/current\nCrontab backups: %s/crontab.*\n' "$logs" "$state"
+    if pgrep -u "$(id -u)" -x crond >/dev/null; then printf 'crond process: running\n'; else fail 'crond process: absent'; fi
+    ;;
+  logs) tail -n 80 "$logs/current" ;;
+  *) fail 'usage: termux-starintel {install|start|stop|status|logs|collect [collector arguments]}' ;;
+esac
+#+end_src

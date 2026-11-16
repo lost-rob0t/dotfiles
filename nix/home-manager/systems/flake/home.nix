@@ -2,6 +2,12 @@
 {
   imports = [ ../desktop/home.nix ];
 
+  node-red.enable = true;
+
+  starintelBackup.enable = true;
+
+  gaming.enable = true;
+
   homeManagerUpdater = {
     enable = true;
     hostName = "flake";

@@ -1,5 +1,8 @@
 % nixpkgs deprecation mappings enforced by tests/nix-deprecations.sh.
 
+:- discontiguous deprecated_attr/2.
+:- discontiguous replacement/2.
+
 deprecated_attr(pkgs_system, '${pkgs.system}').
 replacement(pkgs_system, '${pkgs.stdenv.hostPlatform.system}').
 
@@ -19,8 +22,11 @@ replacement(input_default_package, 'inputs.<name>.packages.<system>.default').
 %   nix/home-manager/systems/desktop/programs.nix (pkgs.system)
 %   nix/home-manager/mods/lisp.nix (stdenv.isLinux)
 %   nix/home-manager/mods/screen-capture.nix (xorg.xrandr)
-%   nix/home-manager/mods/games.nix (mousetrap defaultPackage)
 %   nix/nixos/systems/flake/packages.nix (xorg.xinit)
+
+% The Mousetrap flake now exposes packages.<system>.default; the gaming
+% profile consumes that output without changing the derivation.
+consumer_package_output(mousetrap, 'packages.x86_64-linux.default').
 
 % Warnings NOT fixable in this repository (upstream owned):
 upstream_deprecation(qwen3_tts_module_pkgs_system,

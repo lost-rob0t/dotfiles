@@ -67,6 +67,8 @@ let
     };
   };
 
+  cliFixture = mkHome { outrunTheme.enable = true; };
+
   commandPath = "opencode/commands/simple.md";
   commandText = fixture.config.xdg.configFile.${commandPath}.text;
   unsafeEvaluation = builtins.tryEval unsafeFixture.activationPackage;
@@ -194,6 +196,33 @@ assert lib.all (name: lib.hasInfix "opencode-worker" defaults.${name}.template) 
   "route"
 ];
 assert lib.hasInfix "/home/unseen/Documents/AI/skills" defaults.skills-new.template;
-pkgs.runCommand "opencode-commands-check" { } ''
+assert builtins.hasAttr "opencode/cli.json" fixture.config.xdg.configFile;
+assert !(fixture.config.programs.opencode.cli ? theme);
+assert !builtins.hasAttr "opencode/tui.json" fixture.config.xdg.configFile;
+assert builtins.hasAttr "opencode/cli.json" cliFixture.config.xdg.configFile;
+assert !builtins.hasAttr "opencode/tui.json" cliFixture.config.xdg.configFile;
+assert cliFixture.config.programs.opencode.cli.theme.name == "outrun";
+assert cliFixture.config.programs.opencode.tui == { };
+assert builtins.hasAttr "opencodeLegacyDebris" cliFixture.config.home.activation;
+assert lib.all
+  (fragment: lib.hasInfix fragment cliFixture.config.home.activation.opencodeLegacyDebris.data)
+  [
+    "package.json"
+    "bun.lock"
+    "opencode.jsonc"
+    "node_modules"
+    "! -L"
+    ".package-lock.json"
+  ];
+pkgs.runCommand "opencode-commands-check" { nativeBuildInputs = [ pkgs.jq ]; } ''
+  jq -e '
+    ."$schema" == "https://opencode.ai/v2/cli.json" and
+    .theme.name == "outrun" and
+    .diffs.wrap == "word" and
+    .session.sidebar == "auto" and
+    .session.scrollbar == false and
+    .session.thinking == "hide" and
+    .animations == true
+  ' ${cliFixture.config.xdg.configFile."opencode/cli.json".source} >/dev/null
   touch "$out"
 ''

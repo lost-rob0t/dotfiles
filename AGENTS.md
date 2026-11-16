@@ -19,11 +19,15 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `scripts/gpt-todos-sync.org` is the source of truth for `scripts/gpt-todos-sync` and `scripts/install-gpt-todos-cron`.
 - `scripts/dotfiles-sync.org` is the source of truth for `scripts/dotfiles-sync`.
 - `scripts/termux-remote.org` is the source of truth for `scripts/remote-gui-launch`, `scripts/agent-zero-tunnel`, and `scripts/install-termux-widgets`.
+- `scripts/termux-starintel-client.org` is the source of truth for `scripts/termux-starintel-client`.
+- `scripts/termux-couchdb-proof.org` is the source of truth for `scripts/termux-couchdb-proof`.
+- `scripts/termux-starintel.org` is the source of truth for `scripts/termux-starintel`.
 - `bootstrap-termux.org` is the source of truth for `bootstrap-termux.sh`.
 - `android/build.org` is the source of truth for `android/build.py`.
 - `android/early-init.org` is the source of truth for `android/early-init.el`.
 - `android/config.org` is the source of truth for `android/lisp/star-android-modern.el`, the `android/stow/android-emacs/` wrapper, `android/bin/install-native-profile`, and `android/tests/star-android-modern-test.el`.
 - `nix/home-manager/mods/opencode.org` is the source of truth for `nix/home-manager/mods/opencode.nix`.
+- `scripts/opencode.org` is the source of truth for the standalone OpenCode commands: `.local/bin/opencode-tmux`, `.local/bin/opencode-pick`, `.local/bin/ezf`, `.local/bin/ezf.sh`, `.local/bin/opencode-ses`, `.local/lib/dotfiles/opencode_tmux.py`, `.local/lib/dotfiles/opencode_ses.py`, `.local/lib/dotfiles/ezf.el`, `nix/home-manager/mods/opencode-tmux.nix`, and `nix/home-manager/mods/opencode-ses.nix`.
 - `nix/home-manager/mods/starintel-llm-harness.org` is the source of truth for `nix/home-manager/mods/starintel-llm-harness.nix`.
 - `android/doom/config.org` is the source of truth for `android/doom/init.el`, `android/doom/packages.el`, and `android/doom/config.el`.
 - `emacs/profiles.org` is the source of truth for `.emacs-profiles.el`.
@@ -91,6 +95,16 @@ Do not put the canonical sync executable or Emacs integration in `gpt-todos`. Ke
 `gpt-todos-sync` synchronizes only the private `gpt-todos` Org workspace: live `agenda/` maps to repository `agenda/`, while every other allowed live note path maps under repository `notes/`. It must never stage, commit, fetch, rebase, push, or otherwise synchronize the dotfiles repository itself. Org-roam SQLite/Org-ID caches and editor lock files are derived state and must remain outside Git.
 
 Dotfiles synchronization belongs exclusively to `dotfiles-sync`. `dotfiles-sync` may enforce known literate/generated pairs and must target the user's Forgejo service at `git.starintel.actor` by default rather than GitHub.
+
+## Zara expert ownership
+
+Repo-local/personal expert implementations are owned by `.zara/experts/`.
+
+- Put new expert Prolog rules, deterministic corpus builders, expert tests, and packaging there.
+- Keep `.prolog/kb/` as durable project memory and reference it through explicit expert adapters instead of copying facts.
+- Zara Core and `zara-plugins` own runtime, registry, lifecycle, and adapter mechanics; they are not the canonical home for this repo's expert knowledge.
+- Do not invent a second `ZARA-EXPERT/1` manifest while the canonical contract is still being implemented.
+- Preserve existing tracked Prolog history when reorganizing expert work.
 
 ## Testing
 

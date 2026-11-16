@@ -1,4 +1,11 @@
-{ inputs, outputs, lib, config, pkgs, ... }:
+{
+  inputs,
+  outputs,
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 {
 
   imports = [
@@ -6,15 +13,9 @@
     ./programs.nix
   ];
 
-  nixpkgs = {
-
-    config = {
-      # Disable if you don't want unfree packages
-      allowUnfree = true;
-      # Workaround for https://github.com/nix-community/home-manager/issues/2942
-      allowUnfreePredicate = (_: true);
-    };
-  };
+  # Unfree packages: granted via the flake-level pkgs for standalone profiles
+  # and via nix/nixos/mods for the logos host (useGlobalPkgs forbids nixpkgs
+  # options here).
 
   llm = {
     enable = true;
@@ -29,34 +30,37 @@
   hackmode.enable = true;
 
   zara = {
-    enable = true;
+    # Disabled 2026-10-28: suspected in repeated machine crashes (zara-server
+    # container and the qwen3-tts Vulkan container both exited 255). Re-enable
+    # deliberately after the stability investigation.
+    enable = false;
     nixManaged = false;
-    workflows.enable = true;
+    workflows.enable = false;
 
     server = {
-      enable = true;
+      enable = false;
       environmentFile = "-%h/.config/zarathushtra/secrets.env";
     };
 
-    desktop.enable = true;
-    wake.enable = true;
+    desktop.enable = false;
+    wake.enable = false;
 
     plugins = {
-      registry = [ "zara-discord" "zara-persona" ];
+      enableAll = false;
       discoveryFiles = {
         "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
+        "lyria.py" = ../../files/zarathushtra/plugins/lyria.py;
       };
     };
   };
 
-  # Qwen3-TTS runs the pinned upstream GGML server on Vulkan: /dev/dri render
-  # nodes only (no /dev/kfd), compute stays off the graphics queue, restarts
-  # are bounded, and the pinned image + sha256-verified GGUF models provision
-  # on first start. Validated live on the RX 5500 XT with zero kernel faults.
+  # Qwen3-TTS (Zara's voice backend) is disabled with Zara while the machine
+  # crashes are investigated. The pinned image + sha256-verified GGUF models
+  # live under ~/.local/share/qwen3-tts and are untouched.
   services.qwen3-tts = {
-    enable = true;
-    autoStart = true;
-    backend = "vulkan";
+    enable = false;
+    autoStart = false;
+    backend = "cpu";
     port = 7860;
   };
 
@@ -94,7 +98,7 @@
     # I mostly use magit hence configured in the ./nixos/mods/emacs.nix module
     gitUser = "N545PY";
     gitEmail = "nsaspy@fedora.email";
-    extraPackages = [];
+    extraPackages = [ ];
   };
   security.enable = true;
   desktop = {
@@ -107,11 +111,11 @@
     # TODO Allow module to pass specific folders/paths, for example my ebook dir
     sync.enable = true;
   };
-    dev = {
-      nim.enable = true;
-      common-lisp.enable = true;
-      # TODO finish python.enable = true;
-    };
+  dev = {
+    nim.enable = true;
+    common-lisp.enable = true;
+    # TODO finish python.enable = true;
+  };
   home = {
     username = "unseen";
     homeDirectory = "/home/unseen";

@@ -96,6 +96,29 @@ verb_intent(update, open, 1).
 app_mapping(system, ["zara-system-update"]).
 
 % ----------------------------------------------------------------------
+% StarIntel workspace (~/starintel)
+% ----------------------------------------------------------------------
+
+% "open starintel" opens the workspace root in Dired.
+app_mapping(starintel,
+    ["emacsclient", "-c", "-a", "", "--eval",
+     "(dired (expand-file-name \"~/starintel\"))"]).
+
+% Magit aliases for the canonical StarIntel repositories.
+app_mapping(server,
+    ["emacsclient", "-c", "-a", "", "--eval",
+     "(progn (require 'magit) (magit-status (expand-file-name \"~/starintel/starintel-server\")))"]).
+app_mapping(doc,
+    ["emacsclient", "-c", "-a", "", "--eval",
+     "(progn (require 'magit) (magit-status (expand-file-name \"~/starintel/starintel-doc\")))"]).
+app_mapping(starlang,
+    ["emacsclient", "-c", "-a", "", "--eval",
+     "(progn (require 'magit) (magit-status (expand-file-name \"~/starintel/star-lang\")))"]).
+app_mapping(consortium,
+    ["emacsclient", "-c", "-a", "", "--eval",
+     "(progn (require 'magit) (magit-status (expand-file-name \"~/starintel/consortium\")))"]).
+
+% ----------------------------------------------------------------------
 % Magit project aliases
 % ----------------------------------------------------------------------
 
@@ -105,7 +128,7 @@ verb_intent(magit, open, 1).
 
 app_mapping(zara,
     ["emacsclient", "-c", "-a", "", "--eval",
-     "(progn (require 'magit) (magit-status (expand-file-name \"~/Documents/Projects/zara\")))"]).
+     "(progn (require 'magit) (magit-status (expand-file-name \"~/Documents/Projects/Zarathushtra\")))"]).
 app_mapping(prolog,
     ["emacsclient", "-c", "-a", "", "--eval",
      "(progn (require 'magit) (magit-status (expand-file-name \"~/Documents/Projects/prolog-rlm\")))"]).
@@ -115,18 +138,15 @@ app_mapping(agent,
 app_mapping(hackmode,
     ["emacsclient", "-c", "-a", "", "--eval",
      "(progn (require 'magit) (magit-status (expand-file-name \"~/Documents/Projects/hackmode\")))"]).
-app_mapping(symbolic,
-    ["emacsclient", "-c", "-a", "", "--eval",
-     "(progn (require 'magit) (magit-status (expand-file-name \"~/Documents/Projects/symbolic-memory\")))"]).
 app_mapping(dotfiles,
     ["emacsclient", "-c", "-a", "", "--eval",
-     "(progn (require 'magit) (magit-status (expand-file-name \"~/Documents/Projects/dotfiles\")))"]).
+     "(progn (require 'magit) (magit-status (expand-file-name \"~/.dotfiles\")))"]).
 app_mapping(quasar,
     ["emacsclient", "-c", "-a", "", "--eval",
-     "(progn (require 'magit) (magit-status (expand-file-name \"~/Documents/Projects/quasar\")))"]).
+     "(progn (require 'magit) (magit-status (expand-file-name \"~/starintel/quasar\")))"]).
 app_mapping(tek9,
     ["emacsclient", "-c", "-a", "", "--eval",
-     "(progn (require 'magit) (magit-status (expand-file-name \"~/Documents/Projects/tek9\")))"]).
+     "(progn (require 'magit) (magit-status (expand-file-name \"~/starintel/tek9\")))"]).
 app_mapping(plugins,
     ["emacsclient", "-c", "-a", "", "--eval",
      "(progn (require 'magit) (magit-status (expand-file-name \"~/Documents/Projects/zara-plugins\")))"]).

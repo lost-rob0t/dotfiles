@@ -3,6 +3,9 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Keep the compatibility packages below on the last working nixpkgs
+    # revision until their upstreams support current nixos-unstable.
+    nixpkgs-compat.url = "github:NixOS/nixpkgs/e158d9ed9b51c98974c5e66e1ba1c9e0255fecaa";
     disko = {
       url = "github:nix-community/disko/latest";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -21,23 +24,34 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara = {
-      url = "github:lost-rob0t/zara/43d8fa8c98771e02aff5ee1850ad5f2be7c35377";
-      inputs.nixpkgs.follows = "nixpkgs";
+      # Private repo: the github: tarball fetcher cannot resolve it, so fetch
+      # over SSH with the key that already authenticates this host.
+      url = "git+ssh://git@github.com/lost-rob0t/zara.git?ref=master&rev=034d6b23077b543cb5d2ed8b177411bd5179ac4a";
+      # Zara vendors its MCP v2 python stack (httpx2/httpcore2); following this
+      # repo's newer nixpkgs made nixpkgs' own httpx2 collide with the vendored
+      # build inside zara's python env. Build zara against its locked nixpkgs,
+      # which is exactly the configuration zara's CI validates.
     };
     qwen3-tts = {
       url = "github:lost-rob0t/Qwen3-TTS_server";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara-plugins = {
-      url = "github:lost-rob0t/zara-plugins/4f791d83b6d0a969c26f81273d075d5d78acd7db";
+      url = "github:lost-rob0t/zara-plugins/149b5bff358037e3c4b277a2f664dd2d6f066f58";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     bixby-studio = {
       url = "github:lost-rob0t/bixby-studio";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs-compat";
     };
     mousetrap = {
       url = "github:lost-rob0t/Mousetrap";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    agentprolog = {
+      # Canonical Forgejo host (the GitHub remote is the mirror). The lock pins
+      # the exact reviewed rev; update deliberately like any other input.
+      url = "git+https://git.starintel.actor/nsaspy/agentProlog";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -46,6 +60,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-compat,
       disko,
       home-manager,
       emacs-auto-research,
@@ -56,16 +71,75 @@
       zara-plugins,
       bixby-studio,
       mousetrap,
+      agentprolog,
     }:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
-      pkgs = nixpkgs.legacyPackages.${system};
+      # Overlays shared by the standalone profiles below AND the NixOS hosts
+      # (hosts get them through specialArgs -> nixpkgs.overlays; without them
+      # logos evaluated raw nixpkgs and died on the removed brave attr).
+      sharedOverlays = [
+        # Brave was removed from nixos-unstable on 2026-11-03 (no committers
+        # to unblock security issues); we maintain the binary repack
+        # ourselves under nix/packages/brave. Bump it with its update.sh.
+        (final: prev: {
+            brave = final.callPackage ./nix/packages/brave { };
+            # nixpkgs' codex 0.167.0 links zstd-sys and aws-lc-sys through
+            # pkg-config but does not add those libraries to its build
+            # inputs, so both crates fail to probe the system. Add them
+            # until nixpkgs fixes the expression.
+            codex = prev.codex.overrideAttrs (old: {
+              buildInputs = (old.buildInputs or [ ]) ++ [
+                final.zstd
+                final.aws-lc
+                final.oniguruma
+                final.sqlite
+              ];
+            });
+          })
+          # Two ActivityWatch fixes against the current nixpkgs pin:
+          # 1. nixpkgs bumped peewee to 4.x but aw-core still requires
+          #    peewee==3.*; pin aw-core back to peewee_3.
+          # 2. aw-qt passes "--suffix PATH : ..." as one makeWrapperArgs
+          #    element; the binary wrapper generator needs separate argv
+          #    items or it fails with "Unknown argument --suffix".
+          (final: prev: {
+            python314 = prev.python314.override (old: {
+              packageOverrides = prev.lib.composeExtensions
+                (old.packageOverrides or (_: prev': { }))
+                (pyFinal: pyPrev: {
+                  aw-core = pyPrev.aw-core.overridePythonAttrs (oldAttrs: {
+                    propagatedBuildInputs = map
+                      (p: if p.pname or null == "peewee" then pyFinal.peewee_3 else p)
+                      oldAttrs.propagatedBuildInputs;
+                  });
+                });
+            });
+            activitywatch = prev.activitywatch.override {
+              aw-qt = prev.aw-qt.overrideAttrs (old: {
+                makeWrapperArgs = [
+                  "--suffix"
+                  "PATH"
+                  ":"
+                  (prev.lib.makeBinPath [ prev.xdg-utils ])
+                ];
+              });
+            };
+          })
+        ];
+      pkgs = import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+        overlays = sharedOverlays;
+      };
       prologMcp = pkgs.callPackage ./nix/packages/prolog-mcp.nix { };
       braveMcp = pkgs.callPackage ./nix/packages/brave-mcp { };
+      starintelAdmin = pkgs.callPackage ./nix/packages/starintel-admin { };
+      zaraExperts = import ./.zara/experts { inherit pkgs; };
 
       sharedArgs = {
-        inherit self disko;
+        inherit self disko sharedOverlays;
       };
       homeArgs = {
         inherit self;
@@ -114,6 +188,9 @@
         modules = [
           disko.nixosModules.disko
           home-manager.nixosModules.home-manager
+          # The host's pkgs must see the same vendored/fixed packages as the
+          # standalone profiles (raw nixpkgs no longer has brave at all).
+          { nixpkgs.overlays = sharedOverlays; }
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
@@ -128,6 +205,10 @@
         inherit system;
         specialArgs = sharedArgs;
         modules = [ ./nix/nixos/installer/logos-iso.nix ];
+      };
+
+      homeManagerModules = {
+        nodeRed = import ./nix/home-manager/mods/node-red.nix;
       };
 
       homeConfigurations = {
@@ -173,6 +254,27 @@
       };
 
       desktopHome = homeConfigurations."unseen@desktop";
+      zaraPluginRegistry = (builtins.fromJSON (builtins.readFile "${zara-plugins}/plugins.json")).plugins;
+      zaraPluginNames = map (entry: entry.name) zaraPluginRegistry;
+      zaraAllPluginsCheck =
+        # Zara is disabled on the desktop profile pending the crash
+        # investigation; assert plugin wiring only while it is enabled.
+        if !desktopHome.config.zara.enable then
+          pkgs.runCommand "zara-all-plugins-check" { } "touch $out"
+        else
+          assert desktopHome.config.zara.plugins.enableAll;
+          assert lib.all (
+            name: lib.elem zara-plugins.packages.${system}.${name} desktopHome.config.home.packages
+          ) zaraPluginNames;
+          assert lib.all (
+            entry:
+            builtins.hasAttr ".zarathushtra/plugins/${builtins.baseNameOf entry.entrypoint}" desktopHome.config.home.file
+            && builtins.hasAttr ".config/zarathushtra/plugins/${entry.name}/lib" desktopHome.config.home.file
+          ) zaraPluginRegistry;
+          pkgs.runCommand "zara-all-plugins-check" { } ''
+            test "${toString (builtins.length zaraPluginNames)}" -gt 0
+            touch "$out"
+          '';
       aiClientThemeCheck =
         assert !builtins.hasAttr ".codex/config.toml" desktopHome.config.home.file;
         assert !builtins.hasAttr ".codex/config.yaml" desktopHome.config.home.file;
@@ -184,7 +286,13 @@
         assert desktopHome.config.programs.opencode.enableMcpIntegration;
         assert builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/AGENTS.md"
           desktopHome.config.home.file;
-        assert desktopHome.config.programs.opencode.tui.theme == "outrun";
+        assert desktopHome.config.programs.opencode.tui == { };
+        assert desktopHome.config.programs.opencode.cli.theme.name == "outrun";
+        assert
+          !builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/tui.json" desktopHome.config.home.file;
+        assert builtins.hasAttr "${desktopHome.config.xdg.configHome}/opencode/cli.json"
+          desktopHome.config.home.file;
+        assert builtins.hasAttr "opencodeLegacyDebris" desktopHome.config.home.activation;
         assert
           desktopHome.config.programs.opencode.settings.provider.openai.options.baseURL
           == "http://127.0.0.1:8787/openai/v1";
@@ -200,6 +308,8 @@
             nativeBuildInputs = [ pkgs.jq ];
             opencodeTheme =
               desktopHome.config.home.file."${desktopHome.config.xdg.configHome}/opencode/themes/outrun.json".source;
+            opencodeCli =
+              desktopHome.config.home.file."${desktopHome.config.xdg.configHome}/opencode/cli.json".source;
             codexTheme = desktopHome.config.home.file.".codex/themes/outrun.tmTheme".source;
             chatgptTheme = desktopHome.config.home.file.".codex/themes/outrun-desktop.json".source;
             globalAgents = desktopHome.config.home.file.".codex/AGENTS.md".source;
@@ -216,6 +326,16 @@
               .theme.primary == "pink" and
               .theme.background == "deepBackground"
             ' "$opencodeTheme" >/dev/null
+
+            jq -e '
+              ."$schema" == "https://opencode.ai/v2/cli.json" and
+              .theme.name == "outrun" and
+              .diffs.wrap == "word" and
+              .session.sidebar == "auto" and
+              .session.scrollbar == false and
+              .session.thinking == "hide" and
+              .animations == true
+            ' "$opencodeCli" >/dev/null
 
             grep -Fq '<string>#170c32</string>' "$codexTheme"
             grep -Fq '<string>#f6019d</string>' "$codexTheme"
@@ -241,6 +361,32 @@
               .hooks.Stop[0].hooks[0].command | endswith("/bin/prolog-verify hook-stop")
             ' "$codexHooks" >/dev/null
 
+            touch "$out"
+          '';
+      starintelAdminCheck =
+        assert lib.elem starintelAdmin desktopHome.config.home.packages;
+        pkgs.runCommand "starintel-admin-check"
+          {
+            nativeBuildInputs = [
+              pkgs.bash
+              pkgs.coreutils
+              pkgs.curl
+              pkgs.jq
+              pkgs.openssl
+              starintelAdmin
+            ];
+          }
+          ''
+            starintel-admin --help > help.txt
+            grep -Fq 'dashboard' help.txt
+            grep -Fq 'user list' help.txt
+            grep -Fq 'dataset public' help.txt
+            grep -Fq 'documents tenant' help.txt
+            cp -R ${./nix/packages/starintel-admin} source
+            chmod -R u+w source
+            substituteInPlace source/tests/admin-cli.sh \
+              --replace-fail '#!/usr/bin/env bash' '#!${pkgs.bash}/bin/bash'
+            bash source/tests/admin-cli.sh
             touch "$out"
           '';
       codexConfigPatchCheck =
@@ -305,7 +451,7 @@
         logos-iso = logosIso;
       };
 
-      inherit homeConfigurations;
+      inherit homeConfigurations homeManagerModules;
 
       packages.${system} = {
         default = logos.config.system.build.toplevel;
@@ -315,6 +461,9 @@
         install-logos-gui = installLogosGui;
         prolog-mcp = prologMcp;
         brave-mcp = braveMcp;
+        starintel-admin = starintelAdmin;
+        zara-emacs-expert = zaraExperts.emacs;
+        zara-expert-library = zaraExperts.library;
         inherit flash-logos;
         unseen-home = homeConfigurations."unseen@logos".activationPackage;
       };
@@ -340,9 +489,16 @@
         unseen-desktop-home = homeConfigurations."unseen@desktop".activationPackage;
         unseen-hunter02-home = homeConfigurations."unseen@hunter02".activationPackage;
         ai-client-theme = aiClientThemeCheck;
+        chatgpt-desktop-launcher = import ./tests/chatgpt-desktop.nix {
+          inherit home-manager lib pkgs;
+        };
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
+        starintel-admin = starintelAdminCheck;
         zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
+        zara-all-plugins = zaraAllPluginsCheck;
+        zara-emacs-expert = zaraExperts.emacs;
+        zara-expert-library = zaraExperts.library;
       };
 
       hydraJobs.${system} = {

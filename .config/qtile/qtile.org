@@ -31,6 +31,10 @@ Monitor setup is intentionally not part of =autostart.sh= or =.xinitrc=;
 =.xinitrc= only starts Qtile after importing the display environment.
 
 The profile for this workstation is =scripts/monitors/unseen@flake.sh=.
+It matches the three physical monitors by EDID rather than DisplayPort numbers,
+which may change after a boot. It places them left to right at 1920x1080 with
+the middle monitor primary. If an expected monitor is absent, it leaves the
+current layout unchanged.
 
 * Emacs popup server
 The Qtile startup script checks the named =qtile= Emacs server with

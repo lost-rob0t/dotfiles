@@ -5,6 +5,8 @@
 
   gnome.enable = true;
 
+  node-red.enable = true;
+
   home.username = lib.mkForce "unseen";
   home.homeDirectory = lib.mkForce "/home/unseen";
 }

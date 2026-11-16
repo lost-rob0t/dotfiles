@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+session_id="${1:-}"
+: "${KB_ROAM_ELISP:=$HOME/.config/kb-roam/kb-roam.el}"
+
+command -v opencode >/dev/null || { printf 'opencode-session-to-org: opencode not found\n' >&2; exit 3; }
+command -v jq >/dev/null || { printf 'opencode-session-to-org: jq not found\n' >&2; exit 3; }
+[[ -r "$KB_ROAM_ELISP" ]] || { printf 'opencode-session-to-org: missing %s\n' "$KB_ROAM_ELISP" >&2; exit 3; }
+
+if [[ -z "$session_id" ]]; then
+  listing=$(opencode session list --max-count 1 --format json)
+  session_id=$(jq -r '
+    if type == "array" then .[0].id
+    elif .sessions then .sessions[0].id
+    else .id end // empty
+  ' <<<"$listing")
+fi
+[[ -n "$session_id" ]] || { printf 'opencode-session-to-org: no session found\n' >&2; exit 4; }
+
+tmp=$(mktemp)
+trap 'rm -f -- "$tmp"' EXIT
+
+if opencode session export "$session_id" --sanitize >"$tmp" 2>/dev/null; then
+  :
+elif opencode export "$session_id" --sanitize >"$tmp"; then
+  :
+else
+  printf 'opencode-session-to-org: sanitized export failed for %s\n' "$session_id" >&2
+  exit 5
+fi
+
+export KB_ROAM_SESSION_ID="$session_id"
+export KB_ROAM_SESSION_JSON="$tmp"
+
+# emacsclient --eval does not forward the client environment, so generate a
+# form file that setenv's the KB_ROAM_* variables server-side (see kb-ingest).
+lisp_str() {
+  local s=${1//\\/\\\\}
+  s=${s//\"/\\\"}
+  printf '"%s"' "$s"
+}
+
+tmp_form=$(mktemp "${TMPDIR:-/tmp}/kb-session-form-XXXXXX.el")
+{
+  while IFS='=' read -r name value; do
+    case "$name" in
+      KB_ROAM_*) printf '(setenv %s %s)\n' "$(lisp_str "$name")" "$(lisp_str "$value")" ;;
+    esac
+  done < <(env | sort)
+  printf '(setenv "KB_ROAM_SESSION_ID" %s)\n' "$(lisp_str "$session_id")"
+  printf '(setenv "KB_ROAM_SESSION_JSON" %s)\n' "$(lisp_str "$tmp")"
+  printf '(load-file %s)\n' "$(lisp_str "$KB_ROAM_ELISP")"
+  printf '(princ (kb-roam-cli-session-export))\n'
+} >"$tmp_form"
+
+if emacsclient --eval t >/dev/null 2>&1; then
+  emacsclient --eval "(progn (load-file $(lisp_str "$tmp_form")) t)" \
+    | sed -e 's/^"//' -e 's/"$//' -e 's/\\n/\n/g'
+else
+  emacs -Q --batch --load "$tmp_form"
+fi

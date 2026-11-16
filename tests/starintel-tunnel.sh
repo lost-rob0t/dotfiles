@@ -54,7 +54,7 @@ fi
 grep -Fq "duplicate tunnel name 'couchdb'" "$tmpdir/duplicate.err"
 
 duplicates="$(
-  awk 'NF && $1 !~ /^#/ { print $1 }' "$repo_root/.config/starintel/tunnels.conf" \
+  awk 'NF && $1 !~ /^#/ { print $1 }' "$repo_root/nix/home-manager/files/starintel-tunnels.conf" \
     | sort \
     | uniq -d
 )"

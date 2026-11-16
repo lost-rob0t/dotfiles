@@ -1,4 +1,9 @@
-{ config, pkgs, inputs, ... }:
+{
+  config,
+  pkgs,
+  inputs,
+  ...
+}:
 {
   imports = [
     inputs.skills.homeManagerModules.opencode
@@ -8,7 +13,9 @@
     ./outrun-theme.nix
     ./opencode.nix
     ./opencode-tmux.nix
+    ./opencode-ses.nix
     ./codex.nix
+    ./agentprolog.nix
     ./agent-verification.nix
     ./chatgpt-desktop.nix
     ./base.nix
@@ -19,14 +26,18 @@
     ./fonts.nix
     ./emacs.nix
     ./gpt-todos.nix
+    ./starintel-backup.nix
     ./org-logseq-sync.nix
+    ./kb-roam.nix
     ./hackmode.nix
+    ./node-red.nix
     ./security.nix
     ./nim.nix
     ./lisp.nix
     #./python.nix
     ./syncthing.nix
     ./media.nix
+    ./games.nix
     ./pentesting.nix
     ./llm.nix
     ./zara.nix

@@ -12,12 +12,17 @@ let
       (entry: lib.nameValuePair entry.name entry)
       pluginRegistryDocument.plugins
   );
+  allRegistryPluginNames = map (entry: entry.name) pluginRegistryDocument.plugins;
+  requestedRegistryPlugins = lib.unique (
+    lib.optionals cfg.plugins.enableAll allRegistryPluginNames
+    ++ cfg.plugins.registry
+  );
   unknownRegistryPlugins = lib.filter
     (name: !(builtins.hasAttr name pluginRegistry))
-    cfg.plugins.registry;
+    requestedRegistryPlugins;
   selectedRegistryEntries = map
     (name: pluginRegistry.${name})
-    (lib.filter (name: builtins.hasAttr name pluginRegistry) cfg.plugins.registry);
+    (lib.filter (name: builtins.hasAttr name pluginRegistry) requestedRegistryPlugins);
   registryPackageFor = entry:
     inputs.zara-plugins.packages.${system}.${entry.name};
   registryPackages = map registryPackageFor selectedRegistryEntries;
@@ -154,6 +159,17 @@ in
     };
 
     plugins = {
+      enableAll = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Install and declaratively wire every plugin present in the pinned
+          zara-plugins registry. The pinned registry remains the source of
+          truth, so registry updates become available only after the flake
+          input is deliberately updated and checked.
+        '';
+      };
+
       registry = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
@@ -272,12 +288,18 @@ in
     systemd.user.services.zara-desktop = lib.mkIf cfg.desktop.enable {
       Unit = {
         Description = "Zara desktop copilot";
-        After = [ "graphical-session.target" "zara-server.service" ];
-        Wants = lib.optional cfg.server.enable "zara-server.service";
-        PartOf = [ "graphical-session.target" ];
+        After = [ "graphical-session.target" "zara-server.service" ]
+          ++ lib.optionals config.zara.workflows.enable [ "zara-pair.service" ];
+        Wants = lib.optional cfg.server.enable "zara-server.service"
+          ++ lib.optionals config.zara.workflows.enable [ "zara-pair.service" ];
+        PartOf = [ "graphical-session.target" ]
+          ++ lib.optionals config.zara.workflows.enable [ "zara-pair.service" ];
       };
       Service = {
         ExecStart = "${cfg.package}/bin/zara-desktop";
+        # Materialized by zara-pair from the platform keyring; optional so the
+        # copilot still starts (unauthenticated IPC fallback) before pairing.
+        EnvironmentFile = "-%h/.config/zarathushtra/secrets-daemon-clients.env";
         Restart = "on-failure";
         RestartSec = 3;
         UMask = "0077";

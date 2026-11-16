@@ -66,6 +66,28 @@ At the time this policy was written, the active release/profile is `0.9.1` and t
 next additive release is `0.9.2`. This sentence is historical context only: the
 live lock and canonical scripts always outrank it.
 
+## Where the gpt-todos Org workspace lives
+
+Path map for agents working on the user's notes graph:
+
+- Live workspace: `$GPT_TODOS_NOTES_DIR` (default `~/Documents/Notes/org`).
+- Durable private checkout: `$GPT_TODOS_REPO_DIR` (default `~/Documents/gpt-todos`),
+  remote `git@github.com:lost-rob0t/gpt-todos.git` (private), branch `main`.
+- Mapping: live `agenda/` <-> repo `agenda/` (`*.org` only, Todo Manager
+  compatibility); every other allowed live path <-> repo `notes/`.
+- Never synchronized into the repo: `.env`/`.envrc` credentials, `.orgids`,
+  `.projectile`, Org-roam/Org-ID caches, `__pycache__`/`.cache`/`.git`, editor
+  lock and backup files, and symlinks pointing outside the workspace.
+- Shared agent memory: `$GPT_TODOS_NOTES_DIR/memory/shared/` (mirrored to
+  `notes/memory/shared/`).
+- Durable research artifacts: `llm/research/` under the workspace root.
+- Sync command: `gpt-todos-sync` (also the `gpt-todos-sync.timer` systemd user
+  timer, every 5 minutes). Run it after non-Emacs writes before claiming the
+  graph is published.
+- Interrupted-save recovery files: `~/.local/state/gpt-todos-sync/recovery/`.
+- The sync refuses to start while the durable checkout is dirty under
+  `agenda/` or `notes/`; resolve or commit that state first.
+
 ## Shared Org-roam agent memory
 
 The user's cross-project shared memory lives in the Git-backed Org graph at
@@ -110,6 +132,16 @@ The canonical schema/policy is in `lost-rob0t/gpt-todos`:
 `docs/org-roam-shared-memory.org`, `kb/shared_memory.pl`, and
 `notes/memory/shared/`.  Those files outrank copied prompt text if the contract
 evolves.
+
+## Canonical expert implementation ownership
+
+Across the user's repositories, **all reusable expert definitions and expert knowledge implementation work** belongs in the dotfiles repository under `.zara/experts/`.
+
+- Expert Prolog rules/KBs, deterministic corpus generators, expert-specific tests, style KBs, expert packaging, and domain expert implementations are authored in dotfiles.
+- Other repositories may own generic execution infrastructure: Prolog-RLM owns reusable expert runtime/contracts/selection/invocation machinery; Zara Core and `zara-plugins` own Zara registry/lifecycle/discovery/adapters. They consume dotfiles-owned experts instead of defining a second canonical expert brain.
+- Repository-specific durable engineering memory remains in that repository's `.prolog/kb/`; a dotfiles expert may consume it through a provenance-preserving adapter instead of copying it.
+- Existing expert issues in other repositories should be treated as runtime/adapter/integration work or redirected to the canonical dotfiles expert library when their deliverable is an expert definition, KB, rules, corpus, style policy, or expert-specific tests.
+- Until the canonical `ZARA-EXPERT/1` descriptor is implemented, do not fabricate a local replacement manifest.
 
 ## Durable Prolog project memory
 
@@ -159,3 +191,19 @@ Do not create a durable research artifact for trivial scratch work unless the us
 - Do not preserve redundant code paths without a concrete current requirement.
 - De-slopify touched code: remove generated-looking clutter, needless comments, repetition, unnecessary abstraction, and defensive complexity that does not serve an identified behavior.
 - Prefer the smallest clear implementation with one canonical path while preserving required behavior and focused diffs.
+
+
+## Org-roam publication provenance
+
+Durable AI-authored Org content must be written through the audited KB Roam path,
+not by ad-hoc file mutation. Use the global `kb-ingest` OpenCode subagent or the
+`kb-ingest` command-line writer. Every AI-authored file must carry
+`AI_GENERATED: t`, one globally unique `AI_TAG` of the form `ai_<id>`, that
+same tag in `FILETAGS`, concrete source provenance, and at least two specific
+topic tags.
+
+Publishing is fail-closed and private by default. A file is public only when its
+metadata explicitly says `ROAM_VISIBILITY: public` (legacy `PUBLISH: t` is
+accepted during migration). A `:private:` headline, `:PRIVATE: t`, or
+`:VISIBILITY: private` makes the entire subtree private; descendants may not
+override a private ancestor. Run the Prolog censor gate before any site export.
