@@ -33,7 +33,18 @@ set -euo pipefail
 
 DISTRO_ROOT="${DISTRO_ROOT:-}"
 if [[ -z "$DISTRO_ROOT" ]]; then
-  DISTRO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+  # Never trust this script's own location: the Home Manager-installed copy
+  # lives in the nix store.  Resolution order: nearest issues.org upward
+  # from the working directory, then the canonical dotfiles checkout.
+  root="$(pwd)"
+  while [[ -n "$root" && ! -f "$root/issues.org" && "$root" != "/" ]]; do
+    root="$(dirname "$root")"
+  done
+  if [[ -f "$root/issues.org" ]]; then
+    DISTRO_ROOT="$root"
+  elif [[ -f "$HOME/.dotfiles/issues.org" ]]; then
+    DISTRO_ROOT="$HOME/.dotfiles"
+  fi
 fi
 export DISTRO_ROOT
 ISSUES="$DISTRO_ROOT/issues.org"
@@ -57,7 +68,7 @@ JH
 }
 
 require_repo() {
-  [[ -f "$ISSUES" ]] || die "no issues.org under $DISTRO_ROOT"
+  [[ -f "$ISSUES" ]] || die "no issues.org under $DISTRO_ROOT (set DISTRO_ROOT or run inside the distro checkout)"
   [[ -d "$DISTRO_DIR" ]] || die "no distro/ under $DISTRO_ROOT"
   mkdir -p "$STATE_DIR"
   [[ -f "$STATE_DIR/journal.pl" ]] || journal_init
@@ -447,9 +458,14 @@ distro/config.pl (council quorum, attack steps).
 EOF
 }
 
-require_repo
-
+# help never needs a repo (works from anywhere); everything else operates
+# on the resolved checkout.
 cmd="${1:-help}"; shift || true
+if [[ "$cmd" == "help" || "$cmd" == "--help" || "$cmd" == "-h" ]]; then
+  cmd_help
+  exit 0
+fi
+require_repo
 case "$cmd" in
   feat|bug) py inbox_add "$cmd" "$@" ;;
   triage)   py triage ;;
@@ -479,7 +495,7 @@ case "$cmd" in
     ;;
   done)
     id="$1"
-    py set_fields "$id" STATUS done >/dev/null
+    py set_fields "$id" STATUS "done" >/dev/null
     py sync >/dev/null
     printf '%s done (evidence required before release)\n' "$id"
     ;;
@@ -612,7 +628,6 @@ case "$cmd" in
     printf 'released v%s (prev v%s); archived: %s\n' "$target" "$prev" "$(printf '%s' "$moved" | tr '\n' ' ')"
     printf 'suggested commit: "distro: release v%s (%s)"\n' "$target" "$(printf '%s' "$moved" | tr '\n' ' ')"
     ;;
-  help|--help|-h) cmd_help ;;
   *) die "unknown command '$cmd' (try: distro help)" ;;
 esac
 #+end_src

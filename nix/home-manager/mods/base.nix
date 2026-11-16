@@ -24,6 +24,19 @@ let
     runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.gnutar pkgs.gzip ];
     text = builtins.readFile ../../../.local/bin/archive-prolog;
   };
+
+  # Distro release-engineering CLI (literate source: scripts/distro.org).
+  # Engine contract needs git, swipl, python3 and coreutils tools.
+  distro = pkgs.writeShellApplication {
+    name = "distro";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.git
+      pkgs.python3
+      pkgs.swi-prolog
+    ];
+    text = builtins.readFile ../../../scripts/distro;
+  };
 in
 {
   options = {
@@ -52,6 +65,6 @@ in
       tea # Forgejo CLI for git.starintel.actor
       forgejo-cli
 
-    ]) ++ [ gitSync dotfilesSync archiveProlog ];
+    ]) ++ [ gitSync dotfilesSync archiveProlog distro ];
   };
 }
