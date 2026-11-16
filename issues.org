@@ -32,6 +32,111 @@ to =* Tracked=.  You can override the defaults by adding properties to the
 inbox heading (=KIND=, =SEVERITY=, =MILESTONE=).
 
 * Inbox
+
+** FEAT: Nix Births a starintel modual.
+
+Lets you install a starintel-server instance via nix
+
+Configuration of actors and server via nix options (nix to lisp?) (if you make a nix->lisp make it reusable in a new checkout you inform user to create and bootstrap using notify skill with highest priority)
+
+
+** FEAT: Make a LLM assisted editing mode
+Use local 2b param models.
+
+Focus: Humans write, grammer assist, learning to write better, spelling.
+
+*** IDEA Fold this "learning" into learning package for emacs for lessons.
+
+** Learning Mode
+
+User can add topics 
+
+** Make a Focused text editing evniroment
+
+
+Concept is Like [[elisp:(writeroom-mode)][WriteRoom Mode]] 
+Fold: LLM Assisted editing mode 
+
+** BUG: When i enter writeroom-mode
+Line Numbers are still enabled.
+I must hit ~spc t l~ to toggle them off
+** BUG: Fix the spell check in emacs
+When i hit ~z =~ v  
+
+
+#+begin_example
+ispell-init-process: Error: No word lists can be found for the language "en_US".
+WARNING: Unable to enter Nroff mode: Unknown mode: "nroff".
+
+#+end_example
+
+** FEAT: doom emacs bechmarking and optmiszation
+
+We preform benchmaxxing on our config and optmize it to be the fastest possible preformance.
+
+Bench:
+
+- [ ] Start up time
+- [ ] Command reactive ness
+- [ ] buffer creation time
+- [ ] Buffer IO speeds
+- [ ] Preformance under many buffers
+- [ ] GC optmization
+- [ ] be creative in this
+
+
+** FEAT: emacs mcp
+
+have some security modes
+
+1. Full Access  (including elisp exec)
+2. Permission System
+3. Read Only
+
+
+** FEAT: org-mode mcp
+
+** FEAT: I want a cloen of GPT-tasks using cron.
+
+it should be so generic that any agent harness can use it.
+
+tasks should have prompt files 
+store them in ~/Doucments/AI/cron (my config) but defaults to XDG
+
+Each task should allow me to select a harness 
+
+use prolog for the orchistration
+
+
+
+
+
+** I want my ZARA experts to beable to be invoked via bash/shell cli
+
+Some may offer a TUI repl experince 
+
+** Overhauled TODO system
+I want a cron LLM job that every 15 minutes tracks
+
+FOLD: the llm cron worker systsem
+
+Tracks
+
+- [ ] Time on task
+- [ ] Weather I compleatted it
+- [ ] May use screen vision
+- [ ] tracks task by device or irl
+  This means: if i have to do it on this machine, track it
+  if it may be remote-<device> mark that as a option and track it there too
+  If irl track weather i leave the machien or not.
+  Activity watch may be handy
+- [ ] Track Long term todos as well as short task level todos
+- [ ] Activly Observe the screen via OCR: eg you get text on screen every 5 secons but you run every n munutes
+  Also you get the filepath to the stored image, gpg encrypted
+- [ ] Monitors remote repo and project todos
+- [ ] Emacs first class cutazen here 
+
+
 * Tracked
 
 Structured requirement records, written and maintained by =distro=
