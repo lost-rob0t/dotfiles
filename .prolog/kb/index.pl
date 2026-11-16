@@ -27,6 +27,7 @@
 :- consult("llm_log").
 :- consult("divergence_incidents").
 :- consult("forgejo_remotes").
+:- consult("kb_hygiene").
 :- consult("zara_experts_opencode").
 
 :- consult('qtile_monitors.pl').
