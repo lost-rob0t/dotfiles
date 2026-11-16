@@ -1,0 +1,147 @@
+#+TITLE: OpenCode Security Home Manager Module
+#+PROPERTY: header-args:nix :tangle opencode-security.nix :mkdirp yes
+
+* Architecture
+
+This is the security module for OpenCode: it owns the destructive-shell
+guard layer born from the 2026-11-13 incident (an agent ran
+=rm -rf ~/starintel= without listing it).  It registers the rmguard hook
+plugin and the coarse ask/deny permission rules through the generic
+multi-module loading options (=opencode.hookPlugins=,
+=opencode.shellPermissions=, =opencode.denyPolicies=) declared in
+[[file:opencode.org][opencode.org]], so further security hooks can be added
+here or in sibling modules without touching the base OpenCode module.
+
+Layering (keep the four in sync):
+
+1. OpenCode =permissions= (ask) and =policies= (deny) below do the coarse
+   glob gating;
+2. the rmguard plugin (=../../../opencode/plugins/rmguard/index.ts=) is the
+   semantic backstop and classifies by command word, so non-file deletes
+   such as =tea labels delete= never trip it (2026-11-16 false positive);
+3. llm-log tags attempts;
+4. prolog-rlm =prolog/rlm_shell_guard.pl= is the shared classifier spec.
+
+The rmguard plugin must only fire when a destructive file utility (=rm=,
+=find -delete=, =find -exec rm=, =dd of=/dev/…=, =mkfs=, =shred=) is the
+command word of a shell segment — never on substring matches like
+=--repo= or subcommand verbs of unrelated tools.
+
+* Module
+#+begin_src nix
+  {
+    config,
+    lib,
+    ...
+  }:
+  let
+    cfg = config.opencodeSecurity;
+  in
+  {
+    options.opencodeSecurity.enable = lib.mkEnableOption "destructive-shell security hooks for OpenCode (rmguard plugin plus ask/deny rules)";
+
+    config = lib.mkIf cfg.enable {
+      opencode = {
+        hookPlugins.rmguard = ../../../opencode/plugins/rmguard/index.ts;
+
+        shellPermissions = [
+          {
+            action = "shell";
+            resource = "rm -r *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "rm -R *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "rm -rf *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "rm -fr *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "rm --recursive *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "sudo rm *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "find * -delete";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "find * -delete *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "find * -exec rm *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "chmod -R *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "chown -R *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "shred *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "dd *";
+            effect = "ask";
+          }
+          {
+            action = "shell";
+            resource = "mkfs*";
+            effect = "ask";
+          }
+        ];
+
+        denyPolicies =
+          map
+            (r: {
+              action = "tool.use";
+              resource = r;
+              effect = "deny";
+            })
+            [
+              "shell:rm -rf ~*"
+              "shell:rm -rf $HOME*"
+              "shell:rm -rf /home/*"
+              "shell:rm -fr ~*"
+              "shell:rm -fr /home/*"
+              "shell:sudo rm -rf ~*"
+              "shell:sudo rm -rf /home/*"
+              "shell:rm -rf /etc*"
+              "shell:rm -rf /usr*"
+              "shell:rm -rf /var*"
+              "shell:rm -rf /nix*"
+              "shell:rm -rf /boot*"
+              "shell:dd * of=/dev/s??"
+              "shell:dd * of=/dev/s??*"
+              "shell:dd * of=/dev/nvme*"
+              "shell:dd * of=/dev/mapper/*"
+            ];
+      };
+    };
+  }#+end_src

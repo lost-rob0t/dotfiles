@@ -27,6 +27,8 @@
     port = 4096;
   };
 
+  opencodeSecurity.enable = true;
+
   hackmode.enable = true;
 
   zara = {
