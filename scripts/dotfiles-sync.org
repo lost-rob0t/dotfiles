@@ -12,7 +12,7 @@ The helper tangles known literate source/generated pairs when the Org source is
 dirty, rejects generated-only drift, commits local dotfiles changes, rebases onto
 the configured Forgejo branch, and pushes back to Forgejo.  It does not use the
 checkout's configured GitHub upstream.  The default remote is
-=git@git.starintel.actor:lost-rob0t/dotfiles.git= and can be overridden with
+=forgejo@git.starintel.actor:nsaspy/dotfiles.git= and can be overridden with
 =DOTFILES_SYNC_REMOTE=.  The default branch is the current branch and can be
 overridden with =DOTFILES_SYNC_BRANCH=.
 
@@ -21,7 +21,7 @@ overridden with =DOTFILES_SYNC_BRANCH=.
 set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
-REMOTE="${DOTFILES_SYNC_REMOTE:-git@git.starintel.actor:lost-rob0t/dotfiles.git}"
+REMOTE="${DOTFILES_SYNC_REMOTE:-forgejo@git.starintel.actor:nsaspy/dotfiles.git}"
 LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
 [[ -d "$LOCK_DIR" ]] || LOCK_DIR=/tmp
 LOCK="$LOCK_DIR/dotfiles-sync-${UID}.lock"

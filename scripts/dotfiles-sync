@@ -2,7 +2,7 @@
 set -euo pipefail
 
 DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.dotfiles}"
-REMOTE="${DOTFILES_SYNC_REMOTE:-git@git.starintel.actor:lost-rob0t/dotfiles.git}"
+REMOTE="${DOTFILES_SYNC_REMOTE:-forgejo@git.starintel.actor:nsaspy/dotfiles.git}"
 LOCK_DIR="${XDG_RUNTIME_DIR:-/tmp}"
 [[ -d "$LOCK_DIR" ]] || LOCK_DIR=/tmp
 LOCK="$LOCK_DIR/dotfiles-sync-${UID}.lock"
