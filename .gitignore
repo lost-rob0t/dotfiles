@@ -54,3 +54,7 @@ tmp/
 !/.prolog/kb/**
 !/.prolog/handoff.pl
 /result
+
+# sqlite WAL sidecars of the ignored proxmox-jobs db
+/proxmox-jobs.sqlite3-shm
+/proxmox-jobs.sqlite3-wal
