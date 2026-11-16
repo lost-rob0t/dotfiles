@@ -149,6 +149,9 @@ in
       llmLog = {
         enable = true;
         baseUrl = proxyBase;
+        # GLM coding-plan traffic through the same capture plane; the key is
+        # read at runtime from ~/.config/llm-log/quotas.env (never Nix/Git).
+        zaiCodingPlan.enable = true;
       };
     };
     # Same client family as opencode/codex, mirroring their setup pattern:

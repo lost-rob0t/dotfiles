@@ -37,6 +37,14 @@ Do not put secret contents in Nix expressions, repository files or widget option
 The leading optional marker in the unit means a missing file does not prevent
 llm-log from starting; z.AI remains unavailable until authentication is supplied.
 
+The z.AI credential in that file is the operator's OpenCode coding-plan key
+(=zai-coding-plan=). Codex reads the same variable for the
+=codex.llmLog.zaiCodingPlan= provider: =codex --profile zai= sends GLM
+coding-plan traffic through =<proxy>/zai/api/coding/paas/v4= with
+=env_key="ZAI_API_KEY"=, so tokens from OpenCode, Codex, and the harness land
+in one captured corpus. OpenCode keeps its own auth store; llm-log forwards
+client credentials per request and only persists redacted copies.
+
 * Deployment boundary
 The Python llm-log service must expose =/api/v1/quotas= and
 =/api/v1/stats/timeline?coverage=fields=. The Common Lisp forwarding executable

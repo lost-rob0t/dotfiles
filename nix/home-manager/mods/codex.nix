@@ -27,12 +27,28 @@ let
     lib.filterAttrs (_: entryType: entryType == "directory") (builtins.readDir "${skillsSource}/skills")
   );
 
+  zaiCodingPlanArgs = lib.optionalString cfg.llmLog.zaiCodingPlan.enable ''
+    -c 'model_providers.zai.name="z.AI Coding Plan"' \
+    -c 'model_providers.zai.base_url="${cfg.llmLog.baseUrl}/zai/api/coding/paas/v4"' \
+    -c 'model_providers.zai.wire_api="chat"' \
+    -c 'model_providers.zai.env_key="ZAI_API_KEY"' \
+    -c 'profiles.zai.model="${cfg.llmLog.zaiCodingPlan.model}"' \
+    -c 'profiles.zai.model_provider="zai"' \
+  '';
+
   wrappedPackage =
     (pkgs.writeShellScriptBin "codex" ''
+      ${lib.optionalString cfg.llmLog.zaiCodingPlan.enable ''
+        if [[ -f "$HOME/.config/llm-log/quotas.env" ]]; then
+          set -a
+          . "$HOME/.config/llm-log/quotas.env"
+          set +a
+        fi
+      ''}
       exec "${cfg.package}/bin/codex" \
         -c 'openai_base_url="${cfg.llmLog.baseUrl}/openai/v1"' \
         -c 'chatgpt_base_url="${cfg.llmLog.baseUrl}/chatgpt/backend-api"' \
-        "$@"
+        ${zaiCodingPlanArgs}"$@"
     '').overrideAttrs
       (_: {
         inherit (cfg.package) version;
@@ -170,6 +186,14 @@ in
         default = "http://127.0.0.1:8787";
         description = "Base URL of the local llm-log proxy.";
       };
+      zaiCodingPlan = {
+        enable = mkEnableOption "z.AI Coding Plan provider and profile routed through llm-log";
+        model = mkOption {
+          type = types.str;
+          default = "glm-5.3";
+          description = "Model ID used by the z.AI Coding Plan profile.";
+        };
+      };
     };
   };
 
@@ -197,6 +221,13 @@ in
             Set codex.manageConfig = true before configuring programs.codex.settings,
             programs.codex.plugins, or programs.codex.marketplaces. Those options make
             Home Manager own the complete Codex config.toml.
+          '';
+        }
+        {
+          assertion = !cfg.llmLog.zaiCodingPlan.enable || cfg.llmLog.enable;
+          message = ''
+            Set codex.llmLog.enable before codex.llmLog.zaiCodingPlan: the z.AI
+            provider routes through the llm-log capture plane.
           '';
         }
       ];
