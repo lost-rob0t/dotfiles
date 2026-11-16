@@ -39,7 +39,7 @@
         ai/llm-openrouter-models))
 
 (setq ai/llm-provider 'openrouter
-      ai/llm-model 'openrouter/auto)
+      ai/llm-model 'openai/gpt-5.6-luna)
 (ai/llm-backend 'openrouter t)
 (ai/llm-apply-defaults)
 
