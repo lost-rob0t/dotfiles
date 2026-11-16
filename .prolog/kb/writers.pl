@@ -1,6 +1,6 @@
 % kb-ingest / opencode-session-to-org writer lessons (fixed 37850118, 2026-11-02)
 writer_bug(emacsclient_env,
-    'emacsclient --eval does not forward the client environment: any (getenv "X") evaluated server-side returns nil. Writers must generate a form file that setenv's every KB_ROAM_* variable (backslash/quote-escaped via the lisp_str helper) and send only (load-file "<escaped path>"). Batch fallback uses --load on the same file.').
+    'emacsclient --eval does not forward the client environment: any (getenv "X") evaluated server-side returns nil. Writers must generate a form file that setenv\'s every KB_ROAM_* variable (backslash/quote-escaped via the lisp_str helper) and send only (load-file "<escaped path>"). Batch fallback uses --load on the same file.').
 writer_bug(prolog_underscores_in_shell,
     'Uppercase identifiers after "-" in writeln probes (e.g. writeln(vp-FAILED)) print as unbound variables (_NNN) - Prolog parses FAILED as a variable. Use lowercase atoms in diagnostic terms.').
 writer_bug(dict_function_eq,

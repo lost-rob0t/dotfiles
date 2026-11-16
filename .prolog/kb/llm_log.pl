@@ -4,13 +4,13 @@
 llm_log_pin_source('github:lost-rob0t/llm-log', note('git.starintel.actor/lost-rob0t/llm-log returns not found; the github pin is canonical')).
 
 %% Module compatibility 692d3820 -> 0679212a (23 commits): purely additive.
-llm_log_module_compat(0679212a,
+llm_log_module_compat('0679212a',
     unchanged([enable, package, dataDir, expert, upstreams, extraArgs]),
     added([quotas_enable, quotas_package, quotas_port, quotas_refresh_seconds,
            quotas_cache_file, quotas_zai_key_file, quotas_environment_file,
            quotas_codex_home]),
     note('services.llm-log.quotas.* independent poller defaults to disabled')).
-llm_log_revision_features(0679212a,
+llm_log_revision_features('0679212a',
     [provider_reported_subscription_quota_telemetry, subscription_history_capture_export,
      internal_worker_attribution_stripping]).
 

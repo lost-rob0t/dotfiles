@@ -23,11 +23,21 @@ divergence_symptom_rule(missing_command,
 
 %% Forgejo vs GitHub mirror state (observed 2026-11-15): github/master
 %% strictly contained forgejo origin/master (0 behind, 9 ahead: PR #331
-%% qtile focus, PR #361 LLM Luna). The Forgejo push quirk had left the
-%% primary stale; the rescue rebased local commits onto the GitHub
-%% superset. Re-resolve remotes before any future ff-only pull from Forgejo.
+%% qtile focus, PR #361 LLM Luna). The rescue rebased local commits onto
+%% the GitHub superset. Re-resolve remotes before any future ff-only pull
+%% from Forgejo. Reason for the lag is recorded in forgejo_remotes.pl.
 divergence_resolution(two_forges_2026_11_15, rebase_onto_github_superset,
-    'forgejo stale behind github; local rescue commits replayed onto github/master, forgejo sync deferred until its push quirk is fixed').
+    'github/master contained forgejo origin/master; local rescue commits replayed onto github/master and pushed (619e8ddc)').
+
+%% Supersession (2026-11-15, operator correction): the earlier framing
+%% blamed a Forgejo service quirk for the lag and deferred sync "until the
+%% quirk is fixed". RETRACTED — the git service is up; the verified
+%% blockers are client-side auth (no accepted key from agent shells) and
+%% the origin repo-path mismatch. See kb/forgejo_remotes.pl.
+divergence_resolution(two_forges_2026_11_15, retracted_framing,
+    superseded_by('forgejo_remotes.pl', 'service up; auth wall + repo-path mismatch are the open blockers')).
+retracted(forgejo_stale_due_to_service_quirk, date(2026, 11, 15),
+    'no evidence ever supported a service outage; auth-phase rejections were misread as an outage').
 
 %% Conflict resolutions used in the 2026-11-15 rescue, reusable as precedent:
 divergence_resolution(prolog_mcp, take_origin,
