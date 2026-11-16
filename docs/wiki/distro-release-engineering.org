@@ -8,7 +8,10 @@ agents attacks the code and votes; Prolog has the final say.
 Canonical parts:
 
 - =issues.org= — intake + tracking ledger (human-facing)
-- =scripts/distro= — the CLI (literate source =scripts/distro.org=)
+- =scripts/distro= — the CLI (literate source =scripts/distro.org=).  Installed
+  on PATH as a Home Manager package (=nix/home-manager/mods/base.nix=); the
+  root resolves from =$DISTRO_ROOT=, the nearest =issues.org= upward from the
+  working directory, or =~/.dotfiles=.  =distro help= works from anywhere.
 - =distro/config.pl= — release policy the human owns (quorum, attack steps)
 - =distro/engine/= — the Prolog engine (loader, model, gates, version, report)
 - =distro/VERSION=, =distro/CHANGELOG.org=, =distro/archive/= — release state
