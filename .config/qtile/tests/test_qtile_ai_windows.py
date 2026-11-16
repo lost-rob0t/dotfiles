@@ -23,6 +23,9 @@ class AiWindowPatternTests(unittest.TestCase):
         self.assertTrue(is_ai_window(("chatgpt (/home/unseen/.config/Codex)", "Chatgpt"), "ChatGPT"))
         self.assertTrue(is_ai_window(("Codex",), "Codex"))
 
+    def test_opencode_dedicated_class_is_ai(self):
+        self.assertTrue(is_ai_window(("OpenCode", "opencode"), "OpenCode"))
+
     def test_activitywatch_discovered_brave_titles_are_ai(self):
         for title in (
             "ChatGPT - Brave",
