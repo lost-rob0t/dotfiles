@@ -1,7 +1,7 @@
 # -*- mode: snippet -*-
 # name: fetch nimble
 # uuid: fetch-nimble
-# key: trigger-key
+# key: fetch-nimble
 # condition: t
 # --
 

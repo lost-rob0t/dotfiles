@@ -1,7 +1,7 @@
 # -*- mode: snippet -*-
 # name: nikto-scan
 # uuid: nikto-scan
-# key: trigger-key
+# key: nikto
 # condition: t
 # --
 

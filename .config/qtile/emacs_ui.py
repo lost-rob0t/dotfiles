@@ -14,11 +14,11 @@ from typing import Any, Iterable
 
 
 DEFAULT_HELPER = Path("~/.config/qtile/qtile-desktop.el").expanduser()
-# Popups live in a *named* Emacs server so the user's interactive Emacs is
-# never touched: a missing server is started headlessly as a daemon, which by
-# definition opens no window (unlike `emacsclient -a emacs`, which spawned a
-# second full-size GUI).  Override or disable with QTILE_EMACS_SERVER="".
-SERVER_NAME = os.environ.get("QTILE_EMACS_SERVER", "qtile")
+# Popups share the user's single Emacs daemon on the default server socket;
+# a missing daemon is started headlessly, which by definition opens no
+# window (unlike `emacsclient -a emacs`, which spawned a second full-size
+# GUI).  QTILE_EMACS_SERVER overrides the socket name for popup clients.
+SERVER_NAME = os.environ.get("QTILE_EMACS_SERVER", "")
 
 
 @dataclass(frozen=True)
@@ -214,9 +214,9 @@ def build_emacsclient_command(
         f"(qtile-ui-toggle {json.dumps(popup_id)} {json.dumps(function)} "
         f"(json-read-from-string {_json_elisp_string(payload)})))"
     )
-    # Never launch a fallback *editor*.  The named daemon fallback is
-    # headless: `emacs --daemon=NAME` opens no window, unlike
-    # `emacsclient -a emacs` which spawned a second full-size GUI frame.
+    # Never launch a fallback *editor*.  The daemon fallback is headless:
+    # `emacs --daemon` opens no window, unlike `emacsclient -a emacs` which
+    # spawned a second full-size GUI frame.
     command = ["emacsclient"]
     if SERVER_NAME:
         command += ["-s", SERVER_NAME]
@@ -251,16 +251,23 @@ def _is_missing_server(completed: subprocess.CompletedProcess[str]) -> bool:
     return "socket" in detail or "server" in detail or "no such file" in detail
 
 
+def _emacs_binary() -> str | None:
+    """Prefer the Doom wrapper; a raw emacs boots vanilla ~/.emacs.d."""
+    wrapper = os.path.expanduser("~/.local/bin/emacs")
+    if os.path.isfile(wrapper) and os.access(wrapper, os.X_OK):
+        return wrapper
+    return shutil.which("emacs")
+
+
 def _start_named_daemon() -> bool:
-    """Start the headless named daemon; it never opens a window."""
-    if not SERVER_NAME:
-        return False
-    emacs = shutil.which("emacs")
+    """Start the headless daemon on SERVER_NAME or the default socket."""
+    emacs = _emacs_binary()
     if not emacs:
         return False
+    daemon_arg = f"--daemon={SERVER_NAME}" if SERVER_NAME else "--daemon"
     try:
         completed = subprocess.run(
-            [emacs, f"--daemon={SERVER_NAME}"],
+            [emacs, daemon_arg],
             check=False,
             capture_output=True,
             text=True,

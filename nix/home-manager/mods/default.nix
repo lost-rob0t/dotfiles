@@ -12,6 +12,7 @@
     inputs.qwen3-tts.homeManagerModules.default
     ./outrun-theme.nix
     ./opencode.nix
+    ./opencode-security.nix
     ./opencode-tmux.nix
     ./opencode-ses.nix
     ./codex.nix

@@ -121,7 +121,8 @@ class EmacsUiTests(unittest.TestCase):
             args={"backend": "emacs"},
             minibuffer=True,
         )
-        self.assertEqual(command[:5], ["emacsclient", "-s", "qtile", "-a", "false"])
+        self.assertEqual(command[:3], ["emacsclient", "-a", "false"])
+        self.assertEqual(command[3], "--eval")
         self.assertIn("json-read-from-string", command[-1])
         self.assertNotIn("shell=True", command[-1])
         self.assertIn("notifications", command[-1])
@@ -180,15 +181,15 @@ class EmacsUiTests(unittest.TestCase):
         notify.assert_called_once()
         self.assertIn("server", notify.call_args.args[1].lower())
 
-    def test_daemon_start_uses_named_headless_daemon(self):
+    def test_daemon_start_uses_default_headless_daemon(self):
         emacs = shutil.which("emacs")
         if emacs is None:
             self.skipTest("emacs not on PATH")
         completed = subprocess.CompletedProcess([], 0, "Starting Emacs daemon.", "")
-        with mock.patch.object(MODULE.shutil, "which", return_value="/usr/bin/emacs"), \
+        with mock.patch.object(MODULE, "_emacs_binary", return_value="/usr/bin/emacs"), \
              mock.patch.object(MODULE.subprocess, "run", return_value=completed) as run:
             self.assertTrue(MODULE._start_named_daemon())
-        self.assertEqual(run.call_args.args[0], ["/usr/bin/emacs", "--daemon=qtile"])
+        self.assertEqual(run.call_args.args[0], ["/usr/bin/emacs", "--daemon"])
         self.assertNotIn("-c", run.call_args.args[0])
 
     def test_launch_is_scheduled_on_worker_without_waiting_in_qtile(self):
