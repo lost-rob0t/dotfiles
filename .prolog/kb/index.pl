@@ -24,6 +24,7 @@
 :- consult("zara_deployment").
 :- consult("zara_voice_validation").
 :- consult("zara_pairing").
+:- consult("zara_experts_opencode").
 
 :- consult('qtile_monitors.pl').
 :- consult("writers").
