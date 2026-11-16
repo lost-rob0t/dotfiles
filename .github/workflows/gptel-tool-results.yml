@@ -29,11 +29,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check out tested gptel revision
-        uses: actions/checkout@v4
-        with:
-          repository: karthink/gptel
-          ref: dc0280821c344ec10547e13179ea2095f6165f05
-          path: .ci/gptel
+        run: |
+          git clone --no-checkout https://github.com/karthink/gptel .ci/gptel
+          git -C .ci/gptel checkout dc0280821c344ec10547e13179ea2095f6165f05
 
       - name: Fetch Nix setup action from upstream
         run: git clone --depth 1 --branch v31 https://github.com/cachix/install-nix-action .github/ci-actions/install-nix
