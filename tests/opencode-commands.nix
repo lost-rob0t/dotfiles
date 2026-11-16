@@ -69,6 +69,12 @@ let
 
   cliFixture = mkHome { outrunTheme.enable = true; };
 
+  securityFixture = mkHome {
+    imports = [ ../nix/home-manager/mods/opencode-security.nix ];
+    opencodeSecurity.enable = true;
+  };
+
+
   commandPath = "opencode/commands/simple.md";
   commandText = fixture.config.xdg.configFile.${commandPath}.text;
   unsafeEvaluation = builtins.tryEval unsafeFixture.activationPackage;
@@ -170,6 +176,31 @@ assert
   reverseFixture.config.xdg.configFile."opencode/commands/zed.md".text
   == forwardFixture.config.xdg.configFile."opencode/commands/zed.md".text;
 assert !unsafeEvaluation.success;
+# Multi-module hook loading: the security module contributes the rmguard
+# plugin and the destructive-shell ask/deny rules through generic options.
+assert fixture.config.opencode.hookPlugins == { };
+assert fixture.config.opencode.shellPermissions == [ ];
+assert fixture.config.opencode.denyPolicies == [ ];
+assert fixture.config.programs.opencode.settings ? permissions;
+assert
+  securityFixture.config.xdg.configFile."opencode/plugins/rmguard/index.ts".source
+  == ../opencode/plugins/rmguard/index.ts;
+assert
+  securityFixture.config.programs.opencode.settings.plugins
+  == [ "/home/command-test/.config/opencode/plugins/rmguard" ];
+assert builtins.length securityFixture.config.opencode.shellPermissions == 14;
+assert
+  lib.any (r: r.resource == "rm -rf *" && r.effect == "ask")
+  securityFixture.config.opencode.shellPermissions;
+assert
+  securityFixture.config.programs.opencode.settings.permissions
+  == securityFixture.config.opencode.shellPermissions;
+assert
+  lib.any (p: p.resource == "shell:rm -rf /home/*" && p.effect == "deny")
+  securityFixture.config.opencode.denyPolicies;
+assert
+  securityFixture.config.programs.opencode.settings.policies
+  == securityFixture.config.opencode.denyPolicies;
 assert builtins.length (builtins.attrNames defaults) == 78;
 assert lib.all (name: builtins.hasAttr name defaults) expectedCommands;
 assert lib.all (name: lib.hasInfix "for `/${name}`" defaults.${name}.template) expectedCommands;

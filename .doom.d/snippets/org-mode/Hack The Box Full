@@ -1,7 +1,7 @@
 # -*- mode: snippet -*-
 # name: Hack The Box Full
-# uuid:
-# key: trigger-key
+# uuid: hack-the-box-full
+# key: htb
 # condition: t
 # --
 

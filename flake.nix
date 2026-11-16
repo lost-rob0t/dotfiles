@@ -444,6 +444,19 @@
           ;
         inputs = { inherit skills; };
       };
+
+      rmguardClassifierCheck = pkgs.runCommand "rmguard-classifier-check"
+        {
+          nativeBuildInputs = [ pkgs.nodejs ];
+          plugin = ./opencode/plugins/rmguard/index.ts;
+          harness = ./tests/rmguard-classifier.mjs;
+        }
+        ''
+          cp "$plugin" plugin.mjs
+          cp "$harness" harness.mjs
+          node harness.mjs
+          touch "$out"
+        '';
     in
     {
       nixosConfigurations = {
@@ -494,6 +507,7 @@
         };
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
+        rmguard-classifier = rmguardClassifierCheck;
         starintel-admin = starintelAdminCheck;
         zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
         zara-all-plugins = zaraAllPluginsCheck;

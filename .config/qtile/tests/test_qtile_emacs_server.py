@@ -11,15 +11,19 @@ SCRIPTS = ROOT / ".config" / "qtile" / "scripts"
 
 
 class QtileEmacsServerTests(unittest.TestCase):
-    def test_autostart_ensures_the_named_server_without_editor_fallback(self):
+    def test_autostart_ensures_the_default_server_without_editor_fallback(self):
         text = AUTOSTART.read_text(encoding="utf-8")
-        self.assertIn("emacsclient -s qtile -a false --eval t", text)
-        self.assertIn("setsid emacs --daemon=qtile", text)
+        self.assertIn("timeout 5 emacsclient -a false --eval t", text)
+        self.assertIn('setsid "$emacs_bin" --daemon', text)
+        self.assertIn(".local/bin/emacs", text)
+        self.assertNotIn("--daemon=qtile", text)
+        self.assertNotIn("-s qtile", text)
 
-    def test_qtile_scratchpad_scripts_use_the_named_server(self):
+    def test_scratchpad_scripts_use_the_default_server(self):
         for name in ("eclient.sh", "eclient-eval.sh", "org-capture.sh"):
             text = (SCRIPTS / name).read_text(encoding="utf-8")
-            self.assertIn("emacsclient -s qtile -a false", text)
+            self.assertIn("emacsclient -a false", text)
+            self.assertNotIn("-s qtile", text)
 
 
 if __name__ == "__main__":

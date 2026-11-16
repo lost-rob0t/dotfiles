@@ -99,6 +99,13 @@ let
     name: command: lib.nameValuePair "opencode/commands/${name}.md" { text = renderCommand command; }
   ) enabledCommands;
 
+  hookPluginFiles = lib.mapAttrs' (
+    name: path: lib.nameValuePair "opencode/plugins/${name}/index.ts" { source = path; }
+  ) cfg.hookPlugins;
+  hookPluginPaths = lib.mapAttrsToList (
+    name: _: "${config.xdg.configHome}/opencode/plugins/${name}"
+  ) cfg.hookPlugins;
+
   skillsPackages = lib.attrByPath [ "packages" pkgs.stdenv.hostPlatform.system ] { } inputs.skills;
   opencodeWorker = skillsPackages.opencode-worker or null;
 
@@ -527,6 +534,24 @@ in
       description = "Optional source for the user-global OpenCode AGENTS.md file.";
     };
 
+    hookPlugins = mkOption {
+      type = types.attrsOf types.path;
+      default = { };
+      description = "Hook plugin entry files to install and load; attr name becomes the plugin directory under opencode/plugins. Feature modules contribute entries so several modules can register hooks independently.";
+    };
+
+    shellPermissions = mkOption {
+      type = types.listOf types.attrs;
+      default = [ ];
+      description = "OpenCode shell permission rules contributed by policy modules.";
+    };
+
+    denyPolicies = mkOption {
+      type = types.listOf types.attrs;
+      default = [ ];
+      description = "OpenCode deny policies contributed by policy modules.";
+    };
+
     globalSkills = {
       installedSource = mkOption {
         type = types.path;
@@ -609,34 +634,36 @@ in
       };
 
       models = mkOption {
-        type = types.attrsOf (types.submodule {
-          options = {
-            name = mkOption {
-              type = types.str;
-              description = "Display name shown in OpenCode model lists.";
+        type = types.attrsOf (
+          types.submodule {
+            options = {
+              name = mkOption {
+                type = types.str;
+                description = "Display name shown in OpenCode model lists.";
+              };
+              context = mkOption {
+                type = types.int;
+                default = 4096;
+                description = "Served context window.";
+              };
+              output = mkOption {
+                type = types.int;
+                default = 4096;
+                description = "Per-request output token limit.";
+              };
+              attachment = mkOption {
+                type = types.bool;
+                default = false;
+                description = "Whether the model accepts image attachments.";
+              };
+              toolCall = mkOption {
+                type = types.bool;
+                default = false;
+                description = "Whether the model reliably emits OpenAI tool calls.";
+              };
             };
-            context = mkOption {
-              type = types.int;
-              default = 4096;
-              description = "Served context window.";
-            };
-            output = mkOption {
-              type = types.int;
-              default = 4096;
-              description = "Per-request output token limit.";
-            };
-            attachment = mkOption {
-              type = types.bool;
-              default = false;
-              description = "Whether the model accepts image attachments.";
-            };
-            toolCall = mkOption {
-              type = types.bool;
-              default = false;
-              description = "Whether the model reliably emits OpenAI tool calls.";
-            };
-          };
-        });
+          }
+        );
         description = "StarIntel models published to OpenCode; each entry becomes <providerId>/<name>.";
         default = { };
       };
@@ -672,7 +699,7 @@ in
         }
       ];
 
-    xdg.configFile = commandFiles;
+    xdg.configFile = commandFiles // hookPluginFiles;
     home.packages =
       lib.optional (opencodeWorker != null) opencodeWorker
       ++ lib.optionals cfg.web.enable [
@@ -721,6 +748,9 @@ in
       package = cfg.package;
       enableMcpIntegration = true;
       settings = {
+        permissions = cfg.shellPermissions;
+        policies = cfg.denyPolicies;
+        plugins = hookPluginPaths;
         provider = {
           openai.options.baseURL = mkIf cfg.llmLog.enable "${cfg.llmLog.baseUrl}/openai/v1";
           openrouter.options.baseURL = mkIf cfg.llmLog.enable "${cfg.llmLog.baseUrl}/openrouter/api/v1";

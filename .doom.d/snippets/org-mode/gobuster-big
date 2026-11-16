@@ -1,7 +1,7 @@
 # -*- mode: snippet -*-
 # name: gobuster-big
-# uuid:
-# key: trigger-key
+# uuid: gobuster-big
+# key: gobuster-big
 # condition: t
 # --
 

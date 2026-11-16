@@ -126,7 +126,7 @@ in
           "HM_UPDATER_CONFIGURATION=${configuration}"
           "HM_UPDATER_LOGROTATE_CONFIG=${logrotateConfig}"
           "GIT_TERMINAL_PROMPT=0"
-          "GIT_SSH_COMMAND=${pkgs.openssh}/bin/ssh -o BatchMode=yes"
+          ''"GIT_SSH_COMMAND=${pkgs.openssh}/bin/ssh -oBatchMode=yes"''
         ];
       };
     };

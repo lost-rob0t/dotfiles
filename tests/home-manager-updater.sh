@@ -36,11 +36,19 @@ if [[ "${1:-}" == "generations" ]]; then
   if [[ "${MOCK_GENERATIONS_RC:-0}" -ne 0 ]]; then
     exit "$MOCK_GENERATIONS_RC"
   fi
-  printf '2026-08-21 00:00 : id 1 -> %s\n' "$(cat "$state")"
+  # Generations list newest-first; the newest entry is not necessarily the
+  # active one, so mark the state entry "(current)" like real home-manager.
+  if [[ "${MOCK_STALE_NEWER:-0}" -eq 1 ]]; then
+    # newest-first listing: the failed newer generation sits above the
+    # restored current one and must not be mistaken for the active one
+    printf '2026-08-21 00:01 : id 2 -> %s\n' "$new"
+  fi
+  printf '2026-08-21 00:00 : id 1 -> %s (current)\n' "$(cat "$state")"
   exit 0
 fi
 
 if [[ "${1:-}" == "switch" && "${2:-}" == "--rollback" ]]; then
+  printf 'rollback: %s\n' "$*" >>"${MOCK_ARGS_LOG:?}"
   printf 'rollback\n' >>"$counts"
   if [[ "${MOCK_ROLLBACK_RC:-0}" -eq 0 ]]; then
     printf '%s\n' "$old" >"$state"
@@ -49,6 +57,7 @@ if [[ "${1:-}" == "switch" && "${2:-}" == "--rollback" ]]; then
 fi
 
 if [[ "${1:-}" == "switch" ]]; then
+  printf 'switch: %s\n' "$*" >>"${MOCK_ARGS_LOG:?}"
   printf 'switch\n' >>"$counts"
   if [[ "${MOCK_ADVANCE_ON_SWITCH:-0}" -eq 1 ]]; then
     printf '%s\n' "$new" >"$state"
@@ -117,15 +126,18 @@ reset_case() {
   export MOCK_GENERATION_STATE="$tmp/$name/generation"
   export MOCK_COUNTS="$tmp/$name/counts"
   export MOCK_GIT_LOG="$tmp/$name/git.log"
+  export MOCK_ARGS_LOG="$tmp/$name/args.log"
   mkdir -p "$HM_UPDATER_DATA_DIR/repo/.git"
   printf '%s\n' "$MOCK_OLD_GENERATION" >"$MOCK_GENERATION_STATE"
   : >"$MOCK_COUNTS"
   : >"$MOCK_GIT_LOG"
+  : >"$MOCK_ARGS_LOG"
   export MOCK_NIX_RC=0
   export MOCK_GENERATIONS_RC=0
   export MOCK_SWITCH_RC=0
   export MOCK_ROLLBACK_RC=0
   export MOCK_ADVANCE_ON_SWITCH=0
+  export MOCK_STALE_NEWER=0
 }
 
 run_expect_failure() {
@@ -161,11 +173,16 @@ assert_contains "$HM_UPDATER_DATA_DIR/failure.txt" "no rollback was necessary"
 reset_case activation-after-generation
 export MOCK_SWITCH_RC=1
 export MOCK_ADVANCE_ON_SWITCH=1
+export MOCK_STALE_NEWER=1
 run_expect_failure
 assert_count switch 1
 assert_count rollback 1
 [[ "$(cat "$MOCK_GENERATION_STATE")" == "$MOCK_OLD_GENERATION" ]] || fail_test "rollback did not restore previous generation"
 assert_contains "$HM_UPDATER_DATA_DIR/failure.txt" "previous Home Manager generation was restored successfully"
+assert_contains "$MOCK_ARGS_LOG" "switch --rollback -b backup"
+if grep -q "did not restore the previous generation" "$HM_UPDATER_DATA_DIR/failure.txt"; then
+  fail_test "stale newer generation above the restored current one was misread as unrestored"
+fi
 
 reset_case success
 export MOCK_ADVANCE_ON_SWITCH=1
@@ -184,5 +201,10 @@ assert_count rollback 0
 # 2026-10-19 flake failure, Forgejo issue #146).
 assert_contains "$MOCK_GIT_LOG" "checkout --force -B master origin/master"
 assert_contains "$MOCK_GIT_LOG" "clean -fdx"
+
+# Unattended switch and rollback must move conflicting unmanaged files aside
+# (-b backup) instead of deadlocking on checkLinkTargets (2026-10-26 issue
+# #146 failure mode).
+assert_contains "$MOCK_ARGS_LOG" "switch -b backup --flake"
 
 printf 'home-manager-updater tests: PASS\n'

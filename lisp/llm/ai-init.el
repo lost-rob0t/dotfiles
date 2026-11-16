@@ -130,7 +130,7 @@
   :request-params nil)
 
 (with-eval-after-load 'org-ql
-  (require 'todo nil t))
+  (require 'ai-todo nil t))
 
 (provide 'ai-init)
 ;;; ai-init.el ends here
