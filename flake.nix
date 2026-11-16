@@ -257,24 +257,19 @@
       zaraPluginRegistry = (builtins.fromJSON (builtins.readFile "${zara-plugins}/plugins.json")).plugins;
       zaraPluginNames = map (entry: entry.name) zaraPluginRegistry;
       zaraAllPluginsCheck =
-        # Zara is disabled on the desktop profile pending the crash
-        # investigation; assert plugin wiring only while it is enabled.
-        if !desktopHome.config.zara.enable then
-          pkgs.runCommand "zara-all-plugins-check" { } "touch $out"
-        else
-          assert desktopHome.config.zara.plugins.enableAll;
-          assert lib.all (
-            name: lib.elem zara-plugins.packages.${system}.${name} desktopHome.config.home.packages
-          ) zaraPluginNames;
-          assert lib.all (
-            entry:
-            builtins.hasAttr ".zarathushtra/plugins/${builtins.baseNameOf entry.entrypoint}" desktopHome.config.home.file
-            && builtins.hasAttr ".config/zarathushtra/plugins/${entry.name}/lib" desktopHome.config.home.file
-          ) zaraPluginRegistry;
-          pkgs.runCommand "zara-all-plugins-check" { } ''
-            test "${toString (builtins.length zaraPluginNames)}" -gt 0
-            touch "$out"
-          '';
+        assert desktopHome.config.zara.plugins.enableAll;
+        assert lib.all (
+          name: lib.elem zara-plugins.packages.${system}.${name} desktopHome.config.home.packages
+        ) zaraPluginNames;
+        assert lib.all (
+          entry:
+          builtins.hasAttr ".zarathushtra/plugins/${builtins.baseNameOf entry.entrypoint}" desktopHome.config.home.file
+          && builtins.hasAttr ".config/zarathushtra/plugins/${entry.name}/lib" desktopHome.config.home.file
+        ) zaraPluginRegistry;
+        pkgs.runCommand "zara-all-plugins-check" { } ''
+          test "${toString (builtins.length zaraPluginNames)}" -gt 0
+          touch "$out"
+        '';
       aiClientThemeCheck =
         assert !builtins.hasAttr ".codex/config.toml" desktopHome.config.home.file;
         assert !builtins.hasAttr ".codex/config.yaml" desktopHome.config.home.file;

@@ -74,11 +74,12 @@ boundaries, so CI never spends OpenRouter credits.
 :PROPERTIES:
 :CUSTOM_ID: qwen3-tts-backend
 :END:
-*Status 2026-10-28:* Zara and the Qwen3-TTS backend are fully disabled on the
-desktop profile (=zara.enable = false;=, =services.qwen3-tts.enable = false;=)
-pending the machine-crash investigation; the runtime services were also
-stopped and disabled on =flake=.  The sections below describe the enabled
-state to restore afterwards.
+*Status 2026-11-02:* Zara is re-enabled on the desktop profile
+(=zara.enable = true;=) and its units are started on =flake= again.  The
+Qwen3-TTS backend remains disabled (=services.qwen3-tts.enable = false;=,
+=autoStart = false;=) by operator decision: its container was implicated in
+the crash investigation, so Zara runs without its voice backend for now.
+The sections below describe the enabled voice backend to restore later.
 
 The desktop profile imports the =Qwen3-TTS_server= Home Manager flake module,
 installs its =qwen3-tts= command, and enables the CPU-backed service on

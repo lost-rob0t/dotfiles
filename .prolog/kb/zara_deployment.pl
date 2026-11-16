@@ -2,19 +2,23 @@ zara_deployment_owner(home_manager, 'unseen@flake').
 zara_deployment_input(zara, 'flake.lock').
 zara_deployment_services(['zara-server.service', 'zara-pair.service', 'zara-wake.service', 'zara-desktop.service']).
 zara_deployment_dependency(qwen3_tts_service, zara_tts_provider, 'http://127.0.0.1:7860').
+zara_runtime_state(enabled, date('2026-11-02'), operator_request).
+qwen3_tts_state(disabled, date('2026-11-02'),
+    operator_decision('tts container implicated in the crash investigation; zara runs without voice')).
 zara_deployment_invariant(preserve_other_dirty_lock_inputs).
 zara_deployment_invariant(compare_service_execstart_to_evaluated_package).
 zara_startup_observation(wake_may_retry_before_daemon_ready).
 zara_startup_observation(pair_may_fail_before_control_socket_exists).
 
-%% Enabled-state check contract (verified 2026-10-20 re-enable on flake):
+%% Enabled-state check contract (verified 2026-11-02 re-enable on flake):
 %% checks.zara-server and tests/zara-server.nix assert the flake profile
 %% ExecStart carries --remote-endpoint tcp://0.0.0.0:6060 + --security-dir,
 %% never a primary ' --endpoint ', and the shared desktop profile binds no
 %% remote endpoint. checks.zara-all-plugins asserts every pinned registry
 %% plugin lands in home.packages plus its discovery and <name>/lib files.
 %% tests/zara-workflows.sh greps desktop home.nix for workflows.enable=true,
-%% plugins enableAll=true, and qwen3-tts enable/autoStart=true markers.
+%% plugins enableAll=true, and qwen3-tts enable/autoStart=false markers
+%% (TTS stays disabled while Zara runs).
 zara_check_contract(enabled, ['zara-server', 'zara-all-plugins', 'zara-workflows.sh']).
 zara_check_swap_rule(disabled_enabled_toggle,
     [flake_nix_check_name, tests/zara-server.nix, tests/zara-workflows.sh,
@@ -34,3 +38,8 @@ zara_plugin_startup_failure('zara-aidot', module_not_found('matter_server'),
     scope(pinned_registry_packaging_gap)).
 zara_plugin_startup_failure('zara-discord', improper_token_passed,
     scope(secrets_env_token_invalid_or_absent)).
+
+%% Upstream issues filed 2026-11-03 from the flake deploy session (zara @ 034d6b23).
+zara_upstream_issue(1527, startup_degraded_warning, 'optional OpenAI credentials absent marks whole runtime degraded').
+zara_upstream_issue(1528, kb_intents_discontiguous, 'python_skill_intent/3 needs :- discontiguous (intents.pl:121 vs :160)').
+zara_upstream_issue(1492, voice_ingress_queue_full, 'evidence comment added: 13 terminal failures/90min with tts endpoint disabled').

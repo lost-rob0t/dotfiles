@@ -32,23 +32,22 @@
   hackmode.enable = true;
 
   zara = {
-    # Disabled 2026-10-28: suspected in repeated machine crashes (zara-server
-    # container and the qwen3-tts Vulkan container both exited 255). Re-enable
-    # deliberately after the stability investigation.
-    enable = false;
+    # Re-enabled 2026-11-02 by operator decision; the Qwen3-TTS voice backend
+    # below stays disabled out of the crash investigation.
+    enable = true;
     nixManaged = false;
-    workflows.enable = false;
+    workflows.enable = true;
 
     server = {
-      enable = false;
+      enable = true;
       environmentFile = "-%h/.config/zarathushtra/secrets.env";
     };
 
-    desktop.enable = false;
-    wake.enable = false;
+    desktop.enable = true;
+    wake.enable = true;
 
     plugins = {
-      enableAll = false;
+      enableAll = true;
       discoveryFiles = {
         "starintel.py" = ../../files/zarathushtra/plugins/starintel.py;
         "lyria.py" = ../../files/zarathushtra/plugins/lyria.py;
@@ -56,9 +55,11 @@
     };
   };
 
-  # Qwen3-TTS (Zara's voice backend) is disabled with Zara while the machine
-  # crashes are investigated. The pinned image + sha256-verified GGUF models
-  # live under ~/.local/share/qwen3-tts and are untouched.
+  # Qwen3-TTS (Zara's voice backend) stays disabled per the operator's
+  # 2026-11-02 decision: its container was implicated in the crash
+  # investigation, so Zara runs without voice until it is deliberately
+  # re-enabled. The pinned image + sha256-verified GGUF models live under
+  # ~/.local/share/qwen3-tts and are untouched.
   services.qwen3-tts = {
     enable = false;
     autoStart = false;
