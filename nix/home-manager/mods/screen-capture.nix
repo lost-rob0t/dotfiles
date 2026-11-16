@@ -18,7 +18,7 @@ let
       wl-clipboard
       xclip
       xdotool
-      xorg.xrandr
+      xrandr
     ];
     text = builtins.readFile ../../../.local/bin/screen-capture;
   };

@@ -26,7 +26,12 @@ log() {
 }
 
 current_generation() {
-  home-manager generations 2>/dev/null | sed -n '1s/.* -> //p'
+  # Select the generation marked "(current)", not the first line: after a
+  # failed activation the newest generation is the failed one, so line 1
+  # reports a rollback that actually succeeded as unrestored (2026-11-15
+  # false failure).
+  home-manager generations 2>/dev/null |
+    sed -n 's/.* -> \(.*\) (current)$/\1/p' | head -n1
 }
 
 find_issue_number() {
@@ -178,11 +183,10 @@ fi
 if ! git -C "$CHECKOUT" fetch --prune origin "$HM_UPDATER_BRANCH"; then
   fail_update "fetch" "Could not fetch origin/$HM_UPDATER_BRANCH."
 fi
-if ! git -C "$CHECKOUT" checkout -B "$HM_UPDATER_BRANCH" "origin/$HM_UPDATER_BRANCH"; then
-  fail_update "checkout" "Could not reset the dedicated checkout to origin/$HM_UPDATER_BRANCH."
-fi
-if ! git -C "$CHECKOUT" reset --hard "origin/$HM_UPDATER_BRANCH"; then
-  fail_update "checkout" "Could not hard-reset the dedicated updater checkout."
+# The dedicated checkout is disposable: dirty state from older layouts or
+# interrupted runs must never block the update, so the branch switch is forced.
+if ! git -C "$CHECKOUT" checkout --force -B "$HM_UPDATER_BRANCH" "origin/$HM_UPDATER_BRANCH"; then
+  fail_update "checkout" "Could not force-reset the dedicated checkout to origin/$HM_UPDATER_BRANCH."
 fi
 if ! git -C "$CHECKOUT" clean -fdx; then
   fail_update "checkout" "Could not clean the dedicated updater checkout."
@@ -199,7 +203,11 @@ if [[ -z "$before_generation" ]]; then
 fi
 log "Current generation before activation: $before_generation"
 
-if ! home-manager switch --flake "$CHECKOUT#$HM_UPDATER_CONFIGURATION" --show-trace; then
+# -b backup: unattended activation must survive stray unmanaged files that
+# would otherwise abort checkLinkTargets, deadlock the rollback path, and
+# leave the host on a dead generation (2026-10-26 failure, issue #146).
+# Conflicting files are moved aside as <name>.backup instead of blocking.
+if ! home-manager switch -b backup --flake "$CHECKOUT#$HM_UPDATER_CONFIGURATION" --show-trace; then
   after_generation="$(current_generation || true)"
   log "Generation after failed activation: ${after_generation:-unknown}"
 
@@ -209,7 +217,7 @@ if ! home-manager switch --flake "$CHECKOUT#$HM_UPDATER_CONFIGURATION" --show-tr
 
   if [[ "$after_generation" != "$before_generation" ]]; then
     log "Activation advanced the generation; rolling back once"
-    if ! home-manager switch --rollback; then
+    if ! home-manager switch --rollback -b backup; then
       fail_update "rollback" "Activation failed and the one-shot rollback also failed. Manual recovery is required."
     fi
     rolled_generation="$(current_generation || true)"

@@ -1,13 +1,35 @@
 { lib, pkgs, inputs, config, ... }:
 
 let
-  comfyui = pkgs.comfyui.override { withManager = true; };
-  llmLogRevision = "7b1d4359764fcc87fb967ed6e6577a9eaf6f3045";
+  comfyui = pkgs.comfyui.override {
+    extraPackages = ps: [ ps.comfyui-manager ];
+  };
+  llmLogRevision = "692d3820f638c011fc248a7694ecabd72a6e2895";
   llmLogFlake = builtins.getFlake "github:lost-rob0t/llm-log/${llmLogRevision}";
   llmLogPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.default;
   llmLogExpertPackage = llmLogFlake.packages.${pkgs.stdenv.hostPlatform.system}.llm-log-expert;
   llmLogModule = llmLogFlake.homeManagerModules.default;
   proxyBase = "http://127.0.0.1:8787";
+
+  # Temporary workaround for NixOS/nixpkgs#563241, matching the fix merged
+  # upstream in NixOS/nixpkgs#564101. Bun 1.4.x executable code splitting can
+  # produce an OpenCode binary that crashes in SystemPrompt.environment before
+  # provider dispatch. Keep this local until the pinned nixpkgs includes #564101.
+  opencodePackage = pkgs.opencode.overrideAttrs (oldAttrs: {
+    postPatch = (oldAttrs.postPatch or "") + ''
+      # Bun 1.4.x regression: compiled executable code splitting breaks OpenCode.
+      # Upstream NixOS/nixpkgs#564101 fixes this in nixpkgs; once the pinned
+      # nixpkgs carries the fix (or the build script changes shape) the
+      # pattern is absent, so guard instead of failing the build.
+      if grep -qF 'splitting: true,' packages/opencode/script/build.ts 2>/dev/null; then
+        substituteInPlace packages/opencode/script/build.ts \
+          --replace-fail 'splitting: true,' 'splitting: false,'
+      fi
+    '';
+    passthru = (oldAttrs.passthru or { }) // {
+      promptSendWorkaround = "NixOS/nixpkgs#564101";
+    };
+  });
   youtubeContext = pkgs.writeShellApplication {
     name = "youtube-context";
     runtimeInputs = with pkgs; [
@@ -27,11 +49,25 @@ in
   imports = [
     llmLogModule
     ./brave-mcp.nix
+    ./llm-log-quant-alerts.nix
+    ./starintel-llm-harness.nix
   ];
 
   options = with lib; {
     llm = {
       enable = mkEnableOption "Enable LLM and zara utils";
+      quotaTelemetry = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Collect provider-reported z.AI and GPT quota metadata for Qtile.";
+        };
+        environmentFile = mkOption {
+          type = types.str;
+          default = "${config.xdg.configHome}/llm-log/quotas.env";
+          description = "Optional private runtime environment file; never put API keys in Nix values.";
+        };
+      };
     };
   };
 
@@ -55,18 +91,57 @@ in
         openrouter = "https://openrouter.ai";
         anthropic = "https://api.anthropic.com";
         chatgpt = "https://chatgpt.com";
+        # StarIntel local inference (llama-swap); consumed by the OpenCode
+        # starintel-llm provider at <proxy>/starintel/v1.
+        starintel = mkIf config.opencode.starintelLlm.enable "https://llm.starintel.actor";
       };
     };
 
+    # Read-only quota observations use existing managed auth. Bypass the Codex
+    # capture wrapper so telemetry requests cannot feed back into token history.
+    # The optional file supplies ZAI_API_KEY or LLM_LOG_ZAI_KEY_FILE at runtime.
+    systemd.user.services.llm-log.Service = mkIf config.llm.quotaTelemetry.enable {
+      Environment = lib.mkAfter [
+        "LLM_LOG_QUOTAS_ENABLED=1"
+        "LLM_LOG_CODEX_BIN=${config.codex.package}/bin/codex"
+        "CODEX_HOME=${if config.home.preferXdgDirectories then "${config.xdg.configHome}/codex" else "${config.home.homeDirectory}/.codex"}"
+      ];
+      EnvironmentFile = lib.mkAfter [ "-${config.llm.quotaTelemetry.environmentFile}" ];
+    };
+
     outrunTheme.enable = true;
+    llm.starintelHarness.enable = true;
 
     # The client modules own packages, complete Home Manager configuration
     # surfaces, MCP integration, and the shared Outrun theme.
     opencode = {
       enable = true;
+      package = opencodePackage;
       llmLog = {
         enable = true;
         baseUrl = proxyBase;
+      };
+      # StarIntel local inference (llama-swap behind llm.starintel.actor):
+      # qwen3-8b is the chat tier (-c 4096), qwen38-27b the heavy vision tier
+      # (mmproj, -c 8192), and bge-m3 the embeddings tier. Limits mirror the
+      # deployed llama-swap per-model server flags.
+      starintelLlm = {
+        enable = true;
+        models = {
+          qwen3-8b = {
+            name = "Qwen3 8B Q4_K_M (StarIntel)";
+            context = 4096;
+          };
+          qwen38-27b = {
+            name = "Qwen3.8 27B Q4_K_M vision (StarIntel)";
+            context = 8192;
+            attachment = true;
+          };
+          bge-m3 = {
+            name = "bge-m3 embeddings (StarIntel)";
+            context = 8192;
+          };
+        };
       };
     };
     codex = {
@@ -76,6 +151,10 @@ in
         baseUrl = proxyBase;
       };
     };
+    # Same client family as opencode/codex, mirroring their setup pattern:
+    # pinned flake input, explicit packages, no ambient trust. The operator
+    # template in ~/.config/agentprolog/ stays inert until passed via --config.
+    agentprolog.enable = true;
     agentVerification.enable = true;
     programs.chatgpt-desktop.enable = true;
 
@@ -111,6 +190,7 @@ in
       STARINTEL_TIMEOUT_SECONDS = mkDefault "10";
       ANTHROPIC_BASE_URL = mkDefault "${proxyBase}/anthropic";
       LLM_LOG_BASE_URL = mkDefault proxyBase;
+      LLM_LOG_API_URL = mkDefault proxyBase;
     };
 
     # Brave Search MCP is part of the default LLM tool plane. Authentication

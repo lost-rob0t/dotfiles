@@ -9,18 +9,21 @@ trap 'rm -rf "$TMP"' EXIT
 REMOTE="$TMP/remote.git"
 SEED="$TMP/seed"
 REPO="$TMP/durable"
-ORG="$TMP/org"
+NOTES="$TMP/org"
+ORG="$NOTES/agenda"
 RUN="$TMP/run"
 STATE="$TMP/state"
 
 mkdir -p "$ORG" "$RUN" "$STATE"
 git init --bare "$REMOTE" >/dev/null
 git clone "$REMOTE" "$SEED" >/dev/null 2>&1
-mkdir -p "$SEED/agenda"
+mkdir -p "$SEED/agenda" "$SEED/notes/daily" "$SEED/notes/assets"
 
 printf '* TODO shared\n' > "$SEED/agenda/shared.org"
 printf '* TODO remote\n' > "$SEED/agenda/remote.org"
-git -C "$SEED" add agenda
+printf '#+title: Remote daily\n\n* note\n' > "$SEED/notes/daily/2026-09-19.org"
+printf 'remote attachment\n' > "$SEED/notes/assets/receipt.txt"
+git -C "$SEED" add agenda notes
 git -C "$SEED" -c user.name=test -c user.email=test@example.invalid \
   commit -m seed >/dev/null
 git -C "$SEED" push -u origin HEAD >/dev/null 2>&1
@@ -32,6 +35,7 @@ run_sync() {
   DOTFILES_DIR="$TMP/no-dotfiles" \
   GPT_TODOS_REPO_DIR="$REPO" \
   GPT_TODOS_ORG_DIR="$ORG" \
+  GPT_TODOS_NOTES_DIR="$NOTES" \
   GPT_TODOS_REMOTE="$REMOTE" \
   GIT_AUTHOR_NAME=test \
   GIT_AUTHOR_EMAIL=test@example.invalid \
@@ -52,6 +56,8 @@ body_of()    { git -C "$REPO" log -1 --format=%b; }
 run_sync
 cmp "$ORG/shared.org" "$SEED/agenda/shared.org"
 cmp "$ORG/remote.org" "$SEED/agenda/remote.org"
+cmp "$NOTES/daily/2026-09-19.org" "$SEED/notes/daily/2026-09-19.org"
+cmp "$NOTES/assets/receipt.txt" "$SEED/notes/assets/receipt.txt"
 
 # New local agenda files, including nested project files, are first-class sync
 # inputs because Emacs discovers the agenda tree recursively.
@@ -66,6 +72,32 @@ cmp "$ORG/local-only.org" "$SEED/agenda/local-only.org"
 cmp "$ORG/projects/demo/tasks.org" "$SEED/agenda/projects/demo/tasks.org"
 git -C "$SEED" ls-files --error-unmatch agenda/local-only.org >/dev/null
 git -C "$SEED" ls-files --error-unmatch agenda/projects/demo/tasks.org >/dev/null
+
+# Full notes are Git tracked in the same durable repository.  The local
+# agenda retains its legacy mapping, while non-agenda paths live under notes/.
+mkdir -p "$NOTES/daily" "$NOTES/inventory" "$NOTES/assets"
+printf '#+title: Local daily\n\n* bought groceries\n' > "$NOTES/daily/2026-09-20.org"
+printf '#+title: Pantry\n\n* pasta\n' > "$NOTES/inventory/pantry.org"
+printf 'attachment payload\n' > "$NOTES/assets/cart.jpg"
+printf 'ignore me\n' > "$NOTES/.#draft.org"
+printf 'derived sqlite placeholder\n' > "$NOTES/org-roam.db"
+run_sync
+git -C "$SEED" pull >/dev/null 2>&1
+cmp "$NOTES/daily/2026-09-20.org" "$SEED/notes/daily/2026-09-20.org"
+cmp "$NOTES/inventory/pantry.org" "$SEED/notes/inventory/pantry.org"
+cmp "$NOTES/assets/cart.jpg" "$SEED/notes/assets/cart.jpg"
+git -C "$SEED" ls-files --error-unmatch notes/daily/2026-09-20.org >/dev/null
+git -C "$SEED" ls-files --error-unmatch notes/inventory/pantry.org >/dev/null
+git -C "$SEED" ls-files --error-unmatch notes/assets/cart.jpg >/dev/null
+! git -C "$SEED" ls-files --error-unmatch 'notes/.#draft.org' >/dev/null 2>&1
+! git -C "$SEED" ls-files --error-unmatch notes/org-roam.db >/dev/null 2>&1
+! git -C "$SEED" ls-files | grep -q '^notes/agenda/'
+
+# --file accepts any saved Org file inside the full notes root.
+printf '#+title: Local daily\n\n* bought groceries\n* put groceries away\n' > "$NOTES/daily/2026-09-20.org"
+run_sync --file "$NOTES/daily/2026-09-20.org"
+git -C "$SEED" pull >/dev/null 2>&1
+grep -q 'put groceries away' "$SEED/notes/daily/2026-09-20.org"
 
 # A new remote nested agenda file is restored locally without flattening it.
 mkdir -p "$SEED/agenda/projects/remote"
@@ -239,4 +271,4 @@ set -e
 [[ -z "$(git -C "$REPO" status --porcelain -- agenda)" ]]
 grep -q 'local-diverge' "$ORG/heal.org"
 
-printf 'gpt-todos recursive agenda sync tests passed\n'
+printf 'gpt-todos full notes + agenda sync tests passed\n'

@@ -1,0 +1,919 @@
+#+TITLE: OpenCode Home Manager Module
+#+PROPERTY: header-args:nix :tangle opencode.nix :mkdirp yes
+
+* Architecture
+This is the canonical source for the local OpenCode Home Manager module.  The
+upstream Home Manager module owns OpenCode itself; this module adds dotfiles
+policy, the Outrun theme, proxy routing, and typed global commands without
+claiming project-local configuration.
+
+#+begin_example
+opencode.commands (typed declarations)
+              |
+              v
+Home Manager xdg.configFile
+              |
+              +--> ~/.config/opencode/commands/<name>.md
+
+project checkout/.opencode/commands/*  (independent, untouched)
+#+end_example
+
+Command templates remain deliberately small.  They name the slash command and
+reusable skill, state the command intent, and pass OpenCode's placeholders
+through literally as optional command input.  A bare command never turns empty
+=$ARGUMENTS= into a punctuation-only pseudo-goal; stateful no-argument commands
+recover repository/session context through the selected skill.  The
+=globalSkills.sourceCheckout= value records the editable global skills checkout
+explicitly; it is metadata for the prompts, not a guessed discovery path or a
+Home Manager-owned checkout.
+
+The module also owns the optional =opencode.web= persistent web workspace:
+=web.enable=, =web.hostname=, and =web.port= drive Home Manager's native web
+service support plus the =opencode-attach= and =opencode-web-open= helpers; see
+the desktop wiki page for the deployed workspace.
+
+OpenCode 2 keeps terminal-client preferences in a single global =cli.json=
+and no longer reads =tui.json=.  The module therefore declares the user's V2
+CLI preferences through upstream Home Manager's =programs.opencode.cli=,
+which writes =~/.config/opencode/cli.json= (=$schema= included) with the
+Outrun theme selected via =theme.name= plus the stable diffs, session, and
+animation preferences.  The file becomes a Home Manager link: move an
+existing app-owned =cli.json= aside once before switching, and note that
+OpenCode rewrites =cli.json= when settings change inside the TUI, so
+declarative values win again on the next activation.  A fail-safe
+activation step also removes legacy config-root npm debris from the retired
+plugin-install layout: =package.json=, =bun.lock=, and =opencode.jsonc= are
+deleted only as regular foreign files (never symlinks), and =node_modules=
+only when it is a real directory carrying an npm (=.package-lock.json=) or
+pnpm (=.modules.yaml=) installation marker.  Plugin dependencies belong in
+the OpenCode =settings= =plugins= list with npm version pins now; anything
+else in the config root is left for the operator.
+
+The optional =opencode.starintelLlm= provider publishes the StarIntel local
+inference service (llama-swap behind =llm.starintel.actor=) as a first-class
+OpenCode provider.  Requests follow the same llm-log capture plane as every
+other provider: the transport is a =starintel= llm-log upstream declared where
+the proxy module is imported (=llm.nix=), and OpenCode points at
+=<proxy>/starintel/v1=.  This module never touches =services.llm-log= itself
+because configurations that enable OpenCode do not necessarily import the
+proxy module.  The bearer key stays in a private key file read through
+OpenCode's ={file:}= placeholder and never enters the Nix store or Git.
+Model entries are declarative metadata (display name, context and output
+limits, vision attachment); each one becomes a selectable
+=starintel-llm/<model>= reference.  Embeddings-only models are registered for
+completeness but cannot hold conversations.
+
+The reusable =opencode-worker= follows a Unix filter contract: stdin is the
+complete child task, stdout is usable model output, stderr is diagnostics, and
+status is success or failure.  Logical model names resolve against the live
+OpenCode catalog.  Model-selected children in RAGE, ADADR/ARADR, GRILL, review,
+research, delegation, and fleets use that wrapper; ordinary model-agnostic
+subtasks may remain native.  Worker concurrency, retries, and prompt size are
+bounded (Linux caps one process argument near 128 KiB, so oversized prompts are
+rejected before launch), parallel mutation requires isolated Git worktrees, and
+worker results are emitted through plain sized writes so downstream closure is
+observable.
+
+RAGE remains the existing issue-to-merge workflow and ADADR remains its actual
+architecture loop; =/aradr= first discovers whether a project defines a distinct
+ARADR research pipeline rather than inventing one.  GRILL is an evidence-based
+cross-examination, not a synonym for normal review.  Merge-on-green supports
+GitHub and Forgejo and invalidates green evidence whenever the PR head changes.
+
+To add a command, add one =commandSpecs= entry and a special template only when
+the generic skill dispatch is insufficient.  Special templates must preserve
+the command-identity and optional-argument contract.  To add a model-selecting
+workflow, add it to =modelWorkerCommands= and implement model routing in the
+shared worker skill, never in command metadata.
+
+* Multi-module hook loading
+
+    Install each entry as =opencode/plugins/<name>/index.ts= and load it
+    through OpenCode's =plugins= setting.  Feature modules (for example
+    =opencode-security.nix=) contribute entries here; the opencode module
+    itself stays plugin-agnostic so several modules can add hooks without
+    owning each other's lists.
+
+    #+begin_example
+    opencode.hookPlugins (attrsOf path, from any module)
+    opencode.shellPermissions / opencode.denyPolicies (lists, merged)
+                  |
+                  v
+    xdg.configFile "opencode/plugins/<name>/index.ts"
+    programs.opencode.settings { permissions, policies, plugins }
+                  |
+                  v
+    ~/.config/opencode/plugins/<name>/  (loaded by OpenCode)
+    #+end_example
+
+    #+begin_src nix :tangle no
+    opencode.hookPlugins.rmguard = ../../../opencode/plugins/rmguard/index.ts;
+    #+end_src
+
+** Security module
+
+    The destructive-shell security layer (rmguard plugin plus the ask/deny
+    permission rules from the 2026-11-13 incident) lives in its own module,
+    =opencode-security.nix=, tangled from =opencode-security.org=.  Enable it
+    with =opencodeSecurity.enable=; it registers the rmguard hook plugin and
+    contributes the destructive-shell permissions and deny policies through
+    the generic =opencode.hookPlugins= / =opencode.shellPermissions= /
+    =opencode.denyPolicies= options above.
+
+* Module
+#+begin_src nix
+  {
+    config,
+    inputs,
+    lib,
+    pkgs,
+    ...
+  }:
+
+  let
+    inherit (lib)
+      mkEnableOption
+      mkIf
+      mkOption
+      types
+      ;
+    cfg = config.opencode;
+    outrun = config.outrunTheme;
+    p = outrun.palette;
+    webUrl = "http://${cfg.web.hostname}:${toString cfg.web.port}";
+
+    opencodeAttach = pkgs.writeShellApplication {
+      name = "opencode-attach";
+      text = ''
+        exec ${lib.getExe cfg.package} attach ${lib.escapeShellArg webUrl} "$@"
+      '';
+    };
+
+    opencodeWebOpen = pkgs.writeShellApplication {
+      name = "opencode-web-open";
+      runtimeInputs = [ pkgs.xdg-utils ];
+      text = ''
+        exec xdg-open ${lib.escapeShellArg webUrl}
+      '';
+    };
+
+    commandType = types.submodule {
+      options = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Whether to install this global command.";
+        };
+        description = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Optional command-list description.";
+        };
+        template = mkOption {
+          type = types.lines;
+          description = "Command prompt body, including literal OpenCode placeholders.";
+        };
+        agent = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Optional OpenCode agent override.";
+        };
+        model = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Optional OpenCode model override.";
+        };
+        subtask = mkOption {
+          type = types.nullOr types.bool;
+          default = null;
+          description = "Whether OpenCode should run the command as a subtask.";
+        };
+        variant = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Optional OpenCode model variant override.";
+        };
+      };
+    };
+
+    validCommandName = name: builtins.match "^[A-Za-z0-9][A-Za-z0-9._-]*$" name != null;
+    yamlString = value: builtins.toJSON value;
+    renderCommand =
+      command:
+      let
+        metadata =
+          lib.optional (command.description != null) "description: ${yamlString command.description}"
+          ++ lib.optional (command.agent != null) "agent: ${yamlString command.agent}"
+          ++ lib.optional (command.model != null) "model: ${yamlString command.model}"
+          ++ lib.optional (command.subtask != null) "subtask: ${builtins.toJSON command.subtask}"
+          ++ lib.optional (command.variant != null) "variant: ${yamlString command.variant}";
+      in
+      lib.concatStringsSep "\n" (
+        [ "---" ]
+        ++ metadata
+        ++ [
+          "---"
+          ""
+          command.template
+        ]
+      );
+
+    enabledCommands = lib.filterAttrs (_: command: command.enable) cfg.commands;
+    commandFiles = lib.mapAttrs' (
+      name: command: lib.nameValuePair "opencode/commands/${name}.md" { text = renderCommand command; }
+    ) enabledCommands;
+
+    hookPluginFiles = lib.mapAttrs' (
+      name: path: lib.nameValuePair "opencode/plugins/${name}/index.ts" { source = path; }
+    ) cfg.hookPlugins;
+    hookPluginPaths = lib.mapAttrsToList (
+      name: _: "${config.xdg.configHome}/opencode/plugins/${name}"
+    ) cfg.hookPlugins;
+
+    skillsPackages = lib.attrByPath [ "packages" pkgs.stdenv.hostPlatform.system ] { } inputs.skills;
+    opencodeWorker = skillsPackages.opencode-worker or null;
+
+    commandSpecs = {
+      auto = [
+        "Autonomously accomplish a goal"
+        "opencode-orchestrate"
+      ];
+      plan = [
+        "Develop an executable, primarily read-only plan"
+        "opencode-orchestrate"
+      ];
+      do = [
+        "Execute the established plan"
+        "opencode-orchestrate"
+      ];
+      continue = [
+        "Discover state and continue the next coherent slice"
+        "opencode-orchestrate"
+      ];
+      status = [
+        "Report concise real execution state"
+        "opencode-orchestrate"
+      ];
+      next = [
+        "Select the highest-value coherent next work"
+        "opencode-orchestrate"
+      ];
+      bootstrap = [
+        "Bootstrap understanding of an unfamiliar repository"
+        "opencode-orchestrate"
+      ];
+      em = [
+        "Open substantial output in the running Emacs client"
+        "opencode-orchestrate"
+      ];
+      rage = [
+        "Run the canonical RAGE workflow"
+        "rage"
+      ];
+      auto-rage = [
+        "Run bounded iterative RAGE"
+        "rage"
+      ];
+      aradr = [
+        "Run the repository's actual ADADR or ARADR workflow"
+        "adadr"
+      ];
+      star-aradr = [
+        "Run the StarIntel repository research pipeline"
+        "starintel-osint"
+      ];
+      grill = [
+        "Aggressively challenge a target with evidence"
+        "grill"
+      ];
+      skills = [
+        "List global, project-local, and relevant skills"
+        "skill-scope"
+      ];
+      skills-new = [
+        "Create a reusable local or global skill"
+        "skill-scope"
+      ];
+      skill-edit = [
+        "Improve an existing local or global skill"
+        "skill-edit"
+      ];
+      skill-skills-edit = [
+        "Alias for skill-edit"
+        "skill-edit"
+      ];
+      commands = [
+        "List global, project-local, and built-in commands"
+        "opencode-orchestrate"
+      ];
+      issue = [
+        "Find or create a non-duplicate issue"
+        "git"
+      ];
+      issue-next = [
+        "Select the next actionable issue"
+        "rage"
+      ];
+      triage = [
+        "Triage issues and pull requests safely"
+        "git"
+      ];
+      unfuck = [
+        "Repair a path end-to-end with Astra Medium"
+        "opencode-worker"
+      ];
+      ygni = [
+        "Debloat while preserving required behavior"
+        "ponytail"
+      ];
+      refactor = [
+        "Perform a behavior-preserving refactor"
+        "ponytail"
+      ];
+      review = [
+        "Perform a normal engineering review"
+        "grill"
+      ];
+      adversarial-review = [
+        "Try to break the implementation"
+        "grill"
+      ];
+      test = [
+        "Determine and run appropriate tests"
+        "opencode-orchestrate"
+      ];
+      test-related = [
+        "Run the smallest responsible affected tests"
+        "opencode-orchestrate"
+      ];
+      test-adversarial = [
+        "Generate and run pathological tests"
+        "grill"
+      ];
+      verify = [
+        "Prove current work meets its requirements"
+        "prolog-verification"
+      ];
+      lint = [
+        "Run and repair relevant static checks"
+        "opencode-orchestrate"
+      ];
+      bench = [
+        "Benchmark against a responsible baseline"
+        "opencode-orchestrate"
+      ];
+      regression = [
+        "Reproduce, regress, fix, and verify a bug"
+        "opencode-orchestrate"
+      ];
+      ci = [
+        "Run local CI equivalents and inspect remote gates"
+        "opencode-orchestrate"
+      ];
+      ci-fix = [
+        "Repair CI failures until green or blocked"
+        "opencode-orchestrate"
+      ];
+      branch = [
+        "Create or select an appropriate branch"
+        "git"
+      ];
+      worktree = [
+        "Create an isolated worktree"
+        "git-worktrees"
+      ];
+      commit = [
+        "Verify and commit only intentional changes"
+        "git"
+      ];
+      pr = [
+        "Create or work on the relevant pull request"
+        "git"
+      ];
+      merge = [
+        "Merge the exact verified pull-request head"
+        "git"
+      ];
+      merge-on-green = [
+        "Wait for and merge the exact green head"
+        "merge-on-green"
+      ];
+      sync-remotes = [
+        "Report and safely synchronize configured remotes"
+        "git"
+      ];
+      cleanup = [
+        "Clean only merged and inactive temporary state"
+        "git-worktrees"
+      ];
+      diff = [
+        "Explain current changes semantically"
+        "opencode-orchestrate"
+      ];
+      research = [
+        "Perform bounded engineering research"
+        "opencode-orchestrate"
+      ];
+      deep-research = [
+        "Perform deep multi-worker research"
+        "worker-orchestration"
+      ];
+      design = [
+        "Produce an implementation-grade design"
+        "adadr"
+      ];
+      spec = [
+        "Produce a testable specification"
+        "spec"
+      ];
+      threat-model = [
+        "Threat-model the stated goal"
+        "grill"
+      ];
+      compare = [
+        "Compare alternatives against project requirements"
+        "adadr"
+      ];
+      prototype = [
+        "Build the smallest disposable experiment"
+        "opencode-orchestrate"
+      ];
+      ingest = [
+        "Invoke the current project's ingestion path"
+        "starintel-ingest"
+      ];
+      auto-dig = [
+        "Use the actual Auto-Dig system"
+        "starintel-auto-dig"
+      ];
+      extract = [
+        "Extract schema-conformant records with provenance"
+        "starintel-document-create"
+      ];
+      enumerate = [
+        "Breadth-first enumerate the relevant corpus"
+        "starintel-osint"
+      ];
+      expand = [
+        "Expand an entity through project relationships"
+        "starintel-auto-dig"
+      ];
+      dataset = [
+        "Create or validate a project dataset"
+        "starintel-document-create"
+      ];
+      memory = [
+        "Query project KB and shared Org-roam memory"
+        "prolog-project-kb"
+      ];
+      remember = [
+        "Persist a reusable verified fact to the correct project/shared memory scope"
+        "prolog-project-kb"
+      ];
+      forget = [
+        "Deprecate project or shared memory safely"
+        "prolog-project-kb"
+      ];
+      learn = [
+        "Promote worthwhile session knowledge to the correct memory scope"
+        "prolog-project-kb"
+      ];
+      handoff = [
+        "Write the machine-useful .prolog handoff (last-write-wins)"
+        "prolog-project-kb"
+      ];
+      resume = [
+        "Resume from enforced .prolog handoff state"
+        "project-resume"
+      ];
+      logs = [
+        "Gather and analyze relevant logs"
+        "debug-system"
+      ];
+      service = [
+        "Inspect service state, health, and dependencies"
+        "debug-system"
+      ];
+      deploy = [
+        "Use and verify the project's deployment path"
+        "opencode-orchestrate"
+      ];
+      rollback = [
+        "Use the project's supported rollback"
+        "opencode-orchestrate"
+      ];
+      release = [
+        "Execute project release gates"
+        "opencode-orchestrate"
+      ];
+      doctor = [
+        "Diagnose the development or runtime environment"
+        "debug-system"
+      ];
+      cost = [
+        "Report available usage without fabrication"
+        "worker-orchestration"
+      ];
+      budget = [
+        "Set a bounded autonomous-work budget"
+        "worker-orchestration"
+      ];
+      model = [
+        "Select an actually configured model"
+        "opencode-worker"
+      ];
+      route = [
+        "Route a goal to skill, role, model, and mechanism"
+        "worker-orchestration"
+      ];
+      delegate = [
+        "Delegate a bounded task through opencode-worker"
+        "worker-orchestration"
+      ];
+      fleet = [
+        "Run bounded independent worker lanes"
+        "worker-orchestration"
+      ];
+      reviewer = [
+        "Launch an independent reviewer"
+        "worker-orchestration"
+      ];
+      stop = [
+        "Stop autonomous work at a safe boundary"
+        "opencode-orchestrate"
+      ];
+      panic = [
+        "Immediately stop mutation without destroying state"
+        "opencode-orchestrate"
+      ];
+    };
+
+    modelWorkerCommands = [
+      "continue"
+      "rage"
+      "auto-rage"
+      "aradr"
+      "star-aradr"
+      "grill"
+      "unfuck"
+      "deep-research"
+      "adversarial-review"
+      "reviewer"
+      "delegate"
+      "fleet"
+      "route"
+    ];
+
+    defaultCommands = lib.mapAttrs (name: spec: {
+      description = builtins.elemAt spec 0;
+      template = ''
+        Load and follow the `${builtins.elemAt spec 1}` skill for `/${name}`.
+        Command intent: ${builtins.elemAt spec 0}.
+        User arguments (may be empty):
+        $ARGUMENTS
+        Do not invent a goal when no arguments were supplied. Treat arguments as command input, not as an implied goal; follow the skill's no-argument semantics and recover repository/session state when the command is stateful.${lib.optionalString (builtins.elem name modelWorkerCommands) " Any child whose model, provider, version, variant, or agent profile is selected MUST be launched through the shared `opencode-worker` executable; never bake that selection into this command."}
+      '';
+    }) commandSpecs;
+
+    theme = {
+      "$schema" = "https://opencode.ai/theme.json";
+      defs = p;
+      theme = {
+        primary = "pink";
+        secondary = "cyan";
+        accent = "ice";
+        error = "red";
+        warning = "orange";
+        success = "green";
+        info = "electricBlue";
+        text = "foreground";
+        textMuted = "muted";
+        background = "deepBackground";
+        backgroundPanel = "background";
+        backgroundElement = "background";
+        border = "muted";
+        borderActive = "pink";
+        borderSubtle = "purple";
+        diffAdded = "green";
+        diffRemoved = "red";
+        diffContext = "muted";
+        diffHunkHeader = "cyan";
+        diffHighlightAdded = "green";
+        diffHighlightRemoved = "red";
+        diffAddedBg = "background";
+        diffRemovedBg = "background";
+        diffContextBg = "deepBackground";
+        diffLineNumber = "muted";
+        diffAddedLineNumberBg = "background";
+        diffRemovedLineNumberBg = "background";
+        markdownText = "foreground";
+        markdownHeading = "pink";
+        markdownLink = "cyan";
+        markdownLinkText = "ice";
+        markdownCode = "green";
+        markdownBlockQuote = "muted";
+        markdownEmph = "orange";
+        markdownStrong = "yellow";
+        markdownHorizontalRule = "purple";
+        markdownListItem = "pink";
+        markdownListEnumeration = "cyan";
+        markdownImage = "violet";
+        markdownImageText = "ice";
+        markdownCodeBlock = "foreground";
+        syntaxComment = "muted";
+        syntaxKeyword = "pink";
+        syntaxFunction = "cyan";
+        syntaxVariable = "ice";
+        syntaxString = "green";
+        syntaxNumber = "orange";
+        syntaxType = "violet";
+        syntaxOperator = "pink";
+        syntaxPunctuation = "foreground";
+      };
+    };
+
+    starintelProviderModels = lib.mapAttrs (_: model: {
+      inherit (model) name attachment;
+      tool_call = model.toolCall;
+      limit = {
+        context = model.context;
+        output = model.output;
+      };
+    }) cfg.starintelLlm.models;
+  in
+  {
+    options.opencode = {
+      enable = mkEnableOption "OpenCode with dotfiles policy and integrations";
+
+      package = mkOption {
+        type = types.package;
+        default = pkgs.opencode;
+        defaultText = lib.literalExpression "pkgs.opencode";
+        description = "Underlying OpenCode package.";
+      };
+
+      globalAgentsFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "Optional source for the user-global OpenCode AGENTS.md file.";
+      };
+
+      hookPlugins = mkOption {
+        type = types.attrsOf types.path;
+        default = { };
+        description = "Hook plugin entry files to install and load; attr name becomes the plugin directory under opencode/plugins. Feature modules contribute entries so several modules can register hooks independently.";
+      };
+
+      shellPermissions = mkOption {
+        type = types.listOf types.attrs;
+        default = [ ];
+        description = "OpenCode shell permission rules contributed by policy modules.";
+      };
+
+      denyPolicies = mkOption {
+        type = types.listOf types.attrs;
+        default = [ ];
+        description = "OpenCode deny policies contributed by policy modules.";
+      };
+
+      globalSkills = {
+        installedSource = mkOption {
+          type = types.path;
+          default = inputs.skills;
+          defaultText = lib.literalExpression "inputs.skills";
+          readOnly = true;
+          description = "Pinned global skill source installed by Home Manager.";
+        };
+        sourceCheckout = mkOption {
+          type = types.str;
+          default = "/home/unseen/Documents/AI/skills";
+          description = "Explicit editable checkout corresponding to the installed global skills.";
+        };
+      };
+
+      commands = mkOption {
+        type = types.attrsOf commandType;
+        description = "Declarative user-global OpenCode commands.";
+        default = defaultCommands // {
+          skills.template = ''
+            Load and follow the `skill-scope` skill for `/skills`.
+            Command intent: List global, project-local, and relevant skills.
+            User arguments (may be empty):
+            $ARGUMENTS
+            Do not invent a goal when no arguments were supplied. List project-local skills from the current repository's .opencode/skills and .agents/skills separately from global skills installed from ${cfg.globalSkills.installedSource}; the editable global checkout is ${cfg.globalSkills.sourceCheckout}. Apply any non-empty arguments as a filter.
+          '';
+          skills-new.template = ''
+            Load and follow the `skill-scope` skill for `/skills-new`.
+            Command intent: Create a reusable local or global skill.
+            User arguments (may be empty):
+            $ARGUMENTS
+            Do not invent a goal when no arguments were supplied. Use project-local .opencode/skills or .agents/skills unless global scope is explicit; global source is ${cfg.globalSkills.sourceCheckout}. Never edit ${cfg.globalSkills.installedSource}.
+          '';
+          skill-edit.template = ''
+            Load and follow the `skill-edit` and `skill-scope` skills for `/skill-edit`.
+            Command intent: Improve an existing local or global skill.
+            User arguments (may be empty):
+            $ARGUMENTS
+            Do not invent a goal when no arguments were supplied. Resolve local and global origins explicitly; edit global skills only in ${cfg.globalSkills.sourceCheckout}, never ${cfg.globalSkills.installedSource}.
+          '';
+          skill-skills-edit.template = ''
+            Load and follow the `skill-edit` and `skill-scope` skills for `/skill-skills-edit` (alias of `/skill-edit`).
+            Command intent: Alias for skill-edit.
+            User arguments (may be empty):
+            $ARGUMENTS
+            Do not invent a goal when no arguments were supplied. Resolve local and global origins explicitly; edit global skills only in ${cfg.globalSkills.sourceCheckout}, never ${cfg.globalSkills.installedSource}.
+          '';
+          unfuck.template = ''
+            Load and follow the `opencode-worker` and `opencode-orchestrate` skills for `/unfuck`.
+            Command intent: Repair a path end-to-end with Astra Medium.
+            User arguments (may be empty):
+            $ARGUMENTS
+            Do not invent a goal when no arguments were supplied. Resolve the logical model `astra-medium` through the shared resolver, then invoke the specialist only through `opencode-worker`; do not invent or hardcode a model ID. The parent retains repository orchestration.
+          '';
+        };
+      };
+
+      llmLog = {
+        enable = mkEnableOption "routing OpenCode providers through llm-log";
+        baseUrl = mkOption {
+          type = types.str;
+          default = "http://127.0.0.1:8787";
+          description = "Base URL of the local llm-log proxy.";
+        };
+      };
+
+      starintelLlm = {
+        enable = mkEnableOption "StarIntel local inference models through llm-log";
+
+        providerId = mkOption {
+          type = types.str;
+          default = "starintel-llm";
+          description = "OpenCode provider id for the StarIntel local inference service.";
+        };
+
+        apiKeyFile = mkOption {
+          type = types.str;
+          default = "~/.config/llm-log/starintel-llm.key";
+          description = "Private bearer-key file referenced through OpenCode's {file:} placeholder; never a Nix value.";
+        };
+
+        models = mkOption {
+          type = types.attrsOf (
+            types.submodule {
+              options = {
+                name = mkOption {
+                  type = types.str;
+                  description = "Display name shown in OpenCode model lists.";
+                };
+                context = mkOption {
+                  type = types.int;
+                  default = 4096;
+                  description = "Served context window.";
+                };
+                output = mkOption {
+                  type = types.int;
+                  default = 4096;
+                  description = "Per-request output token limit.";
+                };
+                attachment = mkOption {
+                  type = types.bool;
+                  default = false;
+                  description = "Whether the model accepts image attachments.";
+                };
+                toolCall = mkOption {
+                  type = types.bool;
+                  default = false;
+                  description = "Whether the model reliably emits OpenAI tool calls.";
+                };
+              };
+            }
+          );
+          description = "StarIntel models published to OpenCode; each entry becomes <providerId>/<name>.";
+          default = { };
+        };
+      };
+
+      web = {
+        enable = mkEnableOption "persistent OpenCode web service and desktop launcher";
+
+        hostname = mkOption {
+          type = types.str;
+          default = "127.0.0.1";
+          description = "Hostname used by the managed OpenCode web service.";
+        };
+
+        port = mkOption {
+          type = types.port;
+          default = 4096;
+          description = "TCP port used by the managed OpenCode web service.";
+        };
+      };
+    };
+
+    config = mkIf cfg.enable {
+      assertions =
+        map (name: {
+          assertion = validCommandName name;
+          message = "opencode.commands command name `${name}` is unsafe; use one flat alphanumeric name with only `.`, `_`, or `-` separators";
+        }) (builtins.attrNames cfg.commands)
+        ++ [
+          {
+            assertion = !cfg.starintelLlm.enable || cfg.llmLog.enable;
+            message = "opencode.starintelLlm requires opencode.llmLog: the StarIntel provider routes through the llm-log capture plane";
+          }
+        ];
+
+      xdg.configFile = commandFiles // hookPluginFiles;
+      home.packages =
+        lib.optional (opencodeWorker != null) opencodeWorker
+        ++ lib.optionals cfg.web.enable [
+          opencodeAttach
+          opencodeWebOpen
+        ];
+      home.sessionVariables.OPENCODE_GLOBAL_SKILLS_CHECKOUT = cfg.globalSkills.sourceCheckout;
+
+      home.file."${config.xdg.configHome}/opencode/AGENTS.md" = mkIf (cfg.globalAgentsFile != null) {
+        source = cfg.globalAgentsFile;
+      };
+
+      # Legacy OpenCode config-root npm debris (V1-era plugin installs and a
+      # superseded jsonc stub): each file is removed only when it is a regular
+      # foreign file, never a symlink; node_modules only when it is a real
+      # directory carrying an npm (.package-lock.json) or pnpm (.modules.yaml)
+      # installation marker. Plugin dependencies now belong in the OpenCode
+      # settings plugins list with npm version pins; anything else in the
+      # config root is left for the operator.
+      home.activation.opencodeLegacyDebris = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+        opencodeDir='${config.xdg.configHome}/opencode'
+        for name in package.json bun.lock opencode.jsonc; do
+          path="$opencodeDir/$name"
+          if [ -e "$path" ] && [ ! -L "$path" ]; then
+            $DRY_RUN_CMD rm -f -- "$path"
+          fi
+        done
+        modules="$opencodeDir/node_modules"
+        if [ -d "$modules" ] && [ ! -L "$modules" ] && { [ -f "$modules/.package-lock.json" ] || [ -f "$modules/.modules.yaml" ]; }; then
+          $DRY_RUN_CMD rm -rf -- "$modules"
+        fi
+      '';
+
+      xdg.desktopEntries.opencode-web = mkIf cfg.web.enable {
+        name = "OpenCode Web";
+        genericName = "AI Coding Workspace";
+        comment = "Open the persistent local OpenCode web workspace";
+        exec = "${opencodeWebOpen}/bin/opencode-web-open";
+        icon = "applications-development";
+        terminal = false;
+        categories = [ "Development" ];
+      };
+
+      programs.opencode = {
+        enable = true;
+        package = cfg.package;
+        enableMcpIntegration = true;
+        settings = {
+          permissions = cfg.shellPermissions;
+          policies = cfg.denyPolicies;
+          plugins = hookPluginPaths;
+          provider = {
+            openai.options.baseURL = mkIf cfg.llmLog.enable "${cfg.llmLog.baseUrl}/openai/v1";
+            openrouter.options.baseURL = mkIf cfg.llmLog.enable "${cfg.llmLog.baseUrl}/openrouter/api/v1";
+            anthropic.options.baseURL = mkIf cfg.llmLog.enable "${cfg.llmLog.baseUrl}/anthropic";
+            ${cfg.starintelLlm.providerId} = mkIf cfg.starintelLlm.enable {
+              npm = "@ai-sdk/openai-compatible";
+              name = "StarIntel LLM (local)";
+              options = {
+                baseURL = "${cfg.llmLog.baseUrl}/starintel/v1";
+                apiKey = "{file:${cfg.starintelLlm.apiKeyFile}}";
+              };
+              models = starintelProviderModels;
+            };
+          };
+          server = mkIf cfg.web.enable {
+            hostname = cfg.web.hostname;
+            port = cfg.web.port;
+          };
+        };
+        web = mkIf cfg.web.enable {
+          enable = true;
+          extraArgs = [
+            "--hostname"
+            cfg.web.hostname
+            "--port"
+            (toString cfg.web.port)
+          ];
+        };
+        themes.${outrun.name} = mkIf outrun.enable theme;
+        cli = {
+          diffs.wrap = "word";
+          session = {
+            sidebar = "auto";
+            scrollbar = false;
+            thinking = "hide";
+          };
+          animations = true;
+          theme = mkIf outrun.enable { name = outrun.name; };
+        };
+      };
+    };
+  }#+end_src

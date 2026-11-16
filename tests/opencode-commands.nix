@@ -1,0 +1,259 @@
+{
+  home-manager,
+  inputs,
+  lib,
+  pkgs,
+}:
+
+let
+  mkHome =
+    extraModule:
+    home-manager.lib.homeManagerConfiguration {
+      inherit pkgs;
+      extraSpecialArgs = { inherit inputs; };
+      modules = [
+        inputs.skills.homeManagerModules.opencode
+        ../nix/home-manager/mods/outrun-theme.nix
+        ../nix/home-manager/mods/opencode.nix
+        {
+          home = {
+            username = "command-test";
+            homeDirectory = "/home/command-test";
+            stateVersion = "25.11";
+          };
+          opencode = {
+            enable = true;
+            package = pkgs.hello;
+          };
+        }
+        extraModule
+      ];
+    };
+
+  fixture = mkHome {
+    home.file.".opencode/commands/project-only.md".text = "project command";
+    opencode.commands = lib.mkForce {
+      simple = {
+        description = "Simple command";
+        template = "Use the spec skill for $ARGUMENTS and first item $1.";
+        agent = "build";
+        model = "openai/test";
+        subtask = true;
+        variant = "high";
+      };
+      disabled = {
+        enable = false;
+        template = "must not exist";
+      };
+    };
+  };
+
+  reverseFixture = mkHome {
+    opencode.commands = lib.mkForce {
+      zed.template = "z";
+      alpha.template = "a";
+    };
+  };
+  forwardFixture = mkHome {
+    opencode.commands = lib.mkForce {
+      alpha.template = "a";
+      zed.template = "z";
+    };
+  };
+
+  unsafeFixture = mkHome {
+    opencode.commands = lib.mkForce {
+      "../escape".template = "unsafe";
+    };
+  };
+
+  cliFixture = mkHome { outrunTheme.enable = true; };
+
+  securityFixture = mkHome {
+    imports = [ ../nix/home-manager/mods/opencode-security.nix ];
+    opencodeSecurity.enable = true;
+  };
+
+
+  commandPath = "opencode/commands/simple.md";
+  commandText = fixture.config.xdg.configFile.${commandPath}.text;
+  unsafeEvaluation = builtins.tryEval unsafeFixture.activationPackage;
+  defaults = (mkHome { }).config.opencode.commands;
+  expectedCommands = [
+    "adversarial-review"
+    "aradr"
+    "auto"
+    "auto-dig"
+    "auto-rage"
+    "bench"
+    "bootstrap"
+    "branch"
+    "budget"
+    "ci"
+    "ci-fix"
+    "cleanup"
+    "commands"
+    "commit"
+    "compare"
+    "continue"
+    "cost"
+    "dataset"
+    "deep-research"
+    "delegate"
+    "deploy"
+    "design"
+    "diff"
+    "do"
+    "doctor"
+    "em"
+    "enumerate"
+    "expand"
+    "extract"
+    "fleet"
+    "forget"
+    "grill"
+    "handoff"
+    "ingest"
+    "issue"
+    "issue-next"
+    "learn"
+    "lint"
+    "logs"
+    "memory"
+    "merge"
+    "merge-on-green"
+    "model"
+    "next"
+    "panic"
+    "plan"
+    "pr"
+    "prototype"
+    "refactor"
+    "regression"
+    "release"
+    "remember"
+    "research"
+    "resume"
+    "review"
+    "reviewer"
+    "rollback"
+    "route"
+    "service"
+    "skill-edit"
+    "skill-skills-edit"
+    "skills"
+    "skills-new"
+    "spec"
+    "star-aradr"
+    "status"
+    "stop"
+    "sync-remotes"
+    "test"
+    "test-adversarial"
+    "test-related"
+    "threat-model"
+    "triage"
+    "unfuck"
+    "verify"
+    "worktree"
+    "ygni"
+  ];
+in
+assert builtins.hasAttr commandPath fixture.config.xdg.configFile;
+assert lib.hasInfix ''description: "Simple command"'' commandText;
+assert lib.hasInfix ''agent: "build"'' commandText;
+assert lib.hasInfix ''model: "openai/test"'' commandText;
+assert lib.hasInfix "subtask: true" commandText;
+assert lib.hasInfix ''variant: "high"'' commandText;
+assert lib.hasInfix "$ARGUMENTS" commandText;
+assert lib.hasInfix "$1" commandText;
+assert !builtins.hasAttr "opencode/commands/disabled.md" fixture.config.xdg.configFile;
+assert builtins.hasAttr ".opencode/commands/project-only.md" fixture.config.home.file;
+assert
+  reverseFixture.config.xdg.configFile."opencode/commands/alpha.md".text
+  == forwardFixture.config.xdg.configFile."opencode/commands/alpha.md".text;
+assert
+  reverseFixture.config.xdg.configFile."opencode/commands/zed.md".text
+  == forwardFixture.config.xdg.configFile."opencode/commands/zed.md".text;
+assert !unsafeEvaluation.success;
+# Multi-module hook loading: the security module contributes the rmguard
+# plugin and the destructive-shell ask/deny rules through generic options.
+assert fixture.config.opencode.hookPlugins == { };
+assert fixture.config.opencode.shellPermissions == [ ];
+assert fixture.config.opencode.denyPolicies == [ ];
+assert fixture.config.programs.opencode.settings ? permissions;
+assert
+  securityFixture.config.xdg.configFile."opencode/plugins/rmguard/index.ts".source
+  == ../opencode/plugins/rmguard/index.ts;
+assert
+  securityFixture.config.programs.opencode.settings.plugins
+  == [ "/home/command-test/.config/opencode/plugins/rmguard" ];
+assert builtins.length securityFixture.config.opencode.shellPermissions == 14;
+assert
+  lib.any (r: r.resource == "rm -rf *" && r.effect == "ask")
+  securityFixture.config.opencode.shellPermissions;
+assert
+  securityFixture.config.programs.opencode.settings.permissions
+  == securityFixture.config.opencode.shellPermissions;
+assert
+  lib.any (p: p.resource == "shell:rm -rf /home/*" && p.effect == "deny")
+  securityFixture.config.opencode.denyPolicies;
+assert
+  securityFixture.config.programs.opencode.settings.policies
+  == securityFixture.config.opencode.denyPolicies;
+assert builtins.length (builtins.attrNames defaults) == 78;
+assert lib.all (name: builtins.hasAttr name defaults) expectedCommands;
+assert lib.all (name: lib.hasInfix "for `/${name}`" defaults.${name}.template) expectedCommands;
+assert lib.all (name: lib.hasInfix "$ARGUMENTS" defaults.${name}.template) expectedCommands;
+assert lib.all (name: !lib.hasInfix "complete goal:" defaults.${name}.template) expectedCommands;
+assert lib.hasInfix "Command intent: Report concise real execution state." defaults.status.template;
+assert lib.hasInfix "User arguments (may be empty):" defaults.status.template;
+assert lib.hasInfix "Do not invent a goal when no arguments were supplied." defaults.status.template;
+assert lib.hasInfix "opencode-worker" defaults.unfuck.template;
+assert lib.hasInfix "astra-medium" defaults.unfuck.template;
+assert !lib.hasInfix "openai/gpt-6-astra" defaults.unfuck.template;
+assert lib.all (name: lib.hasInfix "opencode-worker" defaults.${name}.template) [
+  "continue"
+  "rage"
+  "auto-rage"
+  "aradr"
+  "star-aradr"
+  "grill"
+  "deep-research"
+  "adversarial-review"
+  "reviewer"
+  "delegate"
+  "fleet"
+  "route"
+];
+assert lib.hasInfix "/home/unseen/Documents/AI/skills" defaults.skills-new.template;
+assert builtins.hasAttr "opencode/cli.json" fixture.config.xdg.configFile;
+assert !(fixture.config.programs.opencode.cli ? theme);
+assert !builtins.hasAttr "opencode/tui.json" fixture.config.xdg.configFile;
+assert builtins.hasAttr "opencode/cli.json" cliFixture.config.xdg.configFile;
+assert !builtins.hasAttr "opencode/tui.json" cliFixture.config.xdg.configFile;
+assert cliFixture.config.programs.opencode.cli.theme.name == "outrun";
+assert cliFixture.config.programs.opencode.tui == { };
+assert builtins.hasAttr "opencodeLegacyDebris" cliFixture.config.home.activation;
+assert lib.all
+  (fragment: lib.hasInfix fragment cliFixture.config.home.activation.opencodeLegacyDebris.data)
+  [
+    "package.json"
+    "bun.lock"
+    "opencode.jsonc"
+    "node_modules"
+    "! -L"
+    ".package-lock.json"
+  ];
+pkgs.runCommand "opencode-commands-check" { nativeBuildInputs = [ pkgs.jq ]; } ''
+  jq -e '
+    ."$schema" == "https://opencode.ai/v2/cli.json" and
+    .theme.name == "outrun" and
+    .diffs.wrap == "word" and
+    .session.sidebar == "auto" and
+    .session.scrollbar == false and
+    .session.thinking == "hide" and
+    .animations == true
+  ' ${cliFixture.config.xdg.configFile."opencode/cli.json".source} >/dev/null
+  touch "$out"
+''

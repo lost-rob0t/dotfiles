@@ -14,6 +14,12 @@ let
     types
     ;
   cfg = config.programs.chatgpt-desktop;
+  desktopPackage = cfg.package.overrideAttrs (old: {
+    postFixup = (old.postFixup or "") + ''
+      # The desktop backend overrides CODEX_MCP_NODE_PATH with this bundled path.
+      ln -sfn ${lib.getExe pkgs.nodejs_24} "$out/lib/chatgpt/resources/cua_node/bin/node"
+    '';
+  });
   outrun = config.outrunTheme;
   p = outrun.palette;
   codexHome =
@@ -165,7 +171,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    home.packages = [ cfg.package ];
+    home.packages = [ desktopPackage ];
 
     programs.codex.settings = mkIf (config.codex.manageConfig && cfg.appearance.enable) {
       desktop = appearancePayload;

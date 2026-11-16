@@ -117,9 +117,12 @@
 (defun qtile-ui--header-line ()
   "Return the compact top line shared by Qtile popup buffers."
   (let* ((popup-id (frame-parameter nil 'qtile-ui-popup-id))
-         (title (if popup-id (format "Qtile %s" popup-id) "Qtile")))
+         (title (if popup-id (format "Qtile %s" popup-id) "Qtile"))
+         (hint (if buffer-read-only
+                   "  q/Escape close "
+                 "  C-c C-q close ")))
     (list (propertize (format " %s " title) 'face 'mode-line)
-          (propertize "  q/Escape close " 'face 'shadow))))
+          (propertize hint 'face 'shadow))))
 
 (defun qtile-ui--apply-frame-theme (frame)
   "Apply the configured Emacs theme to a newly-created daemon frame."
@@ -159,10 +162,19 @@
     (display-line-numbers-mode -1)))
 
 (defun qtile-ui-bind-dismiss ()
-  "Bind the common keyboard dismissal keys in the current popup buffer."
-  (local-set-key (kbd "q") #'qtile-ui-close-current)
-  (local-set-key (kbd "ESC") #'qtile-ui-close-current)
-  (local-set-key (kbd "<escape>") #'qtile-ui-close-current))
+  "Install popup dismissal keys without stealing typing keys from editable buffers."
+  (local-set-key (kbd "C-c C-q") #'qtile-ui-close-current)
+  (if buffer-read-only
+      (progn
+        (local-set-key (kbd "q") #'qtile-ui-close-current)
+        (local-set-key (kbd "ESC") #'qtile-ui-close-current)
+        (local-set-key (kbd "<escape>") #'qtile-ui-close-current))
+    ;; A reused chat buffer may still carry bindings installed by an older
+    ;; qtile-ui version, so explicitly clear them rather than merely declining
+    ;; to add them again.
+    (local-unset-key (kbd "q"))
+    (local-unset-key (kbd "ESC"))
+    (local-unset-key (kbd "<escape>"))))
 
 (defun qtile-ui-close (popup-id)
   "Close the popup identified by POPUP-ID, if it is still live."

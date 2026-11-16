@@ -44,6 +44,7 @@ EMACS_NOTIFICATIONS_HELPER = Path("~/.dotfiles/lisp/qtile/qtile-notifications.el
 EMACS_SERVICES_HELPER = Path("~/.dotfiles/lisp/qtile/qtile-services.el").expanduser()
 EMACS_POPUP_TITLES = (
     "qtile-agent-zero",
+    "qtile-mara",
     "qtile-org-todos",
     "qtile-org-agenda-day",
     "qtile-workflow",
@@ -912,6 +913,23 @@ def build_screen_widgets(
                             "agent-zero",
                             "agent_zero_button",
                             "qtile-agent-zero-open",
+                            720,
+                            560,
+                            "left",
+                        )
+                    },
+                ),
+                widget.TextBox(
+                    name="mara_button",
+                    text=" Mara ",
+                    foreground=palette["pink"],
+                    background=background,
+                    mouse_callbacks={
+                        "Button1": lazy.function(
+                            _toggle_emacs_popup,
+                            "mara",
+                            "mara_button",
+                            "qtile-mara-open",
                             720,
                             560,
                             "left",

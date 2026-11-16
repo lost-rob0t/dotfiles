@@ -41,10 +41,16 @@ in
       description = "Durable lost-rob0t/gpt-todos checkout.";
     };
 
+    notesDir = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/Documents/Notes/org";
+      description = "Live full Org/Org-roam workspace synchronized with gpt-todos.";
+    };
+
     orgDir = lib.mkOption {
       type = lib.types.str;
-      default = "${config.home.homeDirectory}/Documents/Notes/org/agenda";
-      description = "Live recursive Org agenda tree synchronized with gpt-todos.";
+      default = "${cfg.notesDir}/agenda";
+      description = "Live agenda subtree kept compatible with Todo Manager.";
     };
 
     syncInterval = lib.mkOption {
@@ -63,12 +69,13 @@ in
     home.sessionVariables = {
       GPT_TODOS_SYNC = "${gptTodosSync}/bin/gpt-todos-sync";
       GPT_TODOS_REPO_DIR = cfg.repoDir;
+      GPT_TODOS_NOTES_DIR = cfg.notesDir;
       GPT_TODOS_ORG_DIR = cfg.orgDir;
     };
 
     systemd.user.services.gpt-todos-sync = {
       Unit = {
-        Description = "Synchronize durable GPT TODO Org agenda";
+        Description = "Synchronize durable GPT TODO full Org workspace";
         Wants = [ "network-online.target" ];
         After = [ "network-online.target" ];
       };
@@ -77,6 +84,7 @@ in
         ExecStart = "${gptTodosSync}/bin/gpt-todos-sync";
         Environment = [
           "GPT_TODOS_REPO_DIR=${cfg.repoDir}"
+          "GPT_TODOS_NOTES_DIR=${cfg.notesDir}"
           "GPT_TODOS_ORG_DIR=${cfg.orgDir}"
           "DOTFILES_DIR=/nonexistent/gpt-todos-sync-no-dotfiles"
         ];
@@ -84,7 +92,7 @@ in
     };
 
     systemd.user.timers.gpt-todos-sync = {
-      Unit.Description = "Synchronize GPT TODO agenda every ${cfg.syncInterval}";
+      Unit.Description = "Synchronize GPT TODO Org workspace every ${cfg.syncInterval}";
       Timer = {
         OnBootSec = "2m";
         OnUnitActiveSec = cfg.syncInterval;

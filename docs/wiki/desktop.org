@@ -51,6 +51,27 @@ the workflow has bootstrapped the desktop.  Selecting another workflow clears
 the Star Intel group-layout override and restores the normal adaptive layout
 policy.
 
+* OpenCode web workspace
+The desktop Home Manager profile enables a persistent =opencode-web= systemd
+user service through Home Manager's native =programs.opencode.web= support.  It
+is pinned to =127.0.0.1:4096=, so the API and browser UI are reachable only from
+the local machine by default.  No server password is required for this
+loopback-only deployment; authentication must be added before changing the
+listener to a LAN-facing address.
+
+Home Manager also installs an =OpenCode Web= desktop entry.  It runs
+=opencode-web-open=, which opens =http://127.0.0.1:4096= in the configured
+browser.  The =opencode-attach= command connects a TUI to that persistent
+backend so the browser and terminal share the same server-side session state.
+
+Useful checks after switching the profile:
+
+#+begin_src shell
+  systemctl --user status opencode-web.service
+  curl -I http://127.0.0.1:4096/
+  opencode-attach
+#+end_src
+
 * Auto workspace routing
 The Qtile Auto mode button routes newly managed windows while it is enabled;
 it does not poll or repeatedly reorganize existing windows.  AI-related
@@ -65,7 +86,8 @@ focused newly routed window follows its destination group so it does not
 appear to disappear from the current screen.
 
 The Bash =opencode= command runs the executable directly in the current
-terminal; =oc= is a short alias for it.  Qtile's =Super+T= binding launches a
+terminal; =oc= is a short alias for it.  Use =opencode-attach= when the TUI
+should join the persistent web backend.  Qtile's =Super+T= binding launches a
 separate Terminator window.
 
 * Desktop integration map

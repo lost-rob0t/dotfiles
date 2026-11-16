@@ -12,6 +12,8 @@ tmp/
 .local/bin/starintel-*
 .config/qtile/private.env
 .config/zarathushtra/secrets.env
+.config/zarathushtra/config.local.pl
+.config/zarathushtra/private/
 .config/zarathushtra/plugins/*/token
 .config/zarathushtra/plugins/*/settings.json
 .direnv/*
@@ -41,4 +43,14 @@ tmp/
 /.local/bin/*.sqlite3
 /.local/bin/*.sqlite3-shm
 /.local/bin/*.sqlite3-wal
+/.local/bin/pnpm
+/.local/bin/pnpx
+/.local/bin/yarn
+/.local/bin/yarnpkg
+/.local/bin/emacs
+/.config/starintel/tunnels.conf
+/.prolog/*
+!/.prolog/kb/
+!/.prolog/kb/**
+!/.prolog/handoff.pl
 /result

@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+usage() {
+  printf 'usage: zara-dev [off [--with-tts] | on [--with-tts] | status]\n' >&2
+  printf 'off (default) stops and disables the Nix-managed Zara user services\n' >&2
+  printf 'so a development instance owns the sockets, models, and audio path.\n' >&2
+  exit 2
+}
+
+action=off
+with_tts=0
+
+for arg in "$@"; do
+  case "$arg" in
+    off | on | status) action="$arg" ;;
+    --with-tts) with_tts=1 ;;
+    *) usage ;;
+  esac
+done
+
+units=(zara-server.service zara-pair.service zara-desktop.service zara-wake.service)
+if [[ "$with_tts" -eq 1 ]]; then
+  units+=(qwen3-tts.service)
+fi
+
+if ! systemctl --user show-environment >/dev/null 2>&1; then
+  printf 'zara-dev: no user systemd session available\n' >&2
+  exit 1
+fi
+
+case "$action" in
+  off)
+    for ((i = ${#units[@]} - 1; i >= 0; i--)); do
+      systemctl --user stop "${units[i]}" >/dev/null 2>&1 || true
+      systemctl --user disable "${units[i]}" >/dev/null 2>&1 || true
+    done
+    printf 'zara-dev: stopped and disabled:'
+    printf ' %s' "${units[@]}"
+    printf '\nzara-dev: the next home-manager activation re-enables these units\n'
+    ;;
+  on)
+    for unit in "${units[@]}"; do
+      systemctl --user enable --now "$unit" >/dev/null 2>&1 || true
+    done
+    printf 'zara-dev: enabled and started:'
+    printf ' %s' "${units[@]}"
+    printf '\n'
+    ;;
+  status)
+    for unit in "${units[@]}"; do
+      enabled="$(systemctl --user is-enabled "$unit" 2>/dev/null || printf '?')"
+      active="$(systemctl --user is-active "$unit" 2>/dev/null || printf '?')"
+      printf '%-22s enabled=%s active=%s\n' "$unit" "$enabled" "$active"
+    done
+    ;;
+esac

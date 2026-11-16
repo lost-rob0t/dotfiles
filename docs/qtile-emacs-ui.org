@@ -28,7 +28,7 @@ lisp/qtile/qtile-ui.el
     |
     v
 feature renderer: qtile-desktop, qtile-workflow, qtile-notifications,
-qtile-services
+qtile-services, Mara
 #+end_example
 
 * Named Emacs server
@@ -132,9 +132,19 @@ these primitives instead of duplicating frame boilerplate.
 
 =qtile-agent-zero-open= remains in the existing =qtile-desktop.el= helper.
 Agent Zero still uses asynchronous =url-retrieve=, the conversation context
-ID, reset/new-context behavior, and private environment/API-key handling.  Its
-Qtile button now calls =toggle_emacs_dropdown= using the =agent_zero_button=
-geometry.  Credentials never enter the structured popup arguments.
+ID, reset/new-context behavior, and private environment/API-key handling.  The
+external API request targets Agent Zero's current =POST /api/api_message=
+endpoint under =AGENT_ZERO_HOST= and sends =X-API-KEY=.  The Qtile button calls
+=toggle_emacs_dropdown= using the =agent_zero_button= geometry.  Credentials
+never enter the structured popup arguments.
+
+** Mara
+
+The center bar exposes =mara_button= beside Agent Zero.  It uses the same
+widget-anchored =toggle_emacs_dropdown= path and =qtile-mara= floating frame,
+then calls Mara's native =mara= Emacs entry point through
+=qtile-mara-open=.  Qtile owns only launch geometry and frame lifecycle; Mara
+continues to own its persistent Org/gptel chat buffer and runtime state.
 
 ** Org TODO and date agenda
 
@@ -328,8 +338,8 @@ python3 -m py_compile .config/qtile/*.py .config/qtile/scripts/*.py
 scripts/check-literate-sync
 #+end_src
 
-When a graphical X11 session is available, verify A0, TODO, date, workflow,
-SERVICES, and both notification backends on each physical screen.  Verify the
-existing network contract separately: cyan/blue is RX/download and pink/red
-is TX/upload.  This slice deliberately does not alter that working graph or
-the truthful OpenRouter bucket renderer.
+When a graphical X11 session is available, verify A0, Mara, TODO, date,
+workflow, SERVICES, and both notification backends on each physical screen.
+Verify the existing network contract separately: cyan/blue is RX/download and
+pink/red is TX/upload.  This slice deliberately does not alter that working
+graph or the truthful OpenRouter bucket renderer.

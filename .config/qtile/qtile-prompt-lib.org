@@ -1,0 +1,112 @@
+#+title: Qtile Prompt Library Integration
+#+property: header-args:python :tangle qtile_prompt_lib.py :mkdirp yes :results none
+
+* Purpose
+Qtile owns only the keyboard route into the existing Emacs prompt-library UI.
+Prompt discovery, rendering, copying, editing, and sending remain Emacs/prompt-lib
+responsibilities.
+
+The existing =Super e= Emacs chord keeps its meaning. Its former direct =y=
+action becomes an AI sub-chord while preserving the exact existing key object
+and its commands:
+
+| Binding       | Action                       |
+|---------------+------------------------------|
+| =Super e y y= | Existing AI/GPTel action     |
+| =Super e y p= | Emacs prompt-library browser |
+
+The installer mutates the already-declared Emacs chord once, before keymap
+telemetry instrumentation. Re-running it is idempotent.
+
+* Binding installer
+#+begin_src python
+from libqtile.config import Key, KeyChord
+from libqtile.lazy import lazy
+
+
+PROMPT_LIB_COMMAND = (
+    "emacsclient -c -a 'emacs' --eval "
+    '"(progn (require \'prompt-lib) (ai/prompt-lib-browse))"'
+)
+
+
+def _is_binding(mapping, modifiers, key):
+    return (
+        tuple(getattr(mapping, "modifiers", ())) == tuple(modifiers)
+        and getattr(mapping, "key", None) == key
+    )
+
+
+def install_prompt_lib_bindings(config_globals):
+    """Install `Super e y p` without stealing the existing GPTel shortcut.
+
+    The existing `Super e` Emacs KeyChord remains authoritative. Its former
+    direct `y` action is preserved as the nested `y` action rather than being
+    reconstructed here:
+
+      Super e y y -> existing AI/GPTel action
+      Super e y p -> prompt-lib browser
+
+    Repeated installation is idempotent.
+    """
+    keys = config_globals.get("keys")
+    if keys is None:
+        return False
+
+    mod = config_globals.get("mod", "mod4")
+    emacs_chord = next(
+        (
+            mapping
+            for mapping in keys
+            if isinstance(mapping, KeyChord) and _is_binding(mapping, [mod], "e")
+        ),
+        None,
+    )
+    if emacs_chord is None:
+        return False
+
+    submappings = list(getattr(emacs_chord, "submappings", ()))
+    y_index = next(
+        (index for index, mapping in enumerate(submappings) if _is_binding(mapping, [], "y")),
+        None,
+    )
+
+    if y_index is not None and isinstance(submappings[y_index], KeyChord):
+        ai_chord = submappings[y_index]
+        existing = {
+            (tuple(getattr(item, "modifiers", ())), getattr(item, "key", None))
+            for item in getattr(ai_chord, "submappings", ())
+        }
+        if ((), "p") not in existing:
+            ai_chord.submappings.append(
+                Key(
+                    [],
+                    "p",
+                    lazy.spawn(PROMPT_LIB_COMMAND),
+                    desc="Emacs prompt library",
+                )
+            )
+        return True
+
+    prompt_binding = Key(
+        [],
+        "p",
+        lazy.spawn(PROMPT_LIB_COMMAND),
+        desc="Emacs prompt library",
+    )
+    if y_index is None:
+        # No existing AI action was declared. Add only the prompt browser; do
+        # not invent a replacement chat command.
+        ai_submappings = [prompt_binding]
+    else:
+        # Keep the exact existing `Super e y` Key object and its commands.
+        ai_submappings = [submappings[y_index], prompt_binding]
+
+    ai_chord = KeyChord([], "y", ai_submappings, name="AI")
+    if y_index is None:
+        submappings.append(ai_chord)
+    else:
+        submappings[y_index] = ai_chord
+    emacs_chord.submappings = submappings
+    return True
+#+end_src

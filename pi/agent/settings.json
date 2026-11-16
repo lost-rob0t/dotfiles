@@ -1,0 +1,27 @@
+{
+  "lastChangelogVersion": "1.4.0",
+  "defaultProvider": "zai",
+  "defaultModel": "glm-5.3",
+  "enabledModels": [
+    "zai/glm-5.3",
+    "zai/glm-5.3-flash",
+    "zai/glm-5.3-highspeed",
+    "nanogpt/z-ai/*",
+    "nanogpt/deepseek/*",
+    "nanogpt/qwen/*",
+    "nanogpt/minimax/*",
+    "nanogpt/moonshotai/*",
+    "nanogpt/x-ai/*",
+    "nanogpt/openai/*",
+    "nanogpt/anthropic/*",
+    "nanogpt/orca/*"
+  ],
+  "skills": [
+    "~/skills/skills"
+  ],
+  "theme": "dark",
+  "enableInstallTelemetry": false,
+  "images": {
+    "blockImages": false
+  }
+}

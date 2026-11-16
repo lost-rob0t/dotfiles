@@ -1,0 +1,469 @@
+#!/usr/bin/env python3
+"""Explicit real CouchDB probe. No Server/actor/Android support is implied."""
+import argparse
+import base64
+import contextlib
+import fcntl
+import hashlib
+import json
+import logging.handlers
+import os
+from pathlib import Path
+import platform
+import secrets
+import select
+import shutil
+import signal
+import socket
+import stat
+import sys
+import subprocess
+import threading
+import time
+import urllib.error
+import urllib.request
+
+CONFIGS = {
+    'x86_64': 'sha256:43a86062d33a0a3d24538a13834983fe5ef147dc14ea68c3ab71c8667071d18b',
+    'aarch64': 'sha256:16f125595d0796bfdb8a1a791b59ae8742b8220c054e63f845c7c57b6a1664bc',
+}
+PORTS = (45984, 45969, 45910)
+MARKER = 'dotfiles-couchdb-proof-v1\n'
+
+
+def verify_manifest(manifest, machine):
+    arch = manifest.get('arch')
+    if arch != machine or arch not in CONFIGS:
+        raise RuntimeError('only same-architecture x86_64/aarch64 guests are supported')
+    if manifest.get('manifest', {}).get('config', {}).get('digest') != CONFIGS[arch]:
+        raise RuntimeError('guest config digest does not match the pinned CouchDB image')
+    return arch
+
+
+def prepare(root):
+    if root.is_symlink():
+        raise RuntimeError('state must not be a symlink')
+    if root.exists():
+        if root.stat().st_uid != os.getuid() or root.stat().st_mode & 0o077:
+            raise RuntimeError('state must be owned by this user and mode 0700')
+        required = ('owner', 'data', 'password', 'cookie', 'couch.ini', 'vm.args')
+        if any((root / name).is_symlink() or not (root / name).exists() for name in required):
+            raise RuntimeError('incomplete or symlinked state; inspect it manually')
+        for name in required:
+            if name != 'data':
+                safe_file(root / name)
+        if not (root / 'data').is_dir():
+            raise RuntimeError('state data must be a directory')
+        if (root / 'owner').read_text() != MARKER:
+            raise RuntimeError('refusing state not created by this probe')
+        return
+    root.mkdir(mode=0o700, parents=True)
+    (root / 'data').mkdir(mode=0o700)
+    password = secrets.token_urlsafe(24)
+    salt = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac('sha1', password.encode(), salt.encode(), 100000).hex()
+    contents = {
+        'password': password + '\n', 'cookie': secrets.token_hex(32) + '\n',
+        'vm.args': '''-name couchdb@127.0.0.1
+-start_epmd false
+-kernel inet_dist_use_interface {127,0,0,1}
+-kernel inet_dist_listen_min 45910
+-kernel inet_dist_listen_max 45910
++S 2:2
++SDcpu 1
++SDio 1
++A 2
+''',
+        'couch.ini': f'''[couchdb]
+database_dir = /proof/data
+view_index_dir = /proof/data
+single_node = true
+max_document_size = 1048576
+[cluster]
+n = 1
+[chttpd]
+bind_address = 127.0.0.1
+port = 45984
+require_valid_user_except_for_up = true
+[httpd]
+bind_address = 127.0.0.1
+[admins]
+admin = -pbkdf2-{digest},{salt},100000
+[log]
+writer = stderr
+level = error
+''',
+    }
+    for name, value in contents.items():
+        path = root / name
+        with path.open('x') as stream:
+            stream.write(value)
+        path.chmod(0o400 if name == 'cookie' else 0o600)
+    (root / 'owner').write_text(MARKER)
+    (root / 'owner').chmod(0o600)
+
+
+def check_ports(ports):
+    for port in ports:
+        with socket.socket() as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(('127.0.0.1', port))
+
+
+def safe_file(path):
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return
+    safe_info(info, path.name)
+
+
+def safe_info(info, name):
+    if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+            or info.st_uid != os.getuid() or info.st_mode & 0o077):
+        raise RuntimeError('unsafe managed file: ' + name)
+
+
+def safe_outputs(root):
+    for name in ('lock', 'couch.log', 'epmd.log'):
+        safe_file(root / name)
+        if name.endswith('.log'):
+            for suffix in ('.1', '.2'):
+                safe_file(root / (name + suffix))
+
+
+class PrivateLogHandler(logging.handlers.RotatingFileHandler):
+    def _open(self):
+        path = Path(self.baseFilename)
+        safe_outputs(path.parent)
+        fd = os.open(path, os.O_CREAT | os.O_WRONLY | os.O_APPEND |
+                     os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK, 0o600)
+        try:
+            safe_info(os.fstat(fd), path.name)
+            return os.fdopen(fd, 'a', encoding='utf-8')
+        except BaseException:
+            os.close(fd)
+            raise
+
+    def doRollover(self):
+        safe_outputs(Path(self.baseFilename).parent)
+        super().doRollover()
+
+    def handleError(self, record):
+        raise RuntimeError('private log write failed')
+
+
+# The guardian pins the session/group identity until cleanup sends SIGKILL.
+# A completed PRoot launcher therefore cannot let its group ID be reused while
+# its descendants still need cleanup. Caught signals reset to defaults on exec.
+@contextlib.contextmanager
+def startup_signals_blocked():
+    previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
+    try:
+        yield
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+
+
+GUARDIAN = r"""
+import os, signal, subprocess, sys
+signal.signal(signal.SIGTERM, lambda *_: None)
+signal.signal(signal.SIGINT, lambda *_: None)
+signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT, signal.SIGTERM})
+fd, gate = int(sys.argv[1]), int(sys.argv[2])
+os.write(fd, b'R')
+committed = os.read(gate, 1) == b'G'
+os.close(gate)
+if not committed:
+    sys.exit(0)
+try:
+    status = subprocess.Popen(sys.argv[3:], stdin=subprocess.DEVNULL).wait()
+except OSError:
+    status = 127
+os.write(fd, (str(status) + '\n').encode())
+os.close(fd)
+while True:
+    signal.pause()
+"""
+
+
+class OwnedProcess:
+    def __init__(self, argv, stdout):
+        self.guard = None
+        self.status = None
+        self.stopped = False
+        self.gate_fd = None
+        owned_fds = set()
+        try:
+            # Assignment of the new PID and descriptor ownership is atomic with
+            # respect to termination signals. No guest starts before start().
+            with startup_signals_blocked():
+                read_fd, write_fd = os.pipe()
+                owned_fds.update((read_fd, write_fd))
+                gate_read, gate_write = os.pipe()
+                owned_fds.update((gate_read, gate_write))
+                self.guard = subprocess.Popen(
+                    [sys.executable, '-I', '-S', '-c', GUARDIAN,
+                     str(write_fd), str(gate_read)] + argv,
+                    stdin=subprocess.DEVNULL, stdout=stdout, stderr=subprocess.STDOUT,
+                    pass_fds=(write_fd, gate_read), start_new_session=True)
+                for fd in (write_fd, gate_read):
+                    os.close(fd)
+                    owned_fds.remove(fd)
+            if not select.select([read_fd], [], [], 5)[0] or os.read(read_fd, 1) != b'R':
+                raise RuntimeError('guardian startup handshake failed')
+            self.status_fd = read_fd
+            self.gate_fd = gate_write
+            os.set_blocking(read_fd, False)
+            self.stdout = self.guard.stdout
+            self.pid = self.guard.pid
+        except BaseException:
+            # The commit gate is still closed: there cannot be guest children.
+            # Kill/reap only this Popen PID, never an unverified/reused group.
+            with startup_signals_blocked():
+                try:
+                    if self.guard is not None:
+                        self.guard.kill()
+                        self.guard.wait(timeout=5)
+                finally:
+                    if self.guard is not None and self.guard.stdout is not None:
+                        self.guard.stdout.close()
+                    for fd in owned_fds:
+                        os.close(fd)
+            raise
+
+    def start(self):
+        if self.gate_fd is not None:
+            os.write(self.gate_fd, b'G')
+            os.close(self.gate_fd)
+            self.gate_fd = None
+
+    def poll(self):
+        if self.status is None and not self.stopped:
+            try:
+                value = os.read(self.status_fd, 32)
+                if value:
+                    self.status = int(value)
+            except BlockingIOError:
+                pass
+            if self.status is None and self.guard.poll() is not None:
+                raise RuntimeError('process guardian exited unexpectedly')
+        return self.status
+
+    def wait(self, timeout):
+        deadline = time.monotonic() + timeout
+        while self.poll() is None:
+            if time.monotonic() >= deadline:
+                raise subprocess.TimeoutExpired('owned child', timeout)
+            time.sleep(.01)
+        return self.status
+
+    def stop(self, timeout=15):
+        if self.stopped:
+            return
+        if self.guard.poll() is not None:
+            raise RuntimeError('lost guardian ownership; refusing to signal a possibly reused group')
+        os.killpg(self.pid, signal.SIGTERM)
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if self.guard.poll() is not None:
+                raise RuntimeError('guardian lost during cleanup; refusing an unsafe group signal')
+            time.sleep(min(.05, max(0, deadline - time.monotonic())))
+        os.killpg(self.pid, signal.SIGKILL)
+        self.guard.wait(timeout=5)
+        os.close(self.status_fd)
+        if self.gate_fd is not None:
+            os.close(self.gate_fd)
+            self.gate_fd = None
+        self.stopped = True
+
+
+def wait_ports_closed(ports):
+    deadline = time.monotonic() + 5
+    while True:
+        try:
+            check_ports(ports)
+            return
+        except OSError:
+            if time.monotonic() >= deadline:
+                raise RuntimeError('listener remains after process-group cleanup')
+            time.sleep(.05)
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, newurl):
+        return None
+
+
+class Probe:
+    def __init__(self, root, pd, guest):
+        self.root = root
+        self.argv = [pd, 'login', '--bind', str(root) + ':/proof',
+                     '--bind', str(root / 'cookie') + ':/root/.erlang.cookie',
+                     '--env', 'ERL_EPMD_PORT=45969', guest, '--']
+        self.children = []
+        self.logs = []
+        self.log_errors = []
+        password = (root / 'password').read_text().strip()
+        self.auth = 'Basic ' + base64.b64encode(('admin:' + password).encode()).decode()
+        # Ignore ambient HTTP proxies; credentials are only sent to this loopback URL.
+        self.http = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+
+    def budget(self):
+        if self.log_errors:
+            raise RuntimeError('private log writer failed')
+        size = sum(p.stat().st_size for p in self.root.rglob('*') if p.is_file())
+        if size > 128 * 1024**2 or shutil.disk_usage(self.root).free < 128 * 1024**2:
+            raise RuntimeError('probe storage budget/reserve exceeded')
+
+    def start(self, args, name):
+        safe_outputs(self.root)
+        handler = PrivateLogHandler(
+            self.root / (name + '.log'), maxBytes=1024**2, backupCount=2)
+        proc = None
+        thread = None
+        try:
+            # Defer INT/TERM until PID registration, logger ownership, and the
+            # guest commit are complete. A pending signal then takes cleanup.
+            with startup_signals_blocked():
+                proc = OwnedProcess(self.argv + args, stdout=subprocess.PIPE)
+                self.children.append(proc)
+                def drain():
+                    try:
+                        while chunk := proc.stdout.read(4096):
+                            record = logging.LogRecord(name, logging.INFO, '', 0,
+                                                       chunk.decode('utf-8', 'replace'), (), None)
+                            handler.emit(record)
+                    except Exception:
+                        self.log_errors.append('private log writer failed')
+                    finally:
+                        proc.stdout.close()
+                        handler.close()
+                thread = threading.Thread(target=drain, daemon=True)
+                self.logs.append(thread)
+                thread.start()
+                proc.start()
+            return proc
+        except BaseException:
+            with startup_signals_blocked():
+                if proc is not None:
+                    self.stop(proc)
+                if thread is None or thread.ident is None:
+                    handler.close()
+                    if proc is not None and proc.stdout is not None:
+                        proc.stdout.close()
+                else:
+                    thread.join(timeout=5)
+            raise
+
+    @staticmethod
+    def stop(proc, timeout=15):
+        if not isinstance(proc, OwnedProcess):
+            raise RuntimeError('cleanup requires an owned guardian')
+        proc.stop(timeout)
+
+    def request(self, path, method='GET', value=None):
+        request = urllib.request.Request('http://127.0.0.1:45984' + path, method=method,
+            data=json.dumps(value).encode() if value is not None else None,
+            headers={'Authorization': self.auth, 'Content-Type': 'application/json'})
+        with self.http.open(request, timeout=3) as response:
+            return json.load(response)
+
+    def couch(self):
+        return self.start(['/usr/bin/env', 'COUCHDB_ARGS_FILE=/proof/vm.args',
+            'COUCHDB_INI_FILES=/opt/couchdb/etc/default.ini /proof/couch.ini',
+            '/opt/couchdb/bin/couchdb', '-noshell', '-noinput'], 'couch')
+
+    def ready(self, proc):
+        deadline = time.monotonic() + 90
+        while time.monotonic() < deadline:
+            self.budget()
+            if proc.poll() is not None or self.children[0].poll() is not None:
+                raise RuntimeError('CouchDB/epmd exited; inspect private logs')
+            try:
+                if self.request('/_up').get('status') == 'ok':
+                    return
+            except (OSError, urllib.error.URLError, ValueError):
+                pass
+            time.sleep(1)
+        raise RuntimeError('CouchDB readiness exceeded 90 seconds')
+
+    def run(self):
+        check_ports(PORTS)
+        self.budget()
+        try:
+            self.start(['/opt/couchdb/erts-14.2.5.15/bin/epmd', '-address',
+                        '127.0.0.1', '-port', '45969'], 'epmd')
+            couch = self.couch()
+            self.ready(couch)
+            if self.request('/').get('version') != '3.5.2':
+                raise RuntimeError('unexpected CouchDB version')
+            try:
+                self.request('/dotfiles_proof', 'PUT')
+            except urllib.error.HTTPError as error:
+                if error.code != 412:
+                    raise
+            # Reuse one fixture without revisions/writes accumulating on reruns.
+            try:
+                previous = self.request('/dotfiles_proof/preserved')
+            except urllib.error.HTTPError as error:
+                if error.code != 404:
+                    raise
+                previous = {'marker': secrets.token_hex(24)}
+                self.request('/dotfiles_proof/preserved', 'PUT', previous)
+            self.stop(couch)
+            wait_ports_closed((45984, 45910))
+            couch = self.couch()
+            self.ready(couch)
+            if self.request('/dotfiles_proof/preserved')['marker'] != previous['marker']:
+                raise RuntimeError('restart readback mismatch')
+
+        finally:
+            with startup_signals_blocked():
+                errors = []
+                for proc in reversed(self.children):
+                    try:
+                        self.stop(proc)
+                    except (OSError, RuntimeError) as error:
+                        errors.append(error)
+                for thread in self.logs:
+                    thread.join(timeout=5)
+                if self.log_errors:
+                    raise RuntimeError('private log writer failed')
+                if errors:
+                    raise RuntimeError('cleanup failed: ' + str(errors[0]))
+        wait_ports_closed(PORTS)
+        print(json.dumps({'couchdb': '3.5.2', 'restartReadback': 'pass',
+                          'host': platform.system(), 'architecture': platform.machine(),
+                          'serverHttp': 'not-run', 'actor': 'not-run',
+                          'androidEvidence': 'not-established'}))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--state', type=Path, required=True, help='new private dedicated directory')
+    parser.add_argument('--manifest', type=Path, required=True, help='installed guest manifest.json')
+    parser.add_argument('--guest', default='starintel-couchdb-proof')
+    parser.add_argument('--proot-distro', default='proot-distro')
+    args = parser.parse_args()
+    os.umask(0o077)
+    verify_manifest(json.loads(args.manifest.read_text()), platform.machine())
+    if args.manifest.parent.name != args.guest:
+        raise RuntimeError('manifest directory must match the named installed guest')
+    prepare(args.state)
+    safe_outputs(args.state)
+    fd = os.open(args.state / 'lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    with os.fdopen(fd, 'a') as lock:
+        safe_info(os.fstat(lock.fileno()), 'lock')
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        Probe(args.state.resolve(), args.proot_distro, args.guest).run()
+
+
+if __name__ == '__main__':
+    def interrupted(signum, frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, interrupted)
+    try:
+        main()
+    except (RuntimeError, OSError, ValueError, KeyboardInterrupt) as error:
+        raise SystemExit('CouchDB proof stopped: ' + str(error))

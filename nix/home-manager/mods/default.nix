@@ -1,27 +1,44 @@
-{ config, pkgs, inputs, ... }:
+{
+  config,
+  pkgs,
+  inputs,
+  ...
+}:
 {
   imports = [
     inputs.skills.homeManagerModules.opencode
     inputs.skills.homeManagerModules.claude
     inputs.skills.homeManagerModules.agents
+    inputs.qwen3-tts.homeManagerModules.default
     ./outrun-theme.nix
     ./opencode.nix
+    ./opencode-security.nix
+    ./opencode-tmux.nix
+    ./opencode-ses.nix
     ./codex.nix
+    ./agentprolog.nix
     ./agent-verification.nix
     ./chatgpt-desktop.nix
     ./base.nix
+    ./starintel-tunnel.nix
+    ./starintel-agent-flow.nix
     ./desktop.nix
     ./gnome.nix
     ./fonts.nix
     ./emacs.nix
     ./gpt-todos.nix
+    ./starintel-backup.nix
+    ./org-logseq-sync.nix
+    ./kb-roam.nix
     ./hackmode.nix
+    ./node-red.nix
     ./security.nix
     ./nim.nix
     ./lisp.nix
     #./python.nix
     ./syncthing.nix
     ./media.nix
+    ./games.nix
     ./pentesting.nix
     ./llm.nix
     ./zara.nix

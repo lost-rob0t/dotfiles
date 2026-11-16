@@ -18,6 +18,12 @@ let
     ];
     text = builtins.readFile ../../../scripts/dotfiles-sync;
   };
+
+  archiveProlog = pkgs.writeShellApplication {
+    name = "archive-prolog";
+    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.gnutar pkgs.gzip ];
+    text = builtins.readFile ../../../.local/bin/archive-prolog;
+  };
 in
 {
   options = {
@@ -46,6 +52,6 @@ in
       tea # Forgejo CLI for git.starintel.actor
       forgejo-cli
 
-    ]) ++ [ gitSync dotfilesSync ];
+    ]) ++ [ gitSync dotfilesSync archiveProlog ];
   };
 }

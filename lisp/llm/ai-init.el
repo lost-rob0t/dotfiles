@@ -2,6 +2,7 @@
 
 (require 'ai)
 (require 'ai-prompts)
+(require 'prompt-lib)
 (require 'ai-image)
 (require 'meme)
 (require 'ai-agent)
@@ -9,6 +10,7 @@
 (require 'ai-prolog-rlm)
 (require 'ai-mcp)
 (require 'chat)
+(require 'ai-dashboard)
 (require 'fren-loader)
 
 (defconst ai/default-openrouter-image-model
@@ -37,7 +39,7 @@
         ai/llm-openrouter-models))
 
 (setq ai/llm-provider 'openrouter
-      ai/llm-model 'openrouter/auto)
+      ai/llm-model 'openai/gpt-5.6-luna)
 (ai/llm-backend 'openrouter t)
 (ai/llm-apply-defaults)
 
@@ -73,6 +75,9 @@
 
 (ai/image-register-gptel-tools)
 (ai/prolog-rlm-register-gptel-tool)
+(ai/dashboard-register-gptel-tools)
+(when (require 'zara nil t)
+  (zara-gptel-register-tool))
 (unless (string-match-p "Image and prompt-template rules:" ai/agent-system-prompt)
   (setq ai/agent-system-prompt
         (concat ai/agent-system-prompt ai/image-agent-instructions)))
@@ -125,7 +130,7 @@
   :request-params nil)
 
 (with-eval-after-load 'org-ql
-  (require 'todo nil t))
+  (require 'ai-todo nil t))
 
 (provide 'ai-init)
 ;;; ai-init.el ends here

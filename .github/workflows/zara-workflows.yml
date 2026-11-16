@@ -5,13 +5,21 @@ on:
     paths:
       - '.github/workflows/zara-workflows.yml'
       - 'tests/zara-workflows.sh'
+      - 'tests/zara-dev.sh'
+      - 'tests/zara-lyria.py'
+      - 'tests/zara-android-template.sh'
       - 'nix/home-manager/mods/default.nix'
       - 'nix/home-manager/mods/zara.nix'
       - 'nix/home-manager/mods/zara-workflows.nix'
       - 'nix/home-manager/systems/desktop/home.nix'
+      - 'flake.nix'
+      - 'flake.lock'
       - 'nix/home-manager/files/zarathushtra/**'
+      - '.config/zarathushtra/**'
       - 'nix/nixos/systems/flake/networking.nix'
+      - 'zara-template.properties'
       - 'docs/wiki/zara.org'
+      - 'docs/wiki/zara-android-automation.org'
       - 'docs/wiki/index.org'
   push:
     branches:
@@ -19,13 +27,21 @@ on:
     paths:
       - '.github/workflows/zara-workflows.yml'
       - 'tests/zara-workflows.sh'
+      - 'tests/zara-dev.sh'
+      - 'tests/zara-lyria.py'
+      - 'tests/zara-android-template.sh'
       - 'nix/home-manager/mods/default.nix'
       - 'nix/home-manager/mods/zara.nix'
       - 'nix/home-manager/mods/zara-workflows.nix'
       - 'nix/home-manager/systems/desktop/home.nix'
+      - 'flake.nix'
+      - 'flake.lock'
       - 'nix/home-manager/files/zarathushtra/**'
+      - '.config/zarathushtra/**'
       - 'nix/nixos/systems/flake/networking.nix'
+      - 'zara-template.properties'
       - 'docs/wiki/zara.org'
+      - 'docs/wiki/zara-android-automation.org'
       - 'docs/wiki/index.org'
 
 permissions:
@@ -41,9 +57,15 @@ jobs:
       - name: Check shell syntax and policy
         run: |
           set -euo pipefail
-          bash -n tests/zara-workflows.sh nix/home-manager/files/zarathushtra/bin/zara-system-update
-          shellcheck --severity=warning tests/zara-workflows.sh nix/home-manager/files/zarathushtra/bin/zara-system-update
+          bash -n tests/zara-workflows.sh tests/zara-dev.sh tests/zara-android-template.sh nix/home-manager/files/zarathushtra/bin/zara-system-update nix/home-manager/files/zarathushtra/bin/zara-dev
+          shellcheck --severity=warning tests/zara-workflows.sh tests/zara-dev.sh tests/zara-android-template.sh nix/home-manager/files/zarathushtra/bin/zara-system-update nix/home-manager/files/zarathushtra/bin/zara-dev
       - name: Check Zara Prolog base config syntax
-        run: swipl -q -t halt -s nix/home-manager/files/zarathushtra/config.pl
+        run: swipl -q -t halt -s .config/zarathushtra/config.pl
       - name: Check Zara workflow contract
         run: bash tests/zara-workflows.sh
+      - name: Check Zara local development toggle
+        run: bash tests/zara-dev.sh
+      - name: Check private OpenRouter Lyria plugin
+        run: python3 tests/zara-lyria.py
+      - name: Check Zara Android config template
+        run: bash tests/zara-android-template.sh

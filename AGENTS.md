@@ -13,13 +13,24 @@ This repository uses literate Org configuration. Treat the Org files as source c
 - `.config/qtile/qtile-ai-windows.org` is the source of truth for `.config/qtile/qtile_ai_windows.py`.
 - `.config/qtile/qtile-workflows.org` is the source of truth for `.config/qtile/qtile_workflows.py` and `.config/qtile/workflows.json`.
 - `.config/qtile/qtile-capture.org` is the source of truth for `.config/qtile/qtile_capture.py`.
+- `.config/qtile/qtile-prompt-lib.org` is the source of truth for `.config/qtile/qtile_prompt_lib.py`.
 - `.config/qtile/qtile-openrouter.org` is the source of truth for `.config/qtile/qtile_openrouter.py`.
 - `.doom.d/autoload/gpt-todos.org` is the source of truth for `.doom.d/autoload/gpt-todos.el`.
 - `scripts/gpt-todos-sync.org` is the source of truth for `scripts/gpt-todos-sync` and `scripts/install-gpt-todos-cron`.
 - `scripts/dotfiles-sync.org` is the source of truth for `scripts/dotfiles-sync`.
 - `scripts/termux-remote.org` is the source of truth for `scripts/remote-gui-launch`, `scripts/agent-zero-tunnel`, and `scripts/install-termux-widgets`.
+- `scripts/termux-starintel-client.org` is the source of truth for `scripts/termux-starintel-client`.
+- `scripts/termux-couchdb-proof.org` is the source of truth for `scripts/termux-couchdb-proof`.
+- `scripts/termux-starintel.org` is the source of truth for `scripts/termux-starintel`.
 - `bootstrap-termux.org` is the source of truth for `bootstrap-termux.sh`.
+- `android/build.org` is the source of truth for `android/build.py`.
+- `android/early-init.org` is the source of truth for `android/early-init.el`.
+- `android/config.org` is the source of truth for `android/lisp/star-android-modern.el`, the `android/stow/android-emacs/` wrapper, `android/bin/install-native-profile`, and `android/tests/star-android-modern-test.el`.
+- `nix/home-manager/mods/opencode.org` is the source of truth for `nix/home-manager/mods/opencode.nix`.
+- `scripts/opencode.org` is the source of truth for the standalone OpenCode commands: `.local/bin/opencode-tmux`, `.local/bin/opencode-pick`, `.local/bin/ezf`, `.local/bin/ezf.sh`, `.local/bin/opencode-ses`, `.local/lib/dotfiles/opencode_tmux.py`, `.local/lib/dotfiles/opencode_ses.py`, `.local/lib/dotfiles/ezf.el`, `nix/home-manager/mods/opencode-tmux.nix`, and `nix/home-manager/mods/opencode-ses.nix`.
+- `nix/home-manager/mods/starintel-llm-harness.org` is the source of truth for `nix/home-manager/mods/starintel-llm-harness.nix`.
 - `android/doom/config.org` is the source of truth for `android/doom/init.el`, `android/doom/packages.el`, and `android/doom/config.el`.
+- `emacs/profiles.org` is the source of truth for `.emacs-profiles.el`.
 - Do not make a lasting change only in a generated/tangled file.
 
 When a change touches a literate configuration:
@@ -50,6 +61,13 @@ When adding or renaming a major subsystem, host/profile, canonical Org source, g
 
 A change is not complete if the implementation and relevant documentation disagree.
 
+## Code cleanup
+
+- Remove dead code, unreachable branches, obsolete compatibility paths, and unused helpers encountered within the task scope.
+- Do not preserve redundant code paths without a concrete current requirement.
+- De-slopify touched code: remove generated-looking clutter, needless comments, repetition, unnecessary abstraction, and defensive complexity that does not serve an identified behavior.
+- Prefer the smallest clear implementation with one canonical path while preserving required behavior and focused diffs.
+
 ## Qtile
 
 Keep keybindings documented in their literate source. The OpenRouter telemetry helper owns the dynamic `Super+Ctrl+Shift+R` sync-and-reload binding and must stay synchronized with `qtile-openrouter.org`.
@@ -70,13 +88,23 @@ Do not rely on Bash startup files as the only way to expose `git-sync`. The help
 
 ## GPT TODO sync
 
-`lost-rob0t/gpt-todos` owns durable Org task state. Dotfiles owns the local sync/runtime integration used to move that state into the user's live Org agenda.
+`lost-rob0t/gpt-todos` owns the durable private Org graph: agenda task state plus the user's full non-agenda Org-roam workspace, shared agent memory, inventory notes, dailies, and allowed attachments. Dotfiles owns the local sync/runtime integration that mirrors this state into the user's live Org tree.
 
 Do not put the canonical sync executable or Emacs integration in `gpt-todos`. Keep them in this repository and keep their Org sources synchronized with their generated counterparts.
 
-`gpt-todos-sync` must only synchronize GPT TODO/agenda state. It must never tangle, stage, commit, fetch, rebase, push, or otherwise synchronize the dotfiles repository.
+`gpt-todos-sync` synchronizes only the private `gpt-todos` Org workspace: live `agenda/` maps to repository `agenda/`, while every other allowed live note path maps under repository `notes/`. It must never stage, commit, fetch, rebase, push, or otherwise synchronize the dotfiles repository itself. Org-roam SQLite/Org-ID caches and editor lock files are derived state and must remain outside Git.
 
 Dotfiles synchronization belongs exclusively to `dotfiles-sync`. `dotfiles-sync` may enforce known literate/generated pairs and must target the user's Forgejo service at `git.starintel.actor` by default rather than GitHub.
+
+## Zara expert ownership
+
+Repo-local/personal expert implementations are owned by `.zara/experts/`.
+
+- Put new expert Prolog rules, deterministic corpus builders, expert tests, and packaging there.
+- Keep `.prolog/kb/` as durable project memory and reference it through explicit expert adapters instead of copying facts.
+- Zara Core and `zara-plugins` own runtime, registry, lifecycle, and adapter mechanics; they are not the canonical home for this repo's expert knowledge.
+- Do not invent a second `ZARA-EXPERT/1` manifest while the canonical contract is still being implemented.
+- Preserve existing tracked Prolog history when reorganizing expert work.
 
 ## Testing
 

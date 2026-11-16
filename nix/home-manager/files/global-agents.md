@@ -10,6 +10,151 @@ if there is outage with that host then use github as fall back.
 
 use tea for forgjo actions.
 
+## StarIntel spec authority
+
+For **any StarIntel work** — including StarIntel repositories, document/schema changes,
+actors, APIs, ingest, research tooling, bindings, conformance, or consumers of the
+StarIntel document contract — load and follow the `starintel-spec-version` skill
+before relying on a version number.
+
+The active release must be resolved from repository authority, never from memory,
+issue prose, research notes, README text, or a schema filename.
+
+1. If the current repository contains `schema/starintel-schema.lock.json`, resolve
+   that lock first with the `starintel-spec-version` skill. Its read-only helper is
+   `scripts/starintel_spec_version.py` inside the installed skill; use the agent
+   runtime's resolved skill location rather than guessing a home-directory path.
+   The equivalent invocation is:
+
+   ```bash
+   python3 <starintel-spec-version-skill>/scripts/starintel_spec_version.py \
+     current --lock schema/starintel-schema.lock.json
+   ```
+
+   The value called `release_version` is the active StarIntel release for that
+   consumer. `schema_version` is the immutable base/wire schema family and may be
+   older than the release/profile version.
+
+   If the local agent runtime is still pinned to a skills revision that predates
+   `starintel-spec-version`, do **not** guess or continue from remembered numbers.
+   Read the lock JSON directly and run the repository-native lock checker when one
+   exists. Record `release_version`, `schema_version`, `canonical_repository`, and
+   `canonical_commit`; then use those values exactly. Updating the skills pin is a
+   deployment task, not permission to bypass spec resolution.
+
+2. Follow the lock's `canonical_repository` and `canonical_commit`. When a matching
+   local canonical checkout is available, verify it with the same helper's `check`
+   command and `--canonical-root`.
+3. In the canonical schema repository, run its repository-owned release tooling:
+
+   ```bash
+   python3 scripts/schema-release.py current
+   python3 scripts/schema-release.py check
+   ```
+
+4. Never infer the current release from names such as
+   `starintel-doc-v0.9.0.schema.json`. In the additive v0.9 line, the immutable base
+   schema may remain `0.9.0` while release/profile versions advance (`0.9.1`,
+   `0.9.2`, and later).
+5. Never hand-edit a StarIntel release/profile bump with `sed`, search/replace, or
+   ad hoc scripts. Use the canonical repository's bump script, then repin consumers
+   through their existing schema lock/sync workflow and run conformance.
+6. If lock, manifest, canonical commit, generated schema, or bump checker disagree,
+   fail closed and repair the authority chain before implementing StarIntel work.
+
+At the time this policy was written, the active release/profile is `0.9.1` and the
+next additive release is `0.9.2`. This sentence is historical context only: the
+live lock and canonical scripts always outrank it.
+
+## Where the gpt-todos Org workspace lives
+
+Path map for agents working on the user's notes graph:
+
+- Live workspace: `$GPT_TODOS_NOTES_DIR` (default `~/Documents/Notes/org`).
+- Durable private checkout: `$GPT_TODOS_REPO_DIR` (default `~/Documents/gpt-todos`),
+  remote `git@github.com:lost-rob0t/gpt-todos.git` (private), branch `main`.
+- Mapping: live `agenda/` <-> repo `agenda/` (`*.org` only, Todo Manager
+  compatibility); every other allowed live path <-> repo `notes/`.
+- Never synchronized into the repo: `.env`/`.envrc` credentials, `.orgids`,
+  `.projectile`, Org-roam/Org-ID caches, `__pycache__`/`.cache`/`.git`, editor
+  lock and backup files, and symlinks pointing outside the workspace.
+- Shared agent memory: `$GPT_TODOS_NOTES_DIR/memory/shared/` (mirrored to
+  `notes/memory/shared/`).
+- Durable research artifacts: `llm/research/` under the workspace root.
+- Sync command: `gpt-todos-sync` (also the `gpt-todos-sync.timer` systemd user
+  timer, every 5 minutes). Run it after non-Emacs writes before claiming the
+  graph is published.
+- Interrupted-save recovery files: `~/.local/state/gpt-todos-sync/recovery/`.
+- The sync refuses to start while the durable checkout is dirty under
+  `agenda/` or `notes/`; resolve or commit that state first.
+
+## Shared Org-roam agent memory
+
+The user's cross-project shared memory lives in the Git-backed Org graph at
+`$GPT_TODOS_NOTES_DIR/memory/shared/` (default
+`~/Documents/Notes/org/memory/shared/`).  It is separate from project-local
+`.prolog/` execution memory: project KBs hold repository-specific engineering
+knowledge; shared Org memory holds durable facts, decisions, preferences, and
+cross-project state that multiple authorized agents should reuse.
+
+Before inventing a durable cross-project fact, search the shared Org graph first.
+Prefer Org QL when the configured Emacs environment is available.  Otherwise
+read/search the Org files directly; never substitute an LLM's remembered prose
+for repository state.
+
+Shared assertions are immutable Org heading nodes with at least:
+
+```text
+:ID: <Org ID>
+:KIND: memory
+:MEMORY_SCOPE: shared
+:SUBJECT: <stable subject key>
+:VALUE: <durable value>
+:REV: <positive integer>
+:STATUS: active|retracted
+:AUTHOR: <agent/user id>
+:SOURCE: <issue/pr/run/conversation provenance>
+:SUPERSEDES: <prior Org ID or empty>
+```
+
+When shared state changes:
+- append a new assertion rather than overwriting the previous assertion;
+- set `SUPERSEDES` to the prior assertion when replacing it;
+- preserve concurrent successors as a conflict instead of choosing a winner
+  silently;
+- include source and author provenance;
+- use `gpt-todos-sync` after non-Emacs writes so the private Git-backed graph
+  is published;
+- never place secrets, credentials, private keys, raw chain-of-thought, or
+  transient scratch data in shared memory.
+
+The canonical schema/policy is in `lost-rob0t/gpt-todos`:
+`docs/org-roam-shared-memory.org`, `kb/shared_memory.pl`, and
+`notes/memory/shared/`.  Those files outrank copied prompt text if the contract
+evolves.
+
+## Canonical expert implementation ownership
+
+Across the user's repositories, **all reusable expert definitions and expert knowledge implementation work** belongs in the dotfiles repository under `.zara/experts/`.
+
+- Expert Prolog rules/KBs, deterministic corpus generators, expert-specific tests, style KBs, expert packaging, and domain expert implementations are authored in dotfiles.
+- Other repositories may own generic execution infrastructure: Prolog-RLM owns reusable expert runtime/contracts/selection/invocation machinery; Zara Core and `zara-plugins` own Zara registry/lifecycle/discovery/adapters. They consume dotfiles-owned experts instead of defining a second canonical expert brain.
+- Repository-specific durable engineering memory remains in that repository's `.prolog/kb/`; a dotfiles expert may consume it through a provenance-preserving adapter instead of copying it.
+- Existing expert issues in other repositories should be treated as runtime/adapter/integration work or redirected to the canonical dotfiles expert library when their deliverable is an expert definition, KB, rules, corpus, style policy, or expert-specific tests.
+- Until the canonical `ZARA-EXPERT/1` descriptor is implemented, do not fabricate a local replacement manifest.
+
+## Durable Prolog project memory
+
+For substantive repository work, use the `prolog-project-kb` skill.
+
+- Query the project's durable Prolog KB before starting work.
+- Keep active TODO state, blockers, dependencies, and observations in `.prolog/runs/run-<HEAD>.pl`; update it immediately as work changes state.
+- No substantive work without current Prolog TODO state, and do not leave TODO state stale after a meaningful transition.
+- Keep `.prolog/runs/` local/untracked so execution bookkeeping does not dirty Git.
+- Promote verified reusable discoveries into `.prolog/kb/`: architecture, tools, useful scripts/commands, debugging symptoms, root causes, fixes, invariants, dependencies, and recurring workflows.
+- The durable KB must be composed from many focused Prolog files with one obvious loader. Do not impose a fixed file taxonomy; inspect the existing KB and discover/evolve the structure that best models the project.
+- Prefer relations and queryable predicates over prose logs. Raw observations stay in `run-<HEAD>.pl`; durable KB files contain knowledge worth giving future agents.
+
 ## Durable Prolog verification
 
 For every task that changes files in the current work directory:
@@ -20,10 +165,45 @@ For every task that changes files in the current work directory:
 4. Run real tests and checks through `prolog-verify observe -- <command> [args...]` so their argv, exit status, output hash, HEAD, and worktree digest are recorded by the machine.
 5. Run `prolog-verify check` before claiming completion. Missing files, stale evidence, timeouts, exceptions, and non-zero exits are failures.
 
-Keep `.prolog/` local unless the repository explicitly adopts its verifier as maintained project code. Do not weaken verification rules merely to make the gate pass.
+Keep verifier-generated runtime state local. `.prolog/kb/` is the exception when the project uses the durable project-memory skill: verified reusable KB knowledge is intended to be tracked. Do not weaken verification rules merely to make the gate pass.
 
 ## Brave-only external discovery
 
 Use Brave Search for external discovery. Prefer `prolog-verify brave --query <query>` so the Brave call and result digest enter the verification facts together. A user-provided URL may be opened directly, but do not substitute another search engine or generic web-search tool for Brave.
 
 Do not perform web research when the user forbids it. Local-only work does not need a search; keep `research_required(false)` for those tasks.
+
+## Durable research artifacts
+
+For durable research, investigations, architectural analysis, source review, benchmark analysis, incident analysis, and similar work, default to Org rather than ephemeral chat-only prose.
+
+1. Resolve the user's configured Org-roam root instead of hardcoding a home-directory path.
+2. Write or update the artifact at `llm/research/<slug>.org` beneath that root. Use a stable lowercase filesystem-safe slug derived from the subject, and reuse an existing artifact for the same subject instead of creating near-duplicates.
+3. Use normal Org structure and preserve sources, exact commands, commit SHAs, evidence, uncertainty, and conclusions. Prefer headings, links, tables, source blocks, TODOs, and properties over Markdown pasted into Org.
+4. After the artifact is successfully written, use the `emacs-eval` skill to open that exact file in the user's running Emacs server.
+5. Do not claim the file was opened unless the Emacs operation actually succeeded.
+
+Do not create a durable research artifact for trivial scratch work unless the user asks for one.
+
+## Code cleanup
+
+- Remove dead code, unreachable branches, obsolete compatibility paths, and unused helpers encountered within the task scope.
+- Do not preserve redundant code paths without a concrete current requirement.
+- De-slopify touched code: remove generated-looking clutter, needless comments, repetition, unnecessary abstraction, and defensive complexity that does not serve an identified behavior.
+- Prefer the smallest clear implementation with one canonical path while preserving required behavior and focused diffs.
+
+
+## Org-roam publication provenance
+
+Durable AI-authored Org content must be written through the audited KB Roam path,
+not by ad-hoc file mutation. Use the global `kb-ingest` OpenCode subagent or the
+`kb-ingest` command-line writer. Every AI-authored file must carry
+`AI_GENERATED: t`, one globally unique `AI_TAG` of the form `ai_<id>`, that
+same tag in `FILETAGS`, concrete source provenance, and at least two specific
+topic tags.
+
+Publishing is fail-closed and private by default. A file is public only when its
+metadata explicitly says `ROAM_VISIBILITY: public` (legacy `PUBLISH: t` is
+accepted during migration). A `:private:` headline, `:PRIVATE: t`, or
+`:VISIBILITY: private` makes the entire subtree private; descendants may not
+override a private ancestor. Run the Prolog censor gate before any site export.

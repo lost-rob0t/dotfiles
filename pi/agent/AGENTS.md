@@ -1,0 +1,1 @@
+/data/data/com.termux/files/home/dotfiles/nix/home-manager/files/global-agents.md

@@ -136,6 +136,16 @@ Doom's older package pin.
   :recipe (:host github :repo "karthink/gptel"
            :files ("*.el")))
 #+end_src
+** Zara
+The native Emacs client is shipped by the Zara repository and pinned to the
+exact reviewed client commit.  Doom only installs =emacs/zara.el=; Zara's
+runtime stays in the normal Zara/Nix deployment.
+#+begin_src emacs-lisp
+(package! zara
+  :recipe (:host github :repo "lost-rob0t/zara"
+           :files ("emacs/zara.el"))
+  :pin "c5f956ee9d41c1a3bb96029a338572e92e147a4c")
+#+end_src
 ** MCP Services
 GPTEL supports MCP.
 #+begin_src emacs-lisp

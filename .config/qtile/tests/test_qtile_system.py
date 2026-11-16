@@ -53,6 +53,24 @@ def _install_libqtile_stub():
 
 
 _install_libqtile_stub()
+
+
+def _install_psutil_stub():
+    # qtile_system imports psutil at module level but every test mocks the
+    # calls it makes, so a minimal stub keeps the suite env-independent.
+    psutil = types.ModuleType("psutil")
+
+    class Error(Exception):
+        pass
+
+    psutil.Error = Error
+    psutil.disk_usage = lambda *args, **kwargs: types.SimpleNamespace(free=0, total=0, used=0)
+    psutil.disk_partitions = lambda *args, **kwargs: []
+    psutil.disk_io_counters = lambda *args, **kwargs: {}
+    sys.modules.setdefault("psutil", psutil)
+
+
+_install_psutil_stub()
 SPEC = importlib.util.spec_from_file_location("qtile_system", SOURCE)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

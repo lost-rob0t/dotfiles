@@ -12,12 +12,17 @@ let
       (entry: lib.nameValuePair entry.name entry)
       pluginRegistryDocument.plugins
   );
+  allRegistryPluginNames = map (entry: entry.name) pluginRegistryDocument.plugins;
+  requestedRegistryPlugins = lib.unique (
+    lib.optionals cfg.plugins.enableAll allRegistryPluginNames
+    ++ cfg.plugins.registry
+  );
   unknownRegistryPlugins = lib.filter
     (name: !(builtins.hasAttr name pluginRegistry))
-    cfg.plugins.registry;
+    requestedRegistryPlugins;
   selectedRegistryEntries = map
     (name: pluginRegistry.${name})
-    (lib.filter (name: builtins.hasAttr name pluginRegistry) cfg.plugins.registry);
+    (lib.filter (name: builtins.hasAttr name pluginRegistry) requestedRegistryPlugins);
   registryPackageFor = entry:
     inputs.zara-plugins.packages.${system}.${entry.name};
   registryPackages = map registryPackageFor selectedRegistryEntries;
@@ -124,6 +129,18 @@ in
           cold AgentManager/ChromaDB starts, which can take minutes.
         '';
       };
+
+      remoteEndpoint = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Optional authenticated TCP listener alongside local IPC.";
+      };
+
+      securityDir = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Owner-private, out-of-store CURVE state directory for the remote listener.";
+      };
     };
 
     desktop = {
@@ -142,6 +159,17 @@ in
     };
 
     plugins = {
+      enableAll = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Install and declaratively wire every plugin present in the pinned
+          zara-plugins registry. The pinned registry remains the source of
+          truth, so registry updates become available only after the flake
+          input is deliberately updated and checked.
+        '';
+      };
+
       registry = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];
@@ -211,6 +239,11 @@ in
 
     assertions = [
       {
+        assertion = cfg.server.remoteEndpoint == null
+          || (cfg.server.securityDir != null && lib.hasPrefix "tcp://" cfg.server.remoteEndpoint);
+        message = "zara.server.remoteEndpoint requires a TCP endpoint and zara.server.securityDir.";
+      }
+      {
         assertion = unknownRegistryPlugins == [ ];
         message = ''
           Unknown zara.plugins.registry entries: ${lib.concatStringsSep ", " unknownRegistryPlugins}.
@@ -241,7 +274,9 @@ in
         After = [ "pipewire.service" "pipewire-pulse.service" ];
       };
       Service = {
-        ExecStart = "${cfg.package}/bin/zara-server --shutdown-timeout ${toString cfg.server.shutdownTimeout}";
+        ExecStart = "${cfg.package}/bin/zara-server --shutdown-timeout ${toString cfg.server.shutdownTimeout}"
+          + lib.optionalString (cfg.server.remoteEndpoint != null && cfg.server.securityDir != null)
+            " --remote-endpoint ${cfg.server.remoteEndpoint} --security-dir ${cfg.server.securityDir}";
         EnvironmentFile = lib.optional (cfg.server.environmentFile != null) cfg.server.environmentFile;
         Restart = "on-failure";
         RestartSec = 5;
@@ -253,12 +288,18 @@ in
     systemd.user.services.zara-desktop = lib.mkIf cfg.desktop.enable {
       Unit = {
         Description = "Zara desktop copilot";
-        After = [ "graphical-session.target" "zara-server.service" ];
-        Wants = lib.optional cfg.server.enable "zara-server.service";
-        PartOf = [ "graphical-session.target" ];
+        After = [ "graphical-session.target" "zara-server.service" ]
+          ++ lib.optionals config.zara.workflows.enable [ "zara-pair.service" ];
+        Wants = lib.optional cfg.server.enable "zara-server.service"
+          ++ lib.optionals config.zara.workflows.enable [ "zara-pair.service" ];
+        PartOf = [ "graphical-session.target" ]
+          ++ lib.optionals config.zara.workflows.enable [ "zara-pair.service" ];
       };
       Service = {
         ExecStart = "${cfg.package}/bin/zara-desktop";
+        # Materialized by zara-pair from the platform keyring; optional so the
+        # copilot still starts (unauthenticated IPC fallback) before pairing.
+        EnvironmentFile = "-%h/.config/zarathushtra/secrets-daemon-clients.env";
         Restart = "on-failure";
         RestartSec = 3;
         UMask = "0077";
