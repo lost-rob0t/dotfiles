@@ -15,7 +15,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: cachix/install-nix-action@v31
+      - name: Fetch Nix setup action from upstream
+        run: git clone --depth 1 --branch v31 https://github.com/cachix/install-nix-action .github/ci-actions/install-nix
+      - uses: ./.github/ci-actions/install-nix
 
       - name: Update flake inputs
         run: nix flake update

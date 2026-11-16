@@ -60,6 +60,8 @@ jobs:
           assert bar.widgets[2].feed.worker is None
           print('Actual Qtile pair/graph constructor and adjacency smoke passed (not a live WM test).')
           PY
-      - uses: cachix/install-nix-action@v31
+      - name: Fetch Nix setup action from upstream
+        run: git clone --depth 1 --branch v31 https://github.com/cachix/install-nix-action .github/ci-actions/install-nix
+      - uses: ./.github/ci-actions/install-nix
       - name: Evaluate Nix service environment, auth paths and disablement
         run: nix-instantiate --eval --strict --json tests/llm-log-quota-consumer.nix

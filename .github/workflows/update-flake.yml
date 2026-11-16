@@ -26,9 +26,13 @@ jobs:
           ref: master
           fetch-depth: 0
 
-      - uses: cachix/install-nix-action@v31
+      - name: Fetch Nix setup actions from upstream
+        run: |
+          git clone --depth 1 --branch v31 https://github.com/cachix/install-nix-action .github/ci-actions/install-nix
+          git clone --depth 1 --branch v16 https://github.com/cachix/cachix-action .github/ci-actions/cachix
+      - uses: ./.github/ci-actions/install-nix
 
-      - uses: cachix/cachix-action@v16
+      - uses: ./.github/ci-actions/cachix
         with:
           name: nix-community
 
