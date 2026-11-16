@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# femcel-pulse: cadence-matched collection pulse for the femcel operation.
+# Workaround for star-server wheel regression (delays > 10s wheel span never
+# fire on starintel/server:0.1.0 image 3ac13362, 2026-11-05): post short-delay
+# (5s) non-recurring shreddit targets on a 20-min systemd timer instead of a
+# recurring delay=1200 target. Cadence: trueuglywomen ~83 posts/day (~17min),
+# evilwomeninc ~69/day (~21min) -> 20min pulse. Operator: =sektor88=.
+set -u
+KEY=$(python3 -c "import json;print(json.load(open(\"$HOME/.config/starintel/sektor88-api-key.json\"))[\"api_key\"])")
+[ -z "$KEY" ] && { echo "no api key"; exit 1; }
+SLOT=$(date -u +%Y%m%dT%H%M)
+for SUB in trueuglywomen evilwomeninc; do
+  curl -sS -m 30 -X POST \
+    -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+    -d "{\"actor\":\"reddit\",\"target\":\"$SUB\",\"dataset\":\"femcel\",\"delay\":5,\"recurring\":false,
+         \"options\":{\"target_type\":\"subreddit\",\"sort\":\"new\",\"limit\":100,\"rate\":1,\"backend\":\"shreddit\"},
+         \"idempotency_key\":\"femcel-pulse-$SUB-$SLOT\"}" \
+    "https://ingest.starintel.actor/api/v1/targets" | python3 -c "import json,sys;d=json.load(sys.stdin);print(d.get(\"status\"),d.get(\"target_id\",d.get(\"msg\",\"\")))"
+done
