@@ -1,0 +1,146 @@
+;;; distro.el -*- lexical-binding: t; -*-
+;;; Frontend for the dotfiles meta-distro release system (scripts/distro).
+;;; The CLI + Prolog engine are the contract; this layer is sugar for the
+;;; human.  See docs/wiki/distro-release-engineering.org.
+
+(defgroup distro nil
+  "dotfiles meta-distro release engineering."
+  :group 'tools)
+
+(defcustom distro-script
+  (expand-file-name "~/.dotfiles/scripts/distro")
+  "Path to the distro release-engineering CLI."
+  :type 'file)
+
+(defcustom distro-issues-file
+  (expand-file-name "~/.dotfiles/issues.org")
+  "The distro intake and tracking ledger."
+  :type 'file)
+
+(defun distro--run (&rest args)
+  "Run scripts/distro with ARGS; return trimmed stdout.
+Signal an error carrying the combined output on nonzero exit."
+  (let* ((out (generate-new-buffer " *distro-out*"))
+         (rc (apply #'call-process distro-script nil out nil args)))
+    (unwind-protect
+        (if (zerop rc)
+            (string-trim (with-current-buffer out (buffer-string)))
+          (error "distro %s failed (%d):\n%s"
+                 (string-join args " ") rc
+                 (with-current-buffer out (buffer-string))))
+      (kill-buffer out))))
+
+;;;###autoload
+(defun distro-file ()
+  "Open the issues ledger."
+  (interactive)
+  (find-file distro-issues-file))
+
+;;;###autoload
+(defun distro-status ()
+  "Show the release-engineering status (version, milestones, gate verdict)."
+  (interactive)
+  (let ((out (distro--run "status")))
+    (with-current-buffer (get-buffer-create "*distro status*")
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert out "\n")
+        (org-mode)
+        (view-mode 1))
+      (goto-char (point-min)))
+    (display-buffer "*distro status*")))
+
+;;;###autoload
+(defun distro-feat (title)
+  "File a feature request ONE-LINER into the Inbox."
+  (interactive (list (read-string "Feature one-liner: ")))
+  (unless (string-empty-p title)
+    (message "distro: %s" (distro--run "feat" title))))
+
+;;;###autoload
+(defun distro-bug (title)
+  "File a bug report ONE-LINER into the Inbox."
+  (interactive (list (read-string "Bug one-liner: ")))
+  (unless (string-empty-p title)
+    (let ((sev (read-string "Severity [high/medium/low]: " "medium")))
+      (message "distro: %s" (distro--run "bug" title "--severity" sev)))))
+
+;;;###autoload
+(defun distro-triage ()
+  "Assign ISSUE ids to Inbox one-liners and track them."
+  (interactive)
+  (message "distro: %s" (distro--run "triage")))
+
+;;;###autoload
+(defun distro-next ()
+  "Echo the highest-priority actionable issue."
+  (interactive)
+  (message "%s" (distro--run "next")))
+
+;;;###autoload
+(defun distro-attack ()
+  "Run the adversarial attack suite and show results."
+  (interactive)
+  (let ((out (distro--run "attack")))
+    (message "distro: %s" out)))
+
+;;;###autoload
+(defun distro-release ()
+  "Run the release gate and, on green, make a new version.
+Old requirements are archived and stop being tracked."
+  (interactive)
+  (when (yes-or-no-p "Run the release gate and release if ready? ")
+    (let ((out (distro--run "release" "--yes")))
+      (message "distro: %s" out))))
+
+(defun distro--insert-inbox (text)
+  "Append TEXT under the * Inbox heading of the issues ledger and save."
+  (with-current-buffer (find-file-noselect distro-issues-file)
+    (save-excursion
+      (goto-char (point-min))
+      (unless (re-search-forward "^\\* Inbox" nil t)
+        (user-error "distro: no * Inbox heading in %s" distro-issues-file))
+      (org-end-of-subtree t)
+      (insert "\n" (string-trim text) "\n"))
+    (save-buffer)))
+
+;;;###autoload
+(defun distro-gptel-draft (one-liner)
+  "Expand a ONE-LINER into a well-formed issue via gptel and file it."
+  (interactive (list (read-string "Issue one-liner to draft: ")))
+  (unless (fboundp 'gptel-request)
+    (user-error "gptel is not available"))
+  (message "distro: drafting via gptel...")
+  (gptel-request
+      one-liner
+    :system (concat
+             "You expand one-line issue reports for a Linux dotfiles "
+             "meta-distro. Reply ONLY with org content: a level-2 heading "
+             "'** FEAT: <title>' or '** BUG: <title>' followed by a "
+             ":PROPERTIES: drawer with :SEVERITY: high|medium|low. Add at "
+             "most three short body lines of context or acceptance "
+             "criteria. No commentary.")
+    :callback (lambda (response _info)
+                (if (stringp response)
+                    (progn
+                      (distro--insert-inbox response)
+                      (message "distro: draft filed to Inbox"))
+                  (message "distro: gptel draft failed")))))
+
+(with-eval-after-load 'org-capture
+  (let ((file (expand-file-name distro-issues-file)))
+    (add-to-list
+     'org-capture-templates
+     `("df" "distro: feature request" entry
+       (file+olp ,file ("Inbox"))
+       "** FEAT: %?\n:PROPERTIES:\n:KIND: feature\n:SEVERITY: medium\n:CREATED: %u\n:END:\n")
+     t)
+    (add-to-list
+     'org-capture-templates
+     `("db" "distro: bug report" entry
+       (file+olp ,file ("Inbox"))
+       "** BUG: %?\n:PROPERTIES:\n:KIND: bug\n:SEVERITY: medium\n:CREATED: %u\n:END:\n")
+     t)))
+
+(provide 'distro)
+;;; distro.el ends here

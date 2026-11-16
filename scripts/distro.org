@@ -1,0 +1,628 @@
+#+title: distro — release-engineering CLI for the dotfiles meta-distro
+#+author: nsaspy
+
+The canonical literate source for the =distro= CLI.  The tangled output is
+=scripts/distro=; edit this Org file and re-tangle, never the output alone.
+
+The dotfiles repository is declared a meta-distro.  Humans file feature
+requests and bug reports stupid-easy into =issues.org= (one-line headings,
+Emacs capture, or this CLI).  Agents pick work up, implement it, record
+evidence, and a council of agents votes.  The release gate is Prolog:
+=distro sync= compiles =issues.org= into =distro/state/facts.pl=, and
+=distro/engine/= decides whether a milestone may release.  When it may, the
+release bumps =distro/VERSION=, archives the milestone's entries out of
+=issues.org= (old requirements stop being tracked), and writes the
+changelog.
+
+Contract goals:
+
+- *Any agent harness works*: the core is files + this CLI + =swipl=.  Emacs
+  (=distro.el=, gptel) is one frontend; the prolog MCP is another.  No
+  harness-specific APIs live here.
+- *Fail closed*: the engine decides readiness; this script only obeys it.
+- *Epoch staleness*: votes, evidence and attack results are stamped with a
+  hash of =issues.org=; stale observations never satisfy a gate.
+
+* CLI
+
+#+begin_src bash :tangle ./distro :tangle-mode (identity #o755) :results none
+#!/usr/bin/env bash
+# distro — release-engineering CLI for the dotfiles meta-distro.
+# Literate source: scripts/distro.org (edit that, then re-tangle).
+set -euo pipefail
+
+DISTRO_ROOT="${DISTRO_ROOT:-}"
+if [[ -z "$DISTRO_ROOT" ]]; then
+  DISTRO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+export DISTRO_ROOT
+ISSUES="$DISTRO_ROOT/issues.org"
+DISTRO_DIR="$DISTRO_ROOT/distro"
+STATE_DIR="$DISTRO_DIR/state"
+
+now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+today()   { date -u +%Y-%m-%d; }
+die()     { printf 'distro: %s\n' "$*" >&2; exit 1; }
+
+agent_id() {
+  printf '%s' "${DISTRO_AGENT:-${DISTRO_COUNCILOR:-${USER:-$(id -un)}@$(hostname -s 2>/dev/null || echo local)}}"
+}
+
+journal_init() {
+  cat > "$STATE_DIR/journal.pl" <<'JH'
+% distro journal (append-only; votes/evidence/attacks/deps/drops)
+:- discontiguous(depends_on/2), discontiguous(vote/6), discontiguous(evidence/6),
+   discontiguous(attack/5), discontiguous(drop/4), discontiguous(release/3).
+JH
+}
+
+require_repo() {
+  [[ -f "$ISSUES" ]] || die "no issues.org under $DISTRO_ROOT"
+  [[ -d "$DISTRO_DIR" ]] || die "no distro/ under $DISTRO_ROOT"
+  mkdir -p "$STATE_DIR"
+  [[ -f "$STATE_DIR/journal.pl" ]] || journal_init
+}
+
+# Run a Prolog goal in the release engine.  cwd == repo root so the engine's
+# relative state paths resolve; DISTRO_ROOT overrides for sandboxes.
+engine() {
+  (cd "$DISTRO_ROOT" && swipl -q -t halt -s distro/engine/engine.pl -g "$1")
+}
+
+# Boolean goal: exit 0 iff the goal succeeds.
+engine_bool() {
+  (cd "$DISTRO_ROOT" && swipl -q -t halt -s distro/engine/engine.pl \
+     -g "(($1) -> halt(0) ; halt(1))")
+}
+
+pl_quote() {
+  local s="$*"
+  s="${s//\\/\\\\}"
+  s="${s//\'/\\\'}"
+  printf "'%s'" "$s"
+}
+
+append_journal() {
+  require_repo
+  printf '%% %s\n%s\n' "$(now_iso)" "$1" >> "$DISTRO_DIR/state/journal.pl"
+}
+
+# --- python-backed org editing (parsing org line-based is a python job) ---
+py() {
+  python3 - "$DISTRO_ROOT" "$@" <<'PY'
+import hashlib, re, sys
+from pathlib import Path
+
+root = Path(sys.argv[1]).resolve()
+issues = root / "issues.org"
+version_file = root / "distro" / "VERSION"
+mode, args = sys.argv[2], sys.argv[3:]
+
+HEAD = re.compile(r"^(\*+)\s+(.*)$")
+
+
+def plq(s):
+    return "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+def read_sections(text):
+    """Split into [pre, sections...] where a section is (name, [lines])."""
+    lines = text.splitlines()
+    pre, sections, cur, fence = [], [], None, False
+    for ln in lines:
+        if ln.strip().startswith("#+begin_"):
+            fence = True
+        elif ln.strip().startswith("#+end_"):
+            fence = False
+        m = HEAD.match(ln)
+        if m and len(m.group(1)) == 1 and not fence:
+            cur = [m.group(2).strip(), []]
+            sections.append(cur)
+        elif cur is None:
+            pre.append(ln)
+        else:
+            cur[1].append(ln)
+    return pre, sections
+
+
+def dump(pre, sections):
+    out = list(pre)
+    for name, body in sections:
+        out.append("* " + name)
+        out.extend(body)
+    return "\n".join(out).rstrip("\n") + "\n"
+
+
+class Entry:
+    def __init__(self, title, props, body):
+        self.title, self.props, self.body = title, props, body
+
+    def render(self):
+        out = ["** " + self.title]
+        if self.props:
+            out.append(":PROPERTIES:")
+            for k, v in self.props:
+                out.append(":" + k + ":" + ((" " + v) if v else ""))
+            out.append(":END:")
+        out.extend(self.body)
+        return out
+
+
+def parse_entries(body):
+    """Level-2 headings inside one section -> list of Entry.
+
+    Lines inside #+begin_/#+end_ fenced blocks are documentation, never
+    entries."""
+    entries, cur, drawer, fence = [], None, False, False
+    for ln in body:
+        if ln.strip().startswith("#+begin_"):
+            fence = True
+        elif ln.strip().startswith("#+end_"):
+            fence = False
+        m = HEAD.match(ln)
+        if m and len(m.group(1)) == 2 and not fence:
+            if cur:
+                entries.append(cur)
+            cur = Entry(m.group(2).strip(), [], [])
+            drawer = False
+        elif cur is not None and not (m and len(m.group(1)) <= 2):
+            if ln.strip() == ":PROPERTIES:":
+                drawer = True
+            elif ln.strip() == ":END:":
+                drawer = False
+            elif drawer:
+                pm = re.match(r"^:([A-Z_]+):\s*(.*)$", ln)
+                if pm:
+                    cur.props.append((pm.group(1), pm.group(2).strip()))
+            else:
+                cur.body.append(ln)
+    if cur:
+        entries.append(cur)
+    return entries
+
+
+def props_dict(e):
+    d = {}
+    for k, v in e.props:
+        d[k] = v
+    return d
+
+
+def tracked_issue(e):
+    m = re.match(r"^ISSUE-(\d+):\s*(.*)$", e.title)
+    if not m:
+        return None
+    p = props_dict(e)
+    return {
+        "id": f"ISSUE-{int(m.group(1)):04d}",
+        "num": int(m.group(1)),
+        "title": m.group(2),
+        "kind": p.get("KIND", "feature").lower(),
+        "status": p.get("STATUS", "open").lower(),
+        "severity": p.get("SEVERITY", "medium").lower(),
+        "milestone": p.get("MILESTONE", ""),
+        "depends": p.get("DEPENDS_ON", ""),
+        "claimed_by": p.get("CLAIMED_BY", ""),
+        "created": p.get("CREATED", ""),
+        "entry": e,
+    }
+
+
+def load():
+    text = issues.read_text()
+    pre, sections = read_sections(text)
+    inbox = tracked = None
+    for s in sections:
+        if s[0] == "Inbox":
+            inbox = s
+        elif s[0] == "Tracked":
+            tracked = s
+    if inbox is None or tracked is None:
+        sys.exit("distro: issues.org must contain * Inbox and * Tracked sections")
+    return text, pre, sections, inbox, tracked
+
+
+def save(text_new):
+    issues.write_text(text_new)
+
+
+def next_milestone():
+    a, b, _ = version_file.read_text().strip().split(".")
+    return f"{int(a)}.{int(b) + 1}.0"
+
+
+def cmd_inbox_add():
+    kind_in = args[0]
+    title = args[1].strip()
+    severity = "medium"
+    milestone = ""
+    i = 2
+    while i < len(args):
+        if args[i] == "--severity":
+            severity = args[i + 1].lower(); i += 2
+        elif args[i] == "--milestone":
+            milestone = args[i + 1]; i += 2
+        else:
+            i += 1
+    kind = {"feat": "feature", "bug": "bug"}[kind_in]
+    m = re.match(r"^(feat|bug)\s*:\s*(.*)$", title, re.I)
+    if m:
+        kind = "feature" if m.group(1).lower() == "feat" else "bug"
+        title = m.group(2).strip()
+    if not title:
+        sys.exit("distro: empty issue title")
+    _, pre, sections, inbox, _ = load()
+    props = [("KIND", kind), ("SEVERITY", severity)]
+    if milestone:
+        props.append(("MILESTONE", milestone))
+    e = Entry(f"{'FEAT' if kind == 'feature' else 'BUG'}: {title}", props, [])
+    inbox[1].extend(e.render() + [""])
+    save(dump(pre, sections))
+    print(f"filed: {title}")
+
+
+def cmd_triage():
+    text, pre, sections, inbox, tracked = load()
+    tracked_issues = [t for t in (tracked_issue(e) for e in parse_entries(tracked[1])) if t]
+    max_num = max((t["num"] for t in tracked_issues), default=0)
+    inbox_entries = parse_entries(inbox[1])
+    if not inbox_entries:
+        print("nothing to triage")
+        return
+    out_inbox = []
+    assigned = []
+    for e in inbox_entries:
+        p = props_dict(e)
+        kind = p.get("KIND", "").lower() or "feature"
+        tm = re.match(r"^(FEAT|BUG)\s*:\s*(.*)$", e.title, re.I)
+        if tm:
+            kind = "feature" if tm.group(1).lower() == "feat" else "bug"
+            title = tm.group(2).strip()
+        else:
+            title = e.title
+        max_num += 1
+        issue_id = f"ISSUE-{max_num:04d}"
+        assigned.append(issue_id)
+        props = [
+            ("KIND", kind),
+            ("STATUS", "open"),
+            ("SEVERITY", p.get("SEVERITY", "medium").lower()),
+            ("MILESTONE", p.get("MILESTONE") or next_milestone()),
+            ("DEPENDS_ON", p.get("DEPENDS_ON", "")),
+            ("CLAIMED_BY", ""),
+            ("CREATED", p.get("CREATED") or __import__("datetime").date.today().isoformat()),
+        ]
+        ne = Entry(f"{issue_id}: {title}", props, list(e.body))
+        tracked[1].extend(ne.render() + [""])
+    inbox[1] = out_inbox
+    save(dump(pre, sections))
+    for a in assigned:
+        print(a)
+
+
+def cmd_sync():
+    text, _, _, _, tracked = load()
+    issues_list = [t for t in (tracked_issue(e) for e in parse_entries(tracked[1])) if t]
+    epoch = hashlib.sha256(text.encode()).hexdigest()[:16]
+    version = version_file.read_text().strip()
+    out = ["% generated by 'distro sync' -- do not edit; regenerate from issues.org",
+           f"epoch({plq(epoch)}).",
+           f"distro_version({plq(version)}).", ""]
+    for t in issues_list:
+        out.append(
+            f"issue({plq(t['id'])}, {plq(t['kind'])}, {plq(t['title'])}, "
+            f"{plq(t['milestone'])}, {plq(t['status'])}, {plq(t['severity'])}).")
+    out.append("")
+    for t in issues_list:
+        if t["claimed_by"]:
+            out.append(f"claim({plq(t['id'])}, {plq(t['claimed_by'])}, {plq(t['created'])}).")
+    state = root / "distro" / "state"
+    state.mkdir(parents=True, exist_ok=True)
+    (state / "facts.pl").write_text("\n".join(out) + "\n")
+    print(f"synced: {len(issues_list)} tracked issues, epoch {epoch}")
+
+
+def cmd_set_fields():
+    issue_id = args[0]
+    fields = {}
+    i = 1
+    while i < len(args):
+        fields[args[i].upper()] = args[i + 1]
+        i += 2
+    _, pre, sections, _, tracked = load()
+    entries = parse_entries(tracked[1])
+    for e in entries:
+        m = re.match(r"^ISSUE-(\d+):", e.title)
+        if m and f"ISSUE-{int(m.group(1)):04d}" == issue_id:
+            existing = dict(e.props)
+            for k, v in fields.items():
+                existing[k] = v
+            body = e.body
+            title = e.title
+            new_props = []
+            for k, v in existing.items():
+                if k in ("KIND", "STATUS", "SEVERITY", "MILESTONE",
+                         "DEPENDS_ON", "CLAIMED_BY", "CREATED"):
+                    new_props.append((k, v))
+            ne = Entry(title, new_props, body)
+            tracked[1] = []
+            for x in entries:
+                tracked[1].extend((ne if x is e else x).render() + [""])
+            save(dump(pre, sections))
+            print(f"{issue_id}: " + ", ".join(f"{k}={v}" for k, v in fields.items()))
+            return
+    sys.exit(f"distro: unknown issue {issue_id}")
+
+
+def cmd_archive_release():
+    version, prev = args[0], args[1]
+    _, pre, sections, _, tracked = load()
+    entries = parse_entries(tracked[1])
+    moving = []
+    kept = []
+    for e in entries:
+        m = re.match(r"^ISSUE-(\d+):", e.title)
+        mid = f"ISSUE-{int(m.group(1)):04d}" if m else ""
+        t = tracked_issue(e)
+        if t and t["milestone"] == version:
+            moving.append(t)
+        else:
+            kept.extend(e.render() + [""])
+    if not moving:
+        sys.exit(f"distro: no tracked issues in milestone {version}")
+    tracked[1] = kept
+    save(dump(pre, sections))
+    version_file.write_text(version + "\n")
+    arch_dir = root / "distro" / "archive"
+    arch_dir.mkdir(parents=True, exist_ok=True)
+    arch = arch_dir / f"v{version}.org"
+    lines = []
+    if not arch.exists():
+        lines += [f"#+title: distro v{version} — archived requirements",
+                  "Requirements archived at release; no longer tracked in issues.org.", ""]
+    lines += [f"* Release {version} ({__import__('datetime').date.today().isoformat()}, prev {prev})"]
+    for t in moving:
+        lines.extend(t["entry"].render() + [""])
+    with arch.open("a") as f:
+        f.write("\n".join(lines).rstrip("\n") + "\n")
+    changelog = root / "distro" / "CHANGELOG.org"
+    ids = ", ".join(t["id"] for t in moving)
+    cl = [f"* v{version} ({__import__('datetime').date.today().isoformat()})",
+          f"- released milestone {version} (prev {prev}); issues: {ids}",
+          ""]
+    if changelog.exists():
+        old = changelog.read_text().splitlines()
+        h = next((i for i, ln in enumerate(old) if ln.startswith("* ")), len(old))
+        new = old[:h] + cl + old[h:]
+    else:
+        new = ["#+title: distro changelog", ""] + cl
+    changelog.write_text("\n".join(new).rstrip("\n") + "\n")
+    print("\n".join(t["id"] for t in moving))
+
+
+dispatch = {
+    "inbox_add": cmd_inbox_add,
+    "triage": cmd_triage,
+    "sync": cmd_sync,
+    "set_fields": cmd_set_fields,
+    "archive_release": cmd_archive_release,
+}
+dispatch[mode]()
+
+
+PY
+}
+
+cmd_help() {
+  cat <<'EOF'
+distro — release-engineering CLI for the dotfiles meta-distro
+
+Human intake (stupid-easy):
+  distro feat "title" [--severity S] [--milestone M]
+  distro bug  "title" [--severity S] [--milestone M]
+  distro triage                  assign ISSUE ids to inbox one-liners
+
+Agents / tracking:
+  distro sync                    issues.org -> distro/state/facts.pl
+  distro status [MILESTONE]      report + release readiness
+  distro next                    highest-priority actionable issue
+  distro claim ISSUE-xxxx [--agent ID]
+  distro done  ISSUE-xxxx
+  distro drop  ISSUE-xxxx REASON...
+  distro dep   ISSUE-a ISSUE-b   a depends on b (recorded fact)
+  distro verify ISSUE-xxxx -- CMD [ARGS...]   run CMD, record evidence
+
+Council:
+  distro vote approve|reject "rationale" [--councilor ID] [--target M]
+  distro attack                  run the configured attack suite, record results
+
+Release:
+  distro release [MILESTONE] [--yes] [--tag]
+                                 engine gate -> bump VERSION, archive issues,
+                                 changelog. Old requirements stop being tracked.
+
+Environment: DISTRO_ROOT (checkout override, for tests/sandboxes),
+DISTRO_AGENT / DISTRO_COUNCILOR (agent identity).  Engine policy lives in
+distro/config.pl (council quorum, attack steps).
+EOF
+}
+
+require_repo
+
+cmd="${1:-help}"; shift || true
+case "$cmd" in
+  feat|bug) py inbox_add "$cmd" "$@" ;;
+  triage)   py triage ;;
+  sync)     py sync ;;
+  status)
+    py sync >/dev/null
+    if [[ $# -ge 1 ]]; then
+      engine "report_milestone('$1')" || true
+    else
+      engine report_status
+      engine report_release
+    fi
+    ;;
+  next)
+    py sync >/dev/null
+    engine "(next_issue(ID) -> format('next: ~w~n', [ID]), issue(ID, K, T, M, _, S), format('  ~w/~w ~w (milestone ~w)~n', [K, S, T, M]) ; format('next: none~n'))" \
+      || true
+    ;;
+  claim)
+    id="$1"; shift
+    agent=""
+    if [[ "${1:-}" == "--agent" ]]; then agent="$2"; fi
+    agent="${agent:-$(agent_id)}"
+    py set_fields "$id" STATUS claimed CLAIMED_BY "$agent" >/dev/null
+    py sync >/dev/null
+    printf '%s claimed by %s\n' "$id" "$agent"
+    ;;
+  done)
+    id="$1"
+    py set_fields "$id" STATUS done >/dev/null
+    py sync >/dev/null
+    printf '%s done (evidence required before release)\n' "$id"
+    ;;
+  drop)
+    id="$1"; shift
+    reason="$*"
+    [[ -n "$reason" ]] || die "drop needs a reason"
+    py set_fields "$id" STATUS dropped >/dev/null
+    append_journal "drop($(pl_quote "$id"), $(pl_quote "$reason"), $(pl_quote "$(agent_id)"), $(pl_quote "$(now_iso)"))."
+    py sync >/dev/null
+    printf '%s dropped (%s)\n' "$id" "$reason"
+    ;;
+  dep)
+    [[ $# -eq 2 ]] || die "usage: distro dep ISSUE-a ISSUE-b"
+    append_journal "depends_on($(pl_quote "$1"), $(pl_quote "$2"))."
+    py sync >/dev/null
+    printf 'dependency recorded: %s depends on %s\n' "$1" "$2"
+    ;;
+  verify)
+    id="$1"; shift
+    [[ "${1:-}" == "--" ]] || die "usage: distro verify ISSUE-xxxx -- CMD [ARGS...]"
+    shift
+    py sync >/dev/null
+    epoch="$(cd "$DISTRO_ROOT" && swipl -q -t halt -s distro/engine/engine.pl -g 'epoch(E), format("~w", [E])')"
+    out="$(mktemp)"
+    trap 'rm -f "$out"' EXIT
+    set +e
+    (cd "$DISTRO_ROOT" && "$@" >"$out" 2>&1)
+    rc=$?
+    set -e
+    digest="$(sha256sum "$out" | cut -c1-16)"
+    append_journal "evidence($(pl_quote "$id"), $(pl_quote "$*"), $rc, $(pl_quote "$digest"), $(pl_quote "$(now_iso)"), $(pl_quote "$epoch"))."
+    if [[ $rc -ne 0 ]]; then
+      tail -5 "$out" >&2 || true
+      die "verification FAILED (exit $rc); evidence recorded"
+    fi
+    printf '%s verified: %s [exit 0, digest %s]\n' "$id" "$*" "$digest"
+    ;;
+  vote)
+    decision="$1"; shift
+    [[ "$decision" == approve || "$decision" == reject ]] || die "vote decision must be approve|reject"
+    councilor=""; target=""
+    rationale=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --councilor) councilor="$2"; shift 2 ;;
+        --target)    target="$2"; shift 2 ;;
+        *) rationale="${rationale:+$rationale }$1"; shift ;;
+      esac
+    done
+    [[ -n "$rationale" ]] || die "vote needs a rationale"
+    councilor="${councilor:-$(agent_id)}"
+    py sync >/dev/null
+    if [[ -z "$target" ]]; then
+      target="$(engine 'release_target(M), format("~w", [M])' || true)"
+      [[ -n "$target" ]] || die "no release target (nothing tracked)"
+    fi
+    epoch="$(cd "$DISTRO_ROOT" && swipl -q -t halt -s distro/engine/engine.pl -g 'epoch(E), format("~w", [E])')"
+    append_journal "vote($(pl_quote "$target"), $(pl_quote "$councilor"), $(pl_quote "$decision"), $(pl_quote "$rationale"), $(pl_quote "$(now_iso)"), $(pl_quote "$epoch"))."
+    printf '%s voted %s on %s (epoch %s)\n' "$councilor" "$decision" "$target" "$epoch"
+    ;;
+  attack)
+    py sync >/dev/null
+    epoch="$(cd "$DISTRO_ROOT" && swipl -q -t halt -s distro/engine/engine.pl -g 'epoch(E), format("~w", [E])')"
+    fail=0
+    while IFS= read -r step; do
+      [[ -n "$step" ]] || continue
+      out="$(mktemp)"
+      set +e
+      (cd "$DISTRO_ROOT" && bash -c "$step" >"$out" 2>&1)
+      rc=$?
+      set -e
+      digest="$(sha256sum "$out" | cut -c1-16)"
+      append_journal "attack($(pl_quote "$step"), $rc, $(pl_quote "$digest"), $(pl_quote "$(now_iso)"), $(pl_quote "$epoch"))."
+      if [[ $rc -ne 0 ]]; then
+        printf 'attack FAILED (%s): exit %d\n' "$step" "$rc"
+        tail -5 "$out" >&2 || true
+        fail=1
+      else
+        printf 'attack ok (%s) [digest %s]\n' "$step" "$digest"
+      fi
+      rm -f "$out"
+    done < <(cd "$DISTRO_ROOT" && swipl -q -t halt -s distro/engine/engine.pl -g 'forall(attack_step(S), format("~w~n", [S]))')
+    [[ $fail -eq 0 ]] || die "attack suite failed"
+    printf 'attack suite green at epoch %s\n' "$epoch"
+    ;;
+  release)
+    yes=0; tag=0; target=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --yes) yes=1; shift ;;
+        --tag) tag=1; shift ;;
+        *)     target="$1"; shift ;;
+      esac
+    done
+    py sync >/dev/null
+    if [[ -z "$target" ]]; then
+      target="$(engine 'release_target(M), format("~w", [M])' || true)"
+      [[ -n "$target" ]] || die "no release target (nothing tracked)"
+    fi
+    if engine_bool "release_ready('$target')"; then
+      printf 'gate: release_ready(%s) = yes\n' "$target"
+    else
+      printf 'gate: release_ready(%s) = NO\n' "$target" >&2
+      (cd "$DISTRO_ROOT" && swipl -q -t halt -s distro/engine/engine.pl -g "forall(release_blocker('$target', B), format('  blocker: ~w~n', [B]))") >&2 || true
+      die "release gate refused"
+    fi
+    prev="$(cat "$DISTRO_DIR/VERSION")"
+    if [[ $yes -ne 1 ]]; then
+      printf 'release %s (prev %s)? [y/N] ' "$target" "$prev"
+      read -r answer
+      [[ "$answer" == y || "$answer" == Y ]] || die "aborted"
+    fi
+    moved="$(py archive_release "$target" "$prev")"
+    append_journal "release($(pl_quote "$target"), $(pl_quote "$prev"), $(pl_quote "$(now_iso)"))."
+    printf '%s\n' "release fact recorded in distro/archive/releases.pl" >&2
+    mkdir -p "$DISTRO_DIR/archive"
+    touch "$DISTRO_DIR/archive/releases.pl"
+    grep -q "release(" "$DISTRO_DIR/archive/releases.pl" 2>/dev/null || \
+      printf '%% durable release history (machine record)\n' > "$DISTRO_DIR/archive/releases.pl"
+    tail -1 "$DISTRO_DIR/state/journal.pl" >> "$DISTRO_DIR/archive/releases.pl"
+    # fresh cycle: old votes/attacks stop being tracked with the old issues
+    journal_init
+    py sync >/dev/null
+    if [[ $tag -eq 1 ]]; then
+      git -C "$DISTRO_ROOT" tag "distro-v$target" 2>/dev/null \
+        && printf 'tagged distro-v%s\n' "$target" \
+        || printf 'tag skipped (git refused; commit first?)\n'
+    fi
+    printf 'released v%s (prev v%s); archived: %s\n' "$target" "$prev" "$(printf '%s' "$moved" | tr '\n' ' ')"
+    printf 'suggested commit: "distro: release v%s (%s)"\n' "$target" "$(printf '%s' "$moved" | tr '\n' ' ')"
+    ;;
+  help|--help|-h) cmd_help ;;
+  *) die "unknown command '$cmd' (try: distro help)" ;;
+esac
+#+end_src
+
+* Notes
+
+- =distro status= without a milestone prints the version report plus the
+  release-gate verdict for the engine's default target.
+- =distro verify= and =distro vote= always re-sync first so the recorded
+  epoch matches the =issues.org= the observation actually saw.
+- After a release the journal is reset (old votes/attacks belong to the
+  archived milestone) and =distro/archive/releases.pl= keeps the durable
+  machine-readable release history.

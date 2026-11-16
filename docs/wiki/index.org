@@ -17,6 +17,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 - [[file:org-logseq-sync.org][Org-roam and Logseq synchronization]] - conflict-safe bidirectional Org notes, pages, journals, and the user systemd watcher.
 - [[file:desktop.org][Desktop and Qtile]] - Qtile, widgets, keybindings, notifications, desktop workflows, and desktop integration.
 - [[file:opencode-commands.org][Global OpenCode commands]] - declarative =/= commands, reusable skills, the =opencode-worker= Unix contract, model routing, and hosting workflows.
+- [[file:distro-release-engineering.org][Distro release engineering]] - the dotfiles as a meta-distro: issues.org intake, the =distro= CLI, Prolog release gates, council voting, and archive-on-release versioning.
 - [[file:../../scripts/opencode.org][OpenCode commands]] - index for the standalone =opencode-*= commands: named tmux sessions, fzf/Emacs selection (EZF), and cross-project session resume, with installation and verification.
 - [[file:llm-log.org][llm-log telemetry]] - adjacent z.AI/GPT quota meters and the new accurate API grapher.
 - [[file:zara.org][Zara workflows]] - declarative Zara base config, private-overlay ownership, Qwen3-TTS voice service, desktop/voice workflows, and bounded system updates.
@@ -60,6 +61,7 @@ The configuration itself remains the source of truth.  In particular, literate O
 | Agent verification | [[file:../../nix/home-manager/mods/agent-verification.nix][agent-verification.nix]] | Global Codex/OpenCode policy, durable Prolog gate, and Codex lifecycle hooks. |
 | NixOS | [[file:../../nix/nixos/][nix/nixos/]] | Hosts and installer definitions. |
 | Scripts | [[file:../../scripts/][scripts/]] | Provisioning/install/maintenance helpers. |
+| Distro release system | [[file:distro-release-engineering.org][docs/wiki/distro-release-engineering.org]] | Meta-distro versioning: =issues.org= intake, =scripts/distro.org= CLI, =distro/engine/= Prolog gates, council skills, sandbox test suite. |
 | Agent rules | [[file:../../AGENTS.md][AGENTS.md]] | Repository editing and parity requirements. |
 
 * Wiki rule

@@ -50,6 +50,7 @@ tmp/
 /.local/bin/emacs
 /.config/starintel/tunnels.conf
 /.prolog/*
+/distro/state/
 !/.prolog/kb/
 !/.prolog/kb/**
 !/.prolog/handoff.pl
