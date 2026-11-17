@@ -513,6 +513,17 @@
         install-logos = installLogos;
         prolog-mcp = prologMcp;
         brave-mcp = braveMcp;
+        brave-goggles = pkgs.runCommand "brave-goggles-check"
+          {
+            nativeBuildInputs = [
+              pkgs.bash
+              pkgs.coreutils
+              pkgs.gnugrep
+            ];
+          }
+          ''
+            DOTFILES_ROOT=${./.} bash ${./tests/brave-goggles.sh} >$out
+          '';
         unseen-home = homeConfigurations."unseen@logos".activationPackage;
         unseen-flake-home = homeConfigurations."unseen@flake".activationPackage;
         unseen-desktop-home = homeConfigurations."unseen@desktop".activationPackage;

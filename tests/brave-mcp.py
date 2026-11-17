@@ -96,6 +96,60 @@ class BraveMcpTest(unittest.TestCase):
                         "arguments": {"query": "bad freshness", "freshness": "forever"},
                     },
                 },
+                {
+                    "jsonrpc": "2.0",
+                    "id": 9,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "brave_context",
+                        "arguments": {
+                            "query": "serde custom deserializer",
+                            "goggles": "$boost=3,site=docs.rs\n$discard,site=w3schools.com",
+                        },
+                    },
+                },
+                {
+                    "jsonrpc": "2.0",
+                    "id": 10,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "brave_web",
+                        "arguments": {
+                            "query": "axum middleware tower",
+                            "goggles": "@/tmp/opencode/rust.goggle",
+                        },
+                    },
+                },
+                {
+                    "jsonrpc": "2.0",
+                    "id": 11,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "brave_news",
+                        "arguments": {
+                            "query": "npm security advisory",
+                            "goggles": "https://example.com/news.goggle",
+                        },
+                    },
+                },
+                {
+                    "jsonrpc": "2.0",
+                    "id": 12,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "brave_images",
+                        "arguments": {"query": "star map", "goggles": "$boost=2,site=nasa.gov"},
+                    },
+                },
+                {
+                    "jsonrpc": "2.0",
+                    "id": 13,
+                    "method": "tools/call",
+                    "params": {
+                        "name": "brave_context",
+                        "arguments": {"query": "empty goggles", "goggles": "   "},
+                    },
+                },
             ]
 
             env = os.environ.copy()
@@ -113,12 +167,14 @@ class BraveMcpTest(unittest.TestCase):
             )
 
             responses = [json.loads(line) for line in completed.stdout.splitlines() if line]
-            self.assertEqual([item["id"] for item in responses], list(range(1, 9)))
+            self.assertEqual([item["id"] for item in responses], list(range(1, 14)))
             self.assertEqual(responses[0]["result"]["protocolVersion"], "2024-11-05")
 
-            tool_names = {tool["name"] for tool in responses[1]["result"]["tools"]}
+            tools_by_name = {
+                tool["name"]: tool for tool in responses[1]["result"]["tools"]
+            }
             self.assertEqual(
-                tool_names,
+                set(tools_by_name),
                 {
                     "brave_context",
                     "brave_web",
@@ -130,9 +186,15 @@ class BraveMcpTest(unittest.TestCase):
             for tool in responses[1]["result"]["tools"]:
                 self.assertFalse(tool["inputSchema"]["additionalProperties"])
 
+            # Goggles are only exposed where bx accepts them.
+            for goggle_tool in ("brave_context", "brave_web", "brave_news"):
+                self.assertIn("goggles", tools_by_name[goggle_tool]["inputSchema"]["properties"])
+            for plain_tool in ("brave_images", "brave_places"):
+                self.assertNotIn("goggles", tools_by_name[plain_tool]["inputSchema"]["properties"])
+
             forwarded = [
                 json.loads(item["result"]["content"][0]["text"])["argv"]
-                for item in responses[2:7]
+                for item in responses[2:7] + responses[8:11]
             ]
             self.assertEqual(
                 forwarded,
@@ -151,10 +213,36 @@ class BraveMcpTest(unittest.TestCase):
                     ["news", "OpenCode", "--count", "4", "--freshness", "pd"],
                     ["images", "star map", "--count", "12"],
                     ["places", "-q", "coffee", "--location", "Columbus OH US"],
+                    [
+                        "context",
+                        "serde custom deserializer",
+                        "--max-tokens",
+                        "4096",
+                        "--goggles",
+                        "$boost=3,site=docs.rs\n$discard,site=w3schools.com",
+                    ],
+                    [
+                        "web",
+                        "axum middleware tower",
+                        "--count",
+                        "10",
+                        "--goggles",
+                        "@/tmp/opencode/rust.goggle",
+                    ],
+                    [
+                        "news",
+                        "npm security advisory",
+                        "--count",
+                        "10",
+                        "--goggles",
+                        "https://example.com/news.goggle",
+                    ],
                 ],
             )
 
-            self.assertTrue(responses[7]["result"]["isError"])
+            self.assertTrue(responses[7]["result"]["isError"])  # bad freshness
+            self.assertTrue(responses[11]["result"]["isError"])  # goggles on images
+            self.assertTrue(responses[12]["result"]["isError"])  # empty goggles
             executed = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
             self.assertEqual(executed, forwarded)
 

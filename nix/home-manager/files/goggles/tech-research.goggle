@@ -1,0 +1,25 @@
+! name: Tech Research (dotfiles)
+! description: Technical research profile: boost official documentation and source hosting, downrank tutorial mills and copycat content.
+! public: false
+! author: unseen
+
+! Official documentation and source hosting
+$boost=4,site=github.com
+$boost=3,site=docs.python.org
+$boost=3,site=docs.rs
+$boost=3,site=nixos.org
+$boost=3,site=nix.dev
+$boost=3,site=gnu.org
+$boost=2,site=stackoverflow.com
+$boost=2,site=superuser.com
+$boost=2,site=serverfault.com
+
+! Tutorial mills and copycat content
+$downrank=4,site=w3schools.com
+$downrank=4,site=geeksforgeeks.org
+$downrank=3,site=tutorialspoint.com
+$downrank=3,site=medium.com
+$downrank=2,site=dev.to
+
+! Discard noise entirely
+$discard,site=pinterest.com

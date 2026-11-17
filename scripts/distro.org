@@ -192,6 +192,23 @@ def parse_entries(body):
     return entries
 
 
+def split_preamble(body):
+    """Lines before the first level-2 entry heading (fence-aware).
+
+    Section prose such as documentation blocks lives before the first
+    entry; commands that rebuild a section body must re-attach it."""
+    fence = False
+    for i, ln in enumerate(body):
+        if ln.strip().startswith("#+begin_"):
+            fence = True
+        elif ln.strip().startswith("#+end_"):
+            fence = False
+        m = HEAD.match(ln)
+        if m and len(m.group(1)) == 2 and not fence:
+            return body[:i], body[i:]
+    return list(body), []
+
+
 def props_dict(e):
     d = {}
     for k, v in e.props:
@@ -341,7 +358,8 @@ def cmd_set_fields():
         fields[args[i].upper()] = args[i + 1]
         i += 2
     _, pre, sections, _, tracked = load()
-    entries = parse_entries(tracked[1])
+    pre_lines, entry_lines = split_preamble(tracked[1])
+    entries = parse_entries(entry_lines)
     for e in entries:
         m = re.match(r"^ISSUE-(\d+):", e.title)
         if m and f"ISSUE-{int(m.group(1)):04d}" == issue_id:
@@ -356,7 +374,7 @@ def cmd_set_fields():
                          "DEPENDS_ON", "CLAIMED_BY", "CREATED"):
                     new_props.append((k, v))
             ne = Entry(title, new_props, body)
-            tracked[1] = []
+            tracked[1] = list(pre_lines)
             for x in entries:
                 tracked[1].extend((ne if x is e else x).render() + [""])
             save(dump(pre, sections))
@@ -368,7 +386,8 @@ def cmd_set_fields():
 def cmd_archive_release():
     version, prev = args[0], args[1]
     _, pre, sections, _, tracked = load()
-    entries = parse_entries(tracked[1])
+    pre_lines, entry_lines = split_preamble(tracked[1])
+    entries = parse_entries(entry_lines)
     moving = []
     kept = []
     for e in entries:
@@ -381,7 +400,7 @@ def cmd_archive_release():
             kept.extend(e.render() + [""])
     if not moving:
         sys.exit(f"distro: no tracked issues in milestone {version}")
-    tracked[1] = kept
+    tracked[1] = list(pre_lines) + kept
     save(dump(pre, sections))
     version_file.write_text(version + "\n")
     arch_dir = root / "distro" / "archive"

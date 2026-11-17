@@ -16,6 +16,7 @@
 #   10. release: VERSION bump, archive of done entries, journal reset,
 #       issues.org no longer tracks released requirements, changelog written
 #   11. next cycle defaults to the following minor milestone
+#   12. triage/claim preserve the Tracked section documentation preamble
 #
 # Usage: tests/distro-test.sh   (requires swipl and python3 on PATH)
 
@@ -136,6 +137,44 @@ out=$(run verify ISSUE-0001 -- false 2>&1) && {
 }
 grep -q "evidence('ISSUE-0001', 'false', 1," "$sandbox/distro/state/journal.pl" \
     && ok "failing verify records failing evidence"
+
+# --- 12. tracked section documentation survives rewrites ----------------------
+sandbox2=$(mktemp -d /tmp/opencode/distro-test2.XXXXXX)
+trap 'rm -rf "$sandbox2"' EXIT
+mkdir -p "$sandbox2/scripts" "$sandbox2/distro/engine"
+cp "$distro" "$sandbox2/scripts/distro"
+cp -r "$repo_root/distro/engine/." "$sandbox2/distro/engine/"
+printf '0.1.0\n' > "$sandbox2/distro/VERSION"
+cat > "$sandbox2/issues.org" <<'EOF'
+#+title: issues
+
+* Inbox
+
+* Tracked
+
+Structured requirement records, written and maintained by =distro=
+subcommands and agents.  This documentation block must survive triage
+and claim rewrites of the tracked entries.
+
+#+begin_example
+** ISSUE-0001: format example, never a real entry
+:PROPERTIES:
+:STATUS: open
+:END:
+#+end_example
+EOF
+run2() { DISTRO_ROOT="$sandbox2" "$distro" "$@"; }
+run2_ok() { DISTRO_ROOT="$sandbox2" "$distro" "$@" >/dev/null; }
+run2_ok feat "documented preamble survives"
+run2_ok triage
+run2_ok claim ISSUE-0001 --agent agent-doc
+grep -q 'must survive triage' "$sandbox2/issues.org" \
+    && grep -q 'CLAIMED_BY: agent-doc' "$sandbox2/issues.org" \
+    || {
+        printf 'not ok - claim/triage drops the Tracked documentation preamble\n' >&2
+        exit 1
+    }
+ok "claim preserves the Tracked documentation preamble"
 
 # --- 6. gate refusals ----------------------------------------------------------
 run_ok done ISSUE-0002

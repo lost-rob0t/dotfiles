@@ -32,35 +32,139 @@ to =* Tracked=.  You can override the defaults by adding properties to the
 inbox heading (=KIND=, =SEVERITY=, =MILESTONE=).
 
 * Inbox
+* Tracked
+** ISSUE-0002: wire distro.el capture into doom
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-15
+:END:
 
-** FEAT: Nix Births a starintel modual.
+
+
+
+
+** ISSUE-0003: engine root breaks on symlinked checkouts
+:PROPERTIES:
+:KIND: bug
+:STATUS: open
+:SEVERITY: high
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-15
+:END:
+
+
+
+
+
+** ISSUE-0004: Nix Births a starintel modual.
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 
 Lets you install a starintel-server instance via nix
 
 Configuration of actors and server via nix options (nix to lisp?) (if you make a nix->lisp make it reusable in a new checkout you inform user to create and bootstrap using notify skill with highest priority)
 
 
-** FEAT: Make a LLM assisted editing mode
+
+
+
+
+** ISSUE-0005: Make a LLM assisted editing mode
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 Use local 2b param models.
 
 Focus: Humans write, grammer assist, learning to write better, spelling.
 
 *** IDEA Fold this "learning" into learning package for emacs for lessons.
 
-** Learning Mode
+
+
+
+
+** ISSUE-0006: Learning Mode
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 
 User can add topics 
 
-** Make a Focused text editing evniroment
+
+
+
+
+** ISSUE-0007: Make a Focused text editing evniroment
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 
 
 Concept is Like [[elisp:(writeroom-mode)][WriteRoom Mode]] 
 Fold: LLM Assisted editing mode 
 
-** BUG: When i enter writeroom-mode
+
+
+
+
+** ISSUE-0008: When i enter writeroom-mode
+:PROPERTIES:
+:KIND: bug
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 Line Numbers are still enabled.
 I must hit ~spc t l~ to toggle them off
-** BUG: Fix the spell check in emacs
+
+
+
+
+** ISSUE-0009: Fix the spell check in emacs
+:PROPERTIES:
+:KIND: bug
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 When i hit ~z =~ v  
 
 
@@ -70,7 +174,20 @@ WARNING: Unable to enter Nroff mode: Unknown mode: "nroff".
 
 #+end_example
 
-** FEAT: doom emacs bechmarking and optmiszation
+
+
+
+
+** ISSUE-0010: doom emacs bechmarking and optmiszation
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 
 We preform benchmaxxing on our config and optmize it to be the fastest possible preformance.
 
@@ -85,7 +202,20 @@ Bench:
 - [ ] be creative in this
 
 
-** FEAT: emacs mcp
+
+
+
+
+** ISSUE-0011: emacs mcp
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 
 have some security modes
 
@@ -94,9 +224,35 @@ have some security modes
 3. Read Only
 
 
-** FEAT: org-mode mcp
 
-** FEAT: I want a cloen of GPT-tasks using cron.
+
+
+
+** ISSUE-0012: org-mode mcp
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
+
+
+
+
+
+** ISSUE-0013: I want a cloen of GPT-tasks using cron.
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 
 it should be so generic that any agent harness can use it.
 
@@ -111,11 +267,37 @@ use prolog for the orchistration
 
 
 
-** I want my ZARA experts to beable to be invoked via bash/shell cli
+
+
+
+
+** ISSUE-0014: I want my ZARA experts to beable to be invoked via bash/shell cli
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 
 Some may offer a TUI repl experince 
 
-** Overhauled TODO system
+
+
+
+
+** ISSUE-0015: Overhauled TODO system
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-16
+:END:
 I want a cron LLM job that every 15 minutes tracks
 
 FOLD: the llm cron worker systsem
@@ -137,64 +319,37 @@ Tracks
 - [ ] Emacs first class cutazen here 
 
 
-* Tracked
 
-Structured requirement records, written and maintained by =distro=
-subcommands and agents.  Entry format (the machine contract):
 
-#+begin_example
-** ISSUE-0001: git-sync can race the qtile reload
-:PROPERTIES:
-:KIND: bug           (feature | bug)
-:STATUS: open        (open | claimed | done | dropped)
-:SEVERITY: high      (high | medium | low)
-:MILESTONE: 0.2.0    (release version this must land in)
-:DEPENDS_ON:         (space-separated ISSUE ids; declared via "distro dep")
-:CLAIMED_BY:         (agent id while STATUS=claimed)
-:CREATED: 2026-11-16
-:END:
 
-Free-form org body: context, acceptance criteria, links.
-#+end_example
 
-Rules:
-
-- =STATUS= transitions: =open -> claimed -> done= (or =dropped=).  =done=
-  requires evidence recorded through =distro verify= before a release gate
-  will pass.
-- =MILESTONE= is a version number; when the milestone releases, its
-  entries are archived to =distro/archive/= and stop being tracked here.
-  Old requirements are never deleted by hand; the release machinery moves
-  them.
-- Dependencies are declared facts, not guesses: =distro dep ISSUE-a ISSUE-b=
-  records "a needs b".  Agents may compute and propose dependencies; the
-  declaration is explicit.
-- Council votes, attack results, and evidence are recorded in
-  =distro/state/journal.pl= stamped with the epoch (a hash of this file),
-  so votes only count for the exact tracked state they reviewed.
-
-** ISSUE-0002: wire distro.el capture into doom
+** ISSUE-0016: Brave Goggles: ship personal .goggle re-ranking profiles deployed by HM next to bx
 :PROPERTIES:
 :KIND: feature
-:STATUS: open
+:STATUS: done
 :SEVERITY: medium
 :MILESTONE: 0.2.0
 :DEPENDS_ON:
-:CLAIMED_BY:
-:CREATED: 2026-11-15
+:CLAIMED_BY: opencode-brave-goggles
+:CREATED: 2026-11-16
 :END:
 
 
-** ISSUE-0003: engine root breaks on symlinked checkouts
+
+
+
+** ISSUE-0017: triage rewrites * Tracked and drops its documentation block
 :PROPERTIES:
 :KIND: bug
-:STATUS: open
+:STATUS: done
 :SEVERITY: high
 :MILESTONE: 0.2.0
 :DEPENDS_ON:
 :CLAIMED_BY:
-:CREATED: 2026-11-15
+:CREATED: 2026-11-16
 :END:
+
+
 
 
 * Reference

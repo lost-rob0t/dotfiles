@@ -186,6 +186,8 @@ Keep verifier-generated runtime state local. `.prolog/kb/` is the exception when
 
 Use Brave Search for external discovery. Prefer `prolog-verify brave --query <query>` so the Brave call and result digest enter the verification facts together. A user-provided URL may be opened directly, but do not substitute another search engine or generic web-search tool for Brave.
 
+When research quality matters (technical lookups, primary sources, SEO-noise-prone queries), apply a personal Goggles profile instead of a bare search. Through the brave MCP tools pass `goggles` on `brave_context`/`brave_web`/`brave_news` (for example `@~/.config/brave/goggles/tech-research.goggle` for technical research, `@~/.config/brave/goggles/daily-driver.goggle` for general queries); the profiles ship from the dotfiles via Home Manager. The `bx` CLI takes the same rules as `bx web "<query>" --goggles @<file-or-url>`. Images and places searches do not accept Goggles.
+
 Do not perform web research when the user forbids it. Local-only work does not need a search; keep `research_required(false)` for those tasks.
 
 ## Durable research artifacts

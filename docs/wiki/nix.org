@@ -242,6 +242,16 @@ Prefer =bx config set-key= without putting the key on the command line so it doe
 
 The MCP adapter exposes bounded, typed search tools rather than arbitrary =bx= argv or shell execution.  Its package lives at [[file:../../nix/packages/brave-mcp/][nix/packages/brave-mcp/]] and its protocol regression test is [[file:../../tests/brave-mcp.py][tests/brave-mcp.py]].
 
+** Brave Goggles re-ranking profiles
+The module ships personal [[file:../../nix/home-manager/files/goggles/][Goggles re-ranking profiles]] into =~/.config/brave/goggles/= alongside the =bx= CLI.  Pass them wherever result quality matters:
+
+#+begin_src shell
+  bx web "axum middleware tower" --goggles @~/.config/brave/goggles/tech-research.goggle
+  bx web "rust vs go error handling" --goggles @~/.config/brave/goggles/daily-driver.goggle
+#+end_src
+
+The =brave-mcp= adapter exposes the same rules as the =goggles= parameter on =brave_context=, =brave_web=, and =brave_news= (inline rules separated by newlines, a =@file= path, or a hosted =.goggle= URL); images and places searches do not accept Goggles.  The profile sources, their module wiring, and the metadata/rule grammar gate live in [[file:../../tests/brave-goggles.sh][tests/brave-goggles.sh]], also enforced as the =brave-goggles= flake check.  Agents are instructed to reach for these profiles in the Brave-only external discovery section of the [[file:../../nix/home-manager/files/global-agents.md][global agent policy]].
+
 * Vendored Brave browser
 :PROPERTIES:
 :CUSTOM_ID: vendored-brave

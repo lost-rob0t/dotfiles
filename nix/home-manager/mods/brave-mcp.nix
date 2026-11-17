@@ -16,6 +16,13 @@ in
       braveMcpPackage
     ];
 
+    # Personal Goggles re-ranking profiles:
+    #   bx web "query" --goggles @~/.config/brave/goggles/<name>.goggle
+    xdg.configFile."brave/goggles/daily-driver.goggle".source =
+      ../files/goggles/daily-driver.goggle;
+    xdg.configFile."brave/goggles/tech-research.goggle".source =
+      ../files/goggles/tech-research.goggle;
+
     programs.mcp = {
       enable = true;
       servers.brave = {

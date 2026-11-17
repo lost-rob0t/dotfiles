@@ -43,6 +43,15 @@ TOOLS: list[dict[str, Any]] = [
                     "minimum": 128,
                     "maximum": 8192,
                 },
+                "goggles": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": (
+                        "Custom re-ranking rules (Brave Goggles): inline rules "
+                        "separated by newlines, a @file path, or a hosted .goggle "
+                        "URL. Example: '$boost=3,site=docs.rs\\n$discard,site=w3schools.com'."
+                    ),
+                },
             },
             "required": ["query"],
         },
@@ -61,6 +70,15 @@ TOOLS: list[dict[str, Any]] = [
                     "enum": ["pd", "pw", "pm", "py"],
                     "description": "Past day, week, month, or year.",
                 },
+                "goggles": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": (
+                        "Custom re-ranking rules (Brave Goggles): inline rules "
+                        "separated by newlines, a @file path, or a hosted .goggle "
+                        "URL. Example: '$boost=3,site=docs.rs\\n$discard,site=w3schools.com'."
+                    ),
+                },
             },
             "required": ["query"],
         },
@@ -78,6 +96,15 @@ TOOLS: list[dict[str, Any]] = [
                     "type": "string",
                     "enum": ["pd", "pw", "pm", "py"],
                     "description": "Past day, week, month, or year.",
+                },
+                "goggles": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": (
+                        "Custom re-ranking rules (Brave Goggles): inline rules "
+                        "separated by newlines, a @file path, or a hosted .goggle "
+                        "URL. Example: '$boost=3,site=docs.rs\\n$discard,site=w3schools.com'."
+                    ),
                 },
             },
             "required": ["query"],
@@ -164,6 +191,15 @@ def optional_freshness(arguments: dict[str, Any]) -> str | None:
     return value
 
 
+def optional_goggles(arguments: dict[str, Any]) -> str | None:
+    return optional_string(arguments, "goggles")
+
+
+def reject_goggles(name: str, arguments: dict[str, Any]) -> None:
+    if "goggles" in arguments:
+        raise ToolInputError(f"goggles is not supported for {name}")
+
+
 def tool_argv(name: str, arguments: dict[str, Any]) -> list[str]:
     query = require_query(arguments)
 
@@ -182,6 +218,9 @@ def tool_argv(name: str, arguments: dict[str, Any]) -> list[str]:
         )
         if per_url is not None:
             argv += ["--max-tokens-per-url", str(per_url)]
+        goggles = optional_goggles(arguments)
+        if goggles is not None:
+            argv += ["--goggles", goggles]
         return argv
 
     if name in {"brave_web", "brave_news"}:
@@ -191,13 +230,18 @@ def tool_argv(name: str, arguments: dict[str, Any]) -> list[str]:
         freshness = optional_freshness(arguments)
         if freshness is not None:
             argv += ["--freshness", freshness]
+        goggles = optional_goggles(arguments)
+        if goggles is not None:
+            argv += ["--goggles", goggles]
         return argv
 
     if name == "brave_images":
+        reject_goggles(name, arguments)
         count = bounded_int(arguments, "count", default=20, minimum=1, maximum=200)
         return ["images", query, "--count", str(count)]
 
     if name == "brave_places":
+        reject_goggles(name, arguments)
         argv = ["places", "-q", query]
         location = optional_string(arguments, "location")
         if location is not None:

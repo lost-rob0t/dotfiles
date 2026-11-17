@@ -1,0 +1,19 @@
+! name: Daily Driver (dotfiles)
+! description: Light-touch general re-ranking: boost primary sources, downrank SEO content farms, discard Pinterest.
+! public: false
+! author: unseen
+
+! Boost primary sources
+$boost=2,site=github.com
+$boost=2,site=stackoverflow.com
+$boost=1,site=wikipedia.org
+
+! Downrank SEO and content farms
+$downrank=3,site=w3schools.com
+$downrank=3,site=geeksforgeeks.org
+$downrank=2,site=medium.com
+$downrank=2,site=quora.com
+$downrank=2,site=tutorialspoint.com
+
+! Discard noise entirely
+$discard,site=pinterest.com
