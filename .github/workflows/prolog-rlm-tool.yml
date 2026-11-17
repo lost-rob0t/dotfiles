@@ -31,20 +31,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Check out researched prolog-rlm runtime
-        uses: actions/checkout@v4
-        with:
-          repository: lost-rob0t/prolog-rlm
-          ref: 4cdc9854a510a2d07b559e9ae34491d43d81301a
-          path: .ci/prolog-rlm
+        run: |
+          git clone --no-checkout https://github.com/lost-rob0t/prolog-rlm .ci/prolog-rlm
+          git -C .ci/prolog-rlm checkout 4cdc9854a510a2d07b559e9ae34491d43d81301a
 
       - name: Check out tested gptel revision
-        uses: actions/checkout@v4
-        with:
-          repository: karthink/gptel
-          ref: dc0280821c344ec10547e13179ea2095f6165f05
-          path: .ci/gptel
+        run: |
+          git clone --no-checkout https://github.com/karthink/gptel .ci/gptel
+          git -C .ci/gptel checkout dc0280821c344ec10547e13179ea2095f6165f05
 
-      - uses: cachix/install-nix-action@v31
+      - name: Fetch Nix setup action from upstream
+        run: git clone --depth 1 --branch v31 https://github.com/cachix/install-nix-action .github/ci-actions/install-nix
+      - uses: ./.github/ci-actions/install-nix
 
       - name: Verify trusted SWI bridge
         run: |
