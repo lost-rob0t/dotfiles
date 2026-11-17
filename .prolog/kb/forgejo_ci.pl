@@ -21,3 +21,22 @@ workflow_fix('Nix / logos', fetch_versioned_upstream_cachix_as_local_actions).
 
 workflow_failure('Nix / logos', monolithic_flake_evaluation_exceeds_2_gib_container_cap).
 workflow_fix('Nix / logos', evaluate_each_check_and_package_in_separate_process).
+
+% Facts verified while repairing PR #353 on 2026-11-16.
+%
+% data.forgejo.org redirects cachix/* to code.forgejo.org, which no longer
+% hosts install-nix-action or cachix-action; every step using the short
+% cachix/* names failed at action clone time. Fix: clone from github.com into
+% .github/ci-actions/ and use local uses: paths (applied to llm-log-qtile,
+% gptel-tool-results, main, prolog-rlm-tool, iso, update-flake in PR #353).
+workflow_failure(all_workflows, cachix_actions_missing_from_data_forgejo_org).
+workflow_fix(all_workflows, clone_cachix_actions_from_github_as_local_actions).
+
+% The runner rewrites actions/checkout fetches of external repositories
+% through its internal git proxy http://172.30.0.1:3100/<owner>/<repo>,
+% which 404s repos not present in its cache (karthink/gptel,
+% lost-rob0t/prolog-rlm). Plain `git clone https://github.com/...` run steps
+% are NOT rewritten and work; replace checkout-action external checkouts
+% with a --no-checkout clone plus pinned-sha checkout.
+workflow_failure(external_repo_checkouts, runner_git_proxy_404s_uncached_repos).
+workflow_fix(external_repo_checkouts, plain_git_clone_run_step_with_pinned_sha).
