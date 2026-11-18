@@ -19,6 +19,7 @@
 
   llm = {
     enable = true;
+    starintelHarness.zaiDirect = true;
   };
 
   opencode.web = {
