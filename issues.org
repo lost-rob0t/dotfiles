@@ -352,6 +352,18 @@ Tracks
 
 
 
+** ISSUE-0018: new timer widget, timer presets and and also act as a pomodoro timer. lets me enter a time or select focus for pomodoro
+:PROPERTIES:
+:KIND: feature
+:STATUS: open
+:SEVERITY: medium
+:MILESTONE: 0.2.0
+:DEPENDS_ON:
+:CLAIMED_BY:
+:CREATED: 2026-11-17
+:END:
+
+
 * Reference
 
 - Architecture and workflows: docs/wiki/distro-release-engineering.org
