@@ -32,6 +32,7 @@
 :- consult("agent_rules").
 :- consult("qtile_rules").
 :- consult("distro_release").
+:- consult("profile_wipe_incident").
 
 :- consult('qtile_monitors.pl').
 :- consult("writers").

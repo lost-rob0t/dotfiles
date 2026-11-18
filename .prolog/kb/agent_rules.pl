@@ -2,9 +2,9 @@
 % Migrated from AGENTS.md (2026-11-16): AGENTS.md is a thin loader; this
 % file is the policy. Query rule families, don't re-read prose.
 
-:- discontiguous(doc_rule/1, doc_location/2, cleanup_rule/1, testing_rule/1).
-:- discontiguous(git_sync_rule/1, deploy_source/2, tasks_org_contract/1).
-:- discontiguous(emacs_rule/1, script_rule/1, platform_rule/1).
+:- discontiguous([doc_rule/1, doc_location/2, cleanup_rule/1, testing_rule/1,
+                  git_sync_rule/1, deploy_source/2, tasks_org_contract/1,
+                  emacs_rule/1, script_rule/1, platform_rule/1]).
 
 % ---- Documentation is part of the change ----
 doc_rule(documentation_drift_is_a_blocking_consistency_error).
