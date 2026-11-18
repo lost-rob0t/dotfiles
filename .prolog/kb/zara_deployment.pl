@@ -10,6 +10,21 @@ zara_deployment_invariant(compare_service_execstart_to_evaluated_package).
 zara_startup_observation(wake_may_retry_before_daemon_ready).
 zara_startup_observation(pair_may_fail_before_control_socket_exists).
 
+%% Deployed 2026-11-17 on flake host (verified, gen165, zarathushtra-full k1hmv0w5):
+%% flake input zara pin bumped 034d6b23 -> cd6bde72 (314 commits); other lock
+%% inputs preserved; [tts] provider llamacpp in hand-managed config.toml
+%% (engine defaults cover binary/model/mmproj/ngl; pocket-tts GGUFs on disk).
+zara_deployment_trap(systemd_dropin_execstart_override,
+    '~/.config/systemd/user/<unit>.service.d/override.conf silently pins a stale
+     binary over every HM generation (server+wake pinned 2026-09-27 old pin);
+     KB invariant compare_service_execstart_to_evaluated_package cannot pass
+     until such drop-ins are removed; archive to /tmp before rm -r the .d dir').
+zara_deployment_state(active, date(2026, 11, 17),
+    [zara-server, zara-pair, zara-wake, zara-desktop],
+    execstart(k1hmv0w5zarathushtra_full, remote_tcp_6060_securitydir)).
+zara_server_degraded_scope(llm_credentials_only,
+    'OPENROUTER_API_KEY not wired into server unit env; voice+Prolog unaffected').
+
 %% Enabled-state check contract (verified 2026-11-02 re-enable on flake):
 %% checks.zara-server and tests/zara-server.nix assert the flake profile
 %% ExecStart carries --remote-endpoint tcp://0.0.0.0:6060 + --security-dir,

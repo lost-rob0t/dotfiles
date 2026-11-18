@@ -426,17 +426,17 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1792371936,
-        "narHash": "sha256-vkaDp56Lz1it5o2im9I0VCCi4QEZomrQPsMjEkwY4zo=",
+        "lastModified": 1794890629,
+        "narHash": "sha256-vAPJs0I/O1bwhc6neK3eRESMtMEKMBhsaMhprREg2Po=",
         "ref": "master",
-        "rev": "034d6b23077b543cb5d2ed8b177411bd5179ac4a",
-        "revCount": 3331,
+        "rev": "cd6bde72264173739ee769f30c0c1a7aa0241d21",
+        "revCount": 3645,
         "type": "git",
         "url": "ssh://git@github.com/lost-rob0t/zara.git"
       },
       "original": {
         "ref": "master",
-        "rev": "034d6b23077b543cb5d2ed8b177411bd5179ac4a",
+        "rev": "cd6bde72264173739ee769f30c0c1a7aa0241d21",
         "type": "git",
         "url": "ssh://git@github.com/lost-rob0t/zara.git"
       }
