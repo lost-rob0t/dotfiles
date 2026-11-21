@@ -352,6 +352,12 @@ in
       description = "Loopback llm-log base URL used for model transport and quota telemetry.";
     };
 
+    zaiDirect = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Send OpenCode z.AI Coding Plan traffic directly to api.z.ai, bypassing the llm-log proxy and its quota gate.";
+    };
+
     prologRlmCheckout = mkOption {
       type = types.str;
       default = "${config.home.homeDirectory}/Documents/Projects/prolog-rlm";
@@ -465,7 +471,9 @@ in
     services.llm-log.upstreams.zai = "https://api.z.ai";
 
     programs.opencode.settings.provider."zai-coding-plan".options.baseURL =
-      "${cfg.proxyBaseUrl}/zai/api/coding/paas/v4";
+      if cfg.zaiDirect
+      then "https://api.z.ai/api/coding/paas/v4"
+      else "${cfg.proxyBaseUrl}/zai/api/coding/paas/v4";
 
     xdg.configFile."starintel/llm-harness.json".text =
       builtins.toJSON harnessConfig;
