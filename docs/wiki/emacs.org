@@ -24,7 +24,9 @@ one configuration pretending every platform has the same constraints.
   =termux-doom=, =android=/=org=, and =temple=.
 - [[file:../../android/config.org][android/config.org]] owns the Doom-free native Android layer.  It tangles the
   Stow wrapper, Evil/org-modern layer, native profile installer, and tests.
-- [[file:../../android/doom/config.org][android/doom/config.org]] continues to own the full Termux Doom environment.
+- [[file:../../android/doom/config.org][android/doom/config.org]] continues to own the full Termux Doom environment; it
+  reuses the desktop =.doom.d= modules, packages, and config read-only from the
+  checkout and applies Android overrides after that load.
 - [[file:../../bootstrap-termux.org][bootstrap-termux.org]] installs both =emacs-org= and =emacs-termux= launchers.
 
 The Android profile is intentionally read-first: Vim/Evil bindings are always
