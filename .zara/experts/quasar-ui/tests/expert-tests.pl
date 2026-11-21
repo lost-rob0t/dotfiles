@@ -1,6 +1,7 @@
 :- use_module(library(plunit)).
 :- use_module('../kb/expert').
 :- use_module('../corpus/build_corpus').
+:- use_module('../kb/run_ledger').
 
 %% Chain tests pin determinism as well as correctness: exactly one
 %% hypothesis must fire per symptom set (no cross-chain false positives),
@@ -54,10 +55,10 @@ test(cross_scope_chain, [setup(reset_facts)]) :-
 test(e2e_dark_chain_binds_known_surface, [setup(reset_facts)]) :-
     observe(forgejo_gate, green),
     observe(live_stack_error, present),
-    observe(changed_surface, graph_menus),
+    observe(changed_surface, graph),
     findall(H, hypothesis(H), [e2e_dark_in_gate]),
     next_probe(e2e_dark_in_gate,
-               run_surface_e2e_against_live_stack(graph_menus)), !.
+               run_surface_e2e_against_live_stack(graph)), !.
 test(e2e_dark_chain_unknown_surface, [setup(reset_facts)]) :-
     observe(forgejo_gate, green),
     observe(live_stack_error, present),
@@ -71,12 +72,12 @@ test(stale_class_chain, [setup(reset_facts)]) :-
     next_probe(stale_class_selectors, grep_old_and_new_class_across_src).
 
 test(view_index_chain_requires_zero_rows, [setup(reset_facts)]) :-
-    observe(surface, documents_recents),
+    observe(surface, documents),
     observe(server_deployed_recently, true),
     observe(server_rows_rendered, 25),
     findall(H, hypothesis(H), []).
 test(view_index_chain, [setup(reset_facts)]) :-
-    observe(surface, documents_recents),
+    observe(surface, documents),
     observe(server_deployed_recently, true),
     observe(server_rows_rendered, 0),
     findall(H, hypothesis(H), [view_index_rebuilding]),
@@ -87,13 +88,28 @@ test(view_index_chain, [setup(reset_facts)]) :-
 :- begin_tests(quasar_ui_surface_registry, [setup(reset_facts), cleanup(reset_facts)]).
 
 test(graph_menu_family_registered) :-
-    journeys_for_surface(graph_menus, Specs),
-    length(Specs, 6),
+    journeys_for_surface(graph, Specs),
+    length(Specs, 7),
     forall(member(Spec, ['graph-cascade-menu.spec.ts',
-                         'graph-object-type-picker.spec.ts']),
+                         'graph-object-type-picker.spec.ts',
+                         'editor-focus.spec.ts']),
            member(Spec, Specs)).
-test(recents_surface_registered) :-
-    journeys_for_surface(documents_recents, ['documents-recents.spec.ts']).
+test(documents_surface_registered) :-
+    journeys_for_surface(documents, Specs),
+    length(Specs, 2),
+    memberchk('documents-recents.spec.ts', Specs).
+test(registry_covers_all_25_tracked_specs) :-
+    % Snapshot contract: the full inventory is 25 tracked spec files. When
+    % a journey spec is added, register it AND bump this pin; the corpus
+    % builder's unmapped_specs/2 audit reports any drift against a real
+    % checkout.
+    findall(Spec, surface_spec(_, Spec), Specs0),
+    sort(Specs0, Specs),
+    length(Specs, 25).
+test(uncovered_surfaces_declared) :-
+    surface_uncovered(documents_editor, '/documents/new'),
+    surface_uncovered(agents, '/agents'),
+    \+ surface_spec(documents_editor, _).
 test(unknown_surface_empty) :-
     journeys_for_surface(unknown, []).
 
@@ -163,6 +179,91 @@ teardown_tmp_spec(Dir, SpecFile) :-
     catch(delete_directory(E2e), _, true),
     catch(delete_directory(Frontend), _, true),
     catch(delete_directory(Dir), _, true).
+
+%% Run-ledger reader: facts written by quasar scripts/record-run.mjs into
+%% .prolog/runs/run-<HEAD>.pl. Fixtures mirror that format exactly.
+:- begin_tests(quasar_ui_run_ledger, [setup(reset_run_ledger), cleanup(reset_run_ledger)]).
+
+setup_ledger(Dir, Files) :-
+    tmp_file(quasar_ui_ledger, Dir),
+    make_directory(Dir),
+    write_run_file(Dir, 'run-c1.pl', [
+        "test_run('c1', 1, suite_vitest, pass, 505, 0, '2026-11-21T02:00:00Z')."
+    ]),
+    write_run_file(Dir, 'run-c2.pl', [
+        "test_run('c2', 1, suite_vitest, pass, 505, 0, '2026-11-21T02:30:00Z').",
+        "test_run('c2', 1, suite_e2e('e2e/graph-cascade-menu.spec.ts'), pass, 3, 0, '2026-11-21T02:31:00Z')."
+    ]),
+    write_run_file(Dir, 'run-c3.pl', [
+        "test_run('c3', 1, suite_vitest, pass, 505, 0, '2026-11-21T03:00:00Z').",
+        "test_run('c3', 1, suite_e2e('e2e/graph-cascade-menu.spec.ts'), fail, 2, 1, '2026-11-21T03:01:00Z').",
+        "test_failure('c3', 1, suite_e2e('e2e/graph-cascade-menu.spec.ts'), 'cascade closes on a press outside the menu').",
+        "test_run('c3', 2, suite_e2e('e2e/graph-cascade-menu.spec.ts'), pass, 3, 0, '2026-11-21T03:10:00Z')."
+    ]),
+    Files = ['run-c1.pl', 'run-c2.pl', 'run-c3.pl'].
+
+write_run_file(Dir, Name, Lines) :-
+    format(atom(File), '~a/~a', [Dir, Name]),
+    atomics_to_string(Lines, "\n", Body),
+    open(File, write, Stream),
+    write(Stream, Body), nl(Stream),
+    close(Stream).
+
+teardown_ledger(Dir, Files) :-
+    forall(member(F, Files),
+           ( format(atom(Path), '~a/~a', [Dir, F]),
+             catch(delete_file(Path), _, true) )),
+    catch(delete_directory(Dir), _, true).
+
+test(ledger_loads_and_reports_commit_health) :-
+    setup_ledger(Dir, Files),
+    load_run_ledger(Dir),
+    commit_health(c1, green),
+    commit_health(c2, green),
+    commit_health(c3, green),  % rerun (seq 2) superseded the failure
+    teardown_ledger(Dir, Files).
+
+test(latest_result_superseded_by_rerun) :-
+    setup_ledger(Dir, Files),
+    load_run_ledger(Dir),
+    \\+ latest_result(c3, suite_e2e('e2e/graph-cascade-menu.spec.ts'), fail),
+    latest_result(c3, suite_e2e('e2e/graph-cascade-menu.spec.ts'), pass),
+    teardown_ledger(Dir, Files).
+
+test(red_when_latest_run_failed) :-
+    setup_ledger(Dir, Files),
+    load_run_ledger(Dir),
+    % Append a later failing run of vitest at c3: latest seq wins -> red.
+    format(atom(File), '~a/run-c3.pl', [Dir]),
+    open(File, append, Stream),
+    write(Stream, "test_run('c3', 2, suite_vitest, fail, 490, 15, '2026-11-21T03:20:00Z')."), nl(Stream),
+    write(Stream, "test_failure('c3', 2, suite_vitest, 'auth regression breaks CP login')."), nl(Stream),
+    close(Stream),
+    reset_run_ledger,
+    load_run_ledger(Dir),
+    commit_health(c3, red),
+    latest_result(c3, suite_vitest, fail),
+    commit_failures(c3, Pairs),
+    memberchk(failure(suite_vitest, 'auth regression breaks CP login'), Pairs),
+    commit_failures(c3, Pairs2),
+    forall(member(failure(S, _), Pairs2), S == suite_vitest),
+    teardown_ledger(Dir, Files).
+
+test(first_failing_commit_over_ordered_history) :-
+    setup_ledger(Dir, Files),
+    load_run_ledger(Dir),
+    % vitest passes c1..c3; regression enters at c4 (fixture appended).
+    format(atom(File), '~a/run-c4.pl', [Dir]),
+    open(File, write, Stream),
+    write(Stream, "test_run('c4', 1, suite_vitest, fail, 400, 105, '2026-11-21T04:00:00Z')."), nl(Stream),
+    close(Stream),
+    reset_run_ledger,
+    load_run_ledger(Dir),
+    first_failing_commit(suite_vitest, [c1, c2, c3, c4], c4),
+    \\+ first_failing_commit(suite_vitest, [c1, c2, c3], _),
+    teardown_ledger(Dir, Files).
+
+:- end_tests(quasar_ui_run_ledger).
 
 :- initialization(main, main).
 main :- (run_tests -> halt(0) ; halt(1)).

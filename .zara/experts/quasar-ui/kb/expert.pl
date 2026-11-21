@@ -14,7 +14,8 @@
 :- module(dotfiles_quasar_ui_expert,
     [ fact/2, observe/2, reset_facts/0,
       hypothesis/1, next_probe/2, verification/2,
-      surface_spec/2, journeys_for_surface/2 ]).
+      surface_spec/2, surface_route/2, surface_uncovered/2,
+      journeys_for_surface/2 ]).
 
 :- dynamic fact/2.
 
@@ -26,15 +27,52 @@ reset_facts :- retractall(fact(_, _)).
 
 %% surface_spec(Surface, SpecFile) - the persisted Playwright journey specs
 %% (quasar frontend/e2e) that exercise each UI surface. The gate for every
-%% verification below.
-surface_spec(graph_menus, 'graph-cascade-menu.spec.ts').
-surface_spec(graph_menus, 'graph-object-type-picker.spec.ts').
-surface_spec(graph_menus, 'graph-controls.spec.ts').
-surface_spec(graph_menus, 'graph-viewport.spec.ts').
-surface_spec(graph_menus, 'graph-fullscreen.spec.ts').
-surface_spec(graph_menus, 'graph-destructive-ops.spec.ts').
+%% verification below. Full inventory 2026-11-20: every tracked spec file
+%% is mapped, and routes without dedicated journeys are declared
+%% surface_uncovered rather than silently missing.
+surface_spec(graph, 'graph-cascade-menu.spec.ts').
+surface_spec(graph, 'graph-object-type-picker.spec.ts').
+surface_spec(graph, 'graph-controls.spec.ts').
+surface_spec(graph, 'graph-viewport.spec.ts').
+surface_spec(graph, 'graph-fullscreen.spec.ts').
+surface_spec(graph, 'graph-destructive-ops.spec.ts').
+surface_spec(graph, 'editor-focus.spec.ts').
+surface_spec(documents, 'canonical-documents.spec.ts').
+surface_spec(documents, 'documents-recents.spec.ts').
+surface_spec(datasets, 'dataset-picker.spec.ts').
+surface_spec(datasets, 'datasets-pwa.spec.ts').
+surface_spec(import, 'large-import.spec.ts').
+surface_spec(import, 'wireless-imports.spec.ts').
+surface_spec(actors, 'actor-settings.spec.ts').
+surface_spec(actors, 'live-actor-discovery.spec.ts').
+surface_spec(actors, 'target-actors.spec.ts').
+surface_spec(code, 'code-studio.spec.ts').
 surface_spec(settings, 'settings-server-list.spec.ts').
-surface_spec(documents_recents, 'documents-recents.spec.ts').
+surface_spec(stats_home, 'view-installation.spec.ts').
+surface_spec(application_shell, 'application.spec.ts').
+surface_spec(application_shell, 'route-density.spec.ts').
+surface_spec(application_shell, 'ui-consistency.spec.ts').
+surface_spec(mobile, 'mobile-navigation.spec.ts').
+surface_spec(mobile, 'mobile-fit-agent-disclosure.spec.ts').
+surface_spec(mobile, 'mobile-pan-after-actor.spec.ts').
+
+%% surface_route(Surface, Route): the app routes (frontend/src/App.jsx)
+%% behind each surface.
+surface_route(stats_home, '/').
+surface_route(graph, '/graph').
+surface_route(datasets, '/datasets').
+surface_route(documents, '/documents').
+surface_route(import, '/import').
+surface_route(agents, '/agents').
+surface_route(actors, '/actors').
+surface_route(code, '/code').
+surface_route(settings, '/settings').
+
+%% surface_uncovered(Surface, Route): defined features with NO journey
+%% spec yet. These are honest gaps, not coverage.
+surface_uncovered(documents_editor, '/documents/new').
+surface_uncovered(documents_editor, '/documents/:id/edit').
+surface_uncovered(agents, '/agents').
 
 journeys_for_surface(Surface, Specs) :-
     findall(Spec, surface_spec(Surface, Spec), Specs).
@@ -97,7 +135,7 @@ hypothesis(stale_class_selectors) :-
 %% boot re-pushes design docs and resets every CouchDB view index;
 %% totals read 0 or flicker mid-rebuild. Not a UI defect.
 hypothesis(view_index_rebuilding) :-
-    fact(surface, documents_recents),
+    fact(surface, documents),
     fact(server_deployed_recently, true),
     fact(server_rows_rendered, 0).
 

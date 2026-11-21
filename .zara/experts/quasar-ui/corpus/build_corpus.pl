@@ -11,6 +11,7 @@
 :- module(quasar_ui_corpus,
     [ parse_spec_source/2,   % +Lines, -journey(Header, Titles)
       build_corpus/2,        % +QuasarRoot, -Journeys
+      unmapped_specs/3,      % +QuasarRoot, +MappedSpecs, -Unmapped (audit)
       load_corpus/1,         % +QuasarRoot (asserts journey/3, resets first)
       journey/3, reset_corpus/0 ]).
 
@@ -74,6 +75,19 @@ spec_journey(File, journey(SpecBase, Header, Titles)) :-
     parse_spec_source(Lines, journey(Header, Titles)).
 
 empty_journey(journey(_, _, [])).
+
+%% unmapped_specs(+QuasarRoot, +MappedSpecs, -Unmapped): coverage audit -
+%% spec files present in the checkout but absent from the caller's mapped
+%% set (the expert's surface_spec/2 registry). Empty when the registry is
+%% complete; the expert README documents the call.
+unmapped_specs(QuasarRoot, MappedSpecs, Unmapped) :-
+    format(atom(Pattern), '~a/frontend/e2e/*.spec.ts', [QuasarRoot]),
+    expand_file_name(Pattern, Files),
+    maplist(file_base_name, Files, OnDisk0),
+    sort(OnDisk0, OnDisk),
+    sort(MappedSpecs, Mapped),
+    include({Mapped}/[Spec]:( \+ member(Spec, Mapped) ), OnDisk, Unmapped).
+
 
 %% load_corpus(+QuasarRoot): assert the corpus as journey/3 facts.
 load_corpus(QuasarRoot) :-
