@@ -432,13 +432,13 @@
         "rev": "cd6bde72264173739ee769f30c0c1a7aa0241d21",
         "revCount": 3645,
         "type": "git",
-        "url": "ssh://git@github.com/lost-rob0t/zara.git"
+        "url": "https://github.com/lost-rob0t/zara.git"
       },
       "original": {
         "ref": "master",
         "rev": "cd6bde72264173739ee769f30c0c1a7aa0241d21",
         "type": "git",
-        "url": "ssh://git@github.com/lost-rob0t/zara.git"
+        "url": "https://github.com/lost-rob0t/zara.git"
       }
     },
     "zara-plugins": {
