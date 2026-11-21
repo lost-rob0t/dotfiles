@@ -66,6 +66,15 @@ jobs:
         run: bash tests/variety-home-manager.sh
       - name: Run skill sync tests
         run: bash tests/skill-sync.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install SWI-Prolog for rlm-ops tests
+        run: sudo apt-get update && sudo apt-get install -y swi-prolog-nox
+      - name: Run pi rlm-ops extension tests
+        run: |
+          npm install -g @earendil-works/pi-coding-agent
+          bash tests/pi-rlm-ops.sh
       - name: Run GPT TODO bidirectional sync tests
         run: bash tests/gpt-todos-sync.sh
       - name: Run Org/Logseq bidirectional sync tests
