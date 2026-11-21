@@ -28,9 +28,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zara = {
-      # Private repo: the github: tarball fetcher cannot resolve it, so fetch
-      # over SSH with the key that already authenticates this host.
-      url = "git+ssh://git@github.com/lost-rob0t/zara.git?ref=master&rev=cd6bde72264173739ee769f30c0c1a7aa0241d21";
+      # Public repo: fetch anonymously over HTTPS so CI (no SSH key) can
+      # evaluate the flake; rev-pinned, so the fetched content is identical
+      # to the old git+ssh transport.
+      url = "git+https://github.com/lost-rob0t/zara.git?ref=master&rev=cd6bde72264173739ee769f30c0c1a7aa0241d21";
       # Zara vendors its MCP v2 python stack (httpx2/httpcore2); following this
       # repo's newer nixpkgs made nixpkgs' own httpx2 collide with the vendored
       # build inside zara's python env. Build zara against its locked nixpkgs,

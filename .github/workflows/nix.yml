@@ -129,6 +129,13 @@ jobs:
   logos:
     needs: workflows
     runs-on: ubuntu-latest
+    # Authoritative on GitHub only: the job evaluates the full NixOS
+    # toplevel (checks.logos = logos.config.system.build.toplevel), and
+    # the Forgejo runner box gets OOM-killed mid-eval (exit 137,
+    # 2026-11-21). Same pattern as quasar's nix-runtime job: skipped
+    # jobs do not fail Forgejo CI; GitHub completes it and is
+    # authoritative.
+    if: github.server_url == 'https://github.com'
     steps:
       - uses: actions/checkout@v4
       - name: Fetch Nix setup actions from upstream
