@@ -224,3 +224,20 @@ metadata explicitly says `ROAM_VISIBILITY: public` (legacy `PUBLISH: t` is
 accepted during migration). A `:private:` headline, `:PRIVATE: t`, or
 `:VISIBILITY: private` makes the entire subtree private; descendants may not
 override a private ancestor. Run the Prolog censor gate before any site export.
+
+## Expert systems — mandatory use through one interface
+
+Every repository with a `.zara/experts/` directory (directly or via its
+project AGENTS.md) has an expert system available through ONE interface:
+`<dotfiles>/.zara/experts/bin/zara-expert`. Check for it before
+diagnosing domain problems by hand.
+
+- `zara-expert diagnose K=V...` before manual debugging on covered
+  surfaces; act on the returned probe and verification.
+- Record test evidence so the project KB self-updates (quasar example:
+  `scripts/record-run.mjs` writes per-commit run facts that the expert
+  reads).
+- When a surface or domain lacks coverage, extend the existing pack's
+  registry/tests; when no pack fits, scaffold one via
+  `zara-expert define NAME KIND` and author authored rules plus
+  model-free tests. Expert knowledge lives in packs, never only in chat.

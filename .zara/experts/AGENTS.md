@@ -15,3 +15,20 @@ All reusable expert definition/KB implementation work across the user's reposito
   model calls disabled.
 - Private/session facts, credentials, transcripts, and machine-local state stay
   outside Git.
+
+## Single invocation interface (mandatory)
+
+All expert invocation goes through `bin/zara-expert` (this directory's
+`bin/`); do not invent per-pack ad-hoc commands:
+
+- `zara-expert test [PACK]` — merge gate; exit code propagates.
+- `zara-expert diagnose K=V...` — symptom facts in, hypothesis/probe/
+  verification out.
+- `zara-expert coverage --checkout DIR` — journey-spec drift audit;
+  non-empty unmapped list fails.
+- `zara-expert health --ledger DIR --commits C1,C2` — per-commit suite
+  health from a project's run ledger.
+- `zara-expert define NAME KIND` — scaffold a new pack when no pack
+  fits the domain. Agents MUST define a pack (rather than scattering
+  knowledge in prose) whenever a domain produces the same class of
+  question three or more times.

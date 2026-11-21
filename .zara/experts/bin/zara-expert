@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Single invocation interface for expert systems (see zara_expert.pl).
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec swipl -q -t halt "$DIR/zara_expert.pl" -- "$@"
