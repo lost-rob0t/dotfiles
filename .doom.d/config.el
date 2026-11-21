@@ -12,6 +12,8 @@
 (autoload #'lish-vterm "lish" nil t)
 (autoload #'ai/todo-list-todos-with-context "ai-sced" nil nil)
 (autoload #'org-gptel-generate-flashcards "flashcard" nil t)
+(autoload #'nsa/engagement-target-document "engagement" nil t)
+(autoload #'nsa/engagement-pentest-document "engagement" nil t)
 
 (setq doom-theme 'doom-outrun-electric)
 
