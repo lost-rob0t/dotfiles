@@ -1,4 +1,5 @@
 :- use_module(library(plunit)).
+:- use_module(library(readutil)).
 :- use_module('../kb/expert').
 :- use_module('../corpus/build_corpus').
 :- use_module('../kb/run_ledger').
@@ -82,6 +83,25 @@ test(view_index_chain, [setup(reset_facts)]) :-
     observe(server_rows_rendered, 0),
     findall(H, hypothesis(H), [view_index_rebuilding]),
     next_probe(view_index_rebuilding, probe_documents_recent_total_rows).
+
+test(spawned_stack_collision_chain, [setup(reset_facts)]) :-
+    observe(stack, spawned_webserver),
+    observe(spawn_error, eaddrinuse),
+    findall(H, hypothesis(H), [spawned_stack_port_collision]),
+    next_probe(spawned_stack_port_collision,
+               diff_live_stack_ports_and_spawn_with_quasar_mcp_0).
+test(spawn_collision_needs_eaddrinuse, [setup(reset_facts)]) :-
+    observe(stack, spawned_webserver),
+    observe(spawn_error, connection_refused),
+    findall(H, hypothesis(H), []).
+
+test(fresh_stack_red_chain, [setup(reset_facts)]) :-
+    observe(stack, spawned_webserver),
+    observe(journeys_green_live_stack, true),
+    observe(journeys_red_spawned_stack, true),
+    findall(H, hypothesis(H), [fresh_stack_journeys_red]),
+    next_probe(fresh_stack_journeys_red,
+               read_recorded_journey_failure_messages).
 
 :- end_tests(quasar_ui_chains).
 
@@ -227,7 +247,7 @@ test(ledger_loads_and_reports_commit_health) :-
 test(latest_result_superseded_by_rerun) :-
     setup_ledger(Dir, Files),
     load_run_ledger(Dir),
-    \\+ latest_result(c3, suite_e2e('e2e/graph-cascade-menu.spec.ts'), fail),
+    \+ latest_result(c3, suite_e2e('e2e/graph-cascade-menu.spec.ts'), fail),
     latest_result(c3, suite_e2e('e2e/graph-cascade-menu.spec.ts'), pass),
     teardown_ledger(Dir, Files).
 
@@ -261,10 +281,65 @@ test(first_failing_commit_over_ordered_history) :-
     reset_run_ledger,
     load_run_ledger(Dir),
     first_failing_commit(suite_vitest, [c1, c2, c3, c4], c4),
-    \\+ first_failing_commit(suite_vitest, [c1, c2, c3], _),
+    \+ first_failing_commit(suite_vitest, [c1, c2, c3], _),
     teardown_ledger(Dir, Files).
 
 :- end_tests(quasar_ui_run_ledger).
+
+%% Expert-accuracy: consultations (confirm/refute) recorded through the
+%% same ledger; a latest-refutation flags the chain SUSPECT for diagnose.
+:- begin_tests(quasar_ui_consultations, [setup(reset_run_ledger), cleanup(reset_run_ledger)]).
+
+setup_consultations(Dir, Files) :-
+    tmp_file(quasar_ui_ledger, Dir),
+    make_directory(Dir),
+    format(atom(File), '~a/run-c1.pl', [Dir]),
+    open(File, write, Stream),
+    write(Stream, "test_run('c1', 1, suite_vitest, pass, 505, 0, '2026-11-21T02:00:00Z')."),
+    nl(Stream),
+    close(Stream),
+    Files = [File].
+
+test(record_refute_reconfirm_cycle, [setup(reset_run_ledger)]) :-
+    setup_consultations(Dir, Files),
+    writeln("DBG t1 setup done"),
+    record_consultation(Dir, 'test_chain', confirmed, 'evidence A'),
+    writeln("DBG t1 rec1 done"),
+    record_consultation(Dir, 'test_chain', refuted, 'wrong on nested menus'),
+    reset_run_ledger,
+    load_run_ledger(Dir),
+    chain_record('test_chain', 1, 1),
+    suspect_chain('test_chain'),
+    chain_hypotheses(['test_chain']),
+    record_consultation(Dir, 'test_chain', confirmed, 're-confirmed after revision'),
+    reset_run_ledger,
+    load_run_ledger(Dir),
+    chain_record('test_chain', 2, 1),
+    \+ suspect_chain('test_chain'),
+    !,
+    teardown_consultations(Dir, Files).
+
+test(partial_consultation_is_valid, [setup(reset_run_ledger)]) :-
+    setup_consultations(Dir, Files),
+    record_consultation(Dir, 'test_chain', partial, 'fixed the guard, missed the escape handler'),
+    reset_run_ledger,
+    load_run_ledger(Dir),
+    chain_record('test_chain', 0, 0),
+    \+ suspect_chain('test_chain'),
+    format(atom(ConsultFile), '~a/expert-consultations.pl', [Dir]),
+    read_file_to_string(ConsultFile, Stored, []),
+    sub_atom(Stored, _, _, _, "partial"),
+    sub_atom(Stored, _, _, _, "missed the escape handler"),
+    !,
+    teardown_consultations(Dir, Files).
+
+teardown_consultations(Dir, Files) :-
+    forall(member(F, Files),
+           ( format(atom(Path), '~a/~a', [Dir, F]),
+             catch(delete_file(Path), _, true) )),
+    catch(delete_directory(Dir), _, true).
+
+:- end_tests(quasar_ui_consultations).
 
 :- initialization(main, main).
 main :- (run_tests -> halt(0) ; halt(1)).

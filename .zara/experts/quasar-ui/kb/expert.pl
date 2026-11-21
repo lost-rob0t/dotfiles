@@ -143,6 +143,25 @@ hypothesis(view_index_rebuilding) :-
     fact(server_rows_rendered, 0).
 
 %% ---------------------------------------------------------------
+%% Chain 8 (2026-11-21, live incident): journey specs fail wholesale
+%% against a SPAWNED stack (playwright webServer -> dev.mjs) while the
+%% operator's live stack is running: dev.mjs boots CP AND the bundled
+%% MCP server (port 8083), colliding with live-stack ports ->
+%% EADDRINUSE -> CP exits -> every journey fails at once.
+hypothesis(spawned_stack_port_collision) :-
+    fact(stack, spawned_webserver),
+    fact(spawn_error, eaddrinuse).
+
+%% Chain 9 (2026-11-21): journeys pass against the live stack but fail
+%% wholesale in CI against the spawned stack - fresh-CP workspace
+%% bootstrap and stack-readiness differ; diagnose with the failure
+%% messages from record-run's journey-failure printer before theorizing.
+hypothesis(fresh_stack_journeys_red) :-
+    fact(stack, spawned_webserver),
+    fact(journeys_green_live_stack, true),
+    fact(journeys_red_spawned_stack, true).
+
+%% ---------------------------------------------------------------
 %% Probes, in the same order as the hypotheses above.
 next_probe(pointerdown_close_guard_unexempted,
            grep_close_guards_for_menu_class_exemption).
@@ -159,6 +178,10 @@ next_probe(stale_class_selectors,
            grep_old_and_new_class_across_src).
 next_probe(view_index_rebuilding,
            probe_documents_recent_total_rows).
+next_probe(spawned_stack_port_collision,
+           diff_live_stack_ports_and_spawn_with_quasar_mcp_0).
+next_probe(fresh_stack_journeys_red,
+           read_recorded_journey_failure_messages).
 
 %% ---------------------------------------------------------------
 %% Verifications, in the same order as the hypotheses above.
@@ -176,3 +199,7 @@ verification(stale_class_selectors,
              surface_e2e('graph-cascade-menu.spec.ts')).
 verification(view_index_rebuilding,
              skip_gated_recents_spec_after_index_ready).
+verification(spawned_stack_port_collision,
+             journeys_green_ci_mode_locally).
+verification(fresh_stack_journeys_red,
+             first_green_spawned_stack_run_after_fix).

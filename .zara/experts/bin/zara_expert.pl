@@ -9,6 +9,9 @@ invocation. Subcommands:
     zara-expert coverage --checkout DIR  Audit: journey specs on disk vs the surface registry.
     zara-expert health --ledger DIR --commits C1,C2,...   Per-commit suite health from the run ledger.
     zara-expert define NAME KIND         Scaffold a new expert pack under .zara/experts/NAME/.
+    zara-expert confirm --ledger DIR HYP  Record that a hypothesis was confirmed by acting evidence.
+    zara-expert refute  --ledger DIR HYP NOTE  Record a refutation with why; chain flags suspect.
+    zara-expert chains  --ledger DIR     Per-chain confirmed/refuted record + suspect flags.
 
 Conventions the interface enforces:
 - Expert packs live in .zara/experts/<name>/{kb,tests}[/corpus|/bin].
@@ -89,6 +92,47 @@ dispatch(health, Args) :- !,
              ; format("~w: no recorded runs~n", [C]) )
            )),
     halt(0).
+dispatch(confirm, Args) :- !,
+    option_value(ledger, Args, LedgerDir),
+    positional_args(Args, Positionals),
+    ( Positionals = [Hyp] -> true ; usage, halt(2) ),
+    ( option_value(note, Args, Note0) -> true ; Note0 = "" ),
+    atom_string(Note, Note0),
+    script_base(Base),
+    format(atom(LedgerMod), '~a/quasar-ui/kb/run_ledger', [Base]),
+    use_module(LedgerMod),
+    record_consultation(LedgerDir, Hyp, confirmed, Note),
+    chain_record(Hyp, Confirmed, Refuted),
+    format("~w confirmed (record: ~w confirmed / ~w refuted)~n", [Hyp, Confirmed, Refuted]),
+    halt(0).
+dispatch(refute, Args) :- !,
+    option_value(ledger, Args, LedgerDir),
+    positional_args(Args, Positionals),
+    ( Positionals = [Hyp] -> true ; usage, halt(2) ),
+    ( option_value(note, Args, Note0), Note0 \= "" -> true
+    ; writeln("refute requires --note \"why it was wrong (evidence)\""), halt(2) ),
+    atom_string(Note, Note0),
+    script_base(Base),
+    format(atom(LedgerMod), '~a/quasar-ui/kb/run_ledger', [Base]),
+    use_module(LedgerMod),
+    record_consultation(LedgerDir, Hyp, refuted, Note),
+    format("~w REFUTED - chain flagged suspect for future diagnose calls~n", [Hyp]),
+    halt(0).
+dispatch(chains, Args) :- !,
+    option_value(ledger, Args, LedgerDir),
+    script_base(Base),
+    format(atom(LedgerMod), '~a/quasar-ui/kb/run_ledger', [Base]),
+    use_module(LedgerMod),
+    load_run_ledger(LedgerDir),
+    ( chain_hypotheses(Hyps) ->
+        forall(( member(H, Hyps),
+                 chain_record(H, Confirmed, Refuted) ),
+               ( ( suspect_chain(H) -> Sus = 'SUSPECT (latest: refuted)' ; Sus = '' ),
+                 format("~w: ~w confirmed, ~w refuted ~w~n", [H, Confirmed, Refuted, Sus]) )),
+        halt(0)
+    ; writeln("no consultations recorded yet (confirm/refute build the record)"),
+      halt(0)
+    ).
 dispatch(define, [Name, Kind]) :- !,
     scaffold(Name, Kind),
     format("scaffolded .zara/experts/~a/ - author kb/expert.pl rules and tests/expert-tests.pl pins, then add the pack to .zara/experts/README.md~n", [Name]).
@@ -96,7 +140,17 @@ dispatch(_, _) :- usage, halt(2).
 
 usage :-
     writeln("usage: zara-expert test [PACK] | diagnose K=V... | coverage --checkout DIR"),
-    writeln("             health --ledger DIR --commits C1,C2 | define NAME KIND").
+    writeln("             health --ledger DIR --commits C1,C2 | define NAME KIND"),
+    writeln("             confirm/refute --ledger DIR HYP [--note NOTE] | chains --ledger DIR").
+
+%% positional_args(+Args, -Positionals): drops '--flag value' pairs
+%% (swipl pre-splits '--opt=value'), leaving bare positionals.
+positional_args([], []).
+positional_args([Flag, _Value | Rest], Positionals) :-
+    sub_atom(Flag, 0, 2, _, '--'), !,
+    positional_args(Rest, Positionals).
+positional_args([Other | Rest], [Other | Positionals]) :-
+    positional_args(Rest, Positionals).
 
 %% option_value(Name, Args, Value): swipl pre-splits --name=VALUE into
 %% [--name, VALUE], so accept both the split and the joined forms.
