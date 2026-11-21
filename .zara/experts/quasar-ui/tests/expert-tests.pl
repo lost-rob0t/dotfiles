@@ -98,18 +98,18 @@ test(documents_surface_registered) :-
     journeys_for_surface(documents, Specs),
     length(Specs, 2),
     memberchk('documents-recents.spec.ts', Specs).
-test(registry_covers_all_25_tracked_specs) :-
-    % Snapshot contract: the full inventory is 25 tracked spec files. When
+test(registry_covers_all_26_tracked_specs) :-
+    % Snapshot contract: the full inventory is 26 tracked spec files. When
     % a journey spec is added, register it AND bump this pin; the corpus
-    % builder's unmapped_specs/2 audit reports any drift against a real
+    % builder's unmapped_specs/3 audit reports any drift against a real
     % checkout.
     findall(Spec, surface_spec(_, Spec), Specs0),
     sort(Specs0, Specs),
-    length(Specs, 25).
-test(uncovered_surfaces_declared) :-
-    surface_uncovered(documents_editor, '/documents/new'),
-    surface_uncovered(agents, '/agents'),
-    \+ surface_spec(documents_editor, _).
+    length(Specs, 26).
+test(declared_gaps_closed_and_surface_remapped) :-
+    surface_spec(documents_editor, 'canonical-documents.spec.ts'),
+    surface_spec(agents, 'agents-hub.spec.ts'),
+    \+ surface_uncovered(_, _).
 test(unknown_surface_empty) :-
     journeys_for_surface(unknown, []).
 
@@ -221,6 +221,7 @@ test(ledger_loads_and_reports_commit_health) :-
     commit_health(c1, green),
     commit_health(c2, green),
     commit_health(c3, green),  % rerun (seq 2) superseded the failure
+    !,
     teardown_ledger(Dir, Files).
 
 test(latest_result_superseded_by_rerun) :-

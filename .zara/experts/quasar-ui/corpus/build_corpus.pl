@@ -16,6 +16,7 @@
       journey/3, reset_corpus/0 ]).
 
 :- use_module(library(readutil)).
+:- use_module(library(lists)).
 :- dynamic journey/3.
 
 reset_corpus :- retractall(journey(_, _, _)).
@@ -86,7 +87,8 @@ unmapped_specs(QuasarRoot, MappedSpecs, Unmapped) :-
     maplist(file_base_name, Files, OnDisk0),
     sort(OnDisk0, OnDisk),
     sort(MappedSpecs, Mapped),
-    include({Mapped}/[Spec]:( \+ member(Spec, Mapped) ), OnDisk, Unmapped).
+    findall(Spec, ( member(Spec, OnDisk), \+ member(Spec, Mapped) ), Unmapped0),
+    sort(Unmapped0, Unmapped).
 
 
 %% load_corpus(+QuasarRoot): assert the corpus as journey/3 facts.

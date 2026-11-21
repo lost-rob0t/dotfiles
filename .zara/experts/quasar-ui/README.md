@@ -35,8 +35,27 @@ journey specs of a quasar checkout.
 
 ## Usage
 
+All invocation goes through the single interface (see
+`.zara/experts/AGENTS.md`):
+
 ```bash
 # tests (the gate; exit 0 required)
+.zara/experts/bin/zara-expert test quasar-ui
+
+# symptom -> hypothesis -> probe -> verification
+.zara/experts/bin/zara-expert diagnose surface=graph item_press_unmounts_menu=true
+
+# coverage audit: every tracked journey spec must be mapped
+.zara/experts/bin/zara-expert coverage --checkout /path/to/quasar
+
+# per-commit suite health from the run ledger
+.zara/experts/bin/zara-expert health --ledger /path/to/quasar/.prolog/runs \
+  --commits c1,c2,c3
+
+# scaffold a new expert pack when no pack fits the domain
+.zara/experts/bin/zara-expert define <name> <kind>
+
+# raw suite invocation (what the interface wraps)
 swipl -q -t halt -g "run_tests" .zara/experts/quasar-ui/tests/expert-tests.pl
 
 # corpus + coverage audit over a quasar checkout (read-only)

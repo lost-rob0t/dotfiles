@@ -39,6 +39,8 @@ surface_spec(graph, 'graph-destructive-ops.spec.ts').
 surface_spec(graph, 'editor-focus.spec.ts').
 surface_spec(documents, 'canonical-documents.spec.ts').
 surface_spec(documents, 'documents-recents.spec.ts').
+surface_spec(documents_editor, 'canonical-documents.spec.ts').
+surface_spec(agents, 'agents-hub.spec.ts').
 surface_spec(datasets, 'dataset-picker.spec.ts').
 surface_spec(datasets, 'datasets-pwa.spec.ts').
 surface_spec(import, 'large-import.spec.ts').
@@ -69,10 +71,11 @@ surface_route(code, '/code').
 surface_route(settings, '/settings').
 
 %% surface_uncovered(Surface, Route): defined features with NO journey
-%% spec yet. These are honest gaps, not coverage.
-surface_uncovered(documents_editor, '/documents/new').
-surface_uncovered(documents_editor, '/documents/:id/edit').
-surface_uncovered(agents, '/agents').
+%% spec yet. These are honest gaps, not coverage. Declared dynamic: the
+%% empty state (all surfaces covered, 2026-11-21) is meaningful; new
+%% gaps get authored facts HERE rather than omitted surfaces.
+:- dynamic surface_uncovered/2.
+
 
 journeys_for_surface(Surface, Specs) :-
     findall(Spec, surface_spec(Surface, Spec), Specs).
