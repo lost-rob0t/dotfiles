@@ -28,6 +28,9 @@ semantics by `lost-rob0t/zara#1249`.
 - `home-manager/` — adapter over the existing durable Home Manager ownership KB.
 - `zara/` — adapter over existing Zara deployment and voice-validation KB facts.
 - `sysadmin/` — symptom → hypothesis → diagnostic → verification rules.
+- `bluetooth-audio/` — Bluetooth audio health over live probes (codec/profile,
+  stale bluetoothd A2DP SEP cache, Realtek USB-autosuspend transport flaps,
+  persistent-fix drift), with remediation and verification directives.
 - `javascript/` / `typescript/` — canonical JS/TS language semantics.
 - `java/` / `kotlin/` — canonical JVM language semantics.
 - `bash/` — shell grammar/startup/quoting semantics with parse-only inspection.

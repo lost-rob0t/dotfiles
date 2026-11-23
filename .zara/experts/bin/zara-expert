@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# zara-expert — deterministic (model-free) expert CLI over .zara/experts packs.
+#
+# Usage:
+#   zara-expert packs                          list available packs
+#   zara-expert facts <pack>                   run pack probes, emit K=V lines
+#   zara-expert diagnose <pack> [K=V...]       diagnose from facts (live probes
+#                                              when no K=V facts are given)
+#   zara-expert test <pack>                    run pack model-free tests
+#   zara-expert define <name> <kind>           scaffold a new pack
+#
+# Diagnose exit codes: 0 = at least one hypothesis, 3 = no hypothesis.
+set -euo pipefail
+
+EXPERTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TMP="${TMPDIR:-/tmp}/opencode"
+mkdir -p "$TMP"
+
+die() { echo "zara-expert: $*" >&2; exit 2; }
+usage() { exec sed -n '2,14p' "${BASH_SOURCE[0]}"; }
+
+cmd="${1:-}"; [ -n "$cmd" ] || usage
+shift || true
+
+case "$cmd" in
+packs)
+    find "$EXPERTS_DIR" -mindepth 1 -maxdepth 1 -type d \
+        ! -name '.*' -exec basename {} \; | sort
+    ;;
+facts)
+    pack="${1:?pack required}"; [ -x "$EXPERTS_DIR/$pack/probes.sh" ] \
+        || die "no probes.sh in pack '$pack'"
+    exec "$EXPERTS_DIR/$pack/probes.sh"
+    ;;
+test)
+    pack="${1:?pack required}"; tests="$EXPERTS_DIR/$pack/tests/expert-tests.pl"
+    [ -f "$tests" ] || die "no tests in pack '$pack'"
+    exec swipl -q -f none -s "$tests"
+    ;;
+diagnose)
+    pack="${1:?pack required}"; shift
+    kb="$EXPERTS_DIR/$pack/kb/expert.pl"; [ -f "$kb" ] || die "no kb in pack '$pack'"
+    if [ "$#" -gt 0 ]; then facts=("$@"); else
+        mapfile -t facts < <("$EXPERTS_DIR/$pack/probes.sh")
+    fi
+    goal_file="$TMP/zara-expert-diagnose-$$.pl"
+    {
+        echo ":- use_module('$kb')."
+        echo ":- initialization(main, main)."
+        echo "main :-"
+        for kv in "${facts[@]}"; do
+            k="${kv%%=*}"; v="${kv#*=}"
+            [[ "$v" =~ ^[0-9]+$ ]] || v="'$v'"
+            printf '    observe(%s, %s),\n' "'$k'" "$v"
+        done
+        cat <<'EOF'
+    findall(H-(D-V),
+            ( hypothesis(H),
+              ( next_diagnostic(H, D) -> true ; D = none ),
+              ( verification(H, V) -> true ; V = none )),
+            Raw),
+    sort(Raw, Results),
+    ( Results == []
+    -> writeln('DIAGNOSIS: none'), halt(3)
+    ;  forall(member(H-(D-V), Results),
+              ( format('DIAGNOSIS: ~w~n', [H]),
+                format('NEXT:       ~w~n', [D]),
+                format('VERIFY:     ~w~n', [V]) )),
+       halt(0) ).
+EOF
+    } > "$goal_file"
+    status=0
+    swipl -q -f none -s "$goal_file" || status=$?
+    rm -f "$goal_file"
+    exit "$status"
+    ;;
+define)
+    name="${1:?pack name required}"; kind="${2:-symptom}"
+    [ "$name" =~ ^[a-z][a-z0-9-]*$ ] || die "pack name must be lowercase-kebab"
+    [ ! -e "$EXPERTS_DIR/$name" ] || die "pack '$name' already exists"
+    mkdir -p "$EXPERTS_DIR/$name/kb" "$EXPERTS_DIR/$name/tests"
+    cat > "$EXPERTS_DIR/$name/kb/expert.pl" <<EOF
+:- module(dotfiles_${name//-/_}_expert,
+    [ fact/2, observe/2, reset_facts/0, hypothesis/1, next_diagnostic/2,
+      verification/2 ]).
+
+/** <module> dotfiles_${name//-/_}_expert
+$kind pack. Authored rules only; tests must stay model-free.
+*/
+
+:- dynamic fact/2.
+
+observe(Key, Value) :-
+    retractall(fact(Key, _)),
+    assertz(fact(Key, Value)).
+
+reset_facts :- retractall(fact(_, _)).
+
+hypothesis(example_hypothesis) :-
+    fact(example_key, example_value).
+next_diagnostic(example_hypothesis, inspect_example).
+verification(example_hypothesis, example_remediation_verified).
+EOF
+    cat > "$EXPERTS_DIR/$name/tests/expert-tests.pl" <<EOF
+:- use_module(library(plunit)).
+:- use_module('../kb/expert').
+
+:- begin_tests(dotfiles_${name//-/_}_expert, [setup(reset_facts), cleanup(reset_facts)]).
+test(example) :-
+    observe(example_key, example_value),
+    hypothesis(example_hypothesis),
+    next_diagnostic(example_hypothesis, inspect_example).
+:- end_tests(dotfiles_${name//-/_}_expert).
+
+:- initialization(main, main).
+main :- (run_tests -> halt(0) ; halt(1)).
+EOF
+    cat > "$EXPERTS_DIR/$name/probes.sh" <<EOF
+#!/usr/bin/env bash
+# Emits K=V observation facts for the $name expert pack. Read-only.
+set -u
+echo "example_key=example_value"
+EOF
+    chmod +x "$EXPERTS_DIR/$name/probes.sh"
+    echo "scaffolded pack: $EXPERTS_DIR/$name (kind: $kind)"
+    ;;
+*)
+    usage
+    ;;
+esac
