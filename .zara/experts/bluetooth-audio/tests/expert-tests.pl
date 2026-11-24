@@ -130,12 +130,25 @@ test(no_healthy_with_drift, [fail]) :-
     observe(codec, sbc_xq),
     observe(active_profile, a2dp_sink_sbc_xq),
     observe(a2dp_profile_available, yes),
-    observe(transport_failures, 0),
     observe(stale_sep_errors, 0),
     observe(a2dp_connect_failures, 0),
     observe(udev_rule_present, yes),
     observe(modprobe_conf_present, yes),
     observe(wp_dropin_present, no),
+    hypothesis(healthy).
+
+test(no_healthy_when_probe_evidence_missing, [fail]) :-
+    reset_facts,
+    observe(codec, sbc_xq),
+    observe(active_profile, a2dp_sink_sbc_xq),
+    observe(a2dp_profile_available, yes),
+    observe(stale_sep_errors, 0),
+    observe(a2dp_connect_failures, 0),
+    observe(usb_autosuspend, disabled),
+    observe(udev_rule_present, yes),
+    observe(modprobe_conf_present, yes),
+    observe(wp_dropin_present, yes),
+    % fresh-flap facts absent: simulates a probe that crashed mid-run
     hypothesis(healthy).
 
 :- end_tests(dotfiles_bluetooth_audio_expert).

@@ -104,8 +104,10 @@ verification(config_drift, all_persistent_fix_files_present).
 % H5: healthy -----------------------------------------------------------
 hypothesis(healthy) :-
     a2dp_profile_active,
-    \+ count_gt(transport_failures_recent),
-    \+ count_gt(completion_report_errors_recent),
+    % evidence must be explicitly present and zero: a crashed probe that
+    % emits no fresh-flap facts must NOT yield "healthy" (fail closed)
+    fact(transport_failures_recent, 0),
+    fact(completion_report_errors_recent, 0),
     \+ count_gt(stale_sep_errors),
     \+ count_gt(a2dp_connect_failures),
     fact(usb_autosuspend, disabled),

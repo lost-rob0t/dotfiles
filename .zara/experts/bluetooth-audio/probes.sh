@@ -67,7 +67,7 @@ for idpath in /sys/bus/usb/devices/*/idVendor; do
 done
 echo "usb_autosuspend=${autosuspend}"
 
-% --- fresh flap evidence (last 15 minutes only) ---
+# --- fresh flap evidence (last 15 minutes only) ---
 btd_r=$(journalctl -b -u bluetooth --since "-15 min" --no-pager 2>/dev/null || true)
 wp_r=$(journalctl --user -b -u wireplumber --since "-15 min" --no-pager 2>/dev/null || true)
 echo "transport_failures_recent=$(printf '%s\n%s\n' "$btd_r" "$wp_r" \
