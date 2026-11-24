@@ -12,7 +12,7 @@ test(stale_sep_cache_connect_failures) :-
     observe(codec, cvsd),
     observe(active_profile, headset_head_unit),
     hypothesis(stale_bluetoothd_sep_cache),
-    next_diagnostic(stale_bluetoothd_sep_cache, restart_bluetooth_then_reconnect),
+    next_probe(stale_bluetoothd_sep_cache, restart_bluetooth_then_reconnect),
     verification(stale_bluetoothd_sep_cache, a2dp_sbc_xq_active_after_reconnect).
 
 test(stale_sep_cache_missing_profiles_with_evidence) :-
@@ -37,7 +37,7 @@ test(hfp_fallback_switches_profile) :-
     observe(active_profile, headset_head_unit),
     observe(a2dp_profile_available, yes),
     hypothesis(hfp_fallback_profile),
-    next_diagnostic(hfp_fallback_profile, select_a2dp_sbc_xq_profile),
+    next_probe(hfp_fallback_profile, select_a2dp_sbc_xq_profile),
     verification(hfp_fallback_profile, codec_is_sbc_xq_or_aac).
 
 test(no_hfp_fallback_when_a2dp_active, [fail]) :-
@@ -53,7 +53,7 @@ test(realtek_flap_from_transport_failures) :-
     observe(transport_failures_recent, 2),
     observe(completion_report_errors_recent, 0),
     hypothesis(realtek_autosuspend_flap),
-    next_diagnostic(realtek_autosuspend_flap, verify_autosuspend_disabled_and_rules_present),
+    next_probe(realtek_autosuspend_flap, verify_autosuspend_disabled_and_rules_present),
     verification(realtek_autosuspend_flap, no_transport_failures_after_next_connect).
 
 test(realtek_flap_from_completion_reports) :-
@@ -81,7 +81,7 @@ test(drift_missing_udev_rule) :-
     reset_facts,
     observe(udev_rule_present, no),
     hypothesis(config_drift),
-    next_diagnostic(config_drift, restore_persistent_fixes),
+    next_probe(config_drift, restore_persistent_fixes),
     verification(config_drift, all_persistent_fix_files_present).
 
 test(drift_missing_modprobe_conf) :-
@@ -107,7 +107,7 @@ test(healthy_state) :-
     observe(modprobe_conf_present, yes),
     observe(wp_dropin_present, yes),
     hypothesis(healthy),
-    next_diagnostic(healthy, none),
+    next_probe(healthy, none),
     verification(healthy, periodic_probe_on_reconnect).
 
 test(no_healthy_while_flapping, [fail]) :-

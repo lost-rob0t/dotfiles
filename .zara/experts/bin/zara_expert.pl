@@ -5,7 +5,9 @@ Every agent session uses this one entry point; no per-expert bespoke
 invocation. Subcommands:
 
     zara-expert test [PACK]              Run a pack's model-free tests (default: quasar-ui).
-    zara-expert diagnose KEY=VALUE...    Observe symptom facts, print hypothesis/probe/verification.
+    zara-expert diagnose [PACK] K=VALUE...  Observe facts (default pack: quasar-ui;
+                                         runs PACK/probes.sh when no facts given),
+                                         print hypothesis/probe/verification.
     zara-expert coverage --checkout DIR  Audit: journey specs on disk vs the surface registry.
     zara-expert health --ledger DIR --commits C1,C2,...   Per-commit suite health from the run ledger.
     zara-expert define NAME KIND         Scaffold a new expert pack under .zara/experts/NAME/.
@@ -46,14 +48,22 @@ dispatch(test, Args) :- !,
     format(atom(Goal), "cd '~a/~a' && swipl -q -t halt -g \"run_tests\" tests/expert-tests.pl", [Base, Pack]),
     shell(Goal, Status),
     ( Status = 0 -> halt(0) ; halt(Status) ).
-dispatch(diagnose, Facts) :- !,
+dispatch(diagnose, Args0) :- !,
     script_base(Base),
-    format(atom(Expert), '~a/quasar-ui/kb/expert', [Base]),
+    (   Args0 = [Pack0 | Rest],
+        atom_string(PackStr, Pack0),
+        \+ sub_atom(PackStr, _, 1, _, '=')
+    ->  Pack = PackStr
+    ;   Pack = 'quasar-ui', Rest = Args0 ),
+    format(atom(Expert), '~a/~a/kb/expert', [Base, Pack]),
     use_module(Expert),
+    (   Rest == []
+    ->  (   probe_command(Base, Pack, Cmd)
+        ->  probe_facts(Cmd, Facts)
+        ;   Facts = Rest )
+    ;   Facts = Rest ),
     forall(member(Pair, Facts),
-           ( split_string(Pair, "=", "", [K0, V0]),
-             atom_string(K, K0),
-             term_string(V, V0),
+           ( split_pair(Pair, K, V),
              observe(K, V) )),
     ( findall(H, hypothesis(H), []) ->
         writeln("no hypothesis fires for the observed facts; add facts or author a new chain"),
@@ -139,7 +149,7 @@ dispatch(define, [Name, Kind]) :- !,
 dispatch(_, _) :- usage, halt(2).
 
 usage :-
-    writeln("usage: zara-expert test [PACK] | diagnose K=V... | coverage --checkout DIR"),
+    writeln("usage: zara-expert test [PACK] | diagnose [PACK] [K=V...] | coverage --checkout DIR"),
     writeln("             health --ledger DIR --commits C1,C2 | define NAME KIND"),
     writeln("             confirm/refute --ledger DIR HYP [--note NOTE] | chains --ledger DIR").
 
@@ -161,6 +171,32 @@ option_value(Name, Args, Value) :-
     format(atom(Prefix), '--~a=', [Name]),
     member(Arg, Args),
     atom_concat(Prefix, Value, Arg), !.
+
+%% split_pair(Pair, K, V): split a K=V argv item; values may contain '='.
+split_pair(Pair, K, V) :-
+    split_string(Pair, "=", "", [K0 | VParts]),
+    atom_string(K, K0),
+    atomic_list_concat(VParts, "=", V1),
+    term_string(V, V1).
+
+%% probe_command(Base, Pack, Cmd): shell command that emits the pack's
+%% K=V observation facts, when the pack ships probes.sh.
+probe_command(Base, Pack, Cmd) :-
+    format(atom(Probes), '~a/~a/probes.sh', [Base, Pack]),
+    exists_file(Probes),
+    format(atom(Cmd), "sh '~a'", [Probes]).
+
+%% probe_facts(Cmd, Facts): run Cmd, collect its non-empty output lines.
+probe_facts(Cmd, Facts) :-
+    setup_call_cleanup(open(pipe(Cmd), read, In),
+                       read_probes(In, Facts),
+                       close(In)).
+
+read_probes(In, Facts) :-
+    read_line_to_string(In, Line),
+    ( Line == end_of_file -> Facts = []
+    ; string_trim(Line) == "" -> read_probes(In, Facts)
+    ; Facts = [Line | Tail], read_probes(In, Tail) ).
 
 %% scaffold(Name, Kind): minimal pack skeleton; the agent fills the KB.
 scaffold(Name, Kind) :-

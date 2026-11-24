@@ -1,5 +1,5 @@
 :- module(dotfiles_bluetooth_audio_expert,
-    [ fact/2, observe/2, reset_facts/0, hypothesis/1, next_diagnostic/2,
+    [ fact/2, observe/2, reset_facts/0, hypothesis/1, next_probe/2,
       verification/2 ]).
 
 /** <module> dotfiles_bluetooth_audio_expert
@@ -34,7 +34,7 @@ Observed fact vocabulary (K, V):
 
 :- dynamic fact/2.
 :- discontiguous hypothesis/1.
-:- discontiguous next_diagnostic/2.
+:- discontiguous next_probe/2.
 :- discontiguous verification/2.
 
 observe(Key, Value) :-
@@ -68,7 +68,7 @@ hypothesis(stale_bluetoothd_sep_cache) :-
 hypothesis(stale_bluetoothd_sep_cache) :-
     fact(a2dp_profile_available, no),
     count_gt(stale_sep_errors).
-next_diagnostic(stale_bluetoothd_sep_cache, restart_bluetooth_then_reconnect).
+next_probe(stale_bluetoothd_sep_cache, restart_bluetooth_then_reconnect).
 verification(stale_bluetoothd_sep_cache, a2dp_sbc_xq_active_after_reconnect).
 
 % H2: HFP fallback while A2DP is negotiable -----------------------------
@@ -77,7 +77,7 @@ hypothesis(hfp_fallback_profile) :-
     degraded_codec(_),
     fact(a2dp_profile_available, yes),
     \+ a2dp_profile_active.
-next_diagnostic(hfp_fallback_profile, select_a2dp_sbc_xq_profile).
+next_probe(hfp_fallback_profile, select_a2dp_sbc_xq_profile).
 verification(hfp_fallback_profile, codec_is_sbc_xq_or_aac).
 
 % H3: Realtek autosuspend transport flap --------------------------------
@@ -90,7 +90,7 @@ hypothesis(realtek_autosuspend_flap) :-
     count_gt(completion_report_errors_recent).
 hypothesis(realtek_autosuspend_flap) :-
     fact(usb_autosuspend, enabled).
-next_diagnostic(realtek_autosuspend_flap,
+next_probe(realtek_autosuspend_flap,
                 verify_autosuspend_disabled_and_rules_present).
 verification(realtek_autosuspend_flap, no_transport_failures_after_next_connect).
 
@@ -98,7 +98,7 @@ verification(realtek_autosuspend_flap, no_transport_failures_after_next_connect)
 hypothesis(config_drift) :- fact(udev_rule_present, no).
 hypothesis(config_drift) :- fact(modprobe_conf_present, no).
 hypothesis(config_drift) :- fact(wp_dropin_present, no).
-next_diagnostic(config_drift, restore_persistent_fixes).
+next_probe(config_drift, restore_persistent_fixes).
 verification(config_drift, all_persistent_fix_files_present).
 
 % H5: healthy -----------------------------------------------------------
@@ -112,5 +112,5 @@ hypothesis(healthy) :-
     fact(udev_rule_present, yes),
     fact(modprobe_conf_present, yes),
     fact(wp_dropin_present, yes).
-next_diagnostic(healthy, none).
+next_probe(healthy, none).
 verification(healthy, periodic_probe_on_reconnect).
