@@ -1,3 +1,15 @@
+% nixpkgs removed sonixd 2026-10-30 (archived upstream, unmaintained); the
+% alias now throws. Replacement is feishin (rewrite by the original author).
+% Zara had already been migrated to feishin app mappings (.config/zarathushtra/
+% config.pl, tests/zara-workflows.sh); media.nix was the last consumer and
+% swapped to feishin in the 2026-11-25 input update (deployed gen 172).
+removed_package(sonixd, '2026-10-30', feishin).
+% The codex pkg-config override (zstd/aws-lc/oniguruma/sqlite buildInputs) was
+% dropped in the same update: nixpkgs codex 0.171.0 vendors the native probe
+% inputs itself, Hydra builds it with the same toolchain, and the override
+% only forced a local 650MiB Rust rebuild. Kept as a dated flake.nix comment.
+dropped_override(codex_pkgconfig_inputs, 'nixpkgs codex 0.171.0 (2026-11-25 bump)').
+
 % nixpkgs deprecation mappings enforced by tests/nix-deprecations.sh.
 
 :- discontiguous deprecated_attr/2.
