@@ -105,7 +105,15 @@ echo "modules ok"
 
 if command -v pi >/dev/null 2>&1; then
 	echo "== pi load smoke =="
-	pi --extension "$ext" --help 2>&1 | grep -q -- '--symbolic' || fail "extension flag not registered"
+	# pi loads extensions from settings (pi install), not CLI flags. Install
+	# project-locally inside a throwaway dir so the operator's own pi
+	# settings stay untouched, then verify pi registers the package.
+	smoke=$(mktemp -d)
+	(
+		cd "$smoke" || exit 1
+		pi install -l --approve "$ext" >/dev/null 2>&1 || fail "pi install rlm-ops failed"
+		pi list --approve 2>&1 | grep -q "rlm-ops" || fail "extension not registered with pi"
+	) || exit 1
 	echo "pi load ok"
 else
 	echo "== pi load smoke skipped (pi not installed) =="
