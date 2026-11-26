@@ -88,20 +88,11 @@
         # Brave was removed from nixos-unstable on 2026-11-03 (no committers
         # to unblock security issues); we maintain the binary repack
         # ourselves under nix/packages/brave. Bump it with its update.sh.
+        # codex override dropped 2026-11-25: nixpkgs' 0.167.0 workaround
+        # (missing zstd/aws-lc pkg-config probe inputs) is fixed upstream in
+        # 0.171.0's vendored crate build; upstream now comes from the cache.
         (final: prev: {
             brave = final.callPackage ./nix/packages/brave { };
-            # nixpkgs' codex 0.167.0 links zstd-sys and aws-lc-sys through
-            # pkg-config but does not add those libraries to its build
-            # inputs, so both crates fail to probe the system. Add them
-            # until nixpkgs fixes the expression.
-            codex = prev.codex.overrideAttrs (old: {
-              buildInputs = (old.buildInputs or [ ]) ++ [
-                final.zstd
-                final.aws-lc
-                final.oniguruma
-                final.sqlite
-              ];
-            });
           })
           # Two ActivityWatch fixes against the current nixpkgs pin:
           # 1. nixpkgs bumped peewee to 4.x but aw-core still requires

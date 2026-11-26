@@ -37,7 +37,7 @@
       simplescreenrecorder
       feh
       gimp
-      sonixd # Self-hosted music streaming
+      feishin # Self-hosted music streaming (sonixd successor; removed from nixpkgs 2026-10-30)
     ];
   };
 }
