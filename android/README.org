@@ -193,7 +193,13 @@ compatibility are not implied by successful signing.
 * Termux Doom
 
 The canonical phone Doom source is [[file:doom/config.org][doom/config.org]].  It
-tangles to =doom/init.el=, =doom/packages.el=, and =doom/config.el=.
+reuses the desktop Doom configuration as its base: =doom/init.el= mirrors the
+desktop module selection minus Android-hostile native builds (vterm, pdf,
+tree-sitter grammars), =doom/packages.el= loads =.doom.d/packages.el= from the
+checkout, and =doom/config.el= loads the desktop =config.el= read-only before
+applying Android overrides.  The desktop tree is never modified, and the
+profile only launches on Termux through the =termux-doom= profile or the
+=emacs-termux= / =doom-termux= wrappers.
 
 The profile keeps StarIntel admin Org workspaces, agenda/TODOs, habits, Babel,
 SBCL/Common Lisp, SWI-Prolog, Nim, Python, =ob-http=, Magit, Eshell, and gptel.
