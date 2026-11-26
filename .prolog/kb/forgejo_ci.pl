@@ -40,3 +40,11 @@ workflow_fix(all_workflows, clone_cachix_actions_from_github_as_local_actions).
 % with a --no-checkout clone plus pinned-sha checkout.
 workflow_failure(external_repo_checkouts, runner_git_proxy_404s_uncached_repos).
 workflow_fix(external_repo_checkouts, plain_git_clone_run_step_with_pinned_sha).
+% actions/setup-node@v4 is not in the runner proxy cache either (PR #341
+% revival, 2026-11-25): the short ref failed at clone time while
+% actions/checkout@v4 works (cached). Same fix: plain git clone from
+% github.com into .github/ci-actions/setup-node, then a local uses: path.
+% Pin a real ref that exists upstream (--branch v4 resolves: setup-node
+% carries a v4 tag).
+workflow_failure(actions_setup_node, runner_git_proxy_404s_uncached_action).
+workflow_fix(actions_setup_node, clone_setup_node_as_local_action).

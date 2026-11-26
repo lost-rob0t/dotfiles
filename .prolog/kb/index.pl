@@ -41,5 +41,6 @@
 :- consult("writers").
 :- consult("repository_writer").
 :- consult("starintel_conky").
+:- consult("pi_extension").
 
 :- consult("chatgpt_desktop").
