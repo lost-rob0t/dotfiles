@@ -106,12 +106,14 @@ echo "modules ok"
 if command -v pi >/dev/null 2>&1; then
 	echo "== pi load smoke =="
 	# pi loads extensions from settings (pi install), not CLI flags. Install
-	# project-locally inside a throwaway dir so the operator's own pi
-	# settings stay untouched, then verify pi registers the package.
+	# a copy under a RELATIVE path inside a throwaway project dir: pi 1.6
+	# records absolute-path installs in a way `pi list` does not report,
+	# and the operator's own pi settings must stay untouched.
 	smoke=$(mktemp -d)
 	(
 		cd "$smoke" || exit 1
-		pi install -l --approve "$ext" >/dev/null 2>&1 || fail "pi install rlm-ops failed"
+		cp -r "$ext" ./rlm-ops || exit 1
+		pi install -l --approve ./rlm-ops >/dev/null 2>&1 || fail "pi install rlm-ops failed"
 		pi list --approve 2>&1 | grep -q "rlm-ops" || fail "extension not registered with pi"
 	) || exit 1
 	echo "pi load ok"
