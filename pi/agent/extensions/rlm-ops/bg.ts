@@ -87,10 +87,14 @@ export class BgManager {
 					child.kill("SIGKILL");
 				}
 			}, opts.timeoutMs);
-			child.on("close", () => clearTimeout(timer));
+			child.on("exit", () => clearTimeout(timer));
 		}
 
-		child.on("close", (code, signal) => {
+		// Track process state on "exit", not "close": close waits for the
+		// stdio pipes, which forked children (dash does not exec -c
+		// commands) keep open after the shell is killed, stalling every
+		// kill/timeout transition until the orphan exits naturally.
+		child.on("exit", (code, signal) => {
 			task.endedAt = Date.now();
 			if (task.timedOut) {
 				task.status = "timeout";
