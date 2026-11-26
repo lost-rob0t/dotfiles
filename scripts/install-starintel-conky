@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+root=$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")
+source_repo=${1:?usage: install-starintel-conky /path/to/starintel-conky-checkout}
+revision=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["revision"])' "$root/.config/starintel-conky-release.json")
+[[ "$revision" =~ ^[0-9a-f]{40}$ ]] || { printf 'Invalid runtime pin\n' >&2; exit 1; }
+git -C "$source_repo" cat-file -e "$revision^{commit}"
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/starintel-desktop-install.XXXXXXXX")
+trap 'rm -rf -- "$scratch"' EXIT
+git -C "$source_repo" archive "$revision" bin conky etc | tar -xf - -C "$scratch"
+python3 "$scratch/bin/install-starintel-desktop"
+target="$HOME/.local/bin/starintel-conky"
+mkdir -p "$(dirname "$target")"
+if [[ -L "$target" ]]; then
+    cmp -s "$root/.local/bin/starintel-conky" "$target" || { printf 'Refusing to replace managed launcher link: %s\n' "$target" >&2; exit 1; }
+elif [[ -e "$target" ]] && ! cmp -s "$root/.local/bin/starintel-conky" "$target"; then
+    cp -p "$target" "$target.before-starintel-$(date +%s)"
+fi
+if [[ ! -L "$target" ]]; then
+    install -m 755 "$root/.local/bin/starintel-conky" "$target"
+fi
+"$target" start
+printf 'Runtime installed. Qtile login startup is owned by .config/qtile/scripts/autostart.sh.\n'
