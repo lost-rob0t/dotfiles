@@ -66,7 +66,9 @@ jobs:
         run: bash tests/variety-home-manager.sh
       - name: Run skill sync tests
         run: bash tests/skill-sync.sh
-      - uses: actions/setup-node@v4
+      - name: Clone setup-node action (runner proxy 404s uncached external actions)
+        run: git clone --depth 1 --branch v4 https://github.com/actions/setup-node .github/ci-actions/setup-node
+      - uses: ./.github/ci-actions/setup-node
         with:
           node-version: "24"
       - name: Install SWI-Prolog for rlm-ops tests
