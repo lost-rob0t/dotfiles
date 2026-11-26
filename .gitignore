@@ -60,3 +60,7 @@ tmp/
 # sqlite WAL sidecars of the ignored proxmox-jobs db
 /proxmox-jobs.sqlite3-shm
 /proxmox-jobs.sqlite3-wal
+
+# hackmode: live operation workspaces (LMDB op stores, recon data) stay untracked
+/hackmode/imgsrc-ru/
+/hackmode/starintel-actor-live/
