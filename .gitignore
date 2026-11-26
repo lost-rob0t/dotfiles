@@ -54,6 +54,7 @@ tmp/
 /distro/state/
 !/.prolog/kb/
 !/.prolog/kb/**
+!/.prolog/kb_lint.pl
 !/.prolog/handoff.pl
 /result
 
