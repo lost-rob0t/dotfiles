@@ -136,6 +136,126 @@
     (when (fboundp 'org-roam-db-sync) (ignore-errors (org-roam-db-sync)))
     path))
 
+(defun kb-roam--document-path (relative)
+  "Resolve an Org RELATIVE path beneath the configured root, without symlinks."
+  (when (or (file-name-absolute-p relative)
+            (not (string-suffix-p ".org" relative))
+            (member ".." (split-string relative "/" t)))
+    (error "Expected a root-relative .org path"))
+  (let* ((root (file-name-as-directory (file-truename (kb-roam-root))))
+         (path root))
+    (dolist (part (split-string relative "/" t))
+      (setq path (expand-file-name part path))
+      (when (file-symlink-p path) (error "Symlink in document path: %s" path)))
+    (unless (string-prefix-p root path) (error "Document escapes root"))
+    path))
+
+(defun kb-roam--document-text (path)
+  (when (file-exists-p path)
+    (with-temp-buffer (insert-file-contents path) (buffer-string))))
+
+(defun kb-roam--document-id (text)
+  (with-temp-buffer
+    (insert text)
+    (goto-char (point-min))
+    (when (looking-at ":PROPERTIES:\n:ID:[ \t]*\\([^\n]+\\)\n:END:")
+      (string-trim (match-string 1)))))
+
+(defun kb-roam-write-document (relative document source expected)
+  "Audit and atomically write a complete repository Org DOCUMENT.
+RELATIVE is below KB_ROAM_ROOT; SOURCE must identify concrete provenance.
+EXPECTED is `absent' for creation or the SHA256 of the previous UTF-8 text.
+Updates preserve the file ID and existing AI tag.  Metadata is stamped by
+this writer; missing visibility defaults to private.  This API does not
+grant publication or design approval.  Cooperative Emacs file locking and
+an expected-content check prevent stale updates; hostile filesystem races
+against the same user are outside this local-writer boundary."
+  (unless (and (stringp source) (not (string-empty-p source))
+               (not (string-match-p "[\n\r]" source)))
+    (error "Concrete single-line source provenance is required"))
+  (let* ((path (kb-roam--document-path relative))
+         (old (kb-roam--document-text path))
+         (id (kb-roam--document-id document))
+         (old-id (and old (kb-roam--document-id old)))
+         (old-tag (and old (with-temp-buffer (insert old) (kb-roam--keyword "AI_TAG"))))
+         (tag (or old-tag (kb-roam--ai-tag)))
+         text temporary)
+    (unless (and id (not (string-empty-p id))) (error "Document needs a file ID"))
+    (when (and old-id (not (equal old-id id))) (error "Cannot change the file ID"))
+    (unless (if old (equal expected (secure-hash 'sha256 old)) (equal expected "absent"))
+      (error "Document changed or creation would overwrite an existing file"))
+    (when-let* ((buffer (get-file-buffer path)))
+      (when (buffer-modified-p buffer) (error "Unsaved editor buffer: %s" path)))
+    (with-temp-buffer
+      (insert document)
+      (let* ((header-end (or (save-excursion (goto-char (point-min))
+                                           (when (re-search-forward "^\\* " nil t)
+                                             (match-beginning 0)))
+                             (point-max)))
+             (tags (save-restriction (narrow-to-region (point-min) header-end)
+                                    (kb-roam--filetags)))
+             (incoming (kb-roam--keyword "AI_TAG")))
+        (when (and old-tag (not (equal old-tag incoming)))
+          (error "Cannot change or remove the existing AI tag"))
+        (kb-roam--validate-tags tags)
+        (save-restriction
+          (narrow-to-region (point-min) header-end)
+          (dolist (name '("TITLE" "FILETAGS" "AI_TAG" "AI_GENERATED" "ROAM_VISIBILITY" "ROAM_SCHEMA" "CENSOR_PROFILE" "SOURCE"))
+            (goto-char (point-min))
+            (let ((case-fold-search t) (count 0))
+              (while (re-search-forward (concat "^#\\+" name ":") nil t)
+                (cl-incf count))
+              (when (> count 1) (error "Duplicate metadata: %s" name))))
+          (unless (kb-roam--keyword "TITLE") (error "Document needs a title"))
+          (let ((visibility (or (kb-roam--keyword "ROAM_VISIBILITY") "private")))
+            (unless (member visibility '("private" "public" "unlisted"))
+              (error "Invalid visibility"))
+            (dolist (entry `(("AI_GENERATED" . "t") ("AI_TAG" . ,tag)
+                             ("ROAM_SCHEMA" . ,kb-roam-metadata-schema)
+                             ("ROAM_KIND" . ,(or (kb-roam--keyword "ROAM_KIND") "note"))
+                             ("ROAM_VISIBILITY" . ,visibility)
+                             ("CENSOR_PROFILE" . "strict")
+                             ("SOURCE" . ,(let ((prior (if old
+                                                           (with-temp-buffer (insert old) (kb-roam--keyword "SOURCE"))
+                                                         (kb-roam--keyword "SOURCE"))))
+                                            (if (and prior (not (equal prior source)))
+                                                (concat prior "; " source) source)))
+                             ("FILETAGS" . ,(concat ":" (string-join
+                                (append (list "ai" tag)
+                                        (seq-remove (lambda (item) (or (equal item "ai")
+                                                                      (string-prefix-p "ai_" item))) tags)) ":") ":"))))
+              (goto-char (point-min))
+              (let ((case-fold-search t)
+                    (line (concat "#+" (car entry) ": " (cdr entry))))
+                (if (re-search-forward (concat "^#\\+" (car entry) ":[^\n]*") nil t)
+                    (replace-match line t t)
+                  (goto-char (point-max))
+                  (unless (bolp) (insert "\n"))
+                  (insert line "\n")))))))
+      (setq text (buffer-string)))
+    (make-directory (file-name-directory path) t)
+    (unwind-protect
+        (progn
+          (lock-file path)
+          (unless (equal old (kb-roam--document-text path)) (error "Concurrent document change"))
+          (setq temporary (make-temp-file (expand-file-name ".kb-write-" (file-name-directory path))))
+          (let ((coding-system-for-write 'utf-8-unix))
+            (write-region text nil temporary nil 'silent))
+          (when (file-exists-p path) (set-file-modes temporary (file-modes path)))
+          (rename-file temporary path (and old t))
+          path)
+      (when (and temporary (file-exists-p temporary)) (delete-file temporary))
+      (unlock-file path))))
+
+(defun kb-roam-cli-write-document ()
+  (kb-roam-write-document
+   (kb-roam--env "KB_ROAM_PATH" "")
+   (with-temp-buffer
+     (insert-file-contents (kb-roam--env "KB_ROAM_DOCUMENT_FILE" ""))
+     (buffer-string))
+   (kb-roam--env "KB_ROAM_SOURCE" "")
+   (kb-roam--env "KB_ROAM_EXPECTED_SHA256" "")))
+
 (defun kb-roam-cli-ingest ()
   (let* ((title (kb-roam--env "KB_ROAM_TITLE" ""))
          (tags (kb-roam--split-tags (kb-roam--env "KB_ROAM_TAGS" "")))
