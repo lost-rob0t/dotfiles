@@ -527,6 +527,10 @@
         codex-config-patch = codexConfigPatchCheck;
         opencode-commands = opencodeCommandsCheck;
         rmguard-classifier = rmguardClassifierCheck;
+        opencode-prolog = import ./tests/opencode-prolog.nix {
+          inherit home-manager lib pkgs;
+          inputs = { inherit skills; };
+        };
         starintel-admin = starintelAdminCheck;
         zara-server = import ./tests/zara-server.nix { inherit homeConfigurations lib pkgs; };
         zara-all-plugins = zaraAllPluginsCheck;
