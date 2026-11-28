@@ -10,7 +10,7 @@ let
   cfg = config.websearchMcp;
   # Meta web search (SearXNG + YaCy + Brave): `websearch` CLI + stdio MCP
   # server built from the public Forgejo repo (flake input, nixpkgs follows).
-  websearchMcp = inputs.websearch-mcp.packages.${pkgs.system}.default;
+  websearchMcp = inputs.websearch-mcp.packages.${pkgs.stdenv.hostPlatform.system}.default;
 in
 {
   options.websearchMcp = {
