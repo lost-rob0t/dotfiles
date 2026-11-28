@@ -49,6 +49,7 @@
     ./proxmox-mcp.nix
     ./discord-mcp.nix
     ./unifi-mcp.nix
+    ./websearch-mcp.nix
     ./vibemon.nix
     ./home-manager-updater.nix
     ./skill-sync.nix

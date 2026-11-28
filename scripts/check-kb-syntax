@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Lint every .pl file in .prolog/kb/ (plus handoff.pl) for:
+#   1. syntax errors (Operator expected etc.)
+#   2. unquoted atoms containing dots, which SWI silently parses as
+#      dict-access syntax (foo(a.b) succeeds at load, fails at query time)
+# Exit 1 on any violation. Run before committing KB changes.
+set -u
+
+DOT="$(dirname "$0")"
+ROOT="$(cd "$DOT/.." && pwd)"
+KB="$ROOT/.prolog/kb"
+LINTER="$ROOT/.prolog/kb_lint.pl"
+
+check_file() {
+    local file="$1"
+    # 1) Consult-time syntax errors
+    local consult_out
+    consult_out=$(swipl -q -g "catch(consult('$file'), E, (format('SYNTAX ~w: ~w~n', '$file', E), halt(1)))" -t halt 2>&1)
+    local rc=$?
+    if (( rc != 0 )); then
+        echo "$consult_out" | grep -v "^Warning" >&2
+        return 1
+    fi
+    # 2) Dot-atom lint (silent dict-syntax trap)
+    local lint_out
+    lint_out=$(swipl -q -s "$LINTER" -g "kb_lint_file('$file') -> true ; halt(1)" -t halt 2>&1)
+    rc=$?
+    if (( rc != 0 )) || echo "$lint_out" | grep -q "ERROR"; then
+        echo "$lint_out" | grep -v "^Warning" >&2
+        return 1
+    fi
+    return 0
+}
+
+fail=0
+for f in "$KB"/*.pl "$ROOT/.prolog/handoff.pl"; do
+    [[ -e "$f" ]] || continue
+    if ! check_file "$f"; then
+        fail=1
+    fi
+done
+
+if (( fail )); then
+    echo "check-kb-syntax: FAILED" >&2
+    exit 1
+fi
+echo "check-kb-syntax: OK ($(ls "$KB"/*.pl | wc -l) kb files + handoff)"

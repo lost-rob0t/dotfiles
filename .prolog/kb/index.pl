@@ -27,6 +27,7 @@
 :- consult("zara_pairing").
 :- consult("llm_log").
 :- consult("divergence_incidents").
+:- consult("desktop_pointer_incidents").
 :- consult("forgejo_remotes").
 :- consult("kb_hygiene").
 :- consult("zara_experts_opencode").
@@ -44,3 +45,4 @@
 :- consult("pi_extension").
 
 :- consult("chatgpt_desktop").
+:- consult("osint_ops").

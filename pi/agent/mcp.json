@@ -21,6 +21,12 @@
       },
       "description": "Brave Search web/local/news/image search (official @brave MCP, v2.1.4)",
       "timeout": 120
+    },
+    "websearch": {
+      "command": "websearch-mcp",
+      "args": ["serve"],
+      "description": "Meta web search: SearXNG + YaCy + Brave fan-out with partial-result notes; YaCy crawl control (nix PATH binary; on Termux install the checkout and point command at bin/websearch-mcp)",
+      "timeout": 120
     }
   }
 }
