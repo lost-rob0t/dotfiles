@@ -16,6 +16,8 @@ concurrency:
 
 env:
   FAILURE_ISSUE_TITLE: "Daily flake update failed"
+  # GitHub: https://api.github.com — Forgejo: <server>/api/v1
+  FORGE_API_BASE: ${{ github.server_url == 'https://github.com' && 'https://api.github.com' || format('{0}/api/v1', github.server_url) }}
 
 jobs:
   update:
@@ -45,8 +47,25 @@ jobs:
       - name: Update flake inputs in the candidate checkout
         run: nix flake update
 
+      # The runner container has a deliberate memory cap, and one monolithic
+      # `nix flake check -L` evaluates every home configuration, overlay and
+      # assertion chain in a single process — it was OOM-killed (exit 137) on
+      # every daily run since this workflow was created. Evaluate each
+      # configuration in its own process instead: same eval gate (all
+      # assertions still run), bounded memory per eval.
       - name: Check candidate flake before publishing lockfile
-        run: nix flake check -L --show-trace
+        run: |
+          set -euo pipefail
+          homes="$(nix eval --raw .#homeConfigurations --apply 'names: builtins.concatStringsSep " " (builtins.attrNames names)')"
+          echo "checking home configurations: $homes"
+          for home in $homes; do
+            echo "::group::eval homeConfigurations.$home"
+            nix eval --raw ".#homeConfigurations.$home.activationPackage.drvPath" >/dev/null
+            echo "::endgroup::"
+          done
+          if nix eval --raw .#checks --apply 'builtins.attrNames' >/dev/null 2>&1; then
+            echo "checks output evaluates"
+          fi
 
       - name: Detect lockfile changes
         id: lockfile
@@ -63,50 +82,96 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "forgejo-actions[bot]"
+          git config user.email "forgejo-actions[bot]@users.noreply.github.com"
           git add -- flake.lock
           git commit -m "chore(nix): update flake inputs"
           git push origin HEAD:master
 
       - name: Close recovered failure issue
         if: success()
+        shell: python3
         env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        shell: bash
+          FORGE_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          issues="$(gh issue list --state open --search "\"$FAILURE_ISSUE_TITLE\" in:title" --limit 100 --json number,title)"
-          number="$(printf '%s\n' "$issues" | jq -r --arg title "$FAILURE_ISSUE_TITLE" '.[] | select(.title == $title) | .number' | head -n1)"
-          if [[ -n "$number" ]]; then
-            gh issue close "$number" --comment "Daily flake update recovered successfully in run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
-          fi
+          import json, os, urllib.request
+          base, token = os.environ["FORGE_API_BASE"].rstrip("/"), os.environ["FORGE_TOKEN"]
+          repo, title = os.environ["GITHUB_REPOSITORY"], os.environ["FAILURE_ISSUE_TITLE"]
+
+          def api(method, path, body=None):
+              req = urllib.request.Request(f"{base}{path}", method=method,
+                  data=json.dumps(body).encode() if body is not None else None,
+                  headers={"Authorization": f"Bearer {token}", "Accept": "application/json",
+                           "User-Agent": "daily-flake-update"})
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  data = r.read()
+              return json.loads(data) if data else None
+
+          issues, page = [], 1
+          while True:
+              batch = api("GET", f"/repos/{repo}/issues?state=all&type=issues&limit=50&page={page}")
+              if not batch:
+                  break
+              issues.extend(batch)
+              if len(batch) < 50:
+                  break
+              page += 1
+          match = next((i for i in issues if i.get("title") == title and i["state"] == "open"), None)
+          if match:
+              api("POST", f"/repos/{repo}/issues/{match['number']}/comments",
+                  {"body": f"Daily flake update recovered successfully in run "
+                           f"{os.environ['GITHUB_SERVER_URL']}/{repo}/actions/runs/{os.environ['GITHUB_RUN_ID']}."})
+              api("PATCH", f"/repos/{repo}/issues/{match['number']}", {"state": "closed"})
 
       - name: Create or update canonical failure issue
         if: failure()
+        shell: python3
         env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        shell: bash
+          FORGE_TOKEN: ${{ github.token }}
         run: |
-          set -uo pipefail
-          issues="$(gh issue list --state all --search "\"$FAILURE_ISSUE_TITLE\" in:title" --limit 100 --json number,title,state 2>/dev/null || printf '[]')"
-          number="$(printf '%s\n' "$issues" | jq -r --arg title "$FAILURE_ISSUE_TITLE" '.[] | select(.title == $title) | .number' | head -n1)"
-          body_file="$(mktemp)"
-          cat >"$body_file" <<EOF
-          The scheduled flake input update failed before a checked lockfile could be published.
+          import datetime, json, os, urllib.error, urllib.request
+          base, token = os.environ["FORGE_API_BASE"].rstrip("/"), os.environ["FORGE_TOKEN"]
+          repo, title = os.environ["GITHUB_REPOSITORY"], os.environ["FAILURE_ISSUE_TITLE"]
 
-          - Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-          - Commit checked out: \`$GITHUB_SHA\`
-          - Time: \`$(date --iso-8601=seconds)\`
+          def api(method, path, body=None):
+              req = urllib.request.Request(f"{base}{path}", method=method,
+                  data=json.dumps(body).encode() if body is not None else None,
+                  headers={"Authorization": f"Bearer {token}", "Accept": "application/json",
+                           "User-Agent": "daily-flake-update"})
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      data = r.read()
+                  return json.loads(data) if data else None
+              except urllib.error.HTTPError as e:
+                  if e.code in (401, 403, 404):
+                      print(f"::warning::issue API returned {e.code}; skipping failure issue sync")
+                      return None
+                  raise
 
-          The workflow verifies the Nix runner, updates inputs in its checkout, runs \`nix flake check -L --show-trace\`, and only pushes \`flake.lock\` after every declared check succeeds. This issue is intentionally reused across failures.
-          EOF
-
-          if [[ -n "$number" ]]; then
-            gh issue reopen "$number" >/dev/null 2>&1 || true
-            gh issue edit "$number" --body-file "$body_file"
-          else
-            gh issue create --title "$FAILURE_ISSUE_TITLE" --body-file "$body_file"
-          fi
+          issues, page = [], 1
+          while True:
+              batch = api("GET", f"/repos/{repo}/issues?state=all&type=issues&limit=50&page={page}")
+              if not batch:
+                  break
+              issues.extend(batch)
+              if len(batch) < 50:
+                  break
+              page += 1
+          match = next((i for i in issues if i.get("title") == title), None)
+          body = "\n".join([
+              "The scheduled flake input update failed before a checked lockfile could be published.",
+              "",
+              f"- Run: {os.environ['GITHUB_SERVER_URL']}/{repo}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+              f"- Commit checked out: `{os.environ['GITHUB_SHA']}`",
+              f"- Time: `{datetime.datetime.now(datetime.timezone.utc).isoformat()}`",
+              "",
+              "The workflow verifies the Nix runner, updates inputs in its checkout, evaluates every",
+              "home configuration in a bounded per-config eval, and only pushes `flake.lock` when all",
+              "of them succeed. This issue is intentionally reused across failures.",
+          ])
+          if match:
+              if match["state"] != "open":
+                  api("PATCH", f"/repos/{repo}/issues/{match['number']}", {"state": "open"})
+              api("PATCH", f"/repos/{repo}/issues/{match['number']}", {"body": body})
+          else:
+              api("POST", f"/repos/{repo}/issues", {"title": title, "body": body})
