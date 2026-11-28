@@ -1,0 +1,39 @@
+name: Zara feature lab
+
+on:
+  pull_request:
+    paths:
+      - ".zara/experts/music/**"
+      - ".zara/experts/proxmox/**"
+      - ".zara/labs/zara-feature-lab/**"
+      - "scripts/zara-feature-lab.py"
+      - "scripts/zara-feature-lab-runtime.pl"
+      - "nix/home-manager/files/zarathushtra/plugins/zara_feature_lab.py"
+      - "nix/home-manager/mods/zara-feature-lab.nix"
+      - "tests/test_zara_feature_lab.py"
+      - ".github/workflows/zara-feature-lab.yml"
+  push:
+    branches:
+      - "feat/zara-symbolic-feature-lab"
+
+jobs:
+  deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SWI-Prolog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y swi-prolog-nox
+      - name: Python contracts
+        run: |
+          python3 -m unittest tests/test_zara_feature_lab.py -v
+          python3 -m py_compile scripts/zara-feature-lab.py
+          python3 -m py_compile nix/home-manager/files/zarathushtra/plugins/zara_feature_lab.py
+      - name: Pure-symbolic expert contracts
+        run: |
+          swipl -q -f none -s .zara/experts/music/tests/expert-tests.pl
+          swipl -q -f none -s .zara/experts/proxmox/tests/expert-tests.pl
+      - name: Whitespace
+        run: git diff --check HEAD^ HEAD
