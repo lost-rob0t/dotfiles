@@ -23,6 +23,12 @@
       # from git.starintel.actor like the agentprolog input.
       url = "git+https://git.starintel.actor/nsaspy/skills";
     };
+    websearch-mcp = {
+      # Public Forgejo repo; anonymous HTTPS fetch like the skills input.
+      # Meta web search (SearXNG + YaCy + Brave) CLI + stdio MCP server.
+      url = "git+https://git.starintel.actor/nsaspy/websearch-mcp";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     chatgpt-desktop = {
       url = "github:lost-rob0t/chatgpt-desktop";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -70,6 +76,7 @@
       home-manager,
       emacs-auto-research,
       skills,
+      websearch-mcp,
       chatgpt-desktop,
       zara,
       qwen3-tts,

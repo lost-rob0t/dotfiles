@@ -201,6 +201,11 @@ in
     # so the API key never enters the Nix store.
     braveMcp.enable = mkDefault true;
 
+    # Meta web search (SearXNG + YaCy + Brave) joins the default LLM tool
+    # plane. Provider secrets (YACY_PASS, BRAVE_*) stay runtime user state;
+    # the meta search notes provider failures instead of failing.
+    websearchMcp.enable = mkDefault true;
+
     # Install required packages for MCP servers and the remaining LLM tools.
     home.packages = with pkgs; [
       claude-code

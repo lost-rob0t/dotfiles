@@ -241,3 +241,15 @@ diagnosing domain problems by hand.
   registry/tests; when no pack fits, scaffold one via
   `zara-expert define NAME KIND` and author authored rules plus
   model-free tests. Expert knowledge lives in packs, never only in chat.
+
+## Web search
+
+For any web search or crawl work, use the `websearch` meta search (MCP
+server `websearch` or the `websearch` CLI) before any single-provider
+tool: one call fans out to SearXNG, YaCy and Brave, dedups by canonical
+URL, and NOTES per-provider failures in the `providers` map instead of
+failing. Never retry a failed provider in a loop; read `note`. Follow
+the `web-search` skill for the workflow. YaCy `resource=global` (P2P)
+is explicit-only; `local` is the default. Brave quota exhaustion (HTTP
+402) is a noted state, not an error to work around.
+

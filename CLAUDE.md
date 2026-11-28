@@ -7,3 +7,4 @@
 - when making scripts ensure they are nixified if possible
 - test your code extensivly
 - query the user for use cases
+- web search/crawling goes through the websearch meta MCP or `websearch` CLI (web-search skill): searx+yacy+brave fan-out, provider failures are notes not failures
