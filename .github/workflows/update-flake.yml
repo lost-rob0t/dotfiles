@@ -90,7 +90,7 @@ jobs:
 
       - name: Close recovered failure issue
         if: success()
-        shell: python3
+        shell: python
         env:
           FORGE_TOKEN: ${{ github.token }}
         run: |
@@ -125,7 +125,7 @@ jobs:
 
       - name: Create or update canonical failure issue
         if: failure()
-        shell: python3
+        shell: python
         env:
           FORGE_TOKEN: ${{ github.token }}
         run: |
